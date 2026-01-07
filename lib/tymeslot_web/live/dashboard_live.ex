@@ -25,8 +25,10 @@ defmodule TymeslotWeb.DashboardLive do
     ServiceSettingsComponent,
     ThemeSettingsComponent,
     VideoSettingsComponent,
-    WebhookSettingsComponent
+    NotificationSettingsComponent
   }
+
+  alias TymeslotWeb.Live.Dashboard.EmbedSettingsComponent
 
   # Dashboard components are loaded dynamically based on the current action
 
@@ -426,9 +428,10 @@ defmodule TymeslotWeb.DashboardLive do
 
   defp component_for_action(:calendar), do: CalendarSettingsComponent
   defp component_for_action(:video), do: VideoSettingsComponent
-  defp component_for_action(:webhooks), do: WebhookSettingsComponent
+  defp component_for_action(:notifications), do: NotificationSettingsComponent
   defp component_for_action(:theme), do: ThemeSettingsComponent
   defp component_for_action(:meetings), do: BookingsManagementComponent
+  defp component_for_action(:embed), do: EmbedSettingsComponent
   defp component_for_action(:payment), do: PaymentLiveComponent
   defp component_for_action(_), do: DashboardOverviewComponent
 

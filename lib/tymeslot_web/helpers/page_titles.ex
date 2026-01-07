@@ -14,8 +14,10 @@ defmodule TymeslotWeb.Helpers.PageTitles do
   def dashboard_title(:meeting_settings), do: "Meeting Settings - Dashboard"
   def dashboard_title(:calendar), do: "Calendar Integration - Dashboard"
   def dashboard_title(:video), do: "Video Integration - Dashboard"
+  def dashboard_title(:notifications), do: "Notifications - Dashboard"
   def dashboard_title(:theme), do: "Theme Selection - Dashboard"
   def dashboard_title(:meetings), do: "Meetings - Dashboard"
+  def dashboard_title(:embed), do: "Embed & Share - Dashboard"
   def dashboard_title(:payment), do: "Payment - Dashboard"
   def dashboard_title(_), do: "Dashboard"
 end

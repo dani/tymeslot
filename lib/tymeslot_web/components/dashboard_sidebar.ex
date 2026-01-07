@@ -36,20 +36,20 @@ defmodule TymeslotWeb.Components.DashboardSidebar do
     >
       <div class="p-6">
         <!-- Mobile Close Button -->
-        <div class="lg:hidden flex justify-end mb-4">
+        <div class="lg:hidden flex justify-end mb-6">
           <button
-            class="dashboard-sidebar-close p-2 rounded-lg hover:bg-white/20 transition-colors"
+            class="dashboard-sidebar-close p-3 rounded-xl bg-slate-50 border-2 border-slate-100 hover:bg-red-50 hover:border-red-100 transition-all"
             phx-click={
               JS.remove_class("dashboard-sidebar-open", to: "#dashboard-sidebar")
               |> JS.add_class("hidden", to: "#dashboard-sidebar-overlay")
             }
             aria-label="Close sidebar"
           >
-            <svg class="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-6 h-6 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
-                stroke-width="2"
+                stroke-width="2.5"
                 d="M6 18L18 6M6 6l12 12"
               >
               </path>
@@ -58,68 +58,57 @@ defmodule TymeslotWeb.Components.DashboardSidebar do
         </div>
         
     <!-- Scheduling Link (Mobile and Desktop) -->
-        <div class="mb-4 flex gap-2">
+        <div class="mb-6 flex gap-2">
           <.link
             :if={LinkAccessPolicy.can_link?(@profile, @integration_status)}
             href={LinkAccessPolicy.scheduling_path(@profile)}
             target="_blank"
-            class="dashboard-nav-link flex-1 flex items-center space-x-3 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 bg-gradient-to-r from-turquoise-600 to-turquoise-500 text-white hover:from-turquoise-700 hover:to-turquoise-600 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+            class="dashboard-nav-link flex-1 flex items-center space-x-3 px-4 py-4 text-sm font-black rounded-2xl transition-all duration-300 bg-gradient-to-br from-turquoise-600 to-cyan-600 text-white shadow-lg shadow-turquoise-500/30 hover:shadow-xl hover:shadow-turquoise-500/40 transform hover:-translate-y-1"
           >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
-                stroke-width="2"
+                stroke-width="2.5"
                 d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
               >
               </path>
             </svg>
-            <span>View Your Scheduling Page</span>
-            <svg class="w-4 h-4 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7">
-              </path>
-            </svg>
+            <span>View Page</span>
           </.link>
           <div
             :if={!LinkAccessPolicy.can_link?(@profile, @integration_status)}
-            class="flex-1 flex items-center space-x-3 px-4 py-3 text-sm font-medium rounded-lg bg-gray-200 text-gray-500 cursor-not-allowed opacity-60"
+            class="flex-1 flex items-center space-x-3 px-4 py-4 text-sm font-bold rounded-2xl bg-slate-100 text-slate-400 cursor-not-allowed opacity-60 border-2 border-slate-200"
             title={LinkAccessPolicy.disabled_tooltip(@profile, @integration_status)}
           >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
-                stroke-width="2"
+                stroke-width="2.5"
                 d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
               >
               </path>
             </svg>
-            <span>View Your Scheduling Page</span>
-            <svg class="w-4 h-4 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7">
-              </path>
-            </svg>
+            <span>View Page</span>
           </div>
 
           <button
             :if={LinkAccessPolicy.can_link?(@profile, @integration_status)}
             type="button"
             phx-click="copy_scheduling_link"
-            class="dashboard-nav-link px-3 py-3 rounded-lg transition-all duration-200 bg-gradient-to-r from-turquoise-600 to-turquoise-500 text-white hover:from-turquoise-700 hover:to-turquoise-600 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 group relative"
+            class="dashboard-nav-link px-4 py-4 rounded-2xl transition-all duration-300 bg-white border-2 border-slate-100 text-slate-700 hover:border-turquoise-400 hover:text-turquoise-700 shadow-sm hover:shadow-md transform hover:-translate-y-1 group relative"
             title="Copy link to clipboard"
           >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
-                stroke-width="2"
+                stroke-width="2.5"
                 d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
               >
               </path>
             </svg>
-            <span class="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-              Copy link
-            </span>
           </button>
           <button
             :if={!LinkAccessPolicy.can_link?(@profile, @integration_status)}
@@ -194,6 +183,15 @@ defmodule TymeslotWeb.Components.DashboardSidebar do
             <span>Video</span>
           </.nav_link>
 
+          <.nav_link
+            patch={~p"/dashboard/notifications"}
+            current={@current_action}
+            action={:notifications}
+          >
+            <IconComponents.icon name={:bell} class="w-5 h-5" />
+            <span>Notifications</span>
+          </.nav_link>
+
           <.nav_link patch={~p"/dashboard/theme"} current={@current_action} action={:theme}>
             <IconComponents.icon name={:paint_brush} class="w-5 h-5" />
             <span>Theme</span>
@@ -202,6 +200,13 @@ defmodule TymeslotWeb.Components.DashboardSidebar do
           <.nav_link patch={~p"/dashboard/meetings"} current={@current_action} action={:meetings}>
             <IconComponents.icon name={:clock} class="w-5 h-5" />
             <span>Meetings</span>
+          </.nav_link>
+
+          <.nav_link patch={~p"/dashboard/embed"} current={@current_action} action={:embed}>
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+            </svg>
+            <span>Embed & Share</span>
           </.nav_link>
 
           <.nav_link patch={~p"/dashboard/payment"} current={@current_action} action={:payment}>
