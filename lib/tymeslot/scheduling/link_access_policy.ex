@@ -6,6 +6,7 @@ defmodule Tymeslot.Scheduling.LinkAccessPolicy do
   """
 
   alias Tymeslot.Integrations.CalendarManagement
+  alias Tymeslot.Demo
 
   @type dashboard_reason :: :no_username | :no_calendar
   @type public_reason :: :no_calendar
@@ -126,5 +127,5 @@ defmodule Tymeslot.Scheduling.LinkAccessPolicy do
   defp has_calendar?(_), do: false
 
   # Demo profiles used in the scheduling flow for previews/demos.
-  defp demo_profile?(profile), do: Tymeslot.Demo.demo_profile?(profile)
+  defp demo_profile?(profile), do: Demo.demo_profile?(profile)
 end

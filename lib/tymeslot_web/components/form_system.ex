@@ -108,7 +108,7 @@ defmodule TymeslotWeb.Components.FormSystem do
   def text_field(assigns) do
     ~H"""
     <div class={@class}>
-      <label for={@name} class="block text-sm font-medium text-gray-700 mb-2">
+      <label for={@name} class="label">
         {@label}
         <%= if @required do %>
           <span class="text-red-500 ml-1">*</span>
@@ -123,16 +123,13 @@ defmodule TymeslotWeb.Components.FormSystem do
         disabled={@disabled}
         phx-debounce={@debounce}
         class={[
-          "w-full px-4 py-3 glass-input rounded-lg",
-          "text-gray-800 placeholder-gray-500 transition-all duration-200",
-          "focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent",
-          if(@disabled, do: "bg-gray-100 cursor-not-allowed", else: ""),
-          if(@errors == [], do: "border-gray-300", else: "border-red-400")
+          "input",
+          if(@errors == [], do: "", else: "input-error")
         ]}
         {@rest}
       />
       <%= if @help do %>
-        <p class="mt-2 text-sm text-gray-600">{@help}</p>
+        <p class="mt-2 text-sm text-slate-500 font-bold">{@help}</p>
       <% end %>
       <.field_errors errors={@errors} />
     </div>
@@ -159,13 +156,13 @@ defmodule TymeslotWeb.Components.FormSystem do
   def number_field(assigns) do
     ~H"""
     <div class={@class}>
-      <label for={@name} class="block text-sm font-medium text-gray-700 mb-2">
+      <label for={@name} class="label">
         {@label}
         <%= if @required do %>
           <span class="text-red-500 ml-1">*</span>
         <% end %>
       </label>
-      <div class="flex items-center space-x-3">
+      <div class="flex items-center space-x-4">
         <input
           type="number"
           id={@name}
@@ -176,17 +173,14 @@ defmodule TymeslotWeb.Components.FormSystem do
           step={@step}
           disabled={@disabled}
           class={[
-            "w-24 px-4 py-3 glass-input rounded-lg",
-            "text-gray-800 placeholder-gray-500 transition-all duration-200",
-            "focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent",
-            if(@disabled, do: "bg-gray-100 cursor-not-allowed", else: ""),
-            if(@errors == [], do: "border-gray-300", else: "border-red-400")
+            "w-32 input",
+            if(@errors == [], do: "", else: "input-error")
           ]}
         />
-        <span class="text-sm text-gray-600">{@unit}</span>
+        <span class="text-sm font-black text-slate-400 uppercase tracking-widest">{@unit}</span>
       </div>
       <%= if @help do %>
-        <p class="mt-2 text-sm text-gray-600">{@help}</p>
+        <p class="mt-2 text-sm text-slate-500 font-bold">{@help}</p>
       <% end %>
       <.field_errors errors={@errors} />
     </div>
@@ -211,7 +205,7 @@ defmodule TymeslotWeb.Components.FormSystem do
   def select_field(assigns) do
     ~H"""
     <div class={@class}>
-      <label for={@name} class="block text-sm font-medium text-gray-700 mb-2">
+      <label for={@name} class="label">
         {@label}
         <%= if @required do %>
           <span class="text-red-500 ml-1">*</span>
@@ -223,11 +217,8 @@ defmodule TymeslotWeb.Components.FormSystem do
           name={@name}
           disabled={@disabled}
           class={[
-            "w-full px-4 py-3 glass-input rounded-lg appearance-none",
-            "text-gray-800 transition-all duration-200",
-            "focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent",
-            if(@disabled, do: "bg-gray-100 cursor-not-allowed", else: ""),
-            if(@errors == [], do: "border-gray-300", else: "border-red-400")
+            "input appearance-none",
+            if(@errors == [], do: "", else: "input-error")
           ]}
         >
           <%= if @prompt do %>
@@ -239,14 +230,9 @@ defmodule TymeslotWeb.Components.FormSystem do
             </option>
           <% end %>
         </select>
-        <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-          <svg class="h-5 w-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
-        </div>
       </div>
       <%= if @help do %>
-        <p class="mt-2 text-sm text-gray-600">{@help}</p>
+        <p class="mt-2 text-sm text-slate-500 font-bold">{@help}</p>
       <% end %>
       <.field_errors errors={@errors} />
     </div>
@@ -273,7 +259,7 @@ defmodule TymeslotWeb.Components.FormSystem do
   def textarea_field(assigns) do
     ~H"""
     <div class={@class}>
-      <label for={@name} class="block text-sm font-medium text-gray-700 mb-2">
+      <label for={@name} class="label">
         {@label}
         <%= if @required do %>
           <span class="text-red-500 ml-1">*</span>
@@ -287,16 +273,13 @@ defmodule TymeslotWeb.Components.FormSystem do
         disabled={@disabled}
         phx-debounce={@debounce}
         class={[
-          "w-full px-4 py-3 glass-input rounded-lg resize-none",
-          "text-gray-800 placeholder-gray-500 transition-all duration-200",
-          "focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent",
-          if(@disabled, do: "bg-gray-100 cursor-not-allowed", else: ""),
-          if(@errors == [], do: "border-gray-300", else: "border-red-400")
+          "textarea resize-y",
+          if(@errors == [], do: "", else: "input-error")
         ]}
         {@rest}
       >{@value}</textarea>
       <%= if @help do %>
-        <p class="mt-2 text-sm text-gray-600">{@help}</p>
+        <p class="mt-2 text-sm text-slate-500 font-bold">{@help}</p>
       <% end %>
       <.field_errors errors={@errors} />
     </div>
@@ -318,33 +301,29 @@ defmodule TymeslotWeb.Components.FormSystem do
   def checkbox_field(assigns) do
     ~H"""
     <div class={@class}>
-      <div class="flex items-start">
-        <div class="flex items-center h-5">
+      <div class="flex items-start gap-3">
+        <div class="flex items-center h-6">
           <input
             type="checkbox"
             id={@name}
             name={@name}
             checked={@checked}
             disabled={@disabled}
-            class={[
-              "h-4 w-4 text-teal-600 rounded transition-all duration-200",
-              "focus:ring-teal-500 border-gray-300",
-              if(@disabled, do: "cursor-not-allowed", else: "cursor-pointer")
-            ]}
+            class="checkbox w-5 h-5"
           />
         </div>
-        <div class="ml-3 text-sm">
+        <div class="text-sm">
           <label
             for={@name}
             class={[
-              "font-medium text-gray-700",
-              if(@disabled, do: "cursor-not-allowed", else: "cursor-pointer")
+              "font-bold text-slate-700",
+              if(@disabled, do: "cursor-not-allowed opacity-50", else: "cursor-pointer")
             ]}
           >
             {@label}
           </label>
           <%= if @help do %>
-            <p class="text-gray-600 mt-1">{@help}</p>
+            <p class="text-slate-500 mt-1 font-medium">{@help}</p>
           <% end %>
         </div>
       </div>
@@ -393,11 +372,11 @@ defmodule TymeslotWeb.Components.FormSystem do
   @spec form_section(map()) :: Phoenix.LiveView.Rendered.t()
   def form_section(assigns) do
     ~H"""
-    <div class={["border-b border-gray-200 pb-6", @class]}>
-      <div class="mb-4">
-        <h3 class="text-lg font-medium text-gray-900">{@title}</h3>
+    <div class={["pb-10", @class]}>
+      <div class="mb-8">
+        <h3 class="text-2xl font-black text-slate-900 tracking-tight">{@title}</h3>
         <%= if @description do %>
-          <p class="mt-1 text-sm text-gray-600">{@description}</p>
+          <p class="mt-2 text-slate-500 font-medium text-lg leading-relaxed">{@description}</p>
         <% end %>
       </div>
       {render_slot(@inner_block)}
@@ -418,14 +397,14 @@ defmodule TymeslotWeb.Components.FormSystem do
   @spec form_actions(map()) :: Phoenix.LiveView.Rendered.t()
   def form_actions(assigns) do
     ~H"""
-    <div class={["flex justify-end space-x-3 pt-4", @class]}>
+    <div class={["flex items-center justify-end gap-4 pt-8 border-t-2 border-slate-50", @class]}>
       <%= if @cancel_event do %>
         <button
           type="button"
           phx-click={@cancel_event}
           phx-target={@phx_target}
           disabled={@saving}
-          class="px-4 py-2 text-sm font-medium text-gray-700 bg-white rounded-lg border border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+          class="btn-secondary py-3 px-8"
         >
           {@cancel_text}
         </button>
@@ -433,19 +412,13 @@ defmodule TymeslotWeb.Components.FormSystem do
       <button
         type="submit"
         disabled={@saving}
-        class="px-4 py-2 text-sm font-medium text-white bg-teal-600 rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+        class="btn-primary py-3 px-10 min-w-[140px]"
       >
         <%= if @saving do %>
-          <div class="flex items-center">
-            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
-              </circle>
-              <path
-                class="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              >
-              </path>
+          <div class="flex items-center gap-2">
+            <svg class="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
             Saving...
           </div>

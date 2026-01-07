@@ -113,7 +113,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.RadicaleConfig 
                   phx-value-field="name"
                   phx-target={@myself}
                   class={[
-                    "glass-input pl-10 w-full",
+                    "input pl-10 w-full",
                     if(Map.get(@form_errors, :name), do: "input-error", else: "")
                   ]}
                   placeholder="My Radicale"
@@ -151,7 +151,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.RadicaleConfig 
                   name="integration[url]"
                   value={Map.get(@form_values || %{}, "url", "")}
                   required
-                  class="glass-input pl-10 w-full"
+                  class="input pl-10 w-full"
                   placeholder="radicale.example.com:5232"
                 />
               </div>
@@ -184,7 +184,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.RadicaleConfig 
                   name="integration[username]"
                   value={Map.get(@form_values || %{}, "username", "")}
                   required
-                  class="glass-input pl-10 w-full"
+                  class="input pl-10 w-full"
                   placeholder="Your username"
                 />
               </div>
@@ -217,7 +217,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.RadicaleConfig 
                   name="integration[password]"
                   value={Map.get(@form_values || %{}, "password", "")}
                   required
-                  class="glass-input pl-10 w-full"
+                  class="input pl-10 w-full"
                   placeholder="Your password"
                 />
               </div>
@@ -252,7 +252,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.RadicaleConfig 
           </button>
 
           <%= if error = Map.get(@form_errors, :base) do %>
-            <div class="glass-card p-3 bg-red-50/50 border border-red-200/50">
+            <div class="brand-card p-3 bg-red-50/50 border border-red-200/50">
               <p class="text-sm text-red-600 flex items-center">
                 <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                   <path
@@ -277,7 +277,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.RadicaleConfig 
     <div class="mb-6">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <!-- Setup Steps Card -->
-        <div class="glass-card p-4 bg-gradient-to-br from-turquoise-50/50 to-blue-50/50">
+        <div class="brand-card p-4 bg-gradient-to-br from-turquoise-50/50 to-blue-50/50">
           <div class="flex items-start space-x-3">
             <div class="w-8 h-8 rounded-lg bg-turquoise-100 flex items-center justify-center flex-shrink-0">
               <svg
@@ -315,7 +315,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.RadicaleConfig 
         </div>
         
     <!-- Features Card -->
-        <div class="glass-card p-4 bg-gradient-to-br from-purple-50/50 to-indigo-50/50">
+        <div class="brand-card p-4 bg-gradient-to-br from-purple-50/50 to-indigo-50/50">
           <div class="flex items-start space-x-3">
             <div class="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
               <svg
@@ -354,7 +354,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.RadicaleConfig 
       </div>
       
     <!-- Pro Tip Card -->
-      <div class="glass-card p-4 bg-gradient-to-r from-amber-50/50 to-yellow-50/50 border border-amber-200/30 mt-4">
+      <div class="brand-card p-4 bg-gradient-to-r from-amber-50/50 to-yellow-50/50 border border-amber-200/30 mt-4">
         <div class="flex items-start space-x-3">
           <div class="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
             <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -30,22 +30,18 @@ defmodule TymeslotWeb.Shared.SocialAuthButtons do
       |> assign(:grid_cols, determine_grid_cols(google_enabled, github_enabled))
 
     ~H"""
-    <div :if={@any_enabled} class="mt-6">
-      <div class="auth-divider">
-        <span class="auth-divider-text">Or continue with</span>
-      </div>
-
-      <div class={"mt-6 grid grid-cols-1 gap-3 #{@grid_cols}"}>
+    <div :if={@any_enabled} class="space-y-4">
+      <div class={"grid grid-cols-1 gap-4 #{@grid_cols}"}>
         <.social_auth_button
           :if={@google_enabled}
           provider="google"
-          label={if @signup, do: "Sign up with Google", else: "Log in with Google"}
+          label={if @signup, do: "Join with Google", else: "Google"}
           href="/auth/google"
         />
         <.social_auth_button
           :if={@github_enabled}
           provider="github"
-          label={if @signup, do: "Sign up with GitHub", else: "Log in with GitHub"}
+          label={if @signup, do: "Join with GitHub", else: "GitHub"}
           href="/auth/github"
         />
       </div>

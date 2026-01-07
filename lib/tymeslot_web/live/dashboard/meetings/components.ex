@@ -2,8 +2,6 @@ defmodule TymeslotWeb.Live.Dashboard.Meetings.Components do
   @moduledoc false
   use Phoenix.Component
 
-  alias Tymeslot.Utils.TimezoneUtils
-  alias TymeslotWeb.Components.FlagHelpers
   alias TymeslotWeb.Live.Dashboard.Meetings.Helpers
 
   # Filter Tabs
@@ -13,20 +11,20 @@ defmodule TymeslotWeb.Live.Dashboard.Meetings.Components do
   @spec filter_tabs(map()) :: Phoenix.LiveView.Rendered.t()
   def filter_tabs(assigns) do
     ~H"""
-    <div class="flex bg-white/5 backdrop-blur-sm border border-purple-200/30 rounded-lg p-1 mb-6 max-w-fit">
+    <div class="flex bg-white border-2 border-slate-50 rounded-[1.25rem] p-1.5 shadow-sm max-w-fit">
       <button
         phx-click="filter_meetings"
         phx-value-filter="upcoming"
         phx-target={@target}
         class={[
-          "flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200",
+          "flex items-center space-x-2 px-6 py-2.5 rounded-xl text-sm font-black transition-all duration-300",
           if(@active == "upcoming",
-            do: "btn-primary",
-            else: "btn-ghost text-gray-600 hover:text-gray-800"
+            do: "bg-gradient-to-br from-turquoise-600 to-cyan-600 text-white shadow-lg shadow-turquoise-500/20",
+            else: "text-slate-500 hover:text-turquoise-600 hover:bg-turquoise-50"
           )
         ]}
       >
-        <.icon name="upcoming" />
+        <.icon name="upcoming" class={if @active == "upcoming", do: "text-white/90", else: ""} />
         <span>Upcoming</span>
       </button>
       <button
@@ -34,14 +32,14 @@ defmodule TymeslotWeb.Live.Dashboard.Meetings.Components do
         phx-value-filter="past"
         phx-target={@target}
         class={[
-          "flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200",
+          "flex items-center space-x-2 px-6 py-2.5 rounded-xl text-sm font-black transition-all duration-300",
           if(@active == "past",
-            do: "btn-primary",
-            else: "btn-ghost text-gray-600 hover:text-gray-800"
+            do: "bg-gradient-to-br from-turquoise-600 to-cyan-600 text-white shadow-lg shadow-turquoise-500/20",
+            else: "text-slate-500 hover:text-turquoise-600 hover:bg-turquoise-50"
           )
         ]}
       >
-        <.icon name="past" />
+        <.icon name="past" class={if @active == "past", do: "text-white/90", else: ""} />
         <span>Past</span>
       </button>
       <button
@@ -49,14 +47,14 @@ defmodule TymeslotWeb.Live.Dashboard.Meetings.Components do
         phx-value-filter="cancelled"
         phx-target={@target}
         class={[
-          "flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200",
+          "flex items-center space-x-2 px-6 py-2.5 rounded-xl text-sm font-black transition-all duration-300",
           if(@active == "cancelled",
-            do: "btn-primary",
-            else: "btn-ghost text-gray-600 hover:text-gray-800"
+            do: "bg-gradient-to-br from-turquoise-600 to-cyan-600 text-white shadow-lg shadow-turquoise-500/20",
+            else: "text-slate-500 hover:text-turquoise-600 hover:bg-turquoise-50"
           )
         ]}
       >
-        <.icon name="cancelled" />
+        <.icon name="cancelled" class={if @active == "cancelled", do: "text-white/90", else: ""} />
         <span>Cancelled</span>
       </button>
     </div>
@@ -127,109 +125,85 @@ defmodule TymeslotWeb.Live.Dashboard.Meetings.Components do
   @spec meeting_card(map()) :: Phoenix.LiveView.Rendered.t()
   def meeting_card(assigns) do
     ~H"""
-    <div class="glass-card p-4 shadow-md hover:shadow-xl transition-shadow duration-200">
-      <div class="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+    <div class="card-glass hover:bg-white hover:border-turquoise-100 hover:shadow-2xl hover:shadow-turquoise-500/5 group/card">
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
         <div class="flex-1">
-          <div class="flex items-start justify-between mb-3">
-            <div class="flex-1">
-              <div class="flex items-center gap-2 flex-wrap">
-                <h4 class="text-lg font-bold text-neutral-800">{@meeting.attendee_name}</h4>
-                <%= if @meeting.attendee_company do %>
-                  <span class="text-sm text-neutral-500">• {@meeting.attendee_company}</span>
-                <% end %>
-                <.status_badges meeting={@meeting} />
-                <%= if @meeting.meeting_url do %>
-                  <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-500/20 text-blue-400 text-xs font-medium rounded-full border border-blue-400/30">
-                    <.icon name="video" /> Video
-                  </span>
-                <% end %>
-              </div>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            <div class="flex items-center text-sm">
-              <div class="w-8 h-8 rounded-lg bg-turquoise-100 flex items-center justify-center mr-2.5">
-                <.icon name="calendar" class="text-turquoise-600" />
-              </div>
-              <span class="text-neutral-700 font-medium">
-                {Helpers.format_meeting_date(
-                  @meeting,
-                  Helpers.get_meeting_timezone(@meeting, @profile)
-                )}
+          <div class="flex items-center gap-3 flex-wrap mb-6">
+            <h4 class="text-2xl font-black text-slate-900 tracking-tight group-hover/card:text-turquoise-700 transition-colors">
+              {@meeting.attendee_name}
+            </h4>
+            <%= if @meeting.attendee_company do %>
+              <span class="text-sm font-bold text-slate-400 bg-slate-50 px-3 py-1 rounded-lg">{@meeting.attendee_company}</span>
+            <% end %>
+            <.status_badges meeting={@meeting} />
+            <%= if @meeting.meeting_url do %>
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-cyan-50 text-cyan-700 text-xs font-black uppercase tracking-wider rounded-full border border-cyan-100 shadow-sm">
+                <.icon name="video" class="w-3.5 h-3.5" /> Video Call
               </span>
-            </div>
-
-            <div class="flex items-center text-sm">
-              <div class="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center mr-2.5">
-                <.icon name="clock" class="text-purple-600" />
-              </div>
-              <span class="text-neutral-700 font-medium">
-                {Helpers.format_meeting_time(
-                  @meeting,
-                  Helpers.get_meeting_timezone(@meeting, @profile)
-                )}
-                <span class="text-neutral-500">({@meeting.duration} min)</span>
-              </span>
-            </div>
-
-            <div class="flex items-center text-sm">
-              <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center mr-2.5">
-                <.icon name="email" class="text-blue-600" />
-              </div>
-              <a
-                href={"mailto:#{@meeting.attendee_email}"}
-                class="text-neutral-700 hover:text-turquoise-600 hover:underline transition-colors truncate font-medium"
-                title={@meeting.attendee_email}
-              >
-                {@meeting.attendee_email}
-              </a>
-            </div>
-
-            <%= if @profile && @profile.timezone do %>
-              <div class="flex items-center text-sm">
-                <div class="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center mr-2.5">
-                  <%= if TimezoneUtils.get_country_code_for_timezone(@profile.timezone) do %>
-                    <FlagHelpers.timezone_flag
-                      timezone={@profile.timezone}
-                      class="w-5 h-4 rounded-sm"
-                    />
-                  <% else %>
-                    <.icon name="globe" class="text-orange-600" />
-                  <% end %>
-                </div>
-                <span class="text-neutral-700 font-medium">
-                  {TimezoneUtils.format_timezone(@profile.timezone)}
-                </span>
-              </div>
             <% end %>
           </div>
 
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="flex items-center gap-4">
+              <div class="w-12 h-12 rounded-2xl bg-turquoise-50 flex items-center justify-center shadow-sm border border-turquoise-100 transition-transform group-hover/card:scale-110">
+                <.icon name="calendar" class="w-6 h-6 text-turquoise-600" />
+              </div>
+              <div>
+                <p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-0.5">Date & Time</p>
+                <p class="text-slate-700 font-bold">
+                  {Helpers.format_meeting_date(
+                    @meeting,
+                    Helpers.get_meeting_timezone(@meeting, @profile)
+                  )}
+                  <span class="text-turquoise-600 ml-1">
+                    {Helpers.format_meeting_time(
+                      @meeting,
+                      Helpers.get_meeting_timezone(@meeting, @profile)
+                    )}
+                  </span>
+                </p>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-4">
+              <div class="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center shadow-sm border border-blue-100 transition-transform group-hover/card:scale-110">
+                <.icon name="email" class="w-6 h-6 text-blue-600" />
+              </div>
+              <div>
+                <p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-0.5">Attendee Email</p>
+                <a
+                  href={"mailto:#{@meeting.attendee_email}"}
+                  class="text-slate-700 hover:text-turquoise-600 transition-colors font-bold"
+                >
+                  {@meeting.attendee_email}
+                </a>
+              </div>
+            </div>
+          </div>
+
           <%= if @meeting.description && @meeting.description != "" do %>
-            <div class="mt-3 p-3 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-lg border border-amber-200">
-              <div class="flex items-start gap-2.5">
-                <div class="w-6 h-6 rounded bg-amber-200/50 flex items-center justify-center flex-shrink-0">
-                  <.icon name="note" class="text-amber-700" />
-                </div>
-                <div class="flex-1">
-                  <p class="text-xs font-semibold text-amber-800 mb-0.5">Meeting Notes</p>
-                  <p class="text-sm text-amber-900">{@meeting.description}</p>
-                </div>
+            <div class="mt-8 p-5 bg-slate-50/50 rounded-2xl border-2 border-slate-50 flex gap-4 items-start">
+              <div class="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center flex-shrink-0 border border-slate-100">
+                <.icon name="note" class="w-4 h-4 text-slate-400" />
+              </div>
+              <div class="flex-1">
+                <p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Meeting Notes</p>
+                <p class="text-slate-600 font-medium leading-relaxed">{@meeting.description}</p>
               </div>
             </div>
           <% end %>
         </div>
 
-        <div class="flex lg:flex-col gap-1.5 flex-shrink-0 lg:items-stretch lg:w-[120px]">
+        <div class="flex lg:flex-col gap-3 flex-shrink-0 lg:w-[160px]">
           <%= if @meeting.status != "cancelled" && @meeting.status != "reschedule_requested" && !Helpers.past_meeting?(@meeting) do %>
             <%= if @meeting.meeting_url do %>
               <a
                 href={@meeting.meeting_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                class="btn btn-sm btn-primary text-center w-full"
+                class="btn-primary py-3 px-4 text-sm w-full"
               >
-                <.icon name="video" class="mr-1.5" /> Join
+                <.icon name="video" class="w-4 h-4 mr-2" /> Join Meeting
               </a>
             <% end %>
 
@@ -238,16 +212,12 @@ defmodule TymeslotWeb.Live.Dashboard.Meetings.Components do
               phx-value-id={@meeting.id}
               phx-target={@target}
               disabled={!Helpers.can_reschedule?(@meeting)}
-              title={Helpers.action_tooltip(@meeting, :reschedule)}
               class={[
-                "btn btn-sm text-center w-full",
-                if(Helpers.can_reschedule?(@meeting),
-                  do: "btn-secondary",
-                  else: "btn-disabled opacity-50 cursor-not-allowed"
-                )
+                "btn-secondary py-3 px-4 text-sm w-full",
+                if(!Helpers.can_reschedule?(@meeting), do: "opacity-50 cursor-not-allowed", else: "")
               ]}
             >
-              <.icon name="swap" class="mr-1.5" /> Reschedule
+              <.icon name="swap" class="w-4 h-4 mr-2" /> Reschedule
             </button>
 
             <button
@@ -256,23 +226,23 @@ defmodule TymeslotWeb.Live.Dashboard.Meetings.Components do
               phx-value-id={@meeting.id}
               phx-target={@target}
               disabled={@cancelling_meeting == @meeting.id || !Helpers.can_cancel?(@meeting)}
-              title={Helpers.action_tooltip(@meeting, :cancel)}
               class={[
-                "btn btn-sm text-center w-full",
-                if(Helpers.can_cancel?(@meeting),
-                  do: "btn-danger",
-                  else: "btn-disabled opacity-50 cursor-not-allowed"
-                )
+                "btn-danger py-3 px-4 text-sm w-full",
+                if(!Helpers.can_cancel?(@meeting), do: "opacity-50 cursor-not-allowed", else: "")
               ]}
             >
               <%= if @cancelling_meeting == @meeting.id do %>
-                <.spinner class="mr-1.5" /> Cancelling
+                <svg class="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Processing...
               <% else %>
-                <.icon name="x" class="mr-1.5" /> Cancel
+                <.icon name="x" class="w-4 h-4 mr-2" /> Cancel
               <% end %>
             </button>
           <% else %>
-            <div class="hidden sm:block sm:min-w-[100px]">&nbsp;</div>
+            <div class="hidden lg:block">&nbsp;</div>
           <% end %>
         </div>
       </div>
@@ -284,22 +254,22 @@ defmodule TymeslotWeb.Live.Dashboard.Meetings.Components do
   defp status_badges(assigns) do
     ~H"""
     <%= if @meeting.status == "cancelled" do %>
-      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-red-500/20 text-red-400 text-xs font-medium rounded-full border border-red-400/30">
-        <.icon name="x" /> Cancelled
+      <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 text-red-700 text-xs font-black uppercase tracking-wider rounded-full border border-red-100 shadow-sm">
+        <.icon name="x" class="w-3 h-3" /> Cancelled
       </span>
     <% else %>
       <%= if @meeting.status == "reschedule_requested" do %>
-        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-500/30 text-amber-700 text-xs font-medium rounded-full border border-amber-500/50">
-          <.icon name="clock" /> Reschedule Requested
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-700 text-xs font-black uppercase tracking-wider rounded-full border border-amber-100 shadow-sm">
+          <.icon name="clock" class="w-3 h-3" /> Reschedule Requested
         </span>
       <% else %>
         <%= if Helpers.past_meeting?(@meeting) do %>
-          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gray-500/20 text-gray-400 text-xs font-medium rounded-full border border-gray-400/30">
-            <.icon name="check" /> Completed
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 text-slate-600 text-xs font-black uppercase tracking-wider rounded-full border border-slate-200 shadow-sm">
+            <.icon name="check" class="w-3 h-3" /> Completed
           </span>
         <% else %>
-          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-turquoise-500/20 text-turquoise-400 text-xs font-medium rounded-full border border-turquoise-400/30">
-            <.icon name="calendar" /> Scheduled
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-black uppercase tracking-wider rounded-full border border-emerald-100 shadow-sm">
+            <.icon name="calendar" class="w-3 h-3" /> Scheduled
           </span>
         <% end %>
       <% end %>
@@ -310,29 +280,23 @@ defmodule TymeslotWeb.Live.Dashboard.Meetings.Components do
   @spec empty_state(map()) :: Phoenix.LiveView.Rendered.t()
   def empty_state(assigns) do
     ~H"""
-    <div class="card-glass">
-      <div class="text-center py-12">
-        <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-turquoise-100/20 flex items-center justify-center">
-          <.icon name="calendar" class="w-8 h-8 text-turquoise-600" />
+    <div class="card-glass py-20">
+      <div class="text-center max-w-sm mx-auto">
+        <div class="w-24 h-24 mx-auto mb-8 rounded-3xl bg-slate-50 flex items-center justify-center border-2 border-slate-100 shadow-sm transition-transform hover:scale-110 hover:rotate-3 duration-500">
+          <.icon name="calendar" class="w-12 h-12 text-slate-300" />
         </div>
-        <p class="text-neutral-600 font-medium">
+        <h3 class="text-2xl font-black text-slate-900 tracking-tight mb-3">
           <%= case @filter do %>
-            <% "upcoming" -> %>
-              No upcoming meetings scheduled
-            <% "past" -> %>
-              No past meetings found
-            <% "cancelled" -> %>
-              No cancelled meetings
+            <% "upcoming" -> %> No upcoming meetings
+            <% "past" -> %> No past meetings
+            <% "cancelled" -> %> No cancelled meetings
           <% end %>
-        </p>
-        <p class="text-sm text-neutral-500 mt-2">
+        </h3>
+        <p class="text-slate-500 font-medium text-lg leading-relaxed">
           <%= case @filter do %>
-            <% "upcoming" -> %>
-              New meetings will appear here when scheduled
-            <% "past" -> %>
-              Completed meetings will be shown here
-            <% "cancelled" -> %>
-              Cancelled meetings will be listed here
+            <% "upcoming" -> %> Your upcoming appointments will appear here automatically.
+            <% "past" -> %> You haven't had any meetings in this period yet.
+            <% "cancelled" -> %> You don't have any cancelled appointments to show.
           <% end %>
         </p>
       </div>

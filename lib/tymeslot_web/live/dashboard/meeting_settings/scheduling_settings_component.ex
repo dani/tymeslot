@@ -20,22 +20,22 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.SchedulingSettingsComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="card-glass">
-      <div class="flex items-center mb-6">
-        <div class="text-gray-600 mr-3">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="card-glass shadow-2xl shadow-slate-200/50">
+      <div class="flex items-center mb-10">
+        <div class="w-12 h-12 bg-turquoise-50 rounded-xl flex items-center justify-center mr-4 shadow-sm border border-turquoise-100/50">
+          <svg class="w-6 h-6 text-turquoise-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
-              stroke-width="2"
+              stroke-width="2.5"
               d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
         </div>
-        <h3 class="text-xl font-semibold text-gray-800">Scheduling Settings</h3>
+        <h3 class="text-2xl font-black text-slate-900 tracking-tight">Scheduling Preferences</h3>
       </div>
 
-      <div class="space-y-6">
+      <div class="space-y-8">
         <Components.buffer_minutes_setting profile={@profile} myself={@myself} />
         <Components.advance_booking_days_setting profile={@profile} myself={@myself} />
         <Components.min_advance_hours_setting profile={@profile} myself={@myself} />

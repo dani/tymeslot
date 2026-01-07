@@ -6,6 +6,8 @@ defmodule Tymeslot.Webhooks.Security do
   allowing recipients to verify that webhooks are genuinely from Tymeslot.
   """
 
+  alias Plug.Crypto
+
   @doc """
   Generates an HMAC-SHA256 signature for a payload.
 
@@ -47,7 +49,7 @@ defmodule Tymeslot.Webhooks.Security do
   @spec verify_signature(String.t(), String.t(), String.t()) :: boolean()
   def verify_signature(payload_string, signature, secret) do
     expected_signature = generate_signature_from_string(payload_string, secret)
-    Plug.Crypto.secure_compare(signature, expected_signature)
+    Crypto.secure_compare(signature, expected_signature)
   end
 
   @doc """

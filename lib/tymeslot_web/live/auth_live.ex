@@ -499,7 +499,7 @@ defmodule TymeslotWeb.AuthLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div id="auth-live" class="glass-container" data-state={@current_state}>
+    <div id="auth-live" class="brand-container !bg-transparent" data-state={@current_state}>
       <%= case @current_state do %>
         <% :login -> %>
           {LoginComponent.auth_login(assigns)}
@@ -517,53 +517,63 @@ defmodule TymeslotWeb.AuthLive do
           {CompleteRegistrationComponent.complete_registration_form(assigns)}
         <% :password_reset_success -> %>
           <TymeslotWeb.Shared.Auth.LayoutComponents.auth_card_layout
-            title="Password Reset"
+            title="Success!"
             flash={assigns.flash}
           >
             <:form>
-              <div class="text-center">
-                <TymeslotWeb.Shared.Auth.IconComponents.success_icon />
-                <h2 class="mt-4 text-lg font-semibold text-gray-900">Password Reset Successfully</h2>
-                <p class="mt-2 text-sm text-gray-600">
-                  Your password has been reset. Please log in with your new password.
-                </p>
-                <div class="mt-6">
-                  <TymeslotWeb.Shared.Auth.ButtonComponents.simple_link_button href="/auth/login">
-                    Log In
-                  </TymeslotWeb.Shared.Auth.ButtonComponents.simple_link_button>
+              <div class="text-center mb-8">
+                <div class="mx-auto w-20 h-20 flex items-center justify-center rounded-2xl bg-emerald-50 border-2 border-emerald-100 shadow-xl shadow-emerald-500/10 mb-6 transform hover:scale-105 transition-all duration-300">
+                  <svg class="w-10 h-10 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
                 </div>
+                <h2 class="text-xl font-bold text-slate-900 tracking-tight mb-3">Password Reset Successfully</h2>
+                <p class="text-base text-slate-600 font-medium max-w-md mx-auto leading-relaxed">
+                  Your password has been reset. You can now log in with your new credentials.
+                </p>
+              </div>
+              <div class="mt-6">
+                <TymeslotWeb.Shared.Auth.ButtonComponents.auth_button
+                  phx-click="navigate_to"
+                  phx-value-state="login"
+                >
+                  Log In
+                </TymeslotWeb.Shared.Auth.ButtonComponents.auth_button>
               </div>
             </:form>
           </TymeslotWeb.Shared.Auth.LayoutComponents.auth_card_layout>
         <% :invalid_token -> %>
           <TymeslotWeb.Shared.Auth.LayoutComponents.auth_card_layout
-            title="Invalid Token"
+            title="Invalid Link"
             flash={assigns.flash}
           >
             <:form>
-              <div class="text-center">
-                <div class="mx-auto h-12 w-12 text-red-500">
-                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
+              <div class="text-center mb-8">
+                <div class="mx-auto w-20 h-20 flex items-center justify-center rounded-2xl bg-red-50 border-2 border-red-100 shadow-xl shadow-red-500/10 mb-6 transform hover:scale-105 transition-all duration-300">
+                  <svg class="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <h2 class="mt-4 text-lg font-semibold text-gray-900">Invalid or Expired Token</h2>
-                <p class="mt-2 text-sm text-gray-600">
-                  The verification link is invalid or has expired. Please request a new one.
+                <h2 class="text-xl font-bold text-slate-900 tracking-tight mb-3">Link Expired or Invalid</h2>
+                <p class="text-base text-slate-600 font-medium max-w-md mx-auto leading-relaxed">
+                  The security link you followed is no longer valid. Please request a new one to continue.
                 </p>
-                <div class="mt-6 space-y-3">
-                  <TymeslotWeb.Shared.Auth.ButtonComponents.simple_link_button href="/auth/login">
-                    Back to Login
-                  </TymeslotWeb.Shared.Auth.ButtonComponents.simple_link_button>
-                  <TymeslotWeb.Shared.Auth.ButtonComponents.auth_link_button href="/auth/reset-password">
-                    Request New Reset Link
-                  </TymeslotWeb.Shared.Auth.ButtonComponents.auth_link_button>
-                </div>
+              </div>
+              <div class="space-y-4">
+                <TymeslotWeb.Shared.Auth.ButtonComponents.auth_button
+                  phx-click="navigate_to"
+                  phx-value-state="reset_password"
+                >
+                  Request New Link
+                </TymeslotWeb.Shared.Auth.ButtonComponents.auth_button>
+                <button
+                  type="button"
+                  phx-click="navigate_to"
+                  phx-value-state="login"
+                  class="btn-secondary w-full py-3.5"
+                >
+                  Back to Login
+                </button>
               </div>
             </:form>
           </TymeslotWeb.Shared.Auth.LayoutComponents.auth_card_layout>

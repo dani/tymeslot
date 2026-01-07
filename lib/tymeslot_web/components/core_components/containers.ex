@@ -5,12 +5,28 @@ defmodule TymeslotWeb.Components.CoreComponents.Containers do
   # ========== CARDS & CONTAINERS ==========
 
   @doc """
+  Renders a brand-styled card container.
+  """
+  attr :class, :string, default: ""
+  slot :inner_block, required: true
+  @spec brand_card(map()) :: Phoenix.LiveView.Rendered.t()
+  def brand_card(assigns) do
+    ~H"""
+    <div class={["brand-card", @class]}>
+      {render_slot(@inner_block)}
+    </div>
+    """
+  end
+
+  @doc """
   Renders a glass-morphism card container.
   """
+  attr :class, :string, default: ""
+  slot :inner_block, required: true
   @spec glass_morphism_card(map()) :: Phoenix.LiveView.Rendered.t()
   def glass_morphism_card(assigns) do
     ~H"""
-    <div class="glass-morphism-card">
+    <div class={["glass-morphism-card", @class]}>
       {render_slot(@inner_block)}
     </div>
     """
@@ -20,13 +36,14 @@ defmodule TymeslotWeb.Components.CoreComponents.Containers do
   Renders a generic detail card with consistent styling.
   """
   attr :title, :string, default: nil
+  attr :class, :string, default: ""
   slot :inner_block, required: true
   @spec detail_card(map()) :: Phoenix.LiveView.Rendered.t()
   def detail_card(assigns) do
     ~H"""
-    <div class="meeting-details-card">
+    <div class={["meeting-details-card", @class]}>
       <%= if @title do %>
-        <h3 class="text-lg font-semibold mb-4 text-purple-900">{@title}</h3>
+        <h3 class="text-xl font-black mb-4 text-slate-900 tracking-tight">{@title}</h3>
       <% end %>
       {render_slot(@inner_block)}
     </div>
@@ -39,20 +56,21 @@ defmodule TymeslotWeb.Components.CoreComponents.Containers do
   attr :color_from, :string, default: "#10b981"
   attr :color_to, :string, default: "#059669"
   attr :size, :atom, default: :medium, values: [:small, :medium, :large]
+  attr :class, :string, default: ""
   slot :inner_block, required: true
   @spec icon_badge(map()) :: Phoenix.LiveView.Rendered.t()
   def icon_badge(assigns) do
     size_classes =
       case assigns.size do
         :small -> "h-12 w-12"
-        :large -> "h-20 w-20"
+        :large -> "h-24 w-24"
         _ -> "h-16 w-16"
       end
 
     icon_size =
       case assigns.size do
         :small -> "h-6 w-6"
-        :large -> "h-10 w-10"
+        :large -> "h-12 w-12"
         _ -> "h-8 w-8"
       end
 
@@ -60,10 +78,9 @@ defmodule TymeslotWeb.Components.CoreComponents.Containers do
 
     ~H"""
     <div
-      class={"mx-auto flex items-center justify-center #{@size_classes} rounded-full mb-4"}
-      style={"background: linear-gradient(135deg, #{@color_from} 0%, #{@color_to} 100%);"}
+      class={["mx-auto flex items-center justify-center #{@size_classes} rounded-3xl mb-6 bg-gradient-to-br from-turquoise-600 to-cyan-600 shadow-xl shadow-turquoise-500/20 border-4 border-white transform transition-transform hover:scale-110", @class]}
     >
-      <svg class={"#{@icon_size} text-white"} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg class={"#{@icon_size} text-white"} fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
         {render_slot(@inner_block)}
       </svg>
     </div>
@@ -80,19 +97,16 @@ defmodule TymeslotWeb.Components.CoreComponents.Containers do
   def section_header(assigns) do
     size_class =
       case assigns.level do
-        1 -> "text-3xl"
-        2 -> "text-2xl"
-        3 -> "text-xl"
-        _ -> "text-lg"
+        1 -> "text-4xl"
+        2 -> "text-3xl"
+        3 -> "text-2xl"
+        _ -> "text-xl"
       end
 
     assigns = assign(assigns, :size_class, size_class)
 
     ~H"""
-    <h1
-      class={"#{@size_class} font-bold mb-2 #{@class}"}
-      style="color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.1);"
-    >
+    <h1 class={["font-black tracking-tight mb-4 text-slate-900", @size_class, @class]}>
       {render_slot(@inner_block)}
     </h1>
     """
@@ -101,27 +115,25 @@ defmodule TymeslotWeb.Components.CoreComponents.Containers do
   @doc """
   Renders an info/alert box.
   """
-  attr :color_rgb, :string, default: "59, 130, 246"
   attr :variant, :atom, default: :info, values: [:info, :success, :warning, :error]
+  attr :class, :string, default: ""
   slot :inner_block, required: true
   @spec info_box(map()) :: Phoenix.LiveView.Rendered.t()
   def info_box(assigns) do
-    color =
+    classes =
       case assigns.variant do
-        :success -> "16, 185, 129"
-        :warning -> "251, 191, 36"
-        :error -> "239, 68, 68"
-        _ -> assigns.color_rgb
+        :success -> "bg-emerald-50 border-emerald-200 text-emerald-800"
+        :warning -> "bg-amber-50 border-amber-200 text-amber-800"
+        :error -> "bg-red-50 border-red-200 text-red-800"
+        :info -> "bg-sky-50 border-sky-200 text-sky-800"
+        _ -> "bg-slate-50 border-slate-200 text-slate-800"
       end
 
-    assigns = assign(assigns, :color, color)
+    assigns = assign(assigns, :classes, classes)
 
     ~H"""
-    <div
-      class="rounded-lg p-4 mb-8"
-      style={"background: rgba(#{@color}, 0.15); border: 1px solid rgba(#{@color}, 0.3);"}
-    >
-      <p style="color: white;">
+    <div class={["rounded-2xl p-6 mb-8 border-2", @classes, @class]}>
+      <p class="font-medium">
         {render_slot(@inner_block)}
       </p>
     </div>

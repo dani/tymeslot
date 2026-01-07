@@ -17,9 +17,7 @@
 }
 
 .page-title {
-  font-size: 1.875rem;
-  font-weight: 700;
-  color: var(--color-text-glass-primary);
+  @apply text-4xl font-black text-slate-900 tracking-tight;
 }
 
 /* Integration Card Components */
@@ -55,20 +53,15 @@
 }
 
 .status-badge {
-  padding: 0.125rem 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  border-radius: 9999px;
+  @apply px-3 py-1 text-xs font-black rounded-full uppercase tracking-wider;
 }
 
 .status-badge--active {
-  background: rgba(16, 185, 129, 0.2);
-  color: var(--color-primary-600);
+  @apply bg-emerald-100 text-emerald-700 border border-emerald-200;
 }
 
 .status-badge--inactive {
-  background: rgba(107, 114, 128, 0.2);
-  color: var(--color-text-glass-secondary);
+  @apply bg-slate-100 text-slate-500 border border-slate-200;
 }
 
 .integration-provider {
@@ -253,46 +246,31 @@
 
 /* Dashboard Sidebar */
 .dashboard-sidebar {
-  background: var(--color-glass-bg-card);
-  backdrop-filter: var(--glass-blur-strong);
-  -webkit-backdrop-filter: var(--glass-blur-strong);
-  border-right: 1px solid var(--color-border-glass-medium);
-  box-shadow: var(--shadow-glass-card);
+  @apply bg-white border-r-2 border-slate-50 transition-all duration-300;
   position: relative;
 }
 
 /* Dashboard Navigation Links */
 .dashboard-nav-link {
-  color: var(--color-text-glass-primary);
-  text-decoration: none;
-  font-weight: var(--font-weight-medium);
-  transition: var(--transition-glass-smooth);
-  border: 1px solid transparent;
-  position: relative;
-  overflow: hidden;
-}
-
-.dashboard-nav-link:hover {
-  color: var(--color-primary-700);
-  background: var(--color-glass-bg-light);
-  backdrop-filter: var(--glass-blur-light);
-  -webkit-backdrop-filter: var(--glass-blur-light);
-  border-color: var(--color-border-glass-light);
-  transform: translateX(2px);
-  box-shadow: var(--shadow-glass-sm);
+  @apply text-slate-600 font-bold transition-all duration-300 flex items-center space-x-3 px-4 py-3 text-sm rounded-xl;
+  @apply hover:text-turquoise-600 hover:bg-turquoise-50/50 hover:translate-x-1;
 }
 
 .dashboard-nav-link--active {
-  color: #ffffff;
-  background: var(--glass-gradient-primary);
-  backdrop-filter: var(--glass-blur-medium);
-  -webkit-backdrop-filter: var(--glass-blur-medium);
-  border-color: var(--color-primary-500);
-  font-weight: var(--font-weight-semibold);
-  box-shadow: 
-    var(--shadow-glass-button),
-    0 0 16px rgba(20, 184, 166, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  @apply text-white bg-gradient-to-r from-turquoise-600 to-cyan-600 shadow-lg shadow-turquoise-500/20 font-black;
+  @apply hover:text-white hover:translate-x-0;
+}
+
+.dashboard-nav-link--active svg {
+  @apply text-white/90;
+}
+
+.dashboard-nav-link svg {
+  @apply w-5 h-5 transition-transform duration-300;
+}
+
+.dashboard-nav-link:hover svg {
+  @apply scale-110;
 }
 
 /* Subtle shimmer effect for active links */

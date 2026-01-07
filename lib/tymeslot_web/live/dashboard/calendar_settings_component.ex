@@ -499,7 +499,7 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div>
+    <div class="space-y-10 pb-20">
       <!-- Shared Delete Modal for Calendar Integrations -->
       <DeleteIntegrationModal.delete_integration_modal
         id="delete-calendar-modal"
@@ -511,49 +511,68 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
 
       <%= if @view == :config do %>
         <!-- Configuration Page Mode -->
-        <DashboardComponents.section_header
-          icon={:calendar}
-          title={"Setup " <> (case @selected_provider do
-              :nextcloud -> "Nextcloud Calendar"
-              :radicale -> "Radicale Calendar"
-              :caldav -> "CalDAV Calendar"
-              _ -> "Calendar Integration"
-            end)}
-        />
-        
-    <!-- Configuration Form -->
-        <div class="card-glass">
-          <%= case @selected_provider do %>
-            <% :nextcloud -> %>
-              <.live_component
-                module={NextcloudConfig}
-                id="nextcloud-config"
-                target={@myself}
-                metadata={@security_metadata}
-                form_errors={@form_errors}
-                saving={@is_saving}
-              />
-            <% :radicale -> %>
-              <.live_component
-                module={RadicaleConfig}
-                id="radicale-config"
-                target={@myself}
-                metadata={@security_metadata}
-                form_errors={@form_errors}
-                saving={@is_saving}
-              />
-            <% :caldav -> %>
-              <.live_component
-                module={CaldavConfig}
-                id="caldav-config"
-                target={@myself}
-                metadata={@security_metadata}
-                form_errors={@form_errors}
-                saving={@is_saving}
-              />
-            <% _ -> %>
-              <p class="text-gray-600">Configuration form not available for this provider.</p>
-          <% end %>
+        <div class="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div class="flex items-center justify-between bg-white p-6 rounded-3xl border-2 border-slate-50 shadow-sm">
+            <div class="flex items-center gap-4">
+              <div class="w-12 h-12 bg-turquoise-50 rounded-xl flex items-center justify-center border border-turquoise-100 shadow-sm">
+                <svg class="w-6 h-6 text-turquoise-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h2 class="text-3xl font-black text-slate-900 tracking-tight">
+                Setup <%= case @selected_provider do
+                  :nextcloud -> "Nextcloud"
+                  :radicale -> "Radicale"
+                  :caldav -> "CalDAV"
+                  _ -> "Calendar"
+                end %>
+              </h2>
+            </div>
+            <button
+              phx-click="back_to_providers"
+              phx-target={@myself}
+              class="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-50 text-slate-600 font-bold hover:bg-slate-100 transition-all"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Back
+            </button>
+          </div>
+          
+          <div class="card-glass">
+            <%= case @selected_provider do %>
+              <% :nextcloud -> %>
+                <.live_component
+                  module={NextcloudConfig}
+                  id="nextcloud-config"
+                  target={@myself}
+                  metadata={@security_metadata}
+                  form_errors={@form_errors}
+                  saving={@is_saving}
+                />
+              <% :radicale -> %>
+                <.live_component
+                  module={RadicaleConfig}
+                  id="radicale-config"
+                  target={@myself}
+                  metadata={@security_metadata}
+                  form_errors={@form_errors}
+                  saving={@is_saving}
+                />
+              <% :caldav -> %>
+                <.live_component
+                  module={CaldavConfig}
+                  id="caldav-config"
+                  target={@myself}
+                  metadata={@security_metadata}
+                  form_errors={@form_errors}
+                  saving={@is_saving}
+                />
+              <% _ -> %>
+                <p class="text-slate-500 font-medium">Configuration form not available for this provider.</p>
+            <% end %>
+          </div>
         </div>
       <% else %>
         <!-- Providers List Mode -->
@@ -561,15 +580,15 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
         
     <!-- Connected Calendars Section -->
         <%= if @integrations != [] do %>
-          <div class="mb-8">
-            <div class="flex items-center mb-6">
-              <h2 class="text-xl font-semibold text-gray-800">Connected Calendars</h2>
-              <span class="ml-2 bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                {length(@integrations)}
+          <div class="space-y-6">
+            <div class="flex items-center gap-3">
+              <h2 class="text-2xl font-black text-slate-900 tracking-tight">Connected Calendars</h2>
+              <span class="bg-turquoise-100 text-turquoise-700 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider">
+                {length(@integrations)} active
               </span>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               <%= for integration <- @integrations do %>
                 <IntegrationCard.integration_card
                   integration={integration}
@@ -587,13 +606,15 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
         <% end %>
         
     <!-- Available Calendars Section -->
-        <div class="mb-8">
-          <h2 class="text-xl font-semibold text-gray-800 mb-6">Available Calendars</h2>
-          <p class="text-gray-600 mb-6">
-            Choose from our supported calendar providers to sync your availability and prevent double bookings.
-          </p>
+        <div class="space-y-8 mt-12">
+          <div class="max-w-2xl">
+            <h2 class="text-2xl font-black text-slate-900 tracking-tight mb-3">Available Providers</h2>
+            <p class="text-slate-500 font-medium text-lg">
+              Choose from our supported calendar providers to sync your availability and prevent double bookings automatically.
+            </p>
+          </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             <%= for descp <- @available_calendar_providers do %>
               <% info = provider_card_info(descp.type) %>
               <ProviderCard.provider_card

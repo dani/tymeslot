@@ -8,45 +8,58 @@ defmodule TymeslotWeb.OnboardingLive.CompleteStep do
 
   use Phoenix.Component
 
-  import TymeslotWeb.Components.CoreComponents
-
   @doc """
   Renders the completion step component.
   """
   @spec complete_step(map()) :: Phoenix.LiveView.Rendered.t()
   def complete_step(assigns) do
     ~H"""
-    <div class="text-center">
-      <div class="mb-6">
-        <div class="onboarding-welcome-icon" style="background: rgba(22, 163, 74, 0.1);">
-          <.icon name="hero-check-circle" class="w-10 h-10" style="color: #16a34a;" />
+    <div class="onboarding-step">
+      <div class="mb-12">
+        <div class="onboarding-welcome-icon bg-emerald-50 border-emerald-100 shadow-emerald-500/10">
+          <svg class="w-12 h-12 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
         </div>
         <h2 class="onboarding-title">You're All Set!</h2>
-        <p class="onboarding-subtitle">Your Tymeslot account is ready to use</p>
+        <p class="onboarding-subtitle">Your Tymeslot account is ready to launch</p>
       </div>
 
-      <div class="space-y-4 text-left">
-        <div class="bg-gray-100/50 rounded-lg p-4 border-2 border-gray-200">
-          <h3 class="font-semibold text-gray-800 mb-2">What's Next?</h3>
-          <ul class="space-y-2 text-gray-700">
-            <li class="flex items-center space-x-2">
-              <.icon name="hero-calendar" class="w-4 h-4 text-gray-800" />
-              <span class="font-medium">Connect your calendar in the Calendar section</span>
+      <div class="space-y-6 text-left">
+        <div class="bg-slate-50/50 rounded-3xl p-8 border-2 border-slate-50">
+          <h3 class="text-xl font-black text-slate-900 tracking-tight mb-6">Recommended Next Steps</h3>
+          <ul class="space-y-4">
+            <li class="flex items-center gap-4 group">
+              <div class="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center border border-slate-100 group-hover:border-turquoise-200 transition-colors">
+                <svg class="w-5 h-5 text-turquoise-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <span class="font-bold text-slate-700">Connect your professional calendars</span>
             </li>
-            <li class="flex items-center space-x-2">
-              <.icon name="hero-video-camera" class="w-4 h-4 text-gray-800" />
-              <span class="font-medium">Set up video integration for seamless meetings</span>
+            <li class="flex items-center gap-4 group">
+              <div class="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center border border-slate-100 group-hover:border-cyan-200 transition-colors">
+                <svg class="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <span class="font-bold text-slate-700">Set up HD video conferencing</span>
             </li>
-            <li class="flex items-center space-x-2">
-              <.icon name="hero-cog-6-tooth" class="w-4 h-4 text-gray-800" />
-              <span class="font-medium">Create custom meeting types with different durations</span>
+            <li class="flex items-center gap-4 group">
+              <div class="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center border border-slate-100 group-hover:border-blue-200 transition-colors">
+                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                </svg>
+              </div>
+              <span class="font-bold text-slate-700">Customize your meeting types and durations</span>
             </li>
           </ul>
         </div>
 
-        <div class="bg-purple-100/50 border border-purple-300 rounded-lg p-4">
-          <p class="text-purple-800 text-sm">
-            <strong>Pro tip:</strong> You can always adjust these settings later in your dashboard.
+        <div class="bg-turquoise-50/50 border-2 border-turquoise-100 rounded-2xl p-6 text-center">
+          <p class="text-turquoise-800 font-bold text-sm">
+            <span class="bg-turquoise-600 text-white px-2 py-0.5 rounded uppercase text-[10px] font-black mr-2">Tip</span>
+            You can always adjust these settings later from your dashboard.
           </p>
         </div>
       </div>

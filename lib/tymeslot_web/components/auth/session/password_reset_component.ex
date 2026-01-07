@@ -15,7 +15,6 @@ defmodule TymeslotWeb.Session.PasswordResetComponent do
   import TymeslotWeb.Shared.Auth.FormComponents
   import TymeslotWeb.Shared.Auth.InputComponents
   import TymeslotWeb.Shared.Auth.ButtonComponents
-  import TymeslotWeb.Shared.Auth.IconComponents
   import TymeslotWeb.Shared.PasswordToggleButtonComponent
 
   @doc """
@@ -38,7 +37,7 @@ defmodule TymeslotWeb.Session.PasswordResetComponent do
       <:form>
         <.auth_form
           id="reset-password-form"
-          class="space-y-10 sm:space-y-12"
+          class="space-y-6"
           phx-submit="submit_reset_request"
           loading={@loading}
           csrf_token={@csrf_token}
@@ -110,15 +109,17 @@ defmodule TymeslotWeb.Session.PasswordResetComponent do
     ~H"""
     <.auth_card_layout title="Check Your Email">
       <:form>
-        <div class="text-center mb-5 sm:mb-6">
-          <div class="mx-auto w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center">
-            <.email_verification_icon />
+        <div class="text-center mb-8">
+          <div class="mx-auto w-20 h-20 flex items-center justify-center rounded-2xl bg-turquoise-50 border-2 border-turquoise-100 shadow-xl shadow-turquoise-500/10 mb-6 transform hover:scale-105 transition-all duration-300">
+            <svg class="w-10 h-10 text-turquoise-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
           </div>
-          <p class="mt-3 sm:mt-4 text-xs sm:text-sm text-white/80 max-w-md mx-auto">
+          <p class="text-base text-slate-600 font-medium max-w-md mx-auto leading-relaxed">
             We've sent password reset instructions to your email address. Please check your inbox and follow the link to reset your password.
           </p>
         </div>
-        <div class="mt-4 sm:mt-6">
+        <div class="mt-8">
           <.auth_link_button href="/auth/login">
             Back to Login
           </.auth_link_button>
@@ -208,20 +209,24 @@ defmodule TymeslotWeb.Session.PasswordResetComponent do
   @spec new_password_set_page(map()) :: Phoenix.LiveView.Rendered.t()
   def new_password_set_page(assigns) do
     ~H"""
-    <.auth_card_layout title="Password Changed!">
+    <.auth_card_layout title="Success!">
       <:form>
-        <div class="text-center mb-5 sm:mb-6">
-          <.success_icon />
-          <h2 class="mt-3 sm:mt-4 text-sm sm:text-base font-semibold text-white">
-            Password Successfully Changed
+        <div class="text-center mb-8">
+          <div class="mx-auto w-20 h-20 flex items-center justify-center rounded-2xl bg-emerald-50 border-2 border-emerald-100 shadow-xl shadow-emerald-500/10 mb-6 transform hover:scale-105 transition-all duration-300">
+            <svg class="w-10 h-10 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h2 class="text-xl font-bold text-slate-900 tracking-tight mb-3">
+            Password Changed
           </h2>
-          <p class="mt-2 text-xs sm:text-sm text-white/80 max-w-md mx-auto">
+          <p class="text-base text-slate-600 font-medium max-w-md mx-auto leading-relaxed">
             Your password has been successfully updated. You can now log in with your new credentials.
           </p>
         </div>
-        <div class="mt-4 sm:mt-6">
+        <div class="mt-8">
           <.auth_link_button href="/auth/login">
-            Go to Login Page
+            Go to Login
           </.auth_link_button>
         </div>
       </:form>

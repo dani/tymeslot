@@ -25,7 +25,7 @@ defmodule TymeslotWeb.Components.DashboardComponents do
   def form_input(assigns) do
     ~H"""
     <div>
-      <label for={@id} class="block text-sm font-medium text-gray-700 mb-1">
+      <label for={@id} class="label">
         {@label}
       </label>
       <input
@@ -34,11 +34,11 @@ defmodule TymeslotWeb.Components.DashboardComponents do
         id={@id}
         value={@value}
         placeholder={@placeholder}
-        class="w-full px-3 py-2 glass-input focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+        class="input"
         {@rest}
       />
       <%= if @help do %>
-        <p class="mt-1 text-sm text-gray-600">{@help}</p>
+        <p class="mt-2 text-sm text-slate-500 font-bold">{@help}</p>
       <% end %>
     </div>
     """
@@ -59,14 +59,14 @@ defmodule TymeslotWeb.Components.DashboardComponents do
   def form_select(assigns) do
     ~H"""
     <div>
-      <label for={@id} class="block text-sm font-medium text-gray-700 mb-1">
+      <label for={@id} class="label">
         {@label}
       </label>
       <div class="relative">
         <select
           id={@id}
           name={@name}
-          class="w-full px-3 py-2 glass-input focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent appearance-none"
+          class="input appearance-none"
           {@rest}
         >
           <%= for {label, value} <- @options do %>
@@ -75,14 +75,9 @@ defmodule TymeslotWeb.Components.DashboardComponents do
             </option>
           <% end %>
         </select>
-        <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-          <svg class="h-5 w-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
-        </div>
       </div>
       <%= if @help do %>
-        <p class="mt-1 text-sm text-gray-600">{@help}</p>
+        <p class="mt-2 text-sm text-slate-500 font-bold">{@help}</p>
       <% end %>
     </div>
     """
@@ -99,20 +94,20 @@ defmodule TymeslotWeb.Components.DashboardComponents do
   @spec integration_card(map()) :: Phoenix.LiveView.Rendered.t()
   def integration_card(assigns) do
     ~H"""
-    <div class="bg-white/5 rounded-lg p-4 border border-purple-400/20">
-      <div class="flex items-start justify-between">
+    <div class="bg-white border-2 border-slate-50 rounded-2xl p-5 shadow-sm hover:border-turquoise-100 hover:shadow-md transition-all group">
+      <div class="flex items-start justify-between gap-4">
         <div class="flex-1">
-          <h3 class="font-medium text-gray-800">{@title}</h3>
-          <p class="text-sm text-gray-600 mt-1">{@subtitle}</p>
+          <h3 class="font-black text-slate-900 tracking-tight group-hover:text-turquoise-700 transition-colors">{@title}</h3>
+          <p class="text-sm text-slate-500 font-bold mt-1">{@subtitle}</p>
           <%= if @details != [] do %>
-            <div class="mt-2 space-y-1">
+            <div class="mt-3 space-y-1">
               <%= for detail <- @details do %>
-                <p class="text-xs text-gray-500">{detail}</p>
+                <p class="text-xs text-slate-400 font-medium">{detail}</p>
               <% end %>
             </div>
           <% end %>
         </div>
-        <div class="flex items-center space-x-2">
+        <div class="flex items-center gap-2">
           {render_slot(@action)}
         </div>
       </div>
@@ -133,24 +128,26 @@ defmodule TymeslotWeb.Components.DashboardComponents do
     assigns = assign(assigns, :action, assigns |> Map.get(:action) |> List.wrap())
 
     ~H"""
-    <div class="text-center py-12">
-      <svg
-        class="w-16 h-16 mx-auto text-gray-400/50 mb-4"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-        role={if @icon_title, do: "img", else: nil}
-        aria-label={@icon_title}
-        aria-hidden={if is_nil(@icon_title), do: "true", else: nil}
-      >
-        <%= if @icon_title do %>
-          <title>{@icon_title}</title>
-        <% end %>
-        {render_slot(@icon)}
-      </svg>
-      <p class="text-gray-600">{@message}</p>
+    <div class="text-center py-20 bg-slate-50/50 rounded-[2.5rem] border-2 border-dashed border-slate-100">
+      <div class="w-24 h-24 bg-white rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-sm border border-slate-50">
+        <svg
+          class="w-12 h-12 text-slate-300"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          role={if @icon_title, do: "img", else: nil}
+          aria-label={@icon_title}
+          aria-hidden={if is_nil(@icon_title), do: "true", else: nil}
+        >
+          <%= if @icon_title do %>
+            <title>{@icon_title}</title>
+          <% end %>
+          {render_slot(@icon)}
+        </svg>
+      </div>
+      <p class="text-xl text-slate-900 font-black tracking-tight mb-2">{@message}</p>
       <%= if @action != [] do %>
-        <div class="mt-4">
+        <div class="mt-8">
           {render_slot(@action)}
         </div>
       <% end %>
@@ -175,18 +172,41 @@ defmodule TymeslotWeb.Components.DashboardComponents do
     ~H"""
     <CoreComponents.modal id={@id} show={@show} on_cancel={@on_cancel} size={:medium}>
       <:header>
-        {@title}
+        <div class="flex items-center gap-3">
+          <div class={[
+            "w-10 h-10 rounded-xl flex items-center justify-center border",
+            if(@confirm_variant == :danger, do: "bg-red-50 border-red-100", else: "bg-turquoise-50 border-turquoise-100")
+          ]}>
+            <svg class={["w-6 h-6", if(@confirm_variant == :danger, do: "text-red-500", else: "text-turquoise-600")]} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <span class="text-2xl font-black text-slate-900 tracking-tight">{@title}</span>
+        </div>
       </:header>
 
-      <p>{@message}</p>
+      <p class="text-slate-600 font-medium text-lg leading-relaxed">{@message}</p>
 
       <:footer>
-        <CoreComponents.action_button variant={:secondary} phx-click={@on_cancel}>
-          Cancel
-        </CoreComponents.action_button>
-        <CoreComponents.action_button variant={@confirm_variant} phx-click={@on_confirm}>
-          {@confirm_text}
-        </CoreComponents.action_button>
+        <div class="flex gap-4">
+          <button
+            type="button"
+            phx-click={@on_cancel}
+            class="btn-secondary flex-1 py-4"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            phx-click={@on_confirm}
+            class={[
+              "flex-1 py-4",
+              if(@confirm_variant == :danger, do: "btn-danger", else: "btn-primary")
+            ]}
+          >
+            {@confirm_text}
+          </button>
+        </div>
       </:footer>
     </CoreComponents.modal>
     """
@@ -197,15 +217,14 @@ defmodule TymeslotWeb.Components.DashboardComponents do
   """
   attr :type, :string, default: "button"
   attr :variant, :atom, default: :primary
+  attr :class, :string, default: ""
   attr :rest, :global
   slot :inner_block, required: true
 
   @spec button(map()) :: Phoenix.LiveView.Rendered.t()
   def button(assigns) do
-    assigns = assign(assigns, :class, button_classes(assigns.variant))
-
     ~H"""
-    <button type={@type} class={@class} {@rest}>
+    <button type={@type} class={[button_classes(@variant), @class]} {@rest}>
       {render_slot(@inner_block)}
     </button>
     """
@@ -223,18 +242,18 @@ defmodule TymeslotWeb.Components.DashboardComponents do
   @spec stat_card(map()) :: Phoenix.LiveView.Rendered.t()
   def stat_card(assigns) do
     ~H"""
-    <.link patch={@link} class="block">
-      <div class="card-glass card-compact hover:border-purple-400/50 transition-all hover:bg-white/15">
-        <div class="flex items-center">
+    <.link patch={@link} class="block group">
+      <div class="card-glass hover:bg-white hover:border-turquoise-100 hover:shadow-2xl hover:shadow-turquoise-500/5 transition-all">
+        <div class="flex items-center gap-6">
           <div class="flex-shrink-0">
-            <div class="w-10 h-10 bg-purple-600/20 rounded-full flex items-center justify-center">
-              <IconComponents.icon name={@icon} class="w-5 h-5 text-teal-600" />
+            <div class="w-16 h-16 bg-turquoise-50 rounded-2xl flex items-center justify-center border border-turquoise-100 group-hover:scale-110 transition-transform">
+              <IconComponents.icon name={@icon} class="w-8 h-8 text-turquoise-600" />
             </div>
           </div>
-          <div class="ml-4 flex-1">
-            <div class="text-2xl font-bold text-gray-800">{@value}</div>
-            <div class="text-sm text-gray-600">{@title}</div>
-            <div class="text-xs text-gray-500">{@description}</div>
+          <div class="flex-1">
+            <div class="text-3xl font-black text-slate-900 tracking-tight mb-1">{@value}</div>
+            <div class="text-sm font-black text-slate-400 uppercase tracking-widest mb-1 group-hover:text-turquoise-600 transition-colors">{@title}</div>
+            <div class="text-sm text-slate-500 font-medium">{@description}</div>
           </div>
         </div>
       </div>
@@ -249,36 +268,30 @@ defmodule TymeslotWeb.Components.DashboardComponents do
   attr :title, :string, required: true
   attr :count, :integer, default: nil
   attr :saving, :boolean, default: false
-  attr :title_class, :string, default: "text-3xl font-bold text-gray-800"
-  attr :class, :string, default: "flex items-center mb-8"
+  attr :title_class, :string, default: "text-4xl font-black text-slate-900 tracking-tight"
+  attr :class, :string, default: "flex items-center mb-12"
 
   @spec section_header(map()) :: Phoenix.LiveView.Rendered.t()
   def section_header(assigns) do
     ~H"""
     <div class={@class}>
-      <div class="text-gray-600 mr-3">
-        <IconComponents.icon name={@icon} class="w-8 h-8" />
+      <div class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center mr-5 shadow-sm border border-slate-100">
+        <IconComponents.icon name={@icon} class="w-8 h-8 text-turquoise-600" />
       </div>
       <h1 class={@title_class}>{@title}</h1>
       <%= if @count do %>
-        <span class="ml-2 bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+        <span class="ml-4 bg-turquoise-100 text-turquoise-700 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider">
           {@count}
         </span>
       <% end %>
       <%= if @saving do %>
-        <span class="ml-auto text-green-400 text-sm flex items-center">
+        <div class="ml-auto bg-emerald-50 text-emerald-700 px-4 py-2 rounded-full font-black text-xs uppercase tracking-wider border-2 border-emerald-100 flex items-center">
           <svg class="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
-            </circle>
-            <path
-              class="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            >
-            </path>
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
           Saving...
-        </span>
+        </div>
       <% end %>
     </div>
     """
@@ -286,8 +299,9 @@ defmodule TymeslotWeb.Components.DashboardComponents do
 
   # Private helpers
 
-  defp button_classes(:primary), do: "btn btn-primary"
-  defp button_classes(:secondary), do: "btn btn-secondary"
-  defp button_classes(:danger), do: "btn bg-red-600 text-white hover:bg-red-700"
-  defp button_classes(:ghost), do: "btn btn-ghost text-gray-600 hover:text-gray-800"
+  defp button_classes(:primary), do: "btn-primary"
+  defp button_classes(:secondary), do: "btn-secondary"
+  defp button_classes(:danger), do: "btn-danger"
+  defp button_classes(:ghost), do: "btn-ghost"
+  defp button_classes(_), do: "btn-primary"
 end

@@ -153,7 +153,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.SharedFormCompo
           phx-value-field="name"
           phx-target={@myself}
           class={[
-            "glass-input pl-10 w-full",
+            "input pl-10 w-full",
             if(Map.get(@form_errors, :name), do: "input-error", else: "")
           ]}
           placeholder={@placeholder}
@@ -172,7 +172,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.SharedFormCompo
     ~H"""
     <div class="space-y-3">
       <h4 class="label">Select calendars to sync:</h4>
-      <div class="glass-card p-4">
+      <div class="brand-card p-4">
         <%= for calendar <- @discovered_calendars do %>
           <% calendar_path = calendar.path || calendar.href %>
           <div class="flex items-center space-x-3 p-3 rounded-lg hover:bg-white/20 transition-colors">
@@ -225,7 +225,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.SharedFormCompo
         phx-value-field={@field}
         phx-target={@myself}
         class={[
-          "glass-input w-full",
+          "input w-full",
           if(@error, do: "input-error", else: "")
         ]}
         placeholder={@placeholder}
@@ -262,7 +262,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.SharedFormCompo
         phx-value-field={@field}
         phx-target={@myself}
         class={[
-          "glass-input w-full",
+          "input w-full",
           if(@error, do: "input-error", else: "")
         ]}
         placeholder={@placeholder}
@@ -278,7 +278,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.SharedFormCompo
   @spec error_banner(map()) :: Phoenix.LiveView.Rendered.t()
   def error_banner(assigns) do
     ~H"""
-    <div class="glass-card p-3 bg-red-50/50 border border-red-200/50">
+    <div class="brand-card p-3 bg-red-50/50 border border-red-200/50">
       <p class="text-sm text-red-600 flex items-center">
         <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
           <path

@@ -9,7 +9,6 @@ defmodule TymeslotWeb.Registration.VerifyEmailComponent do
   use TymeslotWeb, :html
   import TymeslotWeb.Shared.Auth.LayoutComponents
   import TymeslotWeb.Shared.Auth.ButtonComponents
-  import TymeslotWeb.Shared.Auth.IconComponents
 
   @doc """
   Renders the verify email page using shared auth components.
@@ -19,7 +18,7 @@ defmodule TymeslotWeb.Registration.VerifyEmailComponent do
     ~H"""
     <.auth_card_layout title="Verify Your Email">
       <:heading>
-        <h2 class="text-fluid-sm sm:text-fluid-md md:text-fluid-lg font-bold text-primary-600 mb-6 sm:mb-8 font-heading tracking-tight text-center">
+        <h2 class="text-xl font-bold text-slate-900 mb-6 font-heading tracking-tight text-center">
           Almost There!
         </h2>
       </:heading>
@@ -39,18 +38,19 @@ defmodule TymeslotWeb.Registration.VerifyEmailComponent do
 
   defp email_verification_message(assigns) do
     ~H"""
-    <div class="text-center mb-5 sm:mb-6">
-      <div class="mx-auto w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 flex items-center justify-center rounded-full bg-gradient-to-r from-primary-600 to-accent-purple shadow-lg border-2 border-white/20 ring-1 ring-black/10 mb-3 sm:mb-4">
-        <.email_verification_icon />
+    <div class="text-center mb-8">
+      <div class="mx-auto w-20 h-20 flex items-center justify-center rounded-2xl bg-turquoise-50 border-2 border-turquoise-100 shadow-xl shadow-turquoise-500/10 mb-6 transform hover:scale-105 transition-all duration-300">
+        <svg class="w-10 h-10 text-turquoise-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        </svg>
       </div>
-      <p class="text-fluid-xs sm:text-fluid-sm text-neutral-500 max-w-md mx-auto">
-        We've just sent you a verification email! Give it a minute to arrive, and don't forget to check your spam folder – those pesky filters sometimes get a bit too enthusiastic. 😊 Just click the link in the email and you'll be all set!
+      <p class="text-base text-slate-600 font-medium max-w-md mx-auto leading-relaxed">
+        We've just sent you a verification email! Please click the link in the email to confirm your address and finish setting up your account.
       </p>
       <%= if email = get_in(assigns, [:form_data, :email]) || get_in(assigns, [:unverified_user, :email]) do %>
-        <div class="mt-4 p-3 bg-primary-50 rounded-lg">
-          <p class="text-sm text-primary-700">
-            Verification email sent to: <span class="font-medium">{email}</span>
-          </p>
+        <div class="mt-6 p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl inline-block">
+          <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Sent to</p>
+          <p class="text-slate-900 font-bold text-base">{email}</p>
         </div>
       <% end %>
     </div>
@@ -63,39 +63,17 @@ defmodule TymeslotWeb.Registration.VerifyEmailComponent do
       type="button"
       phx-click="resend_verification"
       disabled={@loading}
-      class="w-full inline-flex justify-center items-center px-4 py-2 border border-primary-300 rounded-md shadow-sm text-sm font-medium text-primary-700 bg-white hover:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+      class="btn-primary w-full py-4 text-base"
     >
       <%= if @loading do %>
-        <svg
-          class="animate-spin -ml-1 mr-3 h-5 w-5 text-primary-700"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-        >
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
-          </circle>
-          <path
-            class="opacity-75"
-            fill="currentColor"
-            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-          >
-          </path>
+        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline-block" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
         Sending...
       <% else %>
-        <svg
-          class="-ml-1 mr-2 h-5 w-5"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-          />
+        <svg class="w-5 h-5 mr-2 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
         </svg>
         Resend Verification Email
       <% end %>

@@ -1,13 +1,9 @@
 defmodule TymeslotWeb.OnboardingLive do
   use TymeslotWeb, :live_view
 
-  import TymeslotWeb.Components.CoreComponents
-  alias Phoenix.LiveView.JS
-
   alias Tymeslot.Onboarding
   alias Tymeslot.Profiles.Timezone
   alias Tymeslot.Utils.TimezoneUtils
-  alias TymeslotWeb.Components.Auth.AuthVideoConfig
   alias TymeslotWeb.Helpers.ClientIP
   alias TymeslotWeb.OnboardingLive.BasicSettingsHandlers
   alias TymeslotWeb.OnboardingLive.BasicSettingsStep
@@ -99,44 +95,19 @@ defmodule TymeslotWeb.OnboardingLive do
   @spec render(map()) :: Phoenix.LiveView.Rendered.t()
   def render(assigns) do
     ~H"""
-    <.flash_group flash={@flash} id="flash-group" />
-    <main class="glass-theme">
-      <!-- Enhanced Video Background with Multiple Sources -->
-      <div class="video-background-container" id="auth-video-container" phx-hook="AuthVideo">
-        <video
-          class="video-background-video"
-          autoplay
-          loop
-          muted
-          playsinline
-          preload="metadata"
-          poster={AuthVideoConfig.auth_video_poster()}
-          id="auth-background-video"
-        >
-          <%= for video <- AuthVideoConfig.auth_video_sources() do %>
-            <source
-              src={video.src}
-              type={video.type}
-              {if video.media, do: [media: video.media], else: []}
-            />
-          <% end %>
-          <!-- Fallback gradient background -->
-          <div
-            class="absolute inset-0"
-            style={"background: #{AuthVideoConfig.auth_fallback_gradient()}"}
-          >
-          </div>
-        </video>
-      </div>
+    <main class="min-h-screen bg-gradient-to-br from-turquoise-600 via-cyan-600 to-blue-600 flex items-center justify-center p-6 relative overflow-hidden">
+      <!-- Animated background elements -->
+      <div class="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.15),transparent_50%)]"></div>
+      <div class="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(6,182,212,0.3),transparent_50%)]"></div>
 
-      <div class="glass-container">
-        <div class="flex-1 flex items-center justify-center py-4 sm:py-6 md:py-8">
-          <div class="w-full max-w-2xl">
+      <div class="w-full max-w-3xl relative z-10 animate-in fade-in zoom-in-95 duration-700">
+        <div class="flex-1 flex flex-col items-center">
+          <div class="w-full">
             <!-- Progress indicator with enhancements -->
             <div class="progress-indicator">
               <div class="progress-indicator-container">
                 <%= for {step, index} <- Enum.with_index(@steps) do %>
-                  <div class="progress-step">
+                  <div class="flex items-center">
                     <div class={[
                       "progress-step-circle",
                       if(StepConfig.step_completed?(step, @current_step),
@@ -149,7 +120,9 @@ defmodule TymeslotWeb.OnboardingLive do
                       )
                     ]}>
                       <%= if StepConfig.step_completed?(step, @current_step) do %>
-                        <.icon name="hero-check" class="w-5 h-5" />
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                        </svg>
                       <% else %>
                         {index + 1}
                       <% end %>
@@ -160,7 +133,7 @@ defmodule TymeslotWeb.OnboardingLive do
                         "progress-step-connector",
                         if(StepConfig.step_completed?(step, @current_step),
                           do: "progress-step-connector--completed",
-                          else: "progress-step-connector--inactive"
+                          else: ""
                         )
                       ]}>
                       </div>
@@ -170,43 +143,45 @@ defmodule TymeslotWeb.OnboardingLive do
               </div>
             </div>
             
-    <!-- Main content card with enhanced glass -->
-            <div class="glass-card-base-wide animate-fade-in-subtle">
-              <%= case @current_step do %>
-                <% :welcome -> %>
-                  <WelcomeStep.welcome_step />
-                <% :basic_settings -> %>
-                  <BasicSettingsStep.basic_settings_step
-                    profile={@profile}
-                    form_data={@form_data}
-                    timezone_options={@timezone_options}
-                    timezone_dropdown_open={@timezone_dropdown_open}
-                    timezone_search={@timezone_search}
-                    form_errors={@form_errors}
-                  />
-                <% :scheduling_preferences -> %>
-                  <SchedulingPreferencesStep.scheduling_preferences_step
-                    profile={@profile}
-                    form_errors={@form_errors}
-                  />
-                <% :complete -> %>
-                  <CompleteStep.complete_step />
-              <% end %>
+    <!-- Main content card -->
+            <div class="card-glass shadow-2xl shadow-slate-900/20 p-10 lg:p-16">
+              <div class="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <%= case @current_step do %>
+                  <% :welcome -> %>
+                    <WelcomeStep.welcome_step />
+                  <% :basic_settings -> %>
+                    <BasicSettingsStep.basic_settings_step
+                      profile={@profile}
+                      form_data={@form_data}
+                      timezone_options={@timezone_options}
+                      timezone_dropdown_open={@timezone_dropdown_open}
+                      timezone_search={@timezone_search}
+                      form_errors={@form_errors}
+                    />
+                  <% :scheduling_preferences -> %>
+                    <SchedulingPreferencesStep.scheduling_preferences_step
+                      profile={@profile}
+                      form_errors={@form_errors}
+                    />
+                  <% :complete -> %>
+                    <CompleteStep.complete_step />
+                <% end %>
+              </div>
               
     <!-- Navigation buttons -->
-              <div class="flex justify-between mt-8">
-                <button type="button" phx-click="show_skip_modal" class="btn-ghost glass-button">
-                  Skip setup
+              <div class="flex flex-col sm:flex-row items-center justify-between mt-12 pt-10 border-t-2 border-slate-50 gap-6">
+                <button type="button" phx-click="show_skip_modal" class="text-slate-400 hover:text-slate-600 font-black uppercase tracking-widest text-xs transition-colors">
+                  Skip for now
                 </button>
 
-                <div class="flex space-x-4">
+                <div class="flex items-center gap-4 w-full sm:w-auto">
                   <%= if @current_step != :welcome do %>
-                    <button type="button" phx-click="previous_step" class="btn-secondary">
-                      Previous
+                    <button type="button" phx-click="previous_step" class="btn-secondary flex-1 sm:flex-none px-8 py-4">
+                      Back
                     </button>
                   <% end %>
 
-                  <button type="button" phx-click="next_step" class="btn-primary">
+                  <button type="button" phx-click="next_step" class="btn-primary flex-1 sm:flex-none px-10 py-4">
                     {StepConfig.next_button_text(@current_step)}
                   </button>
                 </div>
@@ -217,38 +192,42 @@ defmodule TymeslotWeb.OnboardingLive do
       </div>
       
     <!-- Skip confirmation modal -->
-      <.modal
-        id="skip-onboarding-modal"
-        show={@show_skip_modal}
-        on_cancel={JS.push("hide_skip_modal")}
-      >
-        <:header>
-          <.icon name="hero-exclamation-triangle" class="w-5 h-5 text-yellow-600" /> Skip Onboarding?
-        </:header>
+      <div id="skip-onboarding-modal-container" class={if @show_skip_modal, do: "block", else: "hidden"}>
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] animate-in fade-in duration-300"></div>
+        <div class="fixed inset-0 z-[101] flex items-center justify-center p-6">
+          <div class="bg-white rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-300">
+            <div class="flex items-center gap-4 mb-6">
+              <div class="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center border border-amber-100">
+                <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <h3 class="text-2xl font-black text-slate-900 tracking-tight">Skip setup?</h3>
+            </div>
 
-        <div class="text-center py-2">
-          <p class="font-medium" style="color: var(--color-text-glass-primary);">
-            Are you sure you want to skip the setup? You can always configure these settings later in your dashboard.
-          </p>
+            <p class="text-slate-600 font-medium text-lg leading-relaxed mb-10">
+              Are you sure you want to skip the quick start? You can always configure these settings later in your dashboard.
+            </p>
+
+            <div class="flex flex-col gap-3">
+              <button
+                type="button"
+                phx-click="skip_onboarding"
+                class="btn-danger w-full py-4"
+              >
+                Skip anyway
+              </button>
+              <button
+                type="button"
+                phx-click="hide_skip_modal"
+                class="btn-secondary w-full py-4"
+              >
+                Continue setup
+              </button>
+            </div>
+          </div>
         </div>
-
-        <:footer>
-          <.action_button
-            variant={:secondary}
-            phx-click="hide_skip_modal"
-            class="text-gray-800 font-semibold"
-          >
-            Continue Setup
-          </.action_button>
-          <.action_button
-            variant={:primary}
-            phx-click="skip_onboarding"
-            class="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold"
-          >
-            Skip Setup
-          </.action_button>
-        </:footer>
-      </.modal>
+      </div>
     </main>
     """
   end

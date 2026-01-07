@@ -11,6 +11,7 @@ defmodule TymeslotWeb.Themes.Quill.Theme do
     OverviewComponent,
     ScheduleComponent
   }
+  alias TymeslotWeb.Themes.Quill.Meeting.{Cancel, CancelConfirmed, Reschedule}
 
   @impl true
   def states do
@@ -95,9 +96,9 @@ defmodule TymeslotWeb.Themes.Quill.Theme do
   @impl true
   def render_meeting_action(assigns, action) do
     case action do
-      :reschedule -> TymeslotWeb.Themes.Quill.Meeting.Reschedule.render(assigns)
-      :cancel -> TymeslotWeb.Themes.Quill.Meeting.Cancel.render(assigns)
-      :cancel_confirmed -> TymeslotWeb.Themes.Quill.Meeting.CancelConfirmed.render(assigns)
+      :reschedule -> Reschedule.render(assigns)
+      :cancel -> Cancel.render(assigns)
+      :cancel_confirmed -> CancelConfirmed.render(assigns)
       _ -> raise "Unsupported meeting action: #{action}"
     end
   end

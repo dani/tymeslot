@@ -8,7 +8,7 @@ defmodule TymeslotWeb.OnboardingLive.WelcomeStep do
 
   use Phoenix.Component
 
-  import TymeslotWeb.Components.CoreComponents
+  alias TymeslotWeb.OnboardingLive.StepConfig
 
   @doc """
   Renders the welcome step component.
@@ -17,48 +17,56 @@ defmodule TymeslotWeb.OnboardingLive.WelcomeStep do
   def welcome_step(assigns) do
     ~H"""
     <div class="onboarding-step">
-      <div class="mb-6">
+      <div class="mb-12">
         <div class="onboarding-welcome-icon">
-          <.icon name="hero-calendar-days" class="w-10 h-10" />
+          <svg class="w-12 h-12 text-turquoise-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
         </div>
         <h1 class="onboarding-title">
-          Welcome to Tymeslot!
+          {StepConfig.step_title(:welcome)}
         </h1>
-        <p class="onboarding-subtitle">Let's get you set up in just a few steps</p>
+        <p class="onboarding-subtitle">{StepConfig.step_description(:welcome)}</p>
       </div>
 
       <div class="onboarding-feature-list">
         <div class="onboarding-feature-item">
           <div class="onboarding-feature-icon">
-            <.icon name="hero-clock" class="w-5 h-5" />
+            <svg class="w-6 h-6 text-turquoise-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
           </div>
           <div>
-            <h3 class="onboarding-feature-title">Smart Scheduling</h3>
+            <h3 class="onboarding-feature-title">Smart Availability</h3>
             <p class="onboarding-feature-description">
-              Automatically sync with your calendar and avoid conflicts
+              Sync with your existing calendars to prevent double-bookings automatically.
             </p>
           </div>
         </div>
 
         <div class="onboarding-feature-item">
           <div class="onboarding-feature-icon">
-            <.icon name="hero-video-camera" class="w-5 h-5" />
+            <svg class="w-6 h-6 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
           </div>
           <div>
-            <h3 class="onboarding-feature-title">Multi-Provider Video Meetings</h3>
+            <h3 class="onboarding-feature-title">HD Video Meetings</h3>
             <p class="onboarding-feature-description">
-              Choose from MiroTalk P2P, Google Meet, Teams, or custom video links
+              Native MiroTalk, Google Meet, and Teams integrations for every booking.
             </p>
           </div>
         </div>
 
         <div class="onboarding-feature-item">
           <div class="onboarding-feature-icon">
-            <.icon name="hero-envelope" class="w-5 h-5" />
+            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
           </div>
           <div>
-            <h3 class="onboarding-feature-title">Professional Notifications</h3>
-            <p class="onboarding-feature-description">Automated email confirmations and reminders</p>
+            <h3 class="onboarding-feature-title">Automated Workflows</h3>
+            <p class="onboarding-feature-description">Instant confirmations and reminders sent to you and your clients.</p>
           </div>
         </div>
       </div>

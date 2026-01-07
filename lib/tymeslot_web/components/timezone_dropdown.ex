@@ -52,7 +52,7 @@ defmodule TymeslotWeb.Components.TimezoneDropdown do
           {if @target, do: [{"phx-target", @target}], else: []}
           type="button"
         >
-          <div class="glass-input p-4 hover:bg-white/20 transition-all duration-200">
+          <div class="input p-4 hover:bg-white transition-all duration-200">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-3 flex-1 min-w-0">
                 <%= if country_code = TimezoneUtils.get_country_code_for_timezone(@profile && @profile.timezone || "UTC") do %>
@@ -97,7 +97,7 @@ defmodule TymeslotWeb.Components.TimezoneDropdown do
     <!-- Dropdown with search - opens upward -->
         <%= if @timezone_dropdown_open do %>
           <div
-            class="absolute bottom-full left-0 right-0 mb-2 max-h-64 z-40 glass-card rounded-xl shadow-lg border border-white/30 overflow-hidden"
+            class="absolute bottom-full left-0 right-0 mb-2 max-h-64 z-40 brand-card rounded-xl shadow-lg border border-white/30 overflow-hidden"
             style="position: absolute; bottom: 100%; margin-bottom: 8px;"
           >
             <!-- Search input -->

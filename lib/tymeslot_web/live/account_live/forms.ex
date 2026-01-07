@@ -191,7 +191,7 @@ defmodule TymeslotWeb.AccountLive.Forms do
   end
 
   defp input_classes(errors) do
-    base = "glass-input"
+    base = "input"
     if errors, do: "#{base} input-error", else: base
   end
 end

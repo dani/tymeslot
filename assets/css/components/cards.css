@@ -59,73 +59,35 @@
   padding: var(--spacing-8);
 }
 
-/* Enhanced Glass Morphism Card */
+/* Enhanced Glass Morphism Card - Standardized for 2026 */
 .card-glass {
-  background: var(--color-glass-bg-light);
-  backdrop-filter: var(--glass-blur-strong);
-  -webkit-backdrop-filter: var(--glass-blur-strong);
-  border: 1px solid var(--color-border-glass-light);
-  border-radius: 16px;
-  padding: var(--spacing-6);
-  box-shadow: var(--shadow-glass-card);
-  color: var(--color-text-glass-primary);
-  transition: var(--transition-glass);
+  @apply bg-white border-2 border-slate-50 rounded-3xl p-6 shadow-2xl transition-all duration-300;
 }
 
 .card-glass:hover {
-  background: var(--color-glass-bg-light);
-  border-color: var(--color-border-glass-light);
-  transform: none;
-  box-shadow: var(--shadow-glass-card);
+  @apply border-turquoise-100 shadow-turquoise-200/30 -translate-y-1 bg-slate-50/30;
 }
 
-/* Auth Glass Card */
+/* Auth Card - High Contrast */
 .auth-glass-card {
-  background: var(--color-glass-bg-light);
-  backdrop-filter: var(--glass-blur-strong);
-  border-radius: 16px;
-  box-shadow: var(--shadow-glass-card);
-  border: 1px solid var(--color-border-glass-light);
-  padding: 30px;
-  max-width: 480px;
-  width: 100%;
-  margin: 0 auto;
-  box-sizing: border-box;
+  @apply bg-white/95 backdrop-blur-md border-2 border-slate-100 rounded-[2.5rem] p-6 sm:p-8 shadow-2xl shadow-slate-900/10 w-full max-w-[480px] mx-auto;
 }
 
-.auth-glass-card:hover {
-  background: var(--color-glass-bg-light);
-  border-color: var(--color-border-glass-light);
-  transform: none;
-  box-shadow: var(--shadow-glass-card);
-}
-
-/* Flash Message Cards */
+/* Flash Message Cards - Modernized */
 .flash-card {
-  background: var(--color-glass-bg-medium);
-  backdrop-filter: var(--glass-blur-light);
-  border: 2px solid var(--color-border-glass-dark);
-  border-radius: 8px;
-  padding: 12px 16px;
-  margin-bottom: 20px;
-  color: var(--color-text-glass-primary);
-  box-shadow: var(--shadow-glass-md);
-  font-weight: 600;
+  @apply rounded-2xl p-4 mb-5 shadow-lg border-2 font-bold flex items-center gap-3;
 }
 
 .flash-card.flash-info {
-  border-color: rgba(59, 130, 246, 0.6);
-  background: rgba(200, 220, 255, 0.3);
+  @apply bg-sky-50 border-sky-100 text-sky-800;
 }
 
 .flash-card.flash-error {
-  border-color: rgba(239, 68, 68, 0.6);
-  background: rgba(255, 200, 200, 0.3);
+  @apply bg-red-50 border-red-100 text-red-800;
 }
 
 .flash-card.flash-success {
-  border-color: rgba(16, 185, 129, 0.6);
-  background: rgba(200, 255, 220, 0.3);
+  @apply bg-emerald-50 border-emerald-100 text-emerald-800;
 }
 
 /* Selected State Glass Gradient */

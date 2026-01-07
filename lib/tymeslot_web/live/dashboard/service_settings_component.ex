@@ -15,7 +15,6 @@ defmodule TymeslotWeb.Dashboard.ServiceSettingsComponent do
   alias TymeslotWeb.Dashboard.MeetingSettings.SchedulingSettingsComponent
   alias TymeslotWeb.Hooks.ModalHook
   alias TymeslotWeb.Live.Shared.Flash
-  import TymeslotWeb.Components.UI.CloseButton
   require Logger
 
   @impl true
@@ -247,21 +246,25 @@ defmodule TymeslotWeb.Dashboard.ServiceSettingsComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="container pb-16 lg:pb-20">
+    <div class="space-y-10 pb-20">
       <%= if @show_edit_overlay && @editing_type do %>
         <!-- Edit Meeting Type View -->
-        <div class="space-y-6">
-          <div class="flex items-center justify-between">
-            <h2 class="text-2xl font-bold text-gray-800">Edit Meeting Type</h2>
-            <.close_button
-              phx_click="close_edit_overlay"
-              phx_target={@myself}
-              title="Close"
-              show_label={true}
-            />
+        <div class="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div class="flex items-center justify-between bg-white p-6 rounded-3xl border-2 border-slate-50 shadow-sm">
+            <h2 class="text-3xl font-black text-slate-900 tracking-tight">Edit Meeting Type</h2>
+            <button
+              phx-click="close_edit_overlay"
+              phx-target={@myself}
+              class="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-50 text-slate-600 font-bold hover:bg-slate-100 transition-all"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Close
+            </button>
           </div>
 
-          <div class="card-glass p-6">
+          <div class="card-glass">
             <.live_component
               module={MeetingTypeForm}
               id={"meeting-type-form-edit-#{@editing_type.id}"}
@@ -279,42 +282,27 @@ defmodule TymeslotWeb.Dashboard.ServiceSettingsComponent do
         </div>
       <% else %>
         <!-- Normal View -->
-        <div class="space-y-6">
+        <div class="space-y-10">
           <div class="flex items-center justify-between">
-            <div class="flex items-center">
-              <DashboardComponents.section_header
-                icon={:grid}
-                title="Meeting Settings"
-                class="flex items-center mb-0"
-              />
-            </div>
+            <DashboardComponents.section_header
+              icon={:grid}
+              title="Meeting Settings"
+              class="mb-0"
+            />
 
             <%= if @saving do %>
-              <span class="text-green-400 text-sm flex items-center">
+              <div class="flex items-center bg-emerald-50 text-emerald-700 px-4 py-2 rounded-full font-black text-xs uppercase tracking-wider border-2 border-emerald-100">
                 <svg class="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24">
-                  <circle
-                    class="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    stroke-width="4"
-                  >
-                  </circle>
-                  <path
-                    class="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  >
-                  </path>
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                Saving...
-              </span>
+                Saving changes...
+              </div>
             <% end %>
           </div>
           
     <!-- Meeting Types Section -->
-          <div>
+          <div class="space-y-6">
             <MeetingTypesListComponent.meeting_types_section
               meeting_types={@meeting_types}
               show_add_form={@show_add_form}
@@ -322,10 +310,10 @@ defmodule TymeslotWeb.Dashboard.ServiceSettingsComponent do
               parent_myself={@myself}
             />
             
-    <!-- Add Meeting Type Form (Moved to Top) -->
+    <!-- Add Meeting Type Form -->
             <%= if @show_add_form do %>
-              <div class="card-glass my-6">
-                <h3 class="text-lg font-medium text-gray-800 mb-4">Add Meeting Type</h3>
+              <div class="card-glass animate-in zoom-in duration-300">
+                <h3 class="text-2xl font-black text-slate-900 tracking-tight mb-8">Add Meeting Type</h3>
                 <.live_component
                   module={MeetingTypeForm}
                   id="meeting-type-form-new"
@@ -344,13 +332,15 @@ defmodule TymeslotWeb.Dashboard.ServiceSettingsComponent do
           </div>
           
     <!-- Scheduling Settings -->
-          <.live_component
-            module={SchedulingSettingsComponent}
-            id="scheduling-settings"
-            profile={@profile}
-            client_ip={@client_ip}
-            user_agent={@user_agent}
-          />
+          <div class="animate-in fade-in duration-700">
+            <.live_component
+              module={SchedulingSettingsComponent}
+              id="scheduling-settings"
+              profile={@profile}
+              client_ip={@client_ip}
+              user_agent={@user_agent}
+            />
+          </div>
         </div>
         
     <!-- Delete Meeting Type Modal -->

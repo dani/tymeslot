@@ -29,7 +29,7 @@ defmodule TymeslotWeb.Components.UIComponents do
     ~H"""
     <div class="meeting-details-card">
       <%= if @title && @title != "" do %>
-        <h3 class="text-lg font-semibold mb-4 text-purple-900">{@title}</h3>
+        <h3 class="text-xl font-black text-slate-900 tracking-tight mb-4">{@title}</h3>
       <% end %>
       {render_slot(@inner_block)}
     </div>
@@ -45,7 +45,7 @@ defmodule TymeslotWeb.Components.UIComponents do
     * `:disabled` - Whether the button is disabled. Defaults to false
     * `:class` - Additional CSS classes
   """
-  attr :variant, :atom, default: :primary
+  attr :variant, :atom, default: :primary, values: [:primary, :secondary, :danger, :outline]
   attr :type, :string, default: "button"
   attr :disabled, :boolean, default: false
   attr :class, :string, default: ""
@@ -77,7 +77,7 @@ defmodule TymeslotWeb.Components.UIComponents do
   """
   attr :loading, :boolean, default: false
   attr :loading_text, :string, default: "Processing..."
-  attr :variant, :atom, default: :primary
+  attr :variant, :atom, default: :primary, values: [:primary, :secondary, :danger, :outline]
   attr :type, :string, default: "button"
   attr :class, :string, default: ""
   attr :disabled, :boolean, default: false

@@ -35,22 +35,30 @@ defmodule TymeslotWeb.Dashboard.Availability.GridComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="space-y-6">
+    <div class="space-y-8 animate-in fade-in duration-500">
       <!-- Availability Grid -->
-      <div class="card-glass relative overflow-x-auto">
-        <!-- Timezone Display -->
-        <div class="sm:absolute static sm:top-4 sm:right-4 mb-4 sm:mb-0">
-          <Helpers.timezone_display timezone_display={@timezone_display} country_code={@country_code} />
+      <div class="card-glass relative overflow-x-auto shadow-2xl shadow-slate-200/50">
+        <div class="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-6">
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 bg-cyan-50 rounded-xl flex items-center justify-center border border-cyan-100 shadow-sm">
+              <svg class="w-6 h-6 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+              </svg>
+            </div>
+            <h4 class="text-2xl font-black text-slate-900 tracking-tight">Weekly Visual Grid</h4>
+          </div>
+          
+          <div class="flex-shrink-0">
+            <Helpers.timezone_display timezone_display={@timezone_display} country_code={@country_code} />
+          </div>
         </div>
 
-        <h4 class="text-lg font-semibold text-gray-800 mb-6">Weekly Availability Grid</h4>
-
-        <div class="min-w-[600px]">
-          <div class="grid grid-cols-8 gap-1 text-xs sm:text-sm">
+        <div class="min-w-[800px] bg-slate-50/50 rounded-3xl p-6 border-2 border-slate-50">
+          <div class="grid grid-cols-8 gap-2 text-xs sm:text-sm">
             <!-- Header Row -->
-            <div class="font-medium text-gray-600 text-center py-1 sm:py-3"></div>
+            <div class="font-black text-slate-400 uppercase tracking-widest text-center py-4"></div>
             <%= for {day_name, _day_num} <- [{"Mon", 1}, {"Tue", 2}, {"Wed", 3}, {"Thu", 4}, {"Fri", 5}, {"Sat", 6}, {"Sun", 7}] do %>
-              <div class="font-medium text-gray-800 text-center py-1 sm:py-3 bg-white/5 rounded border border-gray-200/20">
+              <div class="font-black text-slate-700 text-center py-4 bg-white rounded-xl border-2 border-white shadow-sm">
                 {day_name}
               </div>
             <% end %>
@@ -58,7 +66,7 @@ defmodule TymeslotWeb.Dashboard.Availability.GridComponent do
     <!-- Time Slots Grid (30-minute intervals) -->
             <%= for hour <- 6..22 do %>
               <%= for minute <- [0, 30] do %>
-                <div class="font-medium text-gray-600 text-right py-1 pr-1 sm:pr-2 text-[10px] sm:text-xs">
+                <div class="font-black text-slate-400 text-right py-1 pr-4 text-[10px] sm:text-xs uppercase tracking-tighter">
                   {format_time_slot(hour, minute)}
                 </div>
                 <%= for day_num <- 1..7 do %>
@@ -66,20 +74,20 @@ defmodule TymeslotWeb.Dashboard.Availability.GridComponent do
                   <% {slot_status, tooltip} = get_time_slot_status(availability, hour, minute) %>
                   <div
                     class={[
-                      "h-3 sm:h-4 rounded border transition-all duration-200",
+                      "h-5 sm:h-6 rounded-lg border-2 transition-all duration-300 transform hover:scale-110 hover:z-10",
                       case slot_status do
-                        :available -> "border-teal-500 hover:opacity-80"
-                        :partial -> "border-yellow-500 hover:opacity-80"
-                        :unavailable -> "bg-gray-100/20 border-gray-300/20 hover:bg-gray-100/30"
+                        :available -> "border-emerald-200 shadow-sm shadow-emerald-500/10 cursor-pointer"
+                        :partial -> "border-amber-200 shadow-sm shadow-amber-500/10 cursor-pointer"
+                        :unavailable -> "bg-slate-100 border-slate-100 opacity-40 hover:opacity-100"
                       end
                     ]}
                     style={
                       case slot_status do
                         :available ->
-                          "background-color: var(--color-primary-400); opacity: 0.8;"
+                          "background-color: #10b981; opacity: 0.8;"
 
                         :partial ->
-                          "background: linear-gradient(45deg, var(--color-primary-400) 50%, #fbbf24 50%); opacity: 0.8;"
+                          "background: linear-gradient(45deg, #10b981 50%, #f59e0b 50%); opacity: 0.8;"
 
                         :unavailable ->
                           ""
@@ -95,26 +103,26 @@ defmodule TymeslotWeb.Dashboard.Availability.GridComponent do
         </div>
         
     <!-- Legend -->
-        <div class="mt-6 flex flex-wrap items-center justify-center gap-3 sm:gap-4 text-xs sm:text-sm">
-          <div class="flex items-center space-x-2">
+        <div class="mt-10 flex flex-wrap items-center justify-center gap-8 bg-slate-50/50 p-6 rounded-2xl border-2 border-slate-50">
+          <div class="flex items-center gap-3">
             <div
-              class="w-3 h-3 sm:w-4 sm:h-4 border border-teal-500 rounded"
-              style="background-color: var(--color-primary-400); opacity: 0.8;"
+              class="w-5 h-5 border-2 border-emerald-200 rounded-lg shadow-sm"
+              style="background-color: #10b981; opacity: 0.8;"
             >
             </div>
-            <span class="text-gray-700">Available</span>
+            <span class="text-slate-700 font-bold text-sm">Full Availability</span>
           </div>
-          <div class="flex items-center space-x-2">
+          <div class="flex items-center gap-3">
             <div
-              class="w-3 h-3 sm:w-4 sm:h-4 border border-yellow-500 rounded"
-              style="background: linear-gradient(45deg, var(--color-primary-400) 50%, #fbbf24 50%); opacity: 0.8;"
+              class="w-5 h-5 border-2 border-amber-200 rounded-lg shadow-sm"
+              style="background: linear-gradient(45deg, #10b981 50%, #f59e0b 50%); opacity: 0.8;"
             >
             </div>
-            <span class="text-gray-700">Partially Available</span>
+            <span class="text-slate-700 font-bold text-sm">Partial (Breaks)</span>
           </div>
-          <div class="flex items-center space-x-2">
-            <div class="w-3 h-3 sm:w-4 sm:h-4 bg-gray-100/20 border border-gray-300/20 rounded"></div>
-            <span class="text-gray-700">Unavailable</span>
+          <div class="flex items-center gap-3">
+            <div class="w-5 h-5 bg-slate-200 border-2 border-slate-200 rounded-lg opacity-40"></div>
+            <span class="text-slate-700 font-bold text-sm">Unavailable</span>
           </div>
         </div>
       </div>

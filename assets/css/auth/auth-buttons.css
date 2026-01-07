@@ -2,131 +2,50 @@
    OAuth/Social Authentication Buttons
    =================================== */
 
-/* Base OAuth button style with glassmorphism */
+/* Base OAuth button style - Clean and Modern */
 .btn-oauth {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--oauth-button-gap, 0.75rem);
-  min-height: var(--oauth-button-height, 2.75rem);
-  padding: 0.625rem 1rem;
-  border-radius: 0.5rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  
-  /* Glassmorphism effect */
-  background: var(--oauth-button-bg);
-  backdrop-filter: var(--glass-blur-light);
-  -webkit-backdrop-filter: var(--glass-blur-light);
-  border: 1px solid var(--oauth-button-border);
-  color: var(--oauth-button-text);
-  
-  /* Subtle inner glow */
-  box-shadow: 
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.15),
-    0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  @apply flex items-center justify-center gap-3 py-3.5 px-6 bg-white border-2 border-slate-100 rounded-2xl shadow-sm transition-all duration-300 transform cursor-pointer overflow-hidden;
+  @apply text-slate-700 font-bold text-sm;
 }
 
 /* OAuth button hover state */
 .btn-oauth:hover {
-  background: var(--oauth-button-bg-hover);
-  border-color: var(--oauth-button-border-hover);
-  transform: translateY(-1px);
-  box-shadow: 
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.2),
-    0 4px 12px 0 rgba(0, 0, 0, 0.15),
-    0 0 0 1px rgba(255, 255, 255, 0.1);
-}
-
-/* OAuth button focus state */
-.btn-oauth:focus {
-  outline: none;
-  box-shadow: 
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.2),
-    0 0 0 3px rgba(var(--color-primary-rgb), 0.3);
+  @apply border-turquoise-100 bg-slate-50 -translate-y-1 shadow-md;
 }
 
 /* OAuth button active/pressed state */
 .btn-oauth:active {
-  transform: translateY(0);
-  background: rgba(255, 255, 255, 0.06);
+  @apply translate-y-0 shadow-sm;
 }
 
 /* OAuth button icon styling */
 .btn-oauth svg {
-  width: var(--oauth-icon-size, 1.25rem);
-  height: var(--oauth-icon-size, 1.25rem);
-  flex-shrink: 0;
+  @apply w-5 h-5 flex-shrink-0 transition-transform duration-300;
 }
 
-/* Provider-specific variants */
-
-/* Google OAuth button */
-.btn-oauth-google {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.2);
+.btn-oauth:hover svg {
+  @apply scale-110 rotate-3;
 }
 
+/* Provider-specific hover subtle tints */
 .btn-oauth-google:hover {
-  background: rgba(66, 133, 244, 0.15);
-  border-color: rgba(66, 133, 244, 0.3);
-}
-
-/* GitHub OAuth button */
-.btn-oauth-github {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.2);
+  @apply border-blue-100 bg-blue-50/30;
 }
 
 .btn-oauth-github:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.3);
+  @apply border-slate-200 bg-slate-100/30;
 }
 
-/* OAuth section divider */
+/* Auth section divider */
 .auth-divider {
-  position: relative;
-  display: flex;
-  align-items: center;
-  margin: 1.5rem 0;
-  width: 100%;
+  @apply relative flex items-center my-6 w-full;
 }
 
 .auth-divider::before,
 .auth-divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--oauth-divider-color, rgba(255, 255, 255, 0.15));
+  @apply content-[''] flex-1 h-[2px] bg-slate-100;
 }
 
 .auth-divider-text {
-  padding: 0 1rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #374151; /* gray-700 for better readability */
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(10px);
-  border-radius: 9999px;
-  border: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-/* Responsive adjustments */
-@media (max-width: 640px) {
-  .btn-oauth {
-    font-size: 0.8125rem;
-    padding: 0.5rem 0.875rem;
-    min-height: 2.5rem;
-  }
-  
-  .btn-oauth svg {
-    width: 1.125rem;
-    height: 1.125rem;
-  }
+  @apply px-4 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 bg-white;
 }

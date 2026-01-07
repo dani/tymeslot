@@ -89,8 +89,8 @@ defmodule TymeslotWeb.OnboardingLive.StepConfig do
   """
   @spec step_title(step()) :: String.t()
   def step_title(:welcome), do: "Welcome to Tymeslot!"
-  def step_title(:basic_settings), do: "Basic Settings"
-  def step_title(:scheduling_preferences), do: "Scheduling Preferences"
+  def step_title(:basic_settings), do: "Profile Setup"
+  def step_title(:scheduling_preferences), do: "Preferences"
   def step_title(:complete), do: "You're All Set!"
 
   @doc """
@@ -100,7 +100,7 @@ defmodule TymeslotWeb.OnboardingLive.StepConfig do
   def step_description(:welcome), do: "Let's get you set up in just a few steps"
   def step_description(:basic_settings), do: "Let's personalize your account"
   def step_description(:scheduling_preferences), do: "Configure your default meeting settings"
-  def step_description(:complete), do: "Your Tymeslot account is ready to use"
+  def step_description(:complete), do: "Your Tymeslot account is ready to launch"
 
   @doc """
   Checks if a step is completed based on current step position.

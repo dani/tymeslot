@@ -11,7 +11,6 @@ defmodule TymeslotWeb.Registration.CompleteRegistrationComponent do
   import TymeslotWeb.Shared.Auth.FormComponents
   import TymeslotWeb.Shared.Auth.InputComponents
   import TymeslotWeb.Shared.Auth.ButtonComponents
-  import TymeslotWeb.Shared.Auth.IconComponents
 
   @doc """
   Renders the complete registration form using shared auth components.
@@ -52,17 +51,22 @@ defmodule TymeslotWeb.Registration.CompleteRegistrationComponent do
   # Private function components
   defp full_name_input(assigns) do
     ~H"""
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-      <div>
-        <.form_label for="full-name" text="Full Name" />
-        <.auth_text_input
-          id="full-name"
-          name="profile[full_name]"
-          type="text"
-          placeholder="Full name"
-          required={true}
-        />
-      </div>
+    <div>
+      <.form_label for="full-name" text="Display Name" />
+      <.auth_text_input
+        id="full-name"
+        name="profile[full_name]"
+        type="text"
+        placeholder="e.g. John Doe"
+        required={true}
+        icon_position="left"
+      >
+        <:icon>
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+          </svg>
+        </:icon>
+      </.auth_text_input>
     </div>
     """
   end
@@ -78,11 +82,13 @@ defmodule TymeslotWeb.Registration.CompleteRegistrationComponent do
           type="email"
           placeholder="your.email@example.com"
           required={true}
-          class="border-primary-100/50"
+          icon_position="right"
         >
-          <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-            <.email_icon />
-          </div>
+          <:icon>
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.206" />
+            </svg>
+          </:icon>
         </.auth_text_input>
       </div>
     <% else %>

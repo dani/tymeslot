@@ -272,7 +272,6 @@ defmodule TymeslotWeb.Components.HeroBookingDemo do
         >
           <div class="slide-content max-w-lg mx-auto text-center py-8">
             <div class="relative inline-block mb-10">
-              <div class="absolute inset-0 bg-cyan-500/30 blur-2xl animate-pulse"></div>
               <div
                 class="success-icon relative w-20 h-20 bg-gradient-to-br from-cyan-400 to-teal-500 rounded-3xl flex items-center justify-center shadow-2xl"
                 style="transform: rotate(3deg);"

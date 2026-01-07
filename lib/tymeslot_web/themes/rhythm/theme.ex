@@ -11,6 +11,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Theme do
     OverviewComponent,
     ScheduleComponent
   }
+  alias TymeslotWeb.Themes.Rhythm.Meeting.{Cancel, CancelConfirmed, Reschedule}
 
   @impl true
   def states do
@@ -99,9 +100,9 @@ defmodule TymeslotWeb.Themes.Rhythm.Theme do
   @impl true
   def render_meeting_action(assigns, action) do
     case action do
-      :reschedule -> TymeslotWeb.Themes.Rhythm.Meeting.Reschedule.render(assigns)
-      :cancel -> TymeslotWeb.Themes.Rhythm.Meeting.Cancel.render(assigns)
-      :cancel_confirmed -> TymeslotWeb.Themes.Rhythm.Meeting.CancelConfirmed.render(assigns)
+      :reschedule -> Reschedule.render(assigns)
+      :cancel -> Cancel.render(assigns)
+      :cancel_confirmed -> CancelConfirmed.render(assigns)
       _ -> raise "Unsupported meeting action: #{action}"
     end
   end

@@ -217,7 +217,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Video.MirotalkConfig do
         </div>
 
         <%= if error = Map.get(@form_errors, :base) do %>
-          <div class="glass-card p-3 bg-red-50/50 border border-red-200/50">
+          <div class="brand-card p-3 bg-red-50/50 border border-red-200/50">
             <p class="text-sm text-red-600 flex items-center">
               <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                 <path
@@ -245,7 +245,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Video.MirotalkConfig do
     <div class="mb-6">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <!-- Features Card -->
-        <div class="glass-card p-4 bg-gradient-to-br from-turquoise-50/50 to-blue-50/50">
+        <div class="brand-card p-4 bg-gradient-to-br from-turquoise-50/50 to-blue-50/50">
           <div class="flex items-start space-x-3">
             <div class="w-8 h-8 rounded-lg bg-turquoise-100 flex items-center justify-center flex-shrink-0">
               <svg
@@ -283,7 +283,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Video.MirotalkConfig do
         </div>
         
     <!-- Requirements Card -->
-        <div class="glass-card p-4 bg-gradient-to-br from-purple-50/50 to-indigo-50/50">
+        <div class="brand-card p-4 bg-gradient-to-br from-purple-50/50 to-indigo-50/50">
           <div class="flex items-start space-x-3">
             <div class="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
               <svg
@@ -319,7 +319,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Video.MirotalkConfig do
       </div>
       
     <!-- Note Card -->
-      <div class="glass-card p-4 bg-gradient-to-r from-amber-50/50 to-yellow-50/50 border border-amber-200/30">
+      <div class="brand-card p-4 bg-gradient-to-r from-amber-50/50 to-yellow-50/50 border border-amber-200/30">
         <div class="flex items-start space-x-3">
           <div class="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
             <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

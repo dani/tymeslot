@@ -34,7 +34,7 @@ defmodule TymeslotWeb.Session.LoginComponent do
     ~H"""
     <.auth_card_layout title="Welcome Back!">
       <:heading>
-        <h2 class="text-fluid-sm sm:text-fluid-md md:text-fluid-lg font-bold text-primary-600 mb-6 sm:mb-8 font-heading tracking-tight text-center sm:text-left">
+        <h2 class="text-xl font-bold text-slate-900 mb-6 font-heading tracking-tight text-center">
           Log in to {@app_name}
         </h2>
       </:heading>

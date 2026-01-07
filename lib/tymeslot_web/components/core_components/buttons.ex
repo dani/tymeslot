@@ -11,12 +11,12 @@ defmodule TymeslotWeb.Components.CoreComponents.Buttons do
   Renders an action button with gradient styling.
 
   ## Options
-    * `:variant` - Button variant (:primary, :secondary, :danger). Defaults to :primary
+    * `:variant` - Button variant (:primary, :secondary, :danger, :outline). Defaults to :primary
     * `:type` - Button type attribute. Defaults to "button"
     * `:disabled` - Whether the button is disabled. Defaults to false
     * `:class` - Additional CSS classes
   """
-  attr :variant, :atom, default: :primary
+  attr :variant, :atom, default: :primary, values: [:primary, :secondary, :danger, :outline]
   attr :type, :string, default: "button"
   attr :disabled, :boolean, default: false
   attr :class, :string, default: ""

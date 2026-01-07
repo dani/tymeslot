@@ -11,7 +11,10 @@ module.exports = {
     "../lib/tymeslot_web.ex",
     "../lib/tymeslot_web/**/*.*ex",
     "../lib/tymeslot_web/controllers/auth/**/*.ex",
-    "../lib/tymeslot_web/components/auth/**/*.ex"
+    "../lib/tymeslot_web/components/auth/**/*.ex",
+    // Include SaaS app files for homepage
+    "../../tymeslot_saas/lib/tymeslot_saas_web.ex",
+    "../../tymeslot_saas/lib/tymeslot_saas_web/**/*.*ex"
   ],
   safelist: [
     // Ensure all meeting type icons are included in the CSS build
@@ -48,6 +51,95 @@ module.exports = {
     extend: {
       colors: {
         brand: "#FD4F00",
+        // Map turquoise and cyan to CSS variables for design token consistency
+        // We use hex values directly here to ensure opacity modifiers work (/50, etc.)
+        // while keeping them in sync with variables.css
+        turquoise: {
+          50: '#f0fdfa',
+          100: '#ccfbf1',
+          200: '#99f6e4',
+          300: '#5eead4',
+          400: '#2dd4bf',
+          500: '#14b8a6',
+          600: '#0d9488',
+          700: '#0f766e',
+          800: '#115e59',
+          900: '#134e4a',
+          950: '#042f2e',
+        },
+        cyan: {
+          50: '#ecfeff',
+          100: '#cffafe',
+          200: '#a5f3fc',
+          300: '#67e8f9',
+          400: '#22d3ee',
+          500: '#06b6d4',
+          600: '#0891b2',
+          700: '#0e7490',
+          800: '#155e75',
+          900: '#164e63',
+          950: '#083344',
+        },
+        glass: {
+          light: 'var(--color-glass-bg-light)',
+          medium: 'var(--color-glass-bg-medium)',
+          strong: 'var(--color-glass-bg-strong)',
+          card: 'var(--color-glass-bg-card)',
+          'card-enhanced': 'var(--color-glass-bg-card-enhanced)',
+          overlay: 'var(--color-glass-bg-overlay)',
+          'overlay-enhanced': 'var(--color-glass-bg-overlay-enhanced)',
+        },
+        tymeslot: {
+          50: 'var(--color-neutral-50)',
+          100: 'var(--color-neutral-100)',
+          200: 'var(--color-neutral-200)',
+          300: 'var(--color-neutral-300)',
+          400: 'var(--color-neutral-400)',
+          500: 'var(--color-neutral-500)',
+          600: 'var(--color-neutral-600)',
+          700: 'var(--color-neutral-700)',
+          800: 'var(--color-neutral-800)',
+          900: 'var(--color-neutral-900)',
+          950: 'var(--color-neutral-950)',
+        }
+      },
+      // Add custom design token utilities without overriding defaults
+      boxShadow: {
+        'glass-sm': 'var(--shadow-glass-sm)',
+        'glass-md': 'var(--shadow-glass-md)',
+        'glass-lg': 'var(--shadow-glass-lg)',
+        'glass-xl': 'var(--shadow-glass-xl)',
+        'glass-card': 'var(--shadow-glass-card-enhanced)',
+      },
+      transitionProperty: {
+        'glass': 'var(--transition-glass)',
+      },
+      backdropBlur: {
+        'glass-light': 'var(--glass-blur-light)',
+        'glass-medium': 'var(--glass-blur-medium)',
+        'glass-strong': 'var(--glass-blur-strong)',
+        'glass-heavy': 'var(--glass-blur-heavy)',
+      },
+      fontSize: {
+        'token-xs': 'var(--font-size-xs)',
+        'token-sm': 'var(--font-size-sm)',
+        'token-base': 'var(--font-size-base)',
+        'token-lg': 'var(--font-size-lg)',
+        'token-xl': 'var(--font-size-xl)',
+        'token-2xl': 'var(--font-size-2xl)',
+        'token-3xl': 'var(--font-size-3xl)',
+        'token-4xl': 'var(--font-size-4xl)',
+        'token-5xl': 'var(--font-size-5xl)',
+        'token-6xl': 'var(--font-size-6xl)',
+        'token-7xl': 'var(--font-size-7xl)',
+      },
+      borderRadius: {
+        'token-sm': 'var(--radius-sm)',
+        'token-md': 'var(--radius-md)',
+        'token-lg': 'var(--radius-lg)',
+        'token-xl': 'var(--radius-xl)',
+        'token-2xl': 'var(--radius-2xl)',
+        'token-3xl': 'var(--radius-3xl)',
       }
     },
   },

@@ -36,13 +36,13 @@ defmodule TymeslotWeb.AccountLive do
     ~H"""
     <div class="min-h-screen">
       <!-- Simple header with back button -->
-      <nav class="glass-nav mb-6 relative" style="z-index: 50;">
+      <nav class="brand-nav mb-6 relative" style="z-index: 50;">
         <div class="container mx-auto px-4">
           <div class="flex items-center justify-between h-16">
             <!-- Back to Dashboard button -->
             <.link
               patch={~p"/dashboard"}
-              class="inline-flex items-center space-x-2 glass-button text-sm px-4 py-2"
+              class="inline-flex items-center space-x-2 btn-secondary text-sm px-4 py-2"
             >
               <IconComponents.icon name={:arrow_left} class="w-4 h-4" />
               <span>Back to Dashboard</span>

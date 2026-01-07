@@ -13,55 +13,48 @@ defmodule TymeslotWeb.Dashboard.DashboardOverviewComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div>
+    <div class="space-y-10">
       <!-- Welcome Section -->
-      <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-800 mb-2">
-          Welcome back{if @profile.full_name, do: ", #{@profile.full_name}", else: ""}!
-        </h1>
-        <p class="text-gray-600">
-          Here's an overview of your scheduling setup and recent activity.
-        </p>
+      <div class="bg-gradient-to-br from-turquoise-600 via-cyan-600 to-blue-600 rounded-3xl p-8 lg:p-12 text-white shadow-2xl shadow-turquoise-500/20 relative overflow-hidden">
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.15),transparent_50%)]"></div>
+        <div class="relative z-10">
+          <h1 class="text-4xl lg:text-5xl font-black mb-4 tracking-tight">
+            Welcome back{if @profile.full_name, do: ", #{@profile.full_name}", else: ""}!
+          </h1>
+          <p class="text-xl text-white/90 font-medium max-w-2xl leading-relaxed">
+            Here's an overview of your scheduling setup and recent activity. Everything looks great today!
+          </p>
+        </div>
       </div>
       
-    <!-- Quick Actions -->
+    <!-- Dashboard Grid -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <!-- Recent Meetings -->
-        <div class="card-glass">
-          <div class="flex items-center justify-between mb-4">
-            <div class="flex items-center space-x-2">
-              <h2 class="text-xl font-semibold text-gray-800">Upcoming Meetings</h2>
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-teal-100 text-teal-800">
+        <!-- Upcoming Meetings -->
+        <div class="card-glass h-full">
+          <div class="flex items-center justify-between mb-8">
+            <div class="flex items-center space-x-3">
+              <h2 class="text-2xl font-black text-slate-900 tracking-tight">Upcoming Meetings</h2>
+              <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-black bg-turquoise-100 text-turquoise-700 uppercase tracking-wider">
                 {length(Map.get(@shared_data || %{}, :upcoming_meetings, []))}
               </span>
             </div>
             <.link
               patch={~p"/dashboard/meetings"}
-              class="text-teal-600 hover:text-teal-700 text-sm transition-colors"
+              class="text-turquoise-600 hover:text-turquoise-700 font-bold text-sm transition-colors flex items-center gap-1 group"
             >
-              View all →
+              View all <span class="group-hover:translate-x-1 transition-transform">→</span>
             </.link>
           </div>
 
           <%= if Map.get(@shared_data || %{}, :upcoming_meetings, []) == [] do %>
-            <div class="text-center py-6 text-gray-500">
-              <svg
-                class="w-12 h-12 mx-auto mb-3 opacity-50"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
-              <p>No upcoming meetings</p>
+            <div class="text-center py-12 bg-slate-50/50 rounded-2xl border-2 border-dashed border-slate-100">
+              <div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
+                <IconComponents.icon name={:calendar} class="w-8 h-8 text-slate-300" />
+              </div>
+              <p class="text-slate-500 font-bold">No upcoming meetings scheduled yet.</p>
             </div>
           <% else %>
-            <div class="space-y-3">
+            <div class="space-y-4">
               <%= for meeting <- Map.get(@shared_data || %{}, :upcoming_meetings, []) do %>
                 <.meeting_preview meeting={meeting} profile={@profile} />
               <% end %>
@@ -70,36 +63,40 @@ defmodule TymeslotWeb.Dashboard.DashboardOverviewComponent do
         </div>
         
     <!-- Quick Actions -->
-        <div class="card-glass">
-          <h2 class="text-xl font-semibold text-gray-800 mb-4">Quick Actions</h2>
+        <div class="card-glass h-full">
+          <h2 class="text-2xl font-black text-slate-900 tracking-tight mb-8">Quick Actions</h2>
 
-          <div class="space-y-3">
+          <div class="grid gap-4">
             <.action_link
               patch={~p"/dashboard/settings"}
-              icon="user"
+              icon={:user}
               title="Profile Settings"
-              description="Update your timezone, display name, and scheduling preferences"
+              description="Update your timezone and display name"
+              color_class="bg-turquoise-50 text-turquoise-600"
             />
 
             <.action_link
               patch={~p"/dashboard/meeting-settings"}
-              icon="grid"
+              icon={:grid}
               title="Meeting Types"
-              description="Configure available meeting durations and types"
+              description="Configure your booking durations"
+              color_class="bg-cyan-50 text-cyan-600"
             />
 
             <.action_link
               patch={~p"/dashboard/calendar"}
-              icon="calendar"
+              icon={:calendar}
               title="Calendar Integration"
-              description="Connect your calendar to check availability"
+              description="Connect your external calendars"
+              color_class="bg-blue-50 text-blue-600"
             />
 
             <.action_link
               patch={~p"/dashboard/video"}
-              icon="video"
+              icon={:video}
               title="Video Integration"
-              description="Set up video conferencing for meetings"
+              description="Set up your conferencing tools"
+              color_class="bg-indigo-50 text-indigo-600"
             />
           </div>
         </div>
@@ -110,49 +107,59 @@ defmodule TymeslotWeb.Dashboard.DashboardOverviewComponent do
 
   defp meeting_preview(assigns) do
     ~H"""
-    <div class="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+    <div class="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl border-2 border-slate-50 hover:bg-white hover:shadow-md transition-all group">
       <div class="flex-1">
-        <div class="text-gray-800 font-medium">{@meeting.title}</div>
-        <div class="text-sm text-gray-600">
+        <div class="text-slate-900 font-black tracking-tight group-hover:text-turquoise-700 transition-colors">
+          {@meeting.title}
+        </div>
+        <div class="text-sm text-slate-500 font-bold">
           {@meeting.attendee_name} • {format_meeting_time(@meeting, @profile.timezone)}
         </div>
       </div>
       <div class="flex-shrink-0">
-        <span class="px-2 py-1 text-xs bg-green-600 text-white rounded-full">
-          {String.capitalize(@meeting.status)}
+        <span class="px-3 py-1 text-xs font-black bg-emerald-100 text-emerald-700 rounded-full uppercase tracking-wider">
+          {@meeting.status}
         </span>
       </div>
     </div>
     """
   end
 
+  attr :patch, :string, required: true
+  attr :icon, :atom, required: true
+  attr :title, :string, required: true
+  attr :description, :string, required: true
+  attr :color_class, :string, default: "bg-slate-50 text-slate-600"
+
   defp action_link(assigns) do
     ~H"""
-    <.link patch={@patch} class="block">
-      <div class="flex items-center p-3 rounded-lg hover:bg-white/5 transition-colors group">
-        <div class="flex-shrink-0 mr-3">
-          <div class="w-8 h-8 bg-teal-600/20 rounded-full flex items-center justify-center group-hover:bg-teal-600/30 transition-colors">
-            <IconComponents.icon name={@icon} class="w-5 h-5 text-teal-600" />
+    <.link patch={@patch} class="block group">
+      <div class="flex items-center p-4 rounded-2xl bg-slate-50/50 border-2 border-slate-50 hover:bg-white hover:border-turquoise-100 hover:shadow-xl hover:shadow-turquoise-500/5 transition-all">
+        <div class="flex-shrink-0 mr-4">
+          <div class={["w-12 h-12 rounded-xl flex items-center justify-center transition-all shadow-sm", @color_class]}>
+            <IconComponents.icon name={@icon} class="w-6 h-6" />
           </div>
         </div>
-        <div class="flex-1">
-          <div class="text-gray-800 font-medium group-hover:text-teal-700 transition-colors">
+        <div class="flex-1 min-w-0">
+          <div class="text-slate-900 font-black tracking-tight group-hover:text-turquoise-700 transition-colors">
             {@title}
           </div>
-          <div class="text-sm text-gray-600 group-hover:text-gray-700 transition-colors">
+          <div class="text-sm text-slate-500 font-bold truncate group-hover:text-slate-600 transition-colors">
             {@description}
           </div>
         </div>
-        <div class="flex-shrink-0">
-          <svg
-            class="w-4 h-4 text-gray-500 group-hover:text-teal-600 transition-colors"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7">
-            </path>
-          </svg>
+        <div class="flex-shrink-0 ml-4">
+          <div class="w-8 h-8 rounded-lg bg-white flex items-center justify-center border border-slate-100 group-hover:border-turquoise-200 group-hover:bg-turquoise-50 transition-all">
+            <svg
+              class="w-4 h-4 text-slate-400 group-hover:text-turquoise-600 transition-all transform group-hover:translate-x-0.5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7">
+              </path>
+            </svg>
+          </div>
         </div>
       </div>
     </.link>

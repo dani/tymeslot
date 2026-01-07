@@ -68,25 +68,25 @@ defmodule TymeslotWeb.Components.CoreComponents.Modal do
       phx-window-keydown={@on_cancel}
       phx-key="escape"
     >
-      <div class="modal-container">
-        <div id={"#{@id}-content"} class={["modal-content", modal_size_class(@size)]}>
+      <div class="modal-container p-6">
+        <div id={"#{@id}-content"} class={["modal-content bg-white rounded-[2.5rem] shadow-2xl border-2 border-slate-50 relative overflow-hidden", modal_size_class(@size)]}>
           <!-- Header -->
           <%= if @header != [] do %>
-            <div class="modal-header">
-              <h3 class="modal-title">
+            <div class="modal-header px-8 py-6 border-b-2 border-slate-50 flex items-center justify-between">
+              <h3 class="modal-title text-2xl font-black text-slate-900 tracking-tight">
                 {render_slot(@header)}
               </h3>
               <button
                 type="button"
-                class="modal-close-button"
+                class="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all flex items-center justify-center"
                 aria-label="Close modal"
                 phx-click={@on_cancel}
               >
-                <svg class="modal-close-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     stroke-linecap="round"
                     stroke-linejoin="round"
-                    stroke-width="2"
+                    stroke-width="2.5"
                     d="M6 18L18 6M6 6l12 12"
                   />
                 </svg>
@@ -95,13 +95,13 @@ defmodule TymeslotWeb.Components.CoreComponents.Modal do
           <% end %>
           
     <!-- Body -->
-          <div class="modal-body">
+          <div class="modal-body p-8">
             {render_slot(@inner_block)}
           </div>
           
     <!-- Footer -->
           <%= if @footer != [] do %>
-            <div class="modal-footer">
+            <div class="modal-footer px-8 py-6 bg-slate-50/50 border-t-2 border-slate-50">
               {render_slot(@footer)}
             </div>
           <% end %>

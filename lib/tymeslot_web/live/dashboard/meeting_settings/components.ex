@@ -27,7 +27,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
       </label>
       
     <!-- Tag-based Selection -->
-      <div class="flex flex-wrap items-center gap-2">
+      <div class="flex flex-wrap items-center gap-3">
         <!-- Quick preset tags -->
         <%= for minutes <- [0, 5, 10, 15, 30, 60] do %>
           <button
@@ -36,10 +36,10 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
             phx-value-buffer_minutes={minutes}
             phx-target={@myself}
             class={[
-              "inline-flex items-center px-3 py-2 rounded-full text-sm font-medium transition-all duration-200",
+              "inline-flex items-center px-4 py-2 rounded-xl text-sm font-black transition-all duration-300 border-2",
               if(@buffer_value == minutes,
-                do: "bg-teal-100 text-teal-800 border border-teal-300",
-                else: "bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200"
+                do: "bg-turquoise-50 text-turquoise-700 border-turquoise-200 shadow-sm",
+                else: "bg-white text-slate-500 border-slate-100 hover:border-turquoise-100 hover:text-turquoise-600 hover:bg-slate-50"
               )
             ]}
           >
@@ -54,8 +54,8 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
     <!-- Custom input tag -->
         <%= if @buffer_value not in [0, 5, 10, 15, 30, 60] do %>
           <div class={[
-            "inline-flex items-center rounded-full border transition-all duration-200",
-            "bg-teal-100 text-teal-800 border-teal-300"
+            "inline-flex items-center rounded-xl border-2 transition-all duration-300",
+            "bg-turquoise-50 text-turquoise-700 border-turquoise-200 shadow-sm"
           ]}>
             <input
               type="number"
@@ -66,10 +66,10 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
               phx-blur="update_buffer_minutes"
               phx-target={@myself}
               name="buffer_minutes"
-              class="w-16 px-2.5 py-2 text-sm bg-transparent border-0 focus:ring-0 focus:outline-none rounded-l-full"
+              class="w-20 px-3 py-2 text-sm font-black bg-transparent border-0 focus:ring-0 focus:outline-none rounded-l-xl"
               placeholder="0"
             />
-            <span class="px-2.5 py-2 text-sm text-teal-800">
+            <span class="pr-3 py-2 text-sm font-black text-turquoise-700">
               min
             </span>
           </div>
@@ -79,14 +79,14 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
             phx-click="focus_custom_input"
             phx-value-setting="buffer_minutes"
             phx-target={@myself}
-            class="inline-flex items-center px-3 py-2 rounded-full text-sm font-medium transition-all duration-200 bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200"
+            class="inline-flex items-center px-4 py-2 rounded-xl text-sm font-black transition-all duration-300 bg-white text-slate-500 border-2 border-slate-100 hover:border-turquoise-100 hover:text-turquoise-600 hover:bg-slate-50"
           >
             Custom
           </button>
         <% end %>
       </div>
 
-      <p class="mt-2 text-sm text-gray-600">
+      <p class="mt-4 text-sm text-slate-500 font-bold">
         Time to block after each appointment for preparation, travel, or breaks.
       </p>
     </div>
@@ -115,7 +115,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
       </label>
       
     <!-- Tag-based Selection -->
-      <div class="flex flex-wrap items-center gap-2">
+      <div class="flex flex-wrap items-center gap-3">
         <!-- Quick preset tags -->
         <%= for {days, label} <- [
           {7, "1 week"},
@@ -131,10 +131,10 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
             phx-value-advance_booking_days={days}
             phx-target={@myself}
             class={[
-              "inline-flex items-center px-3 py-2 rounded-full text-sm font-medium transition-all duration-200",
+              "inline-flex items-center px-4 py-2 rounded-xl text-sm font-black transition-all duration-300 border-2",
               if(@booking_days == days,
-                do: "bg-blue-100 text-blue-800 border border-blue-300",
-                else: "bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200"
+                do: "bg-cyan-50 text-cyan-700 border-cyan-200 shadow-sm",
+                else: "bg-white text-slate-500 border-slate-100 hover:border-cyan-100 hover:text-cyan-600 hover:bg-slate-50"
               )
             ]}
           >
@@ -145,8 +145,8 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
     <!-- Custom input tag -->
         <%= if @booking_days not in [7, 14, 30, 60, 90, 180] do %>
           <div class={[
-            "inline-flex items-center rounded-full border transition-all duration-200",
-            "bg-blue-100 text-blue-800 border-blue-300"
+            "inline-flex items-center rounded-xl border-2 transition-all duration-300",
+            "bg-cyan-50 text-cyan-700 border-cyan-200 shadow-sm"
           ]}>
             <input
               type="number"
@@ -157,10 +157,10 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
               phx-blur="update_advance_booking_days"
               phx-target={@myself}
               name="advance_booking_days"
-              class="w-16 px-2.5 py-2 text-sm bg-transparent border-0 focus:ring-0 focus:outline-none rounded-l-full"
+              class="w-20 px-3 py-2 text-sm font-black bg-transparent border-0 focus:ring-0 focus:outline-none rounded-l-xl"
               placeholder="90"
             />
-            <span class="px-2.5 py-2 text-sm text-blue-800">
+            <span class="pr-3 py-2 text-sm font-black text-cyan-700">
               days
             </span>
           </div>
@@ -170,14 +170,14 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
             phx-click="focus_custom_input"
             phx-value-setting="advance_booking_days"
             phx-target={@myself}
-            class="inline-flex items-center px-3 py-2 rounded-full text-sm font-medium transition-all duration-200 bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200"
+            class="inline-flex items-center px-4 py-2 rounded-xl text-sm font-black transition-all duration-300 bg-white text-slate-500 border-2 border-slate-100 hover:border-cyan-100 hover:text-cyan-600 hover:bg-slate-50"
           >
             Custom
           </button>
         <% end %>
       </div>
 
-      <p class="mt-2 text-sm text-gray-600">
+      <p class="mt-4 text-sm text-slate-500 font-bold">
         Maximum number of days into the future that appointments can be booked.
       </p>
     </div>
@@ -206,7 +206,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
       </label>
       
     <!-- Tag-based Selection -->
-      <div class="flex flex-wrap items-center gap-2">
+      <div class="flex flex-wrap items-center gap-3">
         <!-- Quick preset tags -->
         <%= for {hours, label} <- [
           {0, "instant"},
@@ -222,10 +222,10 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
             phx-value-min_advance_hours={hours}
             phx-target={@myself}
             class={[
-              "inline-flex items-center px-3 py-2 rounded-full text-sm font-medium transition-all duration-200",
+              "inline-flex items-center px-4 py-2 rounded-xl text-sm font-black transition-all duration-300 border-2",
               if(@notice_hours == hours,
-                do: "bg-purple-100 text-purple-800 border border-purple-300",
-                else: "bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200"
+                do: "bg-blue-50 text-blue-700 border-blue-200 shadow-sm",
+                else: "bg-white text-slate-500 border-slate-100 hover:border-blue-100 hover:text-blue-600 hover:bg-slate-50"
               )
             ]}
           >
@@ -236,8 +236,8 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
     <!-- Custom input tag -->
         <%= if @notice_hours not in [0, 1, 4, 24, 48, 168] do %>
           <div class={[
-            "inline-flex items-center rounded-full border transition-all duration-200",
-            "bg-purple-100 text-purple-800 border-purple-300"
+            "inline-flex items-center rounded-xl border-2 transition-all duration-300",
+            "bg-blue-50 text-blue-700 border-blue-200 shadow-sm"
           ]}>
             <input
               type="number"
@@ -248,10 +248,10 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
               phx-blur="update_min_advance_hours"
               phx-target={@myself}
               name="min_advance_hours"
-              class="w-16 px-2.5 py-2 text-sm bg-transparent border-0 focus:ring-0 focus:outline-none rounded-l-full"
+              class="w-20 px-3 py-2 text-sm font-black bg-transparent border-0 focus:ring-0 focus:outline-none rounded-l-xl"
               placeholder="24"
             />
-            <span class="px-2.5 py-2 text-sm text-purple-800">
+            <span class="pr-3 py-2 text-sm font-black text-blue-700">
               hours
             </span>
           </div>
@@ -261,14 +261,14 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
             phx-click="focus_custom_input"
             phx-value-setting="min_advance_hours"
             phx-target={@myself}
-            class="inline-flex items-center px-3 py-2 rounded-full text-sm font-medium transition-all duration-200 bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200"
+            class="inline-flex items-center px-4 py-2 rounded-xl text-sm font-black transition-all duration-300 bg-white text-slate-500 border-2 border-slate-100 hover:border-blue-100 hover:text-blue-600 hover:bg-slate-50"
           >
             Custom
           </button>
         <% end %>
       </div>
 
-      <p class="mt-2 text-sm text-gray-600">
+      <p class="mt-4 text-sm text-slate-500 font-bold">
         Minimum hours of notice required before an appointment can be booked.
       </p>
     </div>

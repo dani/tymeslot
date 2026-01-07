@@ -361,15 +361,16 @@ defmodule TymeslotWeb.Dashboard.BookingsManagementComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div>
+    <div class="space-y-10 pb-20">
       <div>
         <DashboardComponents.section_header
           icon={:calendar}
           title="Meetings"
-          title_class="text-2xl sm:text-3xl font-bold text-neutral-800"
         />
 
-        <Components.filter_tabs active={@filter} target={@myself} />
+        <div class="mb-10">
+          <Components.filter_tabs active={@filter} target={@myself} />
+        </div>
 
         <Components.meetings_list
           loading={@loading}
@@ -383,25 +384,29 @@ defmodule TymeslotWeb.Dashboard.BookingsManagementComponent do
         />
 
         <%= if @has_more do %>
-          <div class="mt-4 text-center">
+          <div class="mt-10 text-center">
             <button
-              class="btn btn-secondary"
+              class="btn-secondary px-10 py-4"
               phx-click="load_more"
               phx-target={@myself}
               disabled={@loading_more}
             >
               <%= if @loading_more do %>
+                <svg class="animate-spin h-5 w-5 mr-3 inline-block" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
                 Loading...
               <% else %>
-                Load more
+                Load more meetings
               <% end %>
             </button>
           </div>
         <% end %>
 
-        <Components.info_panel />
-
-        <div class="pb-8"></div>
+        <div class="mt-16">
+          <Components.info_panel />
+        </div>
       </div>
 
       <CancelMeetingModal.cancel_meeting_modal

@@ -56,15 +56,15 @@ defmodule TymeslotWeb.Components.DashboardLayout do
   @spec top_navigation(map()) :: Phoenix.LiveView.Rendered.t()
   def top_navigation(assigns) do
     ~H"""
-    <div class="w-full px-4 py-2">
-      <nav class="glass-nav mb-2 relative" style="z-index: 50;">
+    <div class="w-full px-4 py-6">
+      <nav class="brand-nav relative" style="z-index: 50;">
         <div class="w-full px-2 sm:px-4">
           <div class="flex items-center justify-between h-16">
             <!-- Left side: Logo and Mobile Menu Button -->
-            <div class="flex items-center space-x-2 sm:space-x-4 -ml-2 sm:-ml-4 flex-1 min-w-0">
+            <div class="flex items-center space-x-4 -ml-2 sm:-ml-4 flex-1 min-w-0">
               <!-- Mobile Menu Button -->
               <button
-                class="lg:hidden dashboard-mobile-menu-toggle flex items-center justify-center w-10 h-10 rounded-lg hover:bg-white/20 transition-colors flex-shrink-0"
+                class="lg:hidden dashboard-mobile-menu-toggle flex items-center justify-center w-12 h-12 rounded-xl bg-slate-50 border-2 border-slate-100 hover:bg-turquoise-50 hover:border-turquoise-100 transition-all flex-shrink-0"
                 phx-click={
                   JS.toggle_class("dashboard-sidebar-open", to: "#dashboard-sidebar")
                   |> JS.toggle_class("hidden", to: "#dashboard-sidebar-overlay")
@@ -72,7 +72,7 @@ defmodule TymeslotWeb.Components.DashboardLayout do
                 aria-label="Toggle sidebar"
               >
                 <svg
-                  class="w-6 h-6 text-gray-800"
+                  class="w-6 h-6 text-slate-700"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -80,7 +80,7 @@ defmodule TymeslotWeb.Components.DashboardLayout do
                   <path
                     stroke-linecap="round"
                     stroke-linejoin="round"
-                    stroke-width="2"
+                    stroke-width="2.5"
                     d="M4 6h16M4 12h16M4 18h16"
                   >
                   </path>
@@ -88,13 +88,13 @@ defmodule TymeslotWeb.Components.DashboardLayout do
               </button>
               
     <!-- Logo with Icon and Text -->
-              <div class="flex items-center space-x-2 flex-shrink-0">
+              <div class="flex items-center space-x-3 flex-shrink-0">
                 <img
                   src="/images/brand/logo.svg"
                   alt="Tymeslot"
-                  class="h-8 sm:h-10 lg:h-12 flex-shrink-0"
+                  class="h-10 sm:h-12 flex-shrink-0"
                 />
-                <span class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-800 hidden sm:inline">
+                <span class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tighter hidden sm:inline">
                   Tymeslot
                 </span>
               </div>

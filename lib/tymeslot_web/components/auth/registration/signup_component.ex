@@ -30,7 +30,7 @@ defmodule TymeslotWeb.Registration.SignupComponent do
       |> Map.put_new(:loading, false)
 
     ~H"""
-    <.auth_card_layout title={"Join #{assigns.app_name}"}>
+    <.auth_card_layout title={"Join #{assigns.app_name}"} subtitle="Start scheduling your meetings with ease. Zero friction, total control.">
       <:form>
         <.auth_form
           id="signup-form"

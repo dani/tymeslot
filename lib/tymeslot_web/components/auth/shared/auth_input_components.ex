@@ -25,7 +25,13 @@ defmodule TymeslotWeb.Shared.Auth.InputComponents do
         id={@id}
         name={@name}
         type={@type}
-        class={"w-full px-3 py-2 sm:py-2.5 border-2 border-purple-200 rounded-lg shadow-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white bg-opacity-90 backdrop-filter backdrop-blur-sm transition-all duration-300 ease-in-out group-hover:border-purple-300 group-hover:bg-white group-hover:shadow-md group-hover:shadow-purple-200/30 min-h-[2.5rem] sm:min-h-[2.75rem] #{if @icon && @icon_position == "left", do: "pl-10", else: ""} #{@class}"}
+        class={[
+          "input",
+          if(@errors != [], do: "input-error", else: ""),
+          if(@icon && @icon_position == "left", do: "pl-12", else: ""),
+          if(@icon && @icon_position == "right", do: "pr-12", else: ""),
+          @class
+        ]}
         placeholder={@placeholder}
         required={@required}
         value={assigns[:value]}
@@ -44,17 +50,20 @@ defmodule TymeslotWeb.Shared.Auth.InputComponents do
         phx-keyup={assigns[:"phx-keyup"]}
       />
       <%= if @icon do %>
-        <div class={"absolute #{if @icon_position == "left", do: "left-3", else: "right-3"} top-1/2 transform -translate-x-1/2 text-gray-400 group-hover:text-purple-600 transition-colors duration-300 pointer-events-none"}>
-          {@icon}
+        <div class={"absolute #{if @icon_position == "left", do: "left-4", else: "right-4"} top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-turquoise-600 transition-colors duration-300 pointer-events-none"}>
+          {render_slot(@icon)}
         </div>
       <% end %>
       <%= if assigns[:inner_block] do %>
         {render_slot(@inner_block)}
       <% end %>
       <%= if @errors != [] do %>
-        <div class="mt-1">
+        <div class="mt-2 flex items-center gap-2 text-red-600 font-bold text-sm animate-in slide-in-from-top-1">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
           <%= for error <- @errors do %>
-            <p class="text-sm text-red-600">{error}</p>
+            <span>{error}</span>
           <% end %>
         </div>
       <% end %>
@@ -66,54 +75,54 @@ defmodule TymeslotWeb.Shared.Auth.InputComponents do
   def password_requirements(assigns) do
     ~H"""
     <div id="password-requirements" class="mt-2 text-xs sm:text-sm space-y-1.5 password-requirements">
-      <p class="text-gray-800 font-medium">Password must contain:</p>
+      <p class="text-slate-500 font-bold uppercase tracking-wider text-[10px]">Password must contain:</p>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-x-4">
         <ul class="space-y-1">
-          <li id="req-length" class="flex items-center text-gray-700">
+          <li id="req-length" class="flex items-center text-slate-600 font-medium">
             <svg
-              class="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1.5 flex-shrink-0"
+              class="w-3.5 h-3.5 mr-1.5 flex-shrink-0"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
-              <circle cx="12" cy="12" r="10" stroke-width="2" />
+              <circle cx="12" cy="12" r="10" stroke-width="2.5" />
             </svg>
-            <span class="text-xs sm:text-sm">At least 8 characters</span>
+            <span class="text-xs">At least 8 characters</span>
           </li>
-          <li id="req-lowercase" class="flex items-center text-gray-700">
+          <li id="req-lowercase" class="flex items-center text-slate-600 font-medium">
             <svg
-              class="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1.5 flex-shrink-0"
+              class="w-3.5 h-3.5 mr-1.5 flex-shrink-0"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
-              <circle cx="12" cy="12" r="10" stroke-width="2" />
+              <circle cx="12" cy="12" r="10" stroke-width="2.5" />
             </svg>
-            <span class="text-xs sm:text-sm">One lowercase letter</span>
+            <span class="text-xs">One lowercase letter</span>
           </li>
         </ul>
         <ul class="space-y-1">
-          <li id="req-uppercase" class="flex items-center text-gray-700">
+          <li id="req-uppercase" class="flex items-center text-slate-600 font-medium">
             <svg
-              class="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1.5 flex-shrink-0"
+              class="w-3.5 h-3.5 mr-1.5 flex-shrink-0"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
-              <circle cx="12" cy="12" r="10" stroke-width="2" />
+              <circle cx="12" cy="12" r="10" stroke-width="2.5" />
             </svg>
-            <span class="text-xs sm:text-sm">One uppercase letter</span>
+            <span class="text-xs">One uppercase letter</span>
           </li>
-          <li id="req-number" class="flex items-center text-gray-700">
+          <li id="req-number" class="flex items-center text-slate-600 font-medium">
             <svg
-              class="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1.5 flex-shrink-0"
+              class="w-3.5 h-3.5 mr-1.5 flex-shrink-0"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
-              <circle cx="12" cy="12" r="10" stroke-width="2" />
+              <circle cx="12" cy="12" r="10" stroke-width="2.5" />
             </svg>
-            <span class="text-xs sm:text-sm">One number</span>
+            <span class="text-xs">One number</span>
           </li>
         </ul>
       </div>
@@ -133,7 +142,7 @@ defmodule TymeslotWeb.Shared.Auth.InputComponents do
 
     ~H"""
     <div>
-      <TymeslotWeb.Shared.Auth.FormComponents.form_label for="email" text="Email" />
+      <TymeslotWeb.Shared.Auth.FormComponents.form_label for="email" text="Email Address" />
       <.auth_text_input
         id="email"
         name={@name}
@@ -146,10 +155,13 @@ defmodule TymeslotWeb.Shared.Auth.InputComponents do
         value={@value}
         phx-change={assigns[:"phx-change"]}
         phx-blur={assigns[:"phx-blur"]}
+        icon_position="right"
       >
-        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-          <TymeslotWeb.Shared.Auth.IconComponents.email_icon />
-        </div>
+        <:icon>
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.206" />
+          </svg>
+        </:icon>
       </.auth_text_input>
     </div>
     """

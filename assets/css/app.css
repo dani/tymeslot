@@ -7,12 +7,16 @@
 @import "./base/typography.css";
 @import "./base/base.css";
 
+/* Import design token utility classes */
+@import "./design-tokens.css";
+
 /* Import layout utilities */
 @import "./layout/utilities.css";
 
 /* Import animations */
 @import "./animations/keyframes.css";
 @import "./animations/hero_preview.css";
+@import "./animations/homepage-2026.css";
 
 /* Import components */
 @import "./components.css";

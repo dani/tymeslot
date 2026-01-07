@@ -47,70 +47,34 @@ defmodule TymeslotWeb.Shared.Auth.FormComponents do
     assigns = assign_new(assigns, :class, fn -> "" end)
 
     ~H"""
-    <%= if @style == :simple do %>
-      <div class={"flex items-start mt-4 sm:mt-5 terms-checkbox #{@class}"}>
-        <div class="flex items-center h-5">
-          <input
-            type="checkbox"
-            id="terms"
-            name={@name}
-            class="h-4 w-4 text-primary-600 border-primary-300 rounded focus:ring-primary-500"
-            value="true"
-            required
-          />
-        </div>
-        <div class="ml-2 sm:ml-3">
-          <label for="terms" class="text-xs sm:text-sm text-gray-700">
-            I accept the
-            <a
-              href="/legal/terms-and-conditions"
-              target="_blank"
-              class="text-primary-600 hover:text-primary-700 font-medium"
-            >
-              terms and conditions
-            </a>
-            and
-            <a
-              href="/legal/privacy-policy"
-              target="_blank"
-              class="text-primary-600 hover:text-primary-700 font-medium"
-            >
-              privacy policy
-            </a>
-          </label>
-        </div>
-      </div>
-    <% else %>
-      <div class={"mt-2 sm:mt-4 terms-checkbox #{@class}"}>
-        <div class="flex items-start sm:items-center">
-          <div class="relative mt-0.5 sm:mt-0">
-            <input
-              type="checkbox"
-              id="terms"
-              name={@name}
-              class="peer h-5 w-5 sm:h-6 sm:w-6 border-2 border-gray-300 rounded focus:ring-2 focus:ring-primary-500"
-              value="true"
-              required
-            />
-          </div>
-          <label for="terms" class="ml-2 text-xs sm:text-sm text-pretty text-gray-700 cursor-pointer">
-            I accept the
-            <a
-              href="/legal/terms-and-conditions"
-              target="_blank"
-              class="font-medium text-primary-600 hover:text-primary-700 transition duration-300 ease-in-out"
-            >
-              terms and conditions
-            </a>
-            and <a
-              href="/legal/privacy-policy"
-              target="_blank"
-              class="font-medium text-primary-600 hover:text-primary-700 transition duration-300 ease-in-out"
-            >privacy policy</a>.
-          </label>
-        </div>
-      </div>
-    <% end %>
+    <div class={["flex items-start gap-3", @class]}>
+      <input
+        type="checkbox"
+        id="terms"
+        name={@name}
+        class="checkbox mt-1 w-5 h-5"
+        value="true"
+        required
+      />
+      <label for="terms" class="text-sm text-slate-500 font-medium leading-relaxed">
+        I accept the
+        <a
+          href="/legal/terms-and-conditions"
+          target="_blank"
+          class="text-turquoise-600 hover:text-turquoise-700 font-bold underline decoration-turquoise-100 underline-offset-4"
+        >
+          terms
+        </a>
+        and
+        <a
+          href="/legal/privacy-policy"
+          target="_blank"
+          class="text-turquoise-600 hover:text-turquoise-700 font-bold underline decoration-turquoise-100 underline-offset-4"
+        >
+          privacy policy
+        </a>
+      </label>
+    </div>
     """
   end
 
@@ -119,7 +83,7 @@ defmodule TymeslotWeb.Shared.Auth.FormComponents do
     ~H"""
     <label
       for={@for}
-      class="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2 form-label"
+      class="label"
     >
       {@text}
     </label>

@@ -429,73 +429,67 @@ defmodule TymeslotWeb.Dashboard.Availability.ListComponent do
   defp day_card(assigns) do
     ~H"""
     <div class={[
-      "card-glass",
-      if(@day_availability.is_available, do: "card-glass-available", else: "card-glass-unavailable")
+      "card-glass group/day",
+      if(@day_availability.is_available,
+        do: "border-turquoise-100 bg-white shadow-2xl shadow-turquoise-500/5",
+        else: "opacity-60 bg-slate-50 border-slate-100 hover:opacity-100 transition-opacity"
+      )
     ]}>
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 space-y-3 sm:space-y-0">
-        <h3 class="text-lg font-medium text-gray-800">{@day_name}</h3>
-        <div class="flex items-center space-x-4">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 gap-4">
+        <div class="flex items-center gap-4">
+          <div class={[
+            "w-12 h-12 rounded-xl flex items-center justify-center font-black transition-all",
+            if(@day_availability.is_available,
+              do: "bg-turquoise-600 text-white shadow-lg shadow-turquoise-500/30",
+              else: "bg-slate-200 text-slate-500"
+            )
+          ]}>
+            {String.slice(@day_name, 0, 1)}
+          </div>
+          <h3 class="text-2xl font-black text-slate-900 tracking-tight group-hover/day:text-turquoise-700 transition-colors">
+            {@day_name}
+          </h3>
+        </div>
+
+        <div class="flex items-center gap-4 bg-slate-50 p-2 rounded-2xl border border-slate-100">
           <button
             phx-click="toggle_day_available"
             phx-value-day={@day_availability.day_of_week}
             phx-target={@myself}
             class={[
-              "relative inline-flex h-8 w-16 flex-shrink-0 cursor-pointer rounded-full border-2 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2",
+              "relative inline-flex h-9 w-16 flex-shrink-0 cursor-pointer rounded-full border-2 transition-all duration-300 ease-in-out focus:outline-none",
               if(@day_availability.is_available,
-                do: "bg-green-500 border-green-500",
-                else: "bg-gray-300 border-gray-300"
+                do: "bg-turquoise-600 border-turquoise-600",
+                else: "bg-slate-300 border-slate-300"
               )
             ]}
             role="switch"
             aria-checked={@day_availability.is_available}
-            aria-label={"Toggle #{@day_name} availability"}
           >
             <span class={[
-              "pointer-events-none absolute top-0.5 inline-block h-7 w-7 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
-              if(@day_availability.is_available, do: "translate-x-8", else: "translate-x-0")
+              "pointer-events-none absolute top-0.5 inline-block h-7 w-7 transform rounded-full bg-white shadow-lg ring-0 transition duration-300 ease-in-out",
+              if(@day_availability.is_available, do: "translate-x-7.5 left-0.5", else: "translate-x-0.5")
             ]}>
-              <span class={[
-                "absolute inset-0 flex h-full w-full items-center justify-center transition-opacity duration-200 ease-in-out",
-                if(@day_availability.is_available, do: "opacity-0", else: "opacity-100")
-              ]}>
-                <svg class="h-3 w-3 text-gray-400" fill="none" viewBox="0 0 12 12">
-                  <path
-                    d="M4 8l2-2m0 0l2-2M6 6L4 4m2 2l2 2"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  />
-                </svg>
-              </span>
-              <span class={[
-                "absolute inset-0 flex h-full w-full items-center justify-center transition-opacity duration-200 ease-in-out",
-                if(@day_availability.is_available, do: "opacity-100", else: "opacity-0")
-              ]}>
-                <svg class="h-3 w-3 text-green-600" fill="currentColor" viewBox="0 0 12 12">
-                  <path d="M3.707 5.293a1 1 0 00-1.414 1.414l1.414-1.414zM5 7l-.707.707a1 1 0 001.414 0L5 7zm4.707-3.293a1 1 0 00-1.414-1.414l1.414 1.414zm-7.414 2l2 2 1.414-1.414-2-2-1.414 1.414zm3.414 2l4-4-1.414-1.414-4 4 1.414 1.414z" />
-                </svg>
-              </span>
             </span>
           </button>
           <span class={[
-            "text-sm font-medium availability-status",
-            if(@day_availability.is_available, do: "text-green-600", else: "text-gray-500")
+            "text-sm font-black uppercase tracking-wider pr-2",
+            if(@day_availability.is_available, do: "text-turquoise-700", else: "text-slate-400")
           ]}>
-            {if @day_availability.is_available, do: "Available", else: "Unavailable"}
+            {if @day_availability.is_available, do: "Available", else: "Off"}
           </span>
         </div>
       </div>
 
       <%= if @day_availability.is_available do %>
         <!-- Work Hours -->
-        <div class="mb-4">
+        <div class="mb-10 pb-10 border-b-2 border-slate-50">
           <form phx-change="update_day_hours" phx-target={@myself} phx-debounce="500">
             <input type="hidden" name="day" value={@day_availability.day_of_week} />
-            <div class="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
-              <div class="flex-1 sm:flex-initial">
-                <label class="text-sm text-gray-600">Start</label>
-                <select name="start" class="glass-input time-select w-full sm:w-32">
+            <div class="flex flex-col sm:flex-row sm:items-center gap-6">
+              <div class="flex-1">
+                <label class="label">Shift Start</label>
+                <select name="start" class="input">
                   <%= for {label, value} <- TimeOptions.time_options() do %>
                     <option
                       value={value}
@@ -506,9 +500,9 @@ defmodule TymeslotWeb.Dashboard.Availability.ListComponent do
                   <% end %>
                 </select>
               </div>
-              <div class="flex-1 sm:flex-initial">
-                <label class="text-sm text-gray-600">End</label>
-                <select name="end" class="glass-input time-select w-full sm:w-32">
+              <div class="flex-1">
+                <label class="label">Shift End</label>
+                <select name="end" class="input">
                   <%= for {label, value} <- TimeOptions.time_options() do %>
                     <option value={value} selected={value == format_time(@day_availability.end_time)}>
                       {label}
@@ -521,37 +515,37 @@ defmodule TymeslotWeb.Dashboard.Availability.ListComponent do
         </div>
         
     <!-- Breaks -->
-        <div class="mb-4">
-          <h4 class="text-md font-medium text-gray-700 mb-3">Breaks</h4>
-
-          <% breaks =
-            case @day_availability.breaks do
-              %Ecto.Association.NotLoaded{} -> []
-              b when is_list(b) -> b
-              _ -> []
-            end %>
+        <div class="space-y-8">
+          <div class="flex items-center gap-3">
+            <h4 class="text-lg font-black text-slate-900 tracking-tight">Breaks</h4>
+            <% breaks =
+              case @day_availability.breaks do
+                %Ecto.Association.NotLoaded{} -> []
+                b when is_list(b) -> b
+                _ -> []
+              end %>
+            <span class="bg-slate-100 text-slate-500 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md">
+              {length(breaks)} total
+            </span>
+          </div>
 
           <%= if breaks != [] do %>
-            <div class="flex flex-wrap gap-2 mb-4">
+            <div class="flex flex-wrap gap-3">
               <%= for break <- breaks do %>
-                <div class="inline-flex items-center bg-white/20 backdrop-blur-sm border border-purple-300/40 rounded-full px-3 py-1 text-sm">
-                  <span class="font-medium text-gray-700 mr-2">{break.label || "Break"}</span>
-                  <span class="text-gray-600 mr-2">
+                <div class="inline-flex items-center bg-white border-2 border-slate-100 rounded-xl px-4 py-2 text-sm font-bold text-slate-700 shadow-sm group/break hover:border-turquoise-200 transition-all">
+                  <span class="mr-3">{break.label || "Break"}</span>
+                  <span class="text-turquoise-600">
                     {format_time(break.start_time)} - {format_time(break.end_time)}
                   </span>
                   <button
                     phx-click="show_delete_break_modal"
                     phx-value-break_id={break.id}
                     phx-target={@myself}
-                    class="ml-1 text-red-400 hover:text-red-600 hover:bg-red-100/30 hover:scale-110 rounded-full p-1 transition-all duration-200"
+                    class="ml-3 text-slate-300 hover:text-red-500 transition-colors"
                     title="Delete Break"
                   >
-                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path
-                        fill-rule="evenodd"
-                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                        clip-rule="evenodd"
-                      />
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
                 </div>
@@ -564,136 +558,108 @@ defmodule TymeslotWeb.Dashboard.Availability.ListComponent do
             phx-submit="add_break"
             phx-change="validate_break"
             phx-target={@myself}
-            class="flex flex-col lg:flex-row gap-3 lg:gap-4 lg:items-end"
+            class="grid grid-cols-1 lg:grid-cols-4 gap-4 items-end bg-slate-50/50 p-6 rounded-2xl border-2 border-slate-50"
           >
             <input type="hidden" name="day" value={@day_availability.day_of_week} />
-            <div class="lg:w-40">
-              <label class="text-sm text-gray-600 font-medium mb-1 block">Break Label</label>
+            <div class="lg:col-span-1">
+              <label class="label">Label</label>
               <input
                 type="text"
                 name="label"
-                placeholder="e.g., Lunch Break"
+                placeholder="e.g. Lunch"
                 class={[
-                  "glass-input text-sm w-full",
-                  if(@form_errors[:label], do: "border-red-500", else: "")
+                  "input",
+                  if(@form_errors[:label], do: "input-error", else: "")
                 ]}
               />
-              <%= if @form_errors[:label] do %>
-                <p class="text-xs text-red-400 mt-1">{@form_errors[:label]}</p>
-              <% end %>
             </div>
-            <div class="lg:w-32">
-              <label class="text-sm text-gray-600 font-medium mb-1 block">Start Time</label>
+            <div>
+              <label class="label">From</label>
               <select
                 name="start"
                 required
                 class={[
-                  "glass-input time-select text-sm w-full",
-                  if(@form_errors[:start_time], do: "border-red-500", else: "")
+                  "input",
+                  if(@form_errors[:start_time], do: "input-error", else: "")
                 ]}
               >
-                <option value="">Select time</option>
+                <option value="">Start</option>
                 <%= for {label, value} <- TimeOptions.time_options() do %>
                   <option value={value}>{label}</option>
                 <% end %>
               </select>
-              <%= if @form_errors[:start_time] do %>
-                <p class="text-xs text-red-400 mt-1">{@form_errors[:start_time]}</p>
-              <% end %>
             </div>
-            <div class="lg:w-32">
-              <label class="text-sm text-gray-600 font-medium mb-1 block">End Time</label>
+            <div>
+              <label class="label">Until</label>
               <select
                 name="end"
                 required
                 class={[
-                  "glass-input time-select text-sm w-full",
-                  if(@form_errors[:end_time], do: "border-red-500", else: "")
+                  "input",
+                  if(@form_errors[:end_time], do: "input-error", else: "")
                 ]}
               >
-                <option value="">Select time</option>
+                <option value="">End</option>
                 <%= for {label, value} <- TimeOptions.time_options() do %>
                   <option value={value}>{label}</option>
                 <% end %>
               </select>
-              <%= if @form_errors[:end_time] do %>
-                <p class="text-xs text-red-400 mt-1">{@form_errors[:end_time]}</p>
-              <% end %>
             </div>
-            <div class="lg:w-32">
-              <button
-                type="submit"
-                class="btn btn-sm btn-primary w-full h-[38px] flex items-center justify-center"
-              >
-                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M12 4v16m8-8H4"
-                  />
+            <div>
+              <button type="submit" class="btn-primary w-full py-3">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
                 </svg>
-                Add Break
+                Add
               </button>
             </div>
           </form>
         </div>
         
-    <!-- Copy Settings -->
-        <div class="flex flex-wrap gap-2 mt-4">
-          <button
-            phx-click="copy_to_days"
-            phx-value-from_day={@day_availability.day_of_week}
-            phx-value-to_days="1,2,3,4,5,6,7"
-            phx-target={@myself}
-            class="btn btn-sm btn-secondary"
-          >
-            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-              />
-            </svg>
-            Copy to all days
-          </button>
-          <button
-            phx-click="copy_to_days"
-            phx-value-from_day={@day_availability.day_of_week}
-            phx-value-to_days="1,2,3,4,5"
-            phx-target={@myself}
-            class="btn btn-sm btn-secondary"
-          >
-            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-              />
-            </svg>
-            Copy to weekdays
-          </button>
+    <!-- Action Bar -->
+        <div class="flex flex-wrap items-center justify-between gap-4 mt-10 pt-8 border-t-2 border-slate-50">
+          <div class="flex flex-wrap gap-3">
+            <button
+              phx-click="copy_to_days"
+              phx-value-from_day={@day_availability.day_of_week}
+              phx-value-to_days="1,2,3,4,5,6,7"
+              phx-target={@myself}
+              class="btn-secondary py-2 px-4 text-xs"
+            >
+              <svg class="w-3.5 h-3.5 mr-2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+              </svg>
+              Apply to All Days
+            </button>
+            <button
+              phx-click="copy_to_days"
+              phx-value-from_day={@day_availability.day_of_week}
+              phx-value-to_days="1,2,3,4,5"
+              phx-target={@myself}
+              class="btn-secondary py-2 px-4 text-xs"
+            >
+              <svg class="w-3.5 h-3.5 mr-2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+              </svg>
+              Apply to Weekdays
+            </button>
+          </div>
           <button
             phx-click="show_clear_day_modal"
             phx-value-day={@day_availability.day_of_week}
             phx-target={@myself}
-            class="btn btn-sm btn-danger"
+            class="text-slate-400 hover:text-red-600 text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-colors"
           >
-            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-              />
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
-            Clear
+            Clear Day
           </button>
         </div>
       <% else %>
-        <p class="text-gray-500 text-sm">Not available on this day</p>
+        <div class="py-4 px-6 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-100">
+          <p class="text-slate-400 font-bold text-sm">Not taking any bookings on this day.</p>
+        </div>
       <% end %>
     </div>
     """

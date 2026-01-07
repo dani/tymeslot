@@ -197,59 +197,36 @@ body {
 }
 
 /* Navigation */
-.glass-nav {
-  background: var(--color-glass-bg-card);
-  backdrop-filter: var(--glass-blur-heavy);
-  border-bottom: 1px solid var(--color-border-glass-dark);
-  padding: 16px 24px;
+.brand-nav {
+  @apply bg-white border-2 border-slate-100 rounded-3xl shadow-xl shadow-slate-200/50 p-2 px-6;
   position: relative;
   z-index: 9990;
 }
 
 .simple-nav-link {
-  color: var(--color-text-glass-primary);
-  text-decoration: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-weight: 500;
-  transition: var(--transition-glass-fast);
+  @apply text-slate-600 px-4 py-2 rounded-xl font-bold transition-all duration-300;
 }
 
 .simple-nav-link:hover {
-  color: var(--color-primary-600);
+  @apply text-turquoise-600 bg-turquoise-50/50;
 }
 
 /* Dashboard-specific navigation styling */
-.glass-nav .simple-nav-link {
-  color: #1f2937;
-  background: rgba(255, 255, 255, 0.8);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  font-weight: 600;
-  text-shadow: none;
+.brand-nav .simple-nav-link {
+  @apply text-slate-700 bg-transparent border-0 font-bold;
 }
 
-.glass-nav .simple-nav-link:hover {
-  color: var(--color-primary-700);
-  background: rgba(255, 255, 255, 0.9);
-  border-color: rgba(13, 148, 136, 0.3);
-  text-shadow: none;
+.brand-nav .simple-nav-link:hover {
+  @apply text-turquoise-600 bg-turquoise-50/50;
 }
 
-.glass-nav .simple-nav-link.turquoise-accent {
-  color: #ffffff;
-  background: var(--color-primary-600);
-  border-color: var(--color-primary-600);
-  font-weight: 700;
-  text-shadow: none;
+.brand-nav .simple-nav-link.turquoise-accent {
+  @apply text-white bg-gradient-to-r from-turquoise-600 to-cyan-600 shadow-lg shadow-turquoise-500/20 font-black;
 }
 
 /* Sidebar */
-.glass-sidebar {
-  background: var(--color-glass-bg-light);
-  backdrop-filter: var(--glass-blur-strong);
-  border-right: 1px solid var(--color-border-glass-medium);
-  min-height: 100vh;
-  padding: 24px;
+.brand-sidebar {
+  @apply bg-white border-r-2 border-slate-50 min-h-screen p-6 transition-all duration-300;
 }
 
 /* Header */

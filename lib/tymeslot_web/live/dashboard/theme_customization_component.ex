@@ -17,7 +17,6 @@ defmodule TymeslotWeb.Dashboard.ThemeCustomizationComponent do
   """
   use TymeslotWeb, :live_component
 
-  import TymeslotWeb.Components.UI.CloseButton
   import TymeslotWeb.Dashboard.ThemeCustomization.Pickers.ColorPicker, only: [color_picker: 1]
 
   import TymeslotWeb.Dashboard.ThemeCustomization.Pickers.GradientPicker,
@@ -175,96 +174,96 @@ defmodule TymeslotWeb.Dashboard.ThemeCustomizationComponent do
 
   defp toolbar(assigns) do
     ~H"""
-    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-      <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-10">
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 bg-turquoise-50 rounded-xl flex items-center justify-center border border-turquoise-100 shadow-sm">
+          <svg class="w-6 h-6 text-turquoise-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+          </svg>
+        </div>
+        <h2 class="text-3xl font-black text-slate-900 tracking-tight">Customize Style</h2>
+      </div>
+
+      <div class="flex items-center gap-3">
         <%= if @profile && @profile.username do %>
           <button
             type="button"
-            class="btn btn-secondary flex items-center gap-2 self-start"
+            class="btn-secondary py-2.5 px-5 text-sm"
             onclick={"window.open('/#{@profile.username}?theme=#{@theme_id}', '_blank')"}
           >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-              />
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-              />
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
             </svg>
-            <span class="hidden sm:inline">Preview Theme</span>
-            <span class="sm:hidden">Preview</span>
+            Live Preview
           </button>
         <% end %>
-        <h2 class="text-xl sm:text-2xl font-bold">Customize Theme</h2>
+        <button
+          phx-click="close_customization"
+          phx-target={@parent_component}
+          class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-50 text-slate-600 font-bold hover:bg-slate-100 transition-all border-2 border-transparent hover:border-slate-200"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+          Close
+        </button>
       </div>
-
-      <.close_button
-        phx_click="close_customization"
-        phx_target={@parent_component}
-        title="Close"
-        show_label={true}
-        class="self-start sm:self-auto"
-      />
     </div>
     """
   end
 
   defp color_scheme_section(assigns) do
     ~H"""
-    <div class="glass-morphism-card p-6">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-lg font-semibold">Color Scheme</h3>
+    <div class="card-glass">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
+        <div>
+          <h3 class="text-xl font-black text-slate-900 tracking-tight">Color Palette</h3>
+          <p class="text-sm text-slate-500 font-bold mt-1">Select the primary colors for your booking page interface.</p>
+        </div>
         <% current_scheme = @presets.color_schemes[@customization.color_scheme] %>
         <%= if current_scheme do %>
-          <div class="color-scheme-current">
-            <span>Current:</span>
-            <div class="color-scheme-preview">
-              <div class="color-dot-sm" style={"background-color: #{current_scheme.colors.primary}"}>
-              </div>
-              <div class="color-dot-sm" style={"background-color: #{current_scheme.colors.secondary}"}>
-              </div>
-              <div class="color-dot-sm" style={"background-color: #{current_scheme.colors.accent}"}>
-              </div>
+          <div class="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100 shadow-inner">
+            <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">Current</span>
+            <div class="flex items-center gap-1.5 bg-white p-1 rounded-lg border border-slate-100">
+              <div class="w-3 h-3 rounded-full" style={"background-color: #{current_scheme.colors.primary}"}></div>
+              <div class="w-3 h-3 rounded-full" style={"background-color: #{current_scheme.colors.secondary}"}></div>
+              <div class="w-3 h-3 rounded-full" style={"background-color: #{current_scheme.colors.accent}"}></div>
             </div>
-            <span class="font-medium">{current_scheme.name}</span>
+            <span class="text-sm font-black text-slate-700">{current_scheme.name}</span>
           </div>
         <% end %>
       </div>
-      <div class="theme-selection-grid cols-4">
+      
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
         <%= for {scheme_id, scheme} <- @presets.color_schemes do %>
           <button
             type="button"
             class={[
-              "duration-card theme-selection-button relative block rounded-md border p-3 transition shadow-sm ring-1 ring-gray-300 hover:ring-turquoise-300 hover:shadow",
+              "group/scheme relative flex flex-col items-center p-4 rounded-2xl border-2 transition-all duration-300",
               if(@customization.color_scheme == scheme_id,
-                do: "selected turquoise-glow ring-2 ring-turquoise-500 border-turquoise-500",
-                else: "border-gray-200"
+                do: "bg-turquoise-50 border-turquoise-400 shadow-xl shadow-turquoise-500/10",
+                else: "bg-white border-slate-50 hover:border-turquoise-200 hover:shadow-lg"
               )
             ]}
             phx-click="theme:select_color_scheme"
             phx-value-scheme={scheme_id}
             phx-target={@myself}
           >
-            <div class="color-scheme-preview">
-              <div class="color-dot" style={"background-color: #{scheme.colors.primary}"}></div>
-              <div class="color-dot" style={"background-color: #{scheme.colors.secondary}"}></div>
-              <div class="color-dot" style={"background-color: #{scheme.colors.accent}"}></div>
+            <div class="flex items-center gap-2 mb-4 bg-slate-50/50 p-2 rounded-xl group-hover/scheme:scale-110 transition-transform">
+              <div class="w-6 h-6 rounded-full shadow-sm border border-white" style={"background-color: #{scheme.colors.primary}"}></div>
+              <div class="w-6 h-6 rounded-full shadow-sm border border-white" style={"background-color: #{scheme.colors.secondary}"}></div>
+              <div class="w-6 h-6 rounded-full shadow-sm border border-white" style={"background-color: #{scheme.colors.accent}"}></div>
             </div>
-            <p class="theme-selection-label">{scheme.name}</p>
+            <p class={[
+              "text-sm font-black uppercase tracking-widest transition-colors",
+              if(@customization.color_scheme == scheme_id, do: "text-turquoise-700", else: "text-slate-400 group-hover/scheme:text-slate-600")
+            ]}>{scheme.name}</p>
+            
             <%= if @customization.color_scheme == scheme_id do %>
-              <div class="selection-indicator">
-                <svg class="w-4 h-4 text-turquoise-500" fill="currentColor" viewBox="0 0 20 20">
-                  <path
-                    fill-rule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                    clip-rule="evenodd"
-                  />
+              <div class="absolute top-2 right-2 w-6 h-6 bg-turquoise-500 text-white rounded-full flex items-center justify-center shadow-lg animate-in zoom-in">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
                 </svg>
               </div>
             <% end %>
@@ -277,45 +276,37 @@ defmodule TymeslotWeb.Dashboard.ThemeCustomizationComponent do
 
   defp background_section(assigns) do
     ~H"""
-    <div class="glass-morphism-card p-6">
-      <h3 class="text-lg font-semibold mb-4">Background Style</h3>
+    <div class="card-glass">
+      <div class="mb-8">
+        <h3 class="text-xl font-black text-slate-900 tracking-tight">Background Design</h3>
+        <p class="text-sm text-slate-500 font-bold mt-1">Choose a visual style that matches your professional identity.</p>
+      </div>
 
-      <div class="theme-section">
-        <div class="theme-selection-grid cols-4">
+      <div class="space-y-10">
+        <div class="flex flex-wrap gap-3 bg-slate-50/50 p-2 rounded-[1.5rem] border-2 border-slate-50">
           <%= for {type, icon_path, label} <- background_tabs() do %>
             <button
               type="button"
               class={[
-                "duration-card theme-selection-button relative block rounded-md border p-3 transition shadow-sm ring-1 ring-gray-300 hover:ring-turquoise-300 hover:shadow",
+                "flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-2xl text-sm font-black uppercase tracking-widest transition-all duration-300 border-2",
                 if(@browsing_type == type,
-                  do: "selected turquoise-glow ring-2 ring-turquoise-500 border-turquoise-500",
-                  else: "border-gray-200"
+                  do: "bg-white border-white text-turquoise-600 shadow-xl shadow-slate-200/50 scale-[1.02]",
+                  else: "bg-transparent border-transparent text-slate-400 hover:text-slate-600 hover:bg-white/50"
                 )
               ]}
               phx-click="theme:set_browsing_type"
               phx-value-type={type}
               phx-target={@myself}
             >
-              <svg class="theme-selection-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={icon_path} />
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d={icon_path} />
               </svg>
-              <span class="theme-selection-label">{label}</span>
-              <%= if @browsing_type == type do %>
-                <div class="selection-indicator">
-                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      fill-rule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                      clip-rule="evenodd"
-                    />
-                  </svg>
-                </div>
-              <% end %>
+              <span>{label}</span>
             </button>
           <% end %>
         </div>
 
-        <div class="mt-6">
+        <div class="animate-in fade-in slide-in-from-top-4 duration-500">
           <%= case @browsing_type do %>
             <% "gradient" -> %>
               <.gradient_picker customization={@customization} presets={@presets} myself={@myself} />

@@ -59,6 +59,9 @@ defmodule TymeslotWeb.Hooks.ModalHook do
 
   defp resolve_keys(:delete_avatar), do: {:show_delete_avatar_modal, :delete_avatar_modal_data}
   defp resolve_keys(:delete), do: {:show_delete_modal, :delete_modal_data}
+  defp resolve_keys(:create), do: {:show_create_modal, :create_modal_data}
+  defp resolve_keys(:edit), do: {:show_edit_modal, :edit_modal_data}
+  defp resolve_keys(:deliveries), do: {:show_deliveries_modal, :deliveries_modal_data}
 
   defp resolve_keys("delete_break"), do: {:show_delete_break_modal, :delete_break_modal_data}
   defp resolve_keys("clear_day"), do: {:show_clear_day_modal, :clear_day_modal_data}
@@ -74,6 +77,9 @@ defmodule TymeslotWeb.Hooks.ModalHook do
 
   defp resolve_keys("delete_avatar"), do: {:show_delete_avatar_modal, :delete_avatar_modal_data}
   defp resolve_keys("delete"), do: {:show_delete_modal, :delete_modal_data}
+  defp resolve_keys("create"), do: {:show_create_modal, :create_modal_data}
+  defp resolve_keys("edit"), do: {:show_edit_modal, :edit_modal_data}
+  defp resolve_keys("deliveries"), do: {:show_deliveries_modal, :deliveries_modal_data}
 
   defp resolve_keys(other), do: raise(ArgumentError, "Unknown modal name: #{inspect(other)}")
 end

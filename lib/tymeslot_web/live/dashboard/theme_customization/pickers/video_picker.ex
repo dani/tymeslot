@@ -11,18 +11,18 @@ defmodule TymeslotWeb.Dashboard.ThemeCustomization.Pickers.VideoPicker do
   @spec video_picker(map()) :: Phoenix.LiveView.Rendered.t()
   def video_picker(assigns) do
     ~H"""
-    <div class="space-y-6">
+    <div class="space-y-10">
       <div>
-        <h4 class="text-sm font-medium text-gray-700 mb-3">Choose from our collection:</h4>
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <p class="text-sm font-black text-slate-400 uppercase tracking-widest mb-6">Choose from our collection</p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <%= for {video_id, video} <- @presets.videos do %>
             <button
               type="button"
               class={[
-                "relative group overflow-hidden rounded-lg transition-all hover-lift border ring-1 ring-gray-300 hover:ring-turquoise-300",
+                "group/video relative flex flex-col rounded-2xl overflow-hidden border-4 transition-all duration-500",
                 if(@customization.background_value == video_id,
-                  do: "ring-2 ring-turquoise-500 turquoise-glow border-turquoise-500",
-                  else: "border-gray-200"
+                  do: "border-turquoise-400 shadow-2xl shadow-turquoise-500/20 scale-[1.02]",
+                  else: "border-white hover:border-turquoise-200 hover:shadow-xl hover:shadow-slate-200/50"
                 )
               ]}
               phx-click="theme:select_background"
@@ -31,14 +31,14 @@ defmodule TymeslotWeb.Dashboard.ThemeCustomization.Pickers.VideoPicker do
               phx-target={@myself}
             >
               <div
-                class="aspect-video bg-gray-900 relative overflow-hidden video-hover-container"
+                class="aspect-video bg-slate-900 relative overflow-hidden video-hover-container"
                 onmouseenter="this.querySelector('.video-preview').currentTime=0; this.querySelector('.video-preview').play().catch(()=>{});"
                 onmouseleave="this.querySelector('.video-preview').pause();"
               >
                 <img
                   src={"/videos/thumbnails/#{video.thumbnail}"}
                   alt={video.name}
-                  class="video-thumbnail w-full h-full object-cover absolute inset-0 z-10"
+                  class="video-thumbnail w-full h-full object-cover absolute inset-0 z-10 transition-transform duration-700 group-hover/video:scale-110"
                   onerror="this.style.display='none'; this.parentElement.querySelector('.fallback-thumbnail').style.display='flex';"
                 />
                 <video
@@ -50,131 +50,112 @@ defmodule TymeslotWeb.Dashboard.ThemeCustomization.Pickers.VideoPicker do
                   preload="metadata"
                 >
                 </video>
-                <div class="fallback-thumbnail absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900 items-center justify-center hidden z-10">
-                  <svg
-                    class="w-12 h-12 text-gray-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
-                    />
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
+                <div class="fallback-thumbnail absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-900 items-center justify-center hidden z-10">
+                  <svg class="w-12 h-12 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <div class="play-icon-overlay absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-300 flex items-center justify-center z-20 pointer-events-none">
-                  <div class="opacity-60 transition-opacity duration-300">
-                    <svg
-                      class="w-8 h-8 text-white drop-shadow-lg"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fill-rule="evenodd"
-                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
-                        clip-rule="evenodd"
-                      />
-                    </svg>
+                <div class="absolute inset-0 bg-black/0 group-hover/video:bg-black/20 transition-all duration-300 flex items-center justify-center z-20 pointer-events-none">
+                  <div class="opacity-0 group-hover/video:opacity-100 scale-150 group-hover/video:scale-100 transition-all duration-500">
+                    <div class="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-2xl">
+                      <svg class="w-6 h-6 text-white fill-current" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                    </div>
                   </div>
                 </div>
                 <%= if @customization.background_value == video_id do %>
-                  <div class="absolute inset-0 bg-turquoise-50/20 pointer-events-none z-20"></div>
+                  <div class="absolute top-3 right-3 w-8 h-8 bg-turquoise-500 text-white rounded-full flex items-center justify-center shadow-lg animate-in zoom-in z-30">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
                 <% end %>
               </div>
               <div class={[
-                "p-3",
+                "p-5 text-left transition-colors",
                 if(@customization.background_value == video_id,
                   do: "bg-turquoise-50",
                   else: "bg-white"
                 )
               ]}>
-                <p class="text-sm font-medium text-gray-900">{video.name}</p>
-                <p class="text-xs text-gray-500 mt-1">{video.description}</p>
+                <p class="text-base font-black text-slate-900 tracking-tight">{video.name}</p>
+                <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mt-1">{video.description}</p>
               </div>
-              <%= if @customization.background_value == video_id do %>
-                <div class="absolute top-2 right-2">
-                  <div class="bg-turquoise-500 text-white rounded-full p-1">
-                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path
-                        fill-rule="evenodd"
-                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                        clip-rule="evenodd"
-                      />
-                    </svg>
-                  </div>
-                </div>
-              <% end %>
             </button>
           <% end %>
         </div>
       </div>
 
-      <div class="relative">
-        <div class="absolute inset-0 flex items-center">
-          <div class="w-full border-t border-gray-300"></div>
+      <div class="relative py-4">
+        <div class="absolute inset-0 flex items-center" aria-hidden="true">
+          <div class="w-full border-t-2 border-slate-100"></div>
         </div>
-        <div class="relative flex justify-center text-sm">
-          <span class="px-2 bg-white text-gray-500">Or upload your own</span>
+        <div class="relative flex justify-center text-sm font-black uppercase tracking-[0.2em]">
+          <span class="px-6 bg-white text-slate-400">Or upload your own</span>
         </div>
       </div>
 
-      <div>
+      <div class="bg-slate-50 p-8 rounded-[2rem] border-2 border-slate-100 border-dashed">
         <form
           id="theme-background-video-form"
           phx-submit="save_background_video"
           phx-change="validate_video"
           data-auto-upload="true"
+          class="flex flex-col items-center gap-6"
         >
-          <div class="space-y-4">
+          <div class="w-full max-w-md">
             <%= if @parent_uploads && @parent_uploads[:background_video] do %>
-              <.live_file_input upload={@parent_uploads.background_video} class="file-input" />
+              <div class="relative group/upload">
+                <.live_file_input
+                  upload={@parent_uploads.background_video}
+                  class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+                />
+                <div class="btn-secondary w-full py-4 flex items-center justify-center gap-3">
+                  <svg class="w-5 h-5 text-turquoise-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                  </svg>
+                  <span>Select Video</span>
+                </div>
+              </div>
             <% else %>
-              <div class="text-gray-500 text-sm">Upload not available</div>
+              <div class="btn-secondary w-full opacity-50 cursor-not-allowed py-4">Upload not available</div>
             <% end %>
 
             <%= if @parent_uploads && @parent_uploads[:background_video] do %>
               <%= for entry <- @parent_uploads.background_video.entries do %>
-                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <span class="text-sm">{entry.client_name}</span>
-                  <div class="flex items-center">
-                    <span class="text-gray-500 text-sm mr-2">{entry.progress}%</span>
-                    <div class="w-24 bg-gray-200 rounded-full h-2">
-                      <div
-                        class="bg-turquoise-500 h-2 rounded-full transition-all duration-300"
-                        style={"width: #{entry.progress}%"}
-                      >
-                      </div>
-                    </div>
+                <div class="mt-6 p-4 bg-white rounded-2xl border-2 border-slate-100 shadow-sm animate-in zoom-in">
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="text-slate-700 font-black text-xs uppercase tracking-wider truncate mr-4">
+                      {entry.client_name}
+                    </span>
+                    <span class="text-turquoise-600 font-black text-xs">{entry.progress}%</span>
+                  </div>
+                  <div class="bg-slate-100 rounded-full h-2 overflow-hidden shadow-inner">
+                    <div
+                      class="bg-gradient-to-r from-turquoise-500 to-cyan-500 h-full transition-all duration-300"
+                      style={"width: #{entry.progress}%"}
+                    ></div>
                   </div>
                 </div>
               <% end %>
             <% end %>
-            <button type="submit" id="theme-video-submit-btn" style="display: none;">
+            <button type="submit" id="theme-video-submit-btn" class="hidden">
               Upload Video
             </button>
           </div>
+          
+          <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">MP4 or WebM. Max 20MB.</p>
         </form>
 
         <%= if @customization.background_video_path && @customization.background_value == "custom" do %>
-          <div class="mt-4 p-3 bg-yellow-50 rounded-lg">
-            <p class="text-sm text-yellow-800">
-              <svg class="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
-                <path
-                  fill-rule="evenodd"
-                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                  clip-rule="evenodd"
-                />
-              </svg>
-              You have a custom video uploaded. Selecting a preset will remove it.
+          <div class="mt-8 p-4 bg-amber-50 border border-amber-100 rounded-2xl flex items-center gap-3">
+            <svg class="w-5 h-5 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            <p class="text-sm font-bold text-amber-800">
+              You have a custom video. Selecting a preset will remove it.
             </p>
           </div>
         <% end %>
