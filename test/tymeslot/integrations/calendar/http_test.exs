@@ -1,12 +1,18 @@
 defmodule Tymeslot.Integrations.Calendar.HTTPTest do
   use ExUnit.Case, async: true
+  import Mox
   alias Tymeslot.Integrations.Calendar.HTTP
+
+  setup :verify_on_exit!
 
   describe "request/5 method normalization" do
     test "accepts known string methods" do
-      # Should return connection error rather than invalid_method
+      expect(Tymeslot.HTTPClientMock, :request, fn :get, _url, _body, _headers, _opts ->
+        {:ok, %HTTPoison.Response{status_code: 200, body: "ok"}}
+      end)
+
       result = HTTP.request("GET", "http://localhost:1", "/", "token")
-      assert {:error, %HTTPoison.Error{reason: :econnrefused}} = result
+      assert {:ok, %HTTPoison.Response{status_code: 200}} = result
     end
 
     test "rejects unknown string methods" do
@@ -17,7 +23,11 @@ defmodule Tymeslot.Integrations.Calendar.HTTPTest do
     end
 
     test "is case-insensitive for string methods" do
-      assert {:error, %HTTPoison.Error{reason: :econnrefused}} =
+      expect(Tymeslot.HTTPClientMock, :request, fn :post, _url, _body, _headers, _opts ->
+        {:ok, %HTTPoison.Response{status_code: 201, body: "created"}}
+      end)
+
+      assert {:ok, %HTTPoison.Response{status_code: 201}} =
                HTTP.request("pOsT", "http://localhost:1", "/", "token")
     end
   end

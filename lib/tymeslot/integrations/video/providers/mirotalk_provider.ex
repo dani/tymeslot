@@ -198,7 +198,7 @@ defmodule Tymeslot.Integrations.Video.Providers.MiroTalkProvider do
 
     # Try HTTPS first, then HTTP
     case try_https_then_http(base_url, "/api/v1/meeting", fn url ->
-           http_client().post(url, "", headers)
+           http_client().post(url, "", headers, [])
          end) do
       {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
         try do
@@ -305,7 +305,7 @@ defmodule Tymeslot.Integrations.Video.Providers.MiroTalkProvider do
 
     handle_join_api_response(
       try_https_then_http(base_url, "/api/v1/join", fn url ->
-        http_client().post(url, body, headers)
+        http_client().post(url, body, headers, [])
       end),
       :with_validation
     )
@@ -340,7 +340,7 @@ defmodule Tymeslot.Integrations.Video.Providers.MiroTalkProvider do
 
     handle_join_api_response(
       try_https_then_http(base_url, "/api/v1/join", fn url ->
-        http_client().post(url, body, headers)
+        http_client().post(url, body, headers, [])
       end),
       :legacy
     )

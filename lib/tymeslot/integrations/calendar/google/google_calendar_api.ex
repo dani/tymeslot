@@ -248,8 +248,12 @@ defmodule Tymeslot.Integrations.Calendar.Google.CalendarAPI do
 
   defp request_with_retry(method, url, body, headers) do
     Retry.with_backoff(fn ->
-      HTTPClient.request(method, url, body, headers)
+      http_client().request(method, url, body, headers, [])
     end)
+  end
+
+  defp http_client do
+    Application.get_env(:tymeslot, :http_client_module, HTTPClient)
   end
 
   defp format_event_data(event_data) do

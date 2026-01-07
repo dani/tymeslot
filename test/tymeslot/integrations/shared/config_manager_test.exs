@@ -1,0 +1,96 @@
+defmodule Tymeslot.Integrations.Common.ConfigManagerTest do
+  use ExUnit.Case, async: true
+
+  alias Tymeslot.Integrations.Common.ConfigManager
+
+  describe "validate_config/2" do
+    test "validates required fields" do
+      schema = %{
+        api_key: %{type: :string, required: true},
+        base_url: %{type: :string, required: true},
+        timeout: %{type: :integer, required: false}
+      }
+
+      assert :ok = ConfigManager.validate_config(%{api_key: "key", base_url: "url"}, schema)
+      
+      assert {:error, message} = ConfigManager.validate_config(%{api_key: "key"}, schema)
+      assert String.contains?(message, "base_url")
+    end
+
+    test "validates field types" do
+      schema = %{
+        timeout: %{type: :integer, required: true}
+      }
+
+      assert :ok = ConfigManager.validate_config(%{timeout: 5000}, schema)
+      
+      assert {:error, message} = ConfigManager.validate_config(%{timeout: "5000"}, schema)
+      assert String.contains?(message, "expected integer")
+    end
+
+    test "executes custom validators" do
+      schema = %{
+        url: %{
+          type: :string,
+          required: true,
+          validator: fn val -> 
+            if String.starts_with?(val, "https://"), do: :ok, else: {:error, "must be https"}
+          end
+        }
+      }
+
+      assert :ok = ConfigManager.validate_config(%{url: "https://example.com"}, schema)
+      
+      assert {:error, message} = ConfigManager.validate_config(%{url: "http://example.com"}, schema)
+      assert String.contains?(message, "must be https")
+    end
+  end
+
+  describe "normalize_config/2" do
+    test "applies default values" do
+      schema = %{
+        timeout: %{type: :integer, default: 3000},
+        enabled: %{type: :boolean, default: true}
+      }
+
+      {:ok, normalized} = ConfigManager.normalize_config(%{}, schema)
+      assert normalized.timeout == 3000
+      assert normalized.enabled == true
+    end
+
+    test "coerces types" do
+      schema = %{
+        timeout: %{type: :integer},
+        enabled: %{type: :boolean}
+      }
+
+      {:ok, normalized} = ConfigManager.normalize_config(%{timeout: "5000", enabled: "false"}, schema)
+      assert normalized.timeout == 5000
+      assert normalized.enabled == false
+    end
+  end
+
+  describe "process_config/2" do
+    test "normalizes and validates in one step" do
+      schema = %{
+        api_key: %{type: :string, required: true},
+        timeout: %{type: :integer, default: 1000}
+      }
+
+      assert {:ok, config} = ConfigManager.process_config(%{api_key: "test"}, schema)
+      assert config.api_key == "test"
+      assert config.timeout == 1000
+    end
+  end
+
+  describe "merge_schemas/1" do
+    test "merges multiple schemas" do
+      s1 = %{field1: %{type: :string}}
+      s2 = %{field2: %{type: :integer}}
+      
+      merged = ConfigManager.merge_schemas([s1, s2])
+      assert merged[:field1]
+      assert merged[:field2]
+    end
+  end
+end

@@ -7,6 +7,7 @@ defmodule Tymeslot.Integrations.Video.Providers.TeamsProvider do
   """
 
   alias Tymeslot.DatabaseQueries.VideoIntegrationQueries
+  alias Tymeslot.Infrastructure.HTTPClient
   alias Tymeslot.Integrations.Shared.ProviderConfigHelper
   alias Tymeslot.Integrations.Video.Providers.ProviderBehaviour
   alias Tymeslot.Integrations.Video.Teams.TeamsOAuthHelper
@@ -250,7 +251,7 @@ defmodule Tymeslot.Integrations.Video.Providers.TeamsProvider do
 
     url = "#{@graph_api_base_url}/me/onlineMeetings"
 
-    case HTTPoison.post(url, Jason.encode!(meeting_data), headers) do
+    case http_client().request(:post, url, Jason.encode!(meeting_data), headers, []) do
       {:ok, %HTTPoison.Response{status_code: 201, body: body}} ->
         Jason.decode(body)
 
@@ -260,6 +261,10 @@ defmodule Tymeslot.Integrations.Video.Providers.TeamsProvider do
       {:error, reason} ->
         {:error, "Network error: #{inspect(reason)}"}
     end
+  end
+
+  defp http_client do
+    Application.get_env(:tymeslot, :http_client_module, HTTPClient)
   end
 
   defp decode_and_format_error(status, body) do

@@ -98,6 +98,10 @@ defmodule Tymeslot.Integrations.Calendar.HTTP do
   end
 
   defp default_request(method, url, body, headers) do
-    HTTPClient.request(method, url, body, headers)
+    http_client().request(method, url, body, headers, [])
+  end
+
+  defp http_client do
+    Application.get_env(:tymeslot, :http_client_module, HTTPClient)
   end
 end

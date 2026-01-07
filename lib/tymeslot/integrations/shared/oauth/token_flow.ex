@@ -26,7 +26,7 @@ defmodule Tymeslot.Integrations.Shared.OAuth.TokenFlow do
   defp request_tokens(token_url, params, opts) do
     headers = Keyword.get(opts, :headers, @default_headers)
 
-    case HTTPClient.request(:post, token_url, URI.encode_query(params), headers) do
+    case http_client().request(:post, token_url, URI.encode_query(params), headers, []) do
       {:ok, %{status_code: 200, body: body}} ->
         {:ok, Jason.decode!(body)}
 
@@ -36,5 +36,9 @@ defmodule Tymeslot.Integrations.Shared.OAuth.TokenFlow do
       {:error, reason} ->
         {:error, {:network_error, reason}}
     end
+  end
+
+  defp http_client do
+    Application.get_env(:tymeslot, :http_client_module, HTTPClient)
   end
 end

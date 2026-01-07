@@ -81,9 +81,12 @@ defmodule Tymeslot.Integrations.HealthCheck do
   @impl true
   def init(opts) do
     interval = Keyword.get(opts, :check_interval, @check_interval)
+    initial_delay = Keyword.get(opts, :initial_delay, 1000)
 
     # Schedule first check after a short delay
-    Process.send_after(self(), :scheduled_check, 1000)
+    if initial_delay > 0 do
+      Process.send_after(self(), :scheduled_check, initial_delay)
+    end
 
     state = %State{
       calendar_health: %{},
