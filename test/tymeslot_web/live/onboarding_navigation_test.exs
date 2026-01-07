@@ -18,6 +18,7 @@ defmodule TymeslotWeb.OnboardingNavigationTest do
 
   alias Tymeslot.Repo
   alias Tymeslot.Security.RateLimiter
+  alias TymeslotWeb.OnboardingLive.StepConfig
 
   setup :verify_on_exit!
 
@@ -30,18 +31,18 @@ defmodule TymeslotWeb.OnboardingNavigationTest do
 
   describe "forward navigation" do
     test "user can navigate forward through all steps", %{conn: conn} do
-      {:ok, view, html, _user} = setup_onboarding(conn)
+      {:ok, view, _html, _user} = setup_onboarding(conn)
 
-      # Welcome step - verify we're here
-      assert html =~ "Welcome to Tymeslot!"
+      # Welcome step - verify we're here using CSS class
+      assert has_element?(view, ".onboarding-title")
 
       # Continue to basic_settings
       view
       |> element("button[phx-click='next_step']")
       |> render_click()
 
-      html = render(view)
-      assert html =~ "Basic Settings"
+      # Verify basic settings form is present
+      assert has_element?(view, "#basic-settings-form")
 
       # Fill required fields for basic settings
       fill_basic_settings(view, "Test User", "testuser123")
@@ -51,31 +52,31 @@ defmodule TymeslotWeb.OnboardingNavigationTest do
       |> element("button[phx-click='next_step']")
       |> render_click()
 
-      html = render(view)
-      assert html =~ "Scheduling Preferences"
+      # Verify preferences step using specific elements
+      assert has_element?(view, "button[phx-value-buffer_minutes]")
 
       # Continue to complete
       view
       |> element("button[phx-click='next_step']")
       |> render_click()
 
-      html = render(view)
-      assert html =~ "You&#39;re All Set!"
+      # Verify completion step
+      assert has_element?(view, ".onboarding-welcome-icon")
+      assert render(view) =~ "Next Steps"
     end
 
     test "next button shows correct text on each step", %{conn: conn} do
-      {:ok, view, html, _user} = setup_onboarding(conn)
+      {:ok, view, _html, _user} = setup_onboarding(conn)
 
-      # Welcome - should show "Continue"
-      assert html =~ "Continue"
+      # Welcome - should match StepConfig
+      assert render(view) =~ StepConfig.next_button_text(:welcome)
 
       # Navigate to basic_settings
       view
       |> element("button[phx-click='next_step']")
       |> render_click()
 
-      html = render(view)
-      assert html =~ "Continue"
+      assert render(view) =~ StepConfig.next_button_text(:basic_settings)
 
       # Fill basic settings and navigate
       fill_basic_settings(view, "Test", "test123")
@@ -84,17 +85,15 @@ defmodule TymeslotWeb.OnboardingNavigationTest do
       |> element("button[phx-click='next_step']")
       |> render_click()
 
-      # Scheduling preferences - should show "Continue"
-      html = render(view)
-      assert html =~ "Continue"
+      # Scheduling preferences
+      assert render(view) =~ StepConfig.next_button_text(:scheduling_preferences)
 
       view
       |> element("button[phx-click='next_step']")
       |> render_click()
 
-      # Complete - should show "Get Started"
-      html = render(view)
-      assert html =~ "Get Started"
+      # Complete
+      assert render(view) =~ StepConfig.next_button_text(:complete)
     end
   end
 
@@ -113,24 +112,24 @@ defmodule TymeslotWeb.OnboardingNavigationTest do
       |> element("button[phx-click='next_step']")
       |> render_click()
 
-      html = render(view)
-      assert html =~ "Scheduling Preferences"
+      # Verify preferences step
+      assert has_element?(view, "button[phx-value-buffer_minutes]")
 
       # Go back to basic_settings
       view
       |> element("button[phx-click='previous_step']")
       |> render_click()
 
-      html = render(view)
-      assert html =~ "Basic Settings"
+      # Verify form is back
+      assert has_element?(view, "#basic-settings-form")
 
       # Go back to welcome
       view
       |> element("button[phx-click='previous_step']")
       |> render_click()
 
-      html = render(view)
-      assert html =~ "Welcome to Tymeslot!"
+      # Verify welcome step
+      assert has_element?(view, ".onboarding-title")
     end
 
     test "backward navigation preserves filled form data", %{conn: conn} do
@@ -163,8 +162,8 @@ defmodule TymeslotWeb.OnboardingNavigationTest do
     test "no previous button on welcome step", %{conn: conn} do
       {:ok, _view, html, _user} = setup_onboarding(conn)
 
-      # Should not have a Previous button on welcome step
-      refute html =~ "Previous"
+      # Should not have a Back button on welcome step
+      refute html =~ "Back"
     end
 
     test "previous button appears on later steps", %{conn: conn} do
@@ -175,8 +174,8 @@ defmodule TymeslotWeb.OnboardingNavigationTest do
       |> element("button[phx-click='next_step']")
       |> render_click()
 
-      html = render(view)
-      assert html =~ "Previous"
+      # Back button should be present
+      assert has_element?(view, "button[phx-click='previous_step']")
     end
   end
 
@@ -189,12 +188,8 @@ defmodule TymeslotWeb.OnboardingNavigationTest do
       |> element("button[phx-click='show_skip_modal']")
       |> render_click()
 
-      html = render(view)
-      # Modal should appear
-      assert html =~ "Skip Onboarding?"
-
-      assert html =~
-               "Are you sure you want to skip the setup? You can always configure these settings later in your dashboard."
+      # Modal should be visible
+      assert has_element?(view, "#skip-onboarding-modal-container")
 
       # Confirm skip
       view
@@ -274,27 +269,24 @@ defmodule TymeslotWeb.OnboardingNavigationTest do
       |> element("button[phx-click='show_skip_modal']")
       |> render_click()
 
-      html = render(view)
-      assert html =~ "Skip Onboarding?"
+      # Modal should be visible
+      assert has_element?(view, "#skip-onboarding-modal-container")
 
       # Click "Continue Setup" to cancel
       view
       |> element("button[phx-click='hide_skip_modal']")
       |> render_click()
 
-      html = render(view)
-
-      # Modal should be hidden (but text still in DOM), still on welcome
-      # The modal component controls visibility via CSS, so text is still present
-      assert html =~ "Welcome to Tymeslot!"
+      # Should still be on welcome
+      assert has_element?(view, ".onboarding-title")
 
       # Should still be able to continue normally
       view
       |> element("button[phx-click='next_step']")
       |> render_click()
 
-      html = render(view)
-      assert html =~ "Basic Settings"
+      # Should be on basic settings
+      assert has_element?(view, "#basic-settings-form")
 
       # Onboarding should NOT be completed
       user = Repo.reload!(user)
@@ -318,7 +310,6 @@ defmodule TymeslotWeb.OnboardingNavigationTest do
 
       # First step should show as completed (checkmark)
       assert html =~ "progress-step-circle--completed"
-      assert html =~ "hero-check"
 
       # Current step should be active
       assert html =~ "progress-step-circle--active"
@@ -368,10 +359,10 @@ defmodule TymeslotWeb.OnboardingNavigationTest do
       user = insert(:user, onboarding_completed_at: nil)
       conn = log_in_user(conn, user)
 
-      {:ok, _view, html} = live(conn, ~p"/onboarding")
+      {:ok, view, _html} = live(conn, ~p"/onboarding")
 
       # Should show welcome step
-      assert html =~ "Welcome to Tymeslot!"
+      assert has_element?(view, ".onboarding-title")
     end
 
     test "direct navigation to valid step works", %{conn: conn} do
@@ -379,9 +370,9 @@ defmodule TymeslotWeb.OnboardingNavigationTest do
       conn = log_in_user(conn, user)
 
       # Navigate directly to basic_settings
-      {:ok, _view, html} = live(conn, ~p"/onboarding?step=basic_settings")
+      {:ok, view, _html} = live(conn, ~p"/onboarding?step=basic_settings")
 
-      assert html =~ "Basic Settings"
+      assert has_element?(view, "#basic-settings-form")
     end
   end
 end

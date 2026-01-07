@@ -24,7 +24,7 @@ defmodule TymeslotWeb.Components.DashboardComponentsTest do
     assert Floki.find(doc, "input#test-input[name='test_name'][placeholder='Enter something']") !=
              []
 
-    assert Floki.find(doc, "input#test-input.glass-input") != []
+    assert Floki.find(doc, "input#test-input.input") != []
     assert html =~ "test value"
     assert Floki.text(doc) =~ "Some help text"
   end

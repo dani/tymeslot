@@ -45,10 +45,8 @@ defmodule TymeslotWeb.OnboardingValidationTest do
       |> element("button[phx-click='next_step']")
       |> render_click()
 
-      html = render(view)
-
-      # Should proceed to Scheduling Preferences since full name is optional
-      assert html =~ "Scheduling Preferences"
+      # Should proceed to Preferences since full name is optional
+      assert has_element?(view, "button[phx-value-buffer_minutes]")
     end
 
     test "name with only spaces is allowed (trimmed to empty)", %{conn: conn} do
@@ -65,10 +63,8 @@ defmodule TymeslotWeb.OnboardingValidationTest do
       |> element("button[phx-click='next_step']")
       |> render_click()
 
-      html = render(view)
-
       # Should proceed since spaces-only is trimmed to empty (which is allowed)
-      assert html =~ "Scheduling Preferences"
+      assert has_element?(view, "button[phx-value-buffer_minutes]")
     end
 
     test "valid name is accepted", %{conn: conn} do
@@ -85,10 +81,8 @@ defmodule TymeslotWeb.OnboardingValidationTest do
       |> element("button[phx-click='next_step']")
       |> render_click()
 
-      html = render(view)
-
       # Should proceed to scheduling preferences
-      assert html =~ "Scheduling Preferences"
+      assert has_element?(view, "button[phx-value-buffer_minutes]")
     end
   end
 
@@ -127,10 +121,8 @@ defmodule TymeslotWeb.OnboardingValidationTest do
       |> element("button[phx-click='next_step']")
       |> render_click()
 
-      html = render(view)
-
       # Should not proceed
-      assert html =~ "Basic Settings"
+      assert has_element?(view, "#basic-settings-form")
     end
 
     test "username with invalid characters is rejected", %{conn: conn} do
@@ -147,10 +139,8 @@ defmodule TymeslotWeb.OnboardingValidationTest do
       |> element("button[phx-click='next_step']")
       |> render_click()
 
-      html = render(view)
-
       # Should not proceed
-      assert html =~ "Basic Settings"
+      assert has_element?(view, "#basic-settings-form")
     end
 
     test "username too short is rejected", %{conn: conn} do
@@ -167,10 +157,8 @@ defmodule TymeslotWeb.OnboardingValidationTest do
       |> element("button[phx-click='next_step']")
       |> render_click()
 
-      html = render(view)
-
       # Should not proceed
-      assert html =~ "Basic Settings"
+      assert has_element?(view, "#basic-settings-form")
     end
 
     test "username too long is rejected", %{conn: conn} do
@@ -189,10 +177,8 @@ defmodule TymeslotWeb.OnboardingValidationTest do
       |> element("button[phx-click='next_step']")
       |> render_click()
 
-      html = render(view)
-
       # Should not proceed
-      assert html =~ "Basic Settings"
+      assert has_element?(view, "#basic-settings-form")
     end
 
     test "valid username with lowercase, numbers, underscore, dash is accepted", %{conn: conn} do
@@ -209,10 +195,8 @@ defmodule TymeslotWeb.OnboardingValidationTest do
       |> element("button[phx-click='next_step']")
       |> render_click()
 
-      html = render(view)
-
       # Should proceed
-      assert html =~ "Scheduling Preferences"
+      assert has_element?(view, "button[phx-value-buffer_minutes]")
     end
   end
 
@@ -258,10 +242,8 @@ defmodule TymeslotWeb.OnboardingValidationTest do
       |> element("button[phx-click='next_step']")
       |> render_click()
 
-      html = render(view)
-
       # Should proceed
-      assert html =~ "Scheduling Preferences"
+      assert has_element?(view, "button[phx-value-buffer_minutes]")
     end
 
     test "unchanged username does not check availability", %{conn: conn} do
@@ -287,10 +269,8 @@ defmodule TymeslotWeb.OnboardingValidationTest do
       |> element("button[phx-click='next_step']")
       |> render_click()
 
-      html = render(view)
-
       # Should proceed without availability check
-      assert html =~ "Scheduling Preferences"
+      assert has_element?(view, "button[phx-value-buffer_minutes]")
     end
   end
 
@@ -335,11 +315,9 @@ defmodule TymeslotWeb.OnboardingValidationTest do
       # Type invalid username and trigger validation
       fill_basic_settings(view, "Valid Name", "ab")
 
-      html = render(view)
-
       # Note: Username errors are not shown during typing (only on submit)
       # So we just verify the form processed the change
-      assert html =~ "Basic Settings"
+      assert has_element?(view, "#basic-settings-form")
     end
 
     test "errors clear when input becomes valid", %{conn: conn} do
@@ -355,10 +333,8 @@ defmodule TymeslotWeb.OnboardingValidationTest do
       # Then, fix it
       fill_basic_settings(view, "Valid Name", "validuser")
 
-      html = render(view)
-
       # Should have cleared errors
-      refute html =~ "error"
+      refute render(view) =~ "error"
     end
   end
 

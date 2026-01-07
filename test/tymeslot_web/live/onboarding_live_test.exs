@@ -31,52 +31,43 @@ defmodule TymeslotWeb.OnboardingLiveTest do
   describe "complete onboarding flow" do
     test "new user can complete full onboarding successfully", %{conn: conn} do
       # Create a new user without onboarding completed
-      {:ok, view, html, user} = setup_onboarding(conn, %{name: "Test User"})
+      {:ok, view, _html, user} = setup_onboarding(conn, %{name: "Test User"})
 
       # Should start at welcome step
-      assert html =~ "Welcome to Tymeslot!"
-      assert html =~ "Let&#39;s get you set up in just a few steps"
+      assert has_element?(view, ".onboarding-title")
 
-      # Step 1: Welcome -> Continue to Basic Settings
+      # Step 1: Welcome -> Continue to Profile Setup
       view
       |> element("button[phx-click='next_step']")
       |> render_click()
 
       # Should now be at basic settings step
-      html = render(view)
-      assert html =~ "Basic Settings"
-      assert html =~ "Let&#39;s personalize your account"
+      assert has_element?(view, "#basic-settings-form")
 
       # Fill in basic settings by triggering form change
-      html =
-        view
-        |> form("form#basic-settings-form", %{
-          "full_name" => "Test User",
-          "username" => "testuser123"
-        })
-        |> render_change()
+      view
+      |> form("form#basic-settings-form", %{
+        "full_name" => "Test User",
+        "username" => "testuser123"
+      })
+      |> render_change()
 
-      assert html =~ "Test User"
-
-      # Step 2: Basic Settings -> Continue to Scheduling Preferences
+      # Step 2: Profile Setup -> Continue to Preferences
       view
       |> element("button[phx-click='next_step']")
       |> render_click()
 
       # Should now be at scheduling preferences step
-      html = render(view)
-      assert html =~ "Scheduling Preferences"
-      assert html =~ "Configure your default meeting settings"
+      assert has_element?(view, "button[phx-value-buffer_minutes]")
 
-      # Step 3: Scheduling Preferences -> Continue to Complete
+      # Step 3: Preferences -> Continue to Complete
       view
       |> element("button[phx-click='next_step']")
       |> render_click()
 
       # Should now be at complete step
-      html = render(view)
-      assert html =~ "You&#39;re All Set!"
-      assert html =~ "Your Tymeslot account is ready to use"
+      assert has_element?(view, ".onboarding-welcome-icon")
+      assert render(view) =~ "Next Steps"
 
       # Step 4: Complete -> Get Started (complete onboarding)
       view

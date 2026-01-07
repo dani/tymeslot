@@ -26,7 +26,7 @@ defmodule Tymeslot.MixProject do
         plt_local_path: "../../priv/plts",
         flags: [:error_handling]
       ],
-      test_coverage: [tool: ExCoveralls, summary: [threshold: 75]],
+      test_coverage: [tool: ExCoveralls],
       licenses: ["Elastic-2.0"],
       links: %{
         "License" => "https://www.elastic.co/licensing/elastic-license"

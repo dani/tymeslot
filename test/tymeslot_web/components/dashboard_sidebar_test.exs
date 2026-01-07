@@ -73,7 +73,7 @@ defmodule TymeslotWeb.Components.DashboardSidebarTest do
     html = render_component(&DashboardSidebar.sidebar/1, assigns)
     doc = Floki.parse_document!(html)
 
-    assert html =~ "View Your Scheduling Page"
+    assert html =~ "View Page"
 
     # Scheduling page link
     assert Floki.find(doc, "a.dashboard-nav-link[href='/testuser'][target='_blank']") != []
@@ -94,7 +94,7 @@ defmodule TymeslotWeb.Components.DashboardSidebarTest do
     html = render_component(&DashboardSidebar.sidebar/1, assigns)
     doc = Floki.parse_document!(html)
 
-    assert html =~ "View Your Scheduling Page"
+    assert html =~ "View Page"
     assert html =~ "cursor-not-allowed"
     assert html =~ "Set a username in Settings to enable this feature"
 
@@ -119,7 +119,7 @@ defmodule TymeslotWeb.Components.DashboardSidebarTest do
     html = render_component(&DashboardSidebar.sidebar/1, assigns)
     doc = Floki.parse_document!(html)
 
-    assert html =~ "View Your Scheduling Page"
+    assert html =~ "View Page"
     assert html =~ "cursor-not-allowed"
     assert html =~ "Connect a calendar in Calendar settings to enable this feature"
 

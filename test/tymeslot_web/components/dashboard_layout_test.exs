@@ -28,7 +28,7 @@ defmodule TymeslotWeb.Components.DashboardLayoutTest do
 
     assert Floki.find(doc, "div#dashboard-root[phx-hook='ClipboardCopy']") != []
     assert Floki.find(doc, "aside#dashboard-sidebar") != []
-    assert Floki.find(doc, "nav.glass-nav") != []
+    assert Floki.find(doc, "nav.brand-nav") != []
   end
 
   test "top_navigation renders correctly" do

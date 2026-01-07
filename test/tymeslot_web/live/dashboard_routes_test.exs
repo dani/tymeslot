@@ -58,6 +58,7 @@ defmodule TymeslotWeb.DashboardRoutesTest do
       {"/dashboard/video", "Video Integration"},
       {"/dashboard/theme", "Choose Your Style"},
       {"/dashboard/meetings", "Meetings"},
+      {"/dashboard/notifications", "Notifications"},
       {"/dashboard/payment", "Payment Management"}
     ]
 
@@ -89,7 +90,7 @@ defmodule TymeslotWeb.DashboardRoutesTest do
       |> render_click()
 
       assert render(view) =~ "Availability"
-      assert render(view) =~ "Weekly Availability Grid"
+      assert render(view) =~ "Weekly Visual Grid"
     end
 
     test "meeting settings can open the add meeting type form", %{conn: conn} do
@@ -110,14 +111,14 @@ defmodule TymeslotWeb.DashboardRoutesTest do
       |> element("button[phx-click='show_customization'][phx-value-theme='1']")
       |> render_click()
 
-      assert render(view) =~ "Customize Theme"
+      assert render(view) =~ "Customize Style"
       assert has_element?(view, "#theme-customization-uploads")
 
       view
       |> element("button[phx-click='theme:set_browsing_type'][phx-value-type='color']")
       |> render_click()
 
-      assert render(view) =~ "Select a solid background color:"
+      assert render(view) =~ "Select a solid color"
 
       view
       |> element("button[phx-click='theme:set_browsing_type'][phx-value-type='image']")

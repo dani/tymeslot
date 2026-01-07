@@ -66,8 +66,8 @@ defmodule TymeslotWeb.OnboardingEdgeCasesTest do
       |> render_click()
 
       # Should render without errors
-      html = render(view)
-      assert html =~ "Basic Settings"
+      render(view)
+      assert has_element?(view, "#basic-settings-form")
     end
   end
 
@@ -197,10 +197,8 @@ defmodule TymeslotWeb.OnboardingEdgeCasesTest do
       |> element("button[phx-click='next_step']")
       |> render_click()
 
-      html = render(view)
-
       # Should stay on basic settings (not crash)
-      assert html =~ "Basic Settings"
+      assert has_element?(view, "#basic-settings-form")
     end
 
     test "username taken between form fill and submit shows error", %{conn: conn} do
@@ -240,11 +238,9 @@ defmodule TymeslotWeb.OnboardingEdgeCasesTest do
       |> element("button[phx-click='next_step']")
       |> render_click()
 
-      html = render(view)
-
       # Should still be on basic settings
-      assert html =~ "Basic Settings"
-      refute html =~ "Scheduling Preferences"
+      assert has_element?(view, "#basic-settings-form")
+      refute has_element?(view, "button[phx-value-buffer_minutes]")
     end
   end
 
@@ -293,10 +289,8 @@ defmodule TymeslotWeb.OnboardingEdgeCasesTest do
       |> element("button[phx-click='next_step']")
       |> render_click()
 
-      html = render(view)
-
       # Should either reject or handle safely (validation should catch special chars)
-      assert html =~ "Basic Settings"
+      assert has_element?(view, "#basic-settings-form")
 
       # Database should still exist
       assert Repo.aggregate(Tymeslot.DatabaseSchemas.UserSchema, :count, :id) > 0
@@ -317,8 +311,7 @@ defmodule TymeslotWeb.OnboardingEdgeCasesTest do
       |> render_click()
 
       # Should proceed
-      html = render(view)
-      assert html =~ "Scheduling Preferences"
+      assert has_element?(view, "button[phx-value-buffer_minutes]")
 
       # Complete
       view
@@ -352,8 +345,7 @@ defmodule TymeslotWeb.OnboardingEdgeCasesTest do
       |> render_click()
 
       # Should handle gracefully (either reject or truncate)
-      html = render(view)
-      assert html =~ "Basic Settings"
+      assert has_element?(view, "#basic-settings-form")
     end
   end
 
