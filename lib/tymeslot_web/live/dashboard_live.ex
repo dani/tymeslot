@@ -24,7 +24,8 @@ defmodule TymeslotWeb.DashboardLive do
     ScheduleSettingsComponent,
     ServiceSettingsComponent,
     ThemeSettingsComponent,
-    VideoSettingsComponent
+    VideoSettingsComponent,
+    WebhookSettingsComponent
   }
 
   # Dashboard components are loaded dynamically based on the current action
@@ -425,6 +426,7 @@ defmodule TymeslotWeb.DashboardLive do
 
   defp component_for_action(:calendar), do: CalendarSettingsComponent
   defp component_for_action(:video), do: VideoSettingsComponent
+  defp component_for_action(:webhooks), do: WebhookSettingsComponent
   defp component_for_action(:theme), do: ThemeSettingsComponent
   defp component_for_action(:meetings), do: BookingsManagementComponent
   defp component_for_action(:payment), do: PaymentLiveComponent

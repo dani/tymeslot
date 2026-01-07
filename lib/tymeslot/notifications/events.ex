@@ -5,13 +5,20 @@ defmodule Tymeslot.Notifications.Events do
   """
 
   alias Tymeslot.Notifications.Orchestrator
+  alias Tymeslot.Webhooks.Dispatcher
 
   @doc """
   Handles meeting creation event.
   """
   @spec meeting_created(term()) :: {:ok, term()} | {:error, term()}
   def meeting_created(meeting) do
-    Orchestrator.schedule_meeting_notifications(meeting)
+    # Send email notifications
+    result = Orchestrator.schedule_meeting_notifications(meeting)
+
+    # Dispatch webhooks (don't fail if webhooks fail)
+    Dispatcher.dispatch(:meeting_created, meeting)
+
+    result
   end
 
   @doc """
@@ -19,7 +26,13 @@ defmodule Tymeslot.Notifications.Events do
   """
   @spec meeting_cancelled(term()) :: {:ok, term()} | {:error, term()}
   def meeting_cancelled(meeting) do
-    Orchestrator.send_cancellation_notifications(meeting)
+    # Send email notifications
+    result = Orchestrator.send_cancellation_notifications(meeting)
+
+    # Dispatch webhooks (don't fail if webhooks fail)
+    Dispatcher.dispatch(:meeting_cancelled, meeting)
+
+    result
   end
 
   @doc """
@@ -27,7 +40,13 @@ defmodule Tymeslot.Notifications.Events do
   """
   @spec meeting_rescheduled(term(), term()) :: {:ok, term()} | {:error, term()}
   def meeting_rescheduled(updated_meeting, original_meeting) do
-    Orchestrator.send_reschedule_notifications(updated_meeting, original_meeting)
+    # Send email notifications
+    result = Orchestrator.send_reschedule_notifications(updated_meeting, original_meeting)
+
+    # Dispatch webhooks (don't fail if webhooks fail)
+    Dispatcher.dispatch(:meeting_rescheduled, updated_meeting)
+
+    result
   end
 
   @doc """
