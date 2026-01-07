@@ -256,6 +256,10 @@ Themes are fully isolated with consistent functionality across all variations.
 
 We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
+**A note on releases:** We publish official, stable releases on GitHub rather than treating every commit as a release.
+
+**How to contribute most effectively:** The biggest contribution you can make to Tymeslot is your **feedback**. Whether it's reporting a bug, suggesting a new feature, or simply sharing how you use the platform, your insights are what drive our growth.
+
 ### Development Setup
 
 1. Fork the repository

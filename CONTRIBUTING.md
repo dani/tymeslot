@@ -32,6 +32,12 @@ We welcome many types of contributions:
 - 🚀 **Performance** - Optimize code and improve efficiency
 - 🔒 **Security** - Enhance security measures and practices
 
+## 📦 Releases & Feedback
+
+While we are constantly improving the codebase, we only publish official, stable releases through **GitHub Releases**. Not every commit to the repository is intended to be a production-ready release.
+
+The most significant way you can contribute to Tymeslot is by providing **feedback**. Real-world usage reports, feature ideas, and constructive criticism are what truly help the project evolve. Even if you don't write a single line of code, sharing your experience is the biggest contribution you can make.
+
 ## 🛠️ Development Setup
 
 ### Prerequisites
