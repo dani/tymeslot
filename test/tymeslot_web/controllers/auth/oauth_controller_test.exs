@@ -1,0 +1,161 @@
+defmodule TymeslotWeb.OAuthControllerTest do
+  use TymeslotWeb.ConnCase, async: false
+
+  alias Phoenix.Controller
+  alias Phoenix.Flash
+  alias Tymeslot.Auth.OAuth.Helper, as: OAuthHelper
+  alias Tymeslot.Factory
+  alias Tymeslot.Infrastructure.DashboardCache
+
+  setup do
+    original_social_auth = Application.get_env(:tymeslot, :social_auth)
+
+    try do
+      :meck.unload(OAuthHelper)
+    rescue
+      _ -> :ok
+    end
+
+    :meck.new(OAuthHelper, [:passthrough])
+
+    # Ensure dashboard cache is running for invalidate_integration_status
+    case Process.whereis(DashboardCache) do
+      nil -> DashboardCache.start_link([])
+      _pid -> :ok
+    end
+
+    on_exit(fn ->
+      try do
+        :meck.unload(OAuthHelper)
+      rescue
+        _ -> :ok
+      end
+
+      if is_nil(original_social_auth) do
+        Application.delete_env(:tymeslot, :social_auth)
+      else
+        Application.put_env(:tymeslot, :social_auth, original_social_auth)
+      end
+    end)
+
+    :ok
+  end
+
+  describe "GET /auth/:provider" do
+    test "initiates github auth", %{conn: conn} do
+      # Mock social auth config
+      Application.put_env(:tymeslot, :social_auth, github_enabled: true)
+
+      conn = get(conn, ~p"/auth/github")
+
+      # Should redirect to github
+      assert redirected_to(conn) =~ "github.com/login/oauth/authorize"
+    end
+
+    test "initiates google auth", %{conn: conn} do
+      Application.put_env(:tymeslot, :social_auth, google_enabled: true)
+
+      conn = get(conn, ~p"/auth/google")
+
+      assert redirected_to(conn) =~ "accounts.google.com/o/oauth2/v2/auth"
+    end
+
+    test "redirects if provider disabled", %{conn: conn} do
+      Application.put_env(:tymeslot, :social_auth, github_enabled: false)
+
+      conn = get(conn, ~p"/auth/github")
+
+      assert redirected_to(conn) == "/auth/login"
+      assert Flash.get(conn.assigns.flash, :error) =~ "GitHub authentication is not available"
+    end
+  end
+
+  describe "GET /auth/:provider/callback" do
+    test "handles successful callback", %{conn: conn} do
+      :meck.expect(OAuthHelper, :handle_oauth_callback, fn conn,
+                                                           "code",
+                                                           "state",
+                                                           :github,
+                                                           _paths ->
+        # We need to make sure flash is fetched if the helper uses it
+        conn = Controller.fetch_flash(conn, [])
+
+        conn
+        |> Controller.put_flash(:info, "Successfully authenticated")
+        |> Controller.redirect(to: "/dashboard")
+      end)
+
+      conn = get(conn, ~p"/auth/github/callback", %{"code" => "code", "state" => "state"})
+
+      assert redirected_to(conn) == "/dashboard"
+      assert Flash.get(conn.assigns.flash, :info) =~ "Successfully authenticated"
+    end
+
+    test "rejects OAuth callback without authorization code", %{conn: conn} do
+      conn = get(conn, ~p"/auth/google/callback", %{"state" => "some_state"})
+
+      assert redirected_to(conn) == "/?auth=login"
+
+      assert Flash.get(conn.assigns.flash, :error) =~
+               "Google authentication failed - missing authorization code"
+    end
+
+    test "handles user cancellation gracefully", %{conn: conn} do
+      conn =
+        get(conn, ~p"/auth/google/callback", %{
+          "error" => "access_denied",
+          "error_description" => "User denied access"
+        })
+
+      assert redirected_to(conn) == "/?auth=login"
+
+      assert Flash.get(conn.assigns.flash, :error) =~
+               "Google authentication failed - missing authorization code"
+    end
+  end
+
+  describe "POST /auth/complete" do
+    test "creates user and logs in", %{conn: conn} do
+      user_data = %{
+        "oauth_provider" => "github",
+        "oauth_email" => "new@example.com",
+        "oauth_github_id" => "12345",
+        "oauth_name" => "New User"
+      }
+
+      :meck.expect(OAuthHelper, :create_oauth_user, fn :github, _data, _profile ->
+        user = Factory.insert(:user, email: "new@example.com", provider: "github")
+        {:ok, user}
+      end)
+
+      conn = post(conn, ~p"/auth/complete", user_data)
+
+      assert redirected_to(conn) == "/dashboard"
+      assert Flash.get(conn.assigns.flash, :info) =~ "Successfully signed up"
+    end
+
+    test "fails if email missing", %{conn: conn} do
+      user_data = %{
+        "oauth_provider" => "github",
+        "oauth_github_id" => "12345"
+      }
+
+      conn = post(conn, ~p"/auth/complete", user_data)
+
+      assert redirected_to(conn) =~ "/auth/complete-registration"
+      assert Flash.get(conn.assigns.flash, :error) =~ "Email address is required"
+    end
+
+    test "rejects unsupported oauth_provider", %{conn: conn} do
+      user_data = %{
+        "oauth_provider" => "totally_new_provider",
+        "oauth_email" => "new@example.com"
+      }
+
+      conn = post(conn, ~p"/auth/complete", user_data)
+
+      assert redirected_to(conn) == "/auth/login"
+      assert Flash.get(conn.assigns.flash, :error) =~ "Unsupported OAuth provider"
+    end
+  end
+end

@@ -1,0 +1,193 @@
+defmodule TymeslotWeb.OAuthIntegrationsControllerTest do
+  use TymeslotWeb.ConnCase, async: false
+
+  alias Phoenix.Flash
+  alias Tymeslot.DatabaseQueries.VideoIntegrationQueries
+  alias Tymeslot.Factory
+  alias Tymeslot.Infrastructure.DashboardCache
+  alias Tymeslot.Integrations.Calendar.Google.OAuthHelper, as: GoogleCalendarOAuthHelper
+  alias Tymeslot.Integrations.Calendar.Outlook.OAuthHelper, as: OutlookCalendarOAuthHelper
+  alias Tymeslot.Integrations.Common.OAuth.State
+  alias Tymeslot.Integrations.Google.GoogleOAuthHelper
+  alias Tymeslot.Integrations.Video.Teams.TeamsOAuthHelper
+
+  setup do
+    modules = [
+      GoogleCalendarOAuthHelper,
+      OutlookCalendarOAuthHelper,
+      GoogleOAuthHelper,
+      TeamsOAuthHelper,
+      State,
+      VideoIntegrationQueries
+    ]
+
+    for mod <- modules do
+      try do
+        :meck.unload(mod)
+      rescue
+        _ -> :ok
+      end
+
+      :meck.new(mod, [:passthrough])
+    end
+
+    # Ensure required OAuth state secret exists (VideoOAuthController.state_secret/0 can raise)
+    original_outlook_oauth = Application.get_env(:tymeslot, :outlook_oauth)
+
+    Application.put_env(
+      :tymeslot,
+      :outlook_oauth,
+      Keyword.merge(original_outlook_oauth || [], state_secret: "test_state_secret")
+    )
+
+    case Process.whereis(DashboardCache) do
+      nil -> DashboardCache.start_link([])
+      _pid -> :ok
+    end
+
+    # Enable teams provider for tests
+    original_video_providers = Application.get_env(:tymeslot, :video_providers)
+    Application.put_env(:tymeslot, :video_providers, %{teams: %{enabled: true}})
+
+    on_exit(fn ->
+      for mod <- modules do
+        try do
+          :meck.unload(mod)
+        rescue
+          _ -> :ok
+        end
+      end
+
+      if is_nil(original_video_providers) do
+        Application.delete_env(:tymeslot, :video_providers)
+      else
+        Application.put_env(:tymeslot, :video_providers, original_video_providers)
+      end
+
+      if is_nil(original_outlook_oauth) do
+        Application.delete_env(:tymeslot, :outlook_oauth)
+      else
+        Application.put_env(:tymeslot, :outlook_oauth, original_outlook_oauth)
+      end
+    end)
+
+    :ok
+  end
+
+  describe "CalendarOAuthController" do
+    test "google_callback handles success", %{conn: conn} do
+      :meck.expect(GoogleCalendarOAuthHelper, :handle_callback, fn "code", "state", _uri ->
+        {:ok, %{user_id: 123}}
+      end)
+
+      conn =
+        get(conn, ~p"/auth/google/calendar/callback", %{"code" => "code", "state" => "state"})
+
+      assert redirected_to(conn) == "/dashboard/calendar"
+      assert Flash.get(conn.assigns.flash, :info) =~ "Google Calendar connected successfully"
+    end
+
+    test "outlook_callback handles success", %{conn: conn} do
+      :meck.expect(OutlookCalendarOAuthHelper, :handle_callback, fn "code", "state", _uri ->
+        {:ok, %{user_id: 123}}
+      end)
+
+      conn =
+        get(conn, ~p"/auth/outlook/calendar/callback", %{"code" => "code", "state" => "state"})
+
+      assert redirected_to(conn) == "/dashboard/calendar"
+      assert Flash.get(conn.assigns.flash, :info) =~ "Outlook Calendar connected successfully"
+    end
+  end
+
+  describe "VideoOAuthController" do
+    setup do
+      :meck.expect(State, :validate, fn _state, _secret -> {:ok, %{user_id: 123}} end)
+      :ok
+    end
+
+    test "google_callback (Meet) handles success", %{conn: conn} do
+      user_id = 123
+
+      :meck.expect(GoogleOAuthHelper, :exchange_code_for_tokens, fn "code", _uri, "state" ->
+        {:ok,
+         %{
+           user_id: user_id,
+           access_token: "at",
+           refresh_token: "rt",
+           expires_at: DateTime.utc_now(),
+           scope: "scope"
+         }}
+      end)
+
+      # Mock VideoIntegrationQueries to succeed
+      integration = %Tymeslot.DatabaseSchemas.VideoIntegrationSchema{
+        id: 1,
+        user_id: user_id,
+        name: "Google Meet",
+        provider: "google_meet"
+      }
+
+      :meck.expect(VideoIntegrationQueries, :create, fn _attrs ->
+        {:ok, integration}
+      end)
+
+      :meck.expect(VideoIntegrationQueries, :list_all_for_user, fn ^user_id ->
+        [integration]
+      end)
+
+      :meck.expect(VideoIntegrationQueries, :set_as_default, fn ^integration ->
+        {:ok, integration}
+      end)
+
+      Factory.insert(:user, id: user_id)
+
+      conn = get(conn, ~p"/auth/google/video/callback", %{"code" => "code", "state" => "state"})
+
+      assert redirected_to(conn) == "/dashboard/video"
+      assert Flash.get(conn.assigns.flash, :info) =~ "Google Meet connected successfully"
+    end
+
+    test "teams_callback handles success", %{conn: conn} do
+      user_id = 456
+
+      :meck.expect(TeamsOAuthHelper, :exchange_code_for_tokens, fn "code", _uri, "state" ->
+        {:ok,
+         %{
+           user_id: user_id,
+           access_token: "at",
+           refresh_token: "rt",
+           expires_at: DateTime.utc_now(),
+           scope: "scope"
+         }}
+      end)
+
+      # Mock VideoIntegrationQueries to succeed
+      integration = %Tymeslot.DatabaseSchemas.VideoIntegrationSchema{
+        id: 1,
+        user_id: user_id,
+        name: "Microsoft Teams",
+        provider: "teams"
+      }
+
+      :meck.expect(VideoIntegrationQueries, :create, fn _attrs ->
+        {:ok, integration}
+      end)
+
+      :meck.expect(VideoIntegrationQueries, :list_all_for_user, fn ^user_id ->
+        [integration]
+      end)
+
+      :meck.expect(VideoIntegrationQueries, :set_as_default, fn ^integration ->
+        {:ok, integration}
+      end)
+
+      Factory.insert(:user, id: user_id)
+
+      conn = get(conn, ~p"/auth/teams/video/callback", %{"code" => "code", "state" => "state"})
+
+      assert redirected_to(conn) == "/dashboard/video"
+      assert Flash.get(conn.assigns.flash, :info) =~ "Microsoft Teams connected successfully"
+    end
+  end
+end
