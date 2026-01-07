@@ -12,6 +12,7 @@ defmodule TymeslotWeb.Components.SiteComponents do
 
   # Import JS helpers for LiveView interactions
   alias Phoenix.LiveView.JS
+  alias Tymeslot.Infrastructure.Config
 
   @doc """
   Main navigation component used across the application.
@@ -21,30 +22,51 @@ defmodule TymeslotWeb.Components.SiteComponents do
   @spec navigation(map()) :: Phoenix.LiveView.Rendered.t()
   def navigation(assigns) do
     ~H"""
-    <nav class="glass-nav">
-      <div class="container mx-auto flex justify-between items-center">
+    <nav class="bg-white border-b-4 border-turquoise-500 shadow-xl relative z-50">
+      <div class="container mx-auto flex justify-between items-center px-6 py-5">
         <.link
           navigate={logo_link(@current_user)}
-          class="flex items-center space-x-2 text-gray-800 text-2xl font-bold hover:text-turquoise-600 transition-colors"
+          class="flex items-center space-x-3 text-slate-900 text-3xl font-black hover:text-turquoise-600 transition-all transform hover:scale-105"
         >
-          <img src="/images/brand/logo.svg" alt="Tymeslot" class="h-8 flex-shrink-0" />
-          <span>Tymeslot</span>
+          <img src="/images/brand/logo.svg" alt="Tymeslot" class="h-12 flex-shrink-0" />
+          <span class="tracking-tighter">Tymeslot</span>
         </.link>
         
     <!-- Desktop Navigation -->
         <div class="hidden md:flex items-center gap-6">
+          <%= if docs_url = Application.get_env(:tymeslot, :docs_url) do %>
+            <.link
+              navigate={docs_url}
+              class="px-6 py-2 font-black text-slate-700 hover:text-turquoise-600 hover:bg-turquoise-50 transition-all rounded-2xl"
+            >
+              Docs
+            </.link>
+          <% end %>
           <%= if @current_user do %>
-            <.link navigate={~p"/dashboard"} class="simple-nav-link">
+            <.link
+              navigate={~p"/dashboard"}
+              class="px-6 py-2 font-black text-slate-700 hover:text-turquoise-600 hover:bg-turquoise-50 transition-all rounded-2xl"
+            >
               Dashboard
             </.link>
-            <.link href={~p"/auth/logout"} method="delete" class="simple-nav-link">
+            <.link
+              href={~p"/auth/logout"}
+              method="delete"
+              class="px-6 py-2 font-black text-slate-700 hover:text-red-600 hover:bg-red-50 transition-all rounded-2xl"
+            >
               Logout
             </.link>
           <% else %>
-            <.link href={~p"/auth/login"} class="simple-nav-link">
+            <.link
+              href={~p"/auth/login"}
+              class="px-6 py-2 font-black text-slate-700 hover:text-turquoise-600 hover:bg-turquoise-50 transition-all rounded-2xl"
+            >
               Login
             </.link>
-            <.link href={~p"/auth/signup"} class="glass-button">
+            <.link
+              href={~p"/auth/signup"}
+              class="px-10 py-4 font-black text-white bg-gradient-to-br from-turquoise-600 via-cyan-600 to-blue-600 hover:from-turquoise-500 hover:to-blue-500 rounded-2xl shadow-xl hover:shadow-turquoise-500/40 transition-all duration-300 hover:-translate-y-1"
+            >
               Get Started
             </.link>
           <% end %>
@@ -52,18 +74,17 @@ defmodule TymeslotWeb.Components.SiteComponents do
         
     <!-- Mobile Menu Button -->
         <button
-          class="md:hidden mobile-menu-toggle flex items-center justify-center w-10 h-10 rounded-lg hover:bg-white/20 transition-colors"
+          class="md:hidden mobile-menu-toggle flex items-center justify-center w-12 h-12 rounded-xl bg-turquoise-100 hover:bg-turquoise-200 transition-colors"
           phx-click={
             JS.toggle(to: "#mobile-menu")
             |> JS.toggle_class("mobile-menu-open", to: ".mobile-menu-toggle")
           }
           aria-label="Toggle menu"
         >
-          <svg class="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-7 h-7 text-turquoise-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
-              stroke-width="2"
               d="M4 6h16M4 12h16M4 18h16"
             >
             </path>
@@ -76,6 +97,14 @@ defmodule TymeslotWeb.Components.SiteComponents do
           class="mobile-menu md:hidden absolute top-full left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200 shadow-lg hidden"
         >
           <div class="container mx-auto px-4 py-4 space-y-3">
+            <%= if docs_url = Application.get_env(:tymeslot, :docs_url) do %>
+              <.link
+                navigate={docs_url}
+                class="mobile-nav-link block px-4 py-3 text-gray-800 hover:bg-turquoise-50 hover:text-turquoise-600 rounded-lg transition-colors"
+              >
+                Docs
+              </.link>
+            <% end %>
             <%= if contact_url = Application.get_env(:tymeslot, :contact_url) do %>
               <.link
                 navigate={contact_url}
@@ -200,7 +229,7 @@ defmodule TymeslotWeb.Components.SiteComponents do
         ~p"/dashboard"
 
       # If SaaS mode, go to the marketing homepage
-      Tymeslot.Infrastructure.Config.saas_mode?() ->
+      Config.saas_mode?() ->
         Application.get_env(:tymeslot, :site_home_path, "/")
 
       # If standalone, go to login
