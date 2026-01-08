@@ -44,9 +44,13 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsComponent do
           />
         </div>
       <% else %>
-        <div class="text-center max-w-2xl mx-auto mb-16">
-          <h1 class="text-4xl lg:text-5xl font-black text-slate-900 tracking-tight mb-4 animate-in fade-in slide-in-from-top-4 duration-700">Choose Your Style</h1>
-          <p class="text-xl text-slate-500 font-medium leading-relaxed animate-in fade-in slide-in-from-top-4 duration-700 delay-100">
+        <.section_header
+          icon={:paint_brush}
+          title="Choose Your Style"
+        />
+
+        <div class="-mt-8 mb-16 max-w-2xl">
+          <p class="text-xl text-tymeslot-500 font-medium leading-relaxed animate-in fade-in slide-in-from-top-4 duration-700 delay-100">
             Select the interface that best represents your personal brand and creates the best experience for your clients.
           </p>
         </div>
@@ -59,7 +63,7 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsComponent do
                   "card-glass p-0 overflow-hidden cursor-pointer transition-all duration-500 border-2",
                   if(@profile.booking_theme == theme_id,
                     do: "border-turquoise-400 shadow-2xl shadow-turquoise-500/20 ring-4 ring-turquoise-50",
-                    else: "border-slate-50 hover:border-turquoise-200 hover:shadow-xl hover:shadow-slate-200/50"
+                    else: "border-tymeslot-50 hover:border-turquoise-200 hover:shadow-xl hover:shadow-tymeslot-200/50"
                   )
                 ]}
                 phx-click="select_theme"
@@ -69,12 +73,12 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsComponent do
                 <div class="booking-flow-preview h-64 relative overflow-hidden">
                   <.theme_preview theme_id={theme_id} />
                   
-                  <div class="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent opacity-60 group-hover/theme:opacity-40 transition-opacity"></div>
+                  <div class="absolute inset-0 bg-gradient-to-t from-tymeslot-900/60 via-transparent to-transparent opacity-60 group-hover/theme:opacity-40 transition-opacity"></div>
                   
                   <div class="absolute bottom-6 left-6 right-6 flex items-center justify-between">
-                    <h3 class="text-2xl font-black text-white tracking-tight drop-shadow-md">{theme_name}</h3>
+                    <h3 class="text-token-2xl font-black text-white tracking-tight drop-shadow-md">{theme_name}</h3>
                     <%= if @profile.booking_theme == theme_id do %>
-                      <div class="flex items-center gap-2 bg-turquoise-500 text-white px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider shadow-lg">
+                      <div class="flex items-center gap-2 bg-turquoise-500 text-white px-4 py-1.5 rounded-full text-token-xs font-black uppercase tracking-wider shadow-lg">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
                         </svg>
@@ -85,19 +89,19 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsComponent do
 
                   <div
                     :if={!LinkAccessPolicy.can_link?(@profile, @integration_status)}
-                    class="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px] flex flex-col items-center justify-center cursor-not-allowed z-20"
+                    class="absolute inset-0 bg-tymeslot-900/40 backdrop-blur-[2px] flex flex-col items-center justify-center cursor-not-allowed z-20"
                   >
-                    <div class="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center mb-3">
+                    <div class="w-12 h-12 bg-white/20 rounded-token-2xl flex items-center justify-center mb-3">
                       <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                       </svg>
                     </div>
-                    <span class="text-white font-black text-xs uppercase tracking-widest">Connect Calendar to Preview</span>
+                    <span class="text-white font-black text-token-xs uppercase tracking-widest">Connect Calendar to Preview</span>
                   </div>
                 </div>
 
                 <div class="p-8">
-                  <p class="text-slate-600 font-medium leading-relaxed line-clamp-2">
+                  <p class="text-tymeslot-600 font-medium leading-relaxed line-clamp-2">
                     {theme_description(theme_id)}
                   </p>
                 </div>
@@ -107,7 +111,7 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsComponent do
                 <%= if LinkAccessPolicy.can_link?(@profile, @integration_status) do %>
                   <button
                     type="button"
-                    class="btn-secondary flex-1 py-4"
+                    class="btn btn-secondary flex-1 py-3 px-4 text-token-sm"
                     onclick={"window.open('#{LinkAccessPolicy.scheduling_path(@profile)}?theme=#{theme_id}', '_blank')"}
                   >
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -119,7 +123,7 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsComponent do
                 <% else %>
                   <button
                     type="button"
-                    class="btn-secondary flex-1 py-4 opacity-50 cursor-not-allowed"
+                    class="btn btn-secondary flex-1 py-3 px-4 text-token-sm opacity-50 cursor-not-allowed"
                     disabled
                   >
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -130,7 +134,7 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsComponent do
                 <% end %>
                 <button
                   type="button"
-                  class="btn-primary flex-1 py-4"
+                  class="btn btn-primary flex-1 py-3 px-4 text-token-sm"
                   phx-click="show_customization"
                   phx-value-theme={theme_id}
                   phx-target={@myself}
@@ -145,15 +149,15 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsComponent do
           <% end %>
         </div>
 
-        <div class="mt-16 bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl p-8 relative overflow-hidden group">
+        <div class="mt-16 bg-tymeslot-50 border-2 border-dashed border-tymeslot-200 rounded-token-3xl p-8 relative overflow-hidden group">
           <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:rotate-12 transition-transform duration-700">
-            <svg class="w-32 h-32 text-slate-900" fill="currentColor" viewBox="0 0 24 24">
+            <svg class="w-32 h-32 text-tymeslot-900" fill="currentColor" viewBox="0 0 24 24">
               <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
             </svg>
           </div>
           <div class="relative z-10">
-            <h4 class="text-2xl font-black text-slate-900 tracking-tight mb-2">More Styles Coming Soon</h4>
-            <p class="text-slate-500 font-medium text-lg mb-6">
+            <h4 class="text-token-2xl font-black text-tymeslot-900 tracking-tight mb-2">More Styles Coming Soon</h4>
+            <p class="text-tymeslot-500 font-medium text-token-lg mb-6">
               Our design team is busy crafting new themes to help you express your unique professional style.
             </p>
             <div class="flex gap-2">
@@ -228,7 +232,7 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsComponent do
     ~H"""
     <%= case @theme_id do %>
       <% "1" -> %>
-        <div class="w-full h-full bg-gray-100 rounded-lg overflow-hidden">
+        <div class="w-full h-full bg-tymeslot-100 rounded-token-lg overflow-hidden">
           <img
             src="/images/ui/theme-previews/quill-theme-preview.webp"
             alt="Quill Theme Preview - Glass morphism booking flow"
@@ -241,7 +245,7 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsComponent do
             style="display: none;"
           >
             <div class="text-center p-4">
-              <div class="w-12 h-12 bg-teal-500 rounded-lg mx-auto mb-3 flex items-center justify-center">
+              <div class="w-12 h-12 bg-teal-500 rounded-token-lg mx-auto mb-3 flex items-center justify-center">
                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     stroke-linecap="round"
@@ -257,13 +261,13 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsComponent do
                   />
                 </svg>
               </div>
-              <p class="text-sm font-semibold text-gray-700">Quill Theme</p>
-              <p class="text-xs text-gray-600">Glass morphism flow</p>
+              <p class="text-token-sm font-semibold text-tymeslot-700">Quill Theme</p>
+              <p class="text-token-xs text-tymeslot-600">Glass morphism flow</p>
             </div>
           </div>
         </div>
       <% "2" -> %>
-        <div class="w-full h-full bg-gray-100 rounded-lg overflow-hidden">
+        <div class="w-full h-full bg-tymeslot-100 rounded-token-lg overflow-hidden">
           <img
             src="/images/ui/theme-previews/rhythm-theme-preview.webp"
             alt="Rhythm Theme Preview - Video background sliding flow"
@@ -276,7 +280,7 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsComponent do
             style="display: none;"
           >
             <div class="text-center p-4">
-              <div class="w-12 h-12 bg-purple-500 rounded-lg mx-auto mb-3 flex items-center justify-center">
+              <div class="w-12 h-12 bg-purple-500 rounded-token-lg mx-auto mb-3 flex items-center justify-center">
                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     stroke-linecap="round"
@@ -286,14 +290,14 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsComponent do
                   />
                 </svg>
               </div>
-              <p class="text-sm font-semibold text-gray-700">Rhythm Theme</p>
-              <p class="text-xs text-gray-600">Video sliding flow</p>
+              <p class="text-token-sm font-semibold text-tymeslot-700">Rhythm Theme</p>
+              <p class="text-token-xs text-tymeslot-600">Video sliding flow</p>
             </div>
           </div>
         </div>
       <% _ -> %>
-        <div class="w-full h-full bg-gray-100 flex items-center justify-center rounded-lg">
-          <div class="text-center text-gray-500">
+        <div class="w-full h-full bg-tymeslot-100 flex items-center justify-center rounded-token-lg">
+          <div class="text-center text-tymeslot-500">
             <svg class="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
@@ -302,7 +306,7 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsComponent do
                 d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2 2v12a2 2 0 002 2z"
               />
             </svg>
-            <div class="text-sm">Theme Preview</div>
+            <div class="text-token-sm">Theme Preview</div>
           </div>
         </div>
     <% end %>

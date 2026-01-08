@@ -4,10 +4,12 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.BookingComponent do
   Extracted from the monolithic RhythmSlidesComponent to improve separation of concerns.
   """
   use TymeslotWeb, :live_component
+  use Gettext, backend: TymeslotWeb.Gettext
 
   alias Tymeslot.Demo
   alias Tymeslot.Profiles
   alias Tymeslot.Utils.TimezoneUtils
+  alias TymeslotWeb.Themes.Shared.LocalizationHelpers
 
   @impl true
   def update(assigns, socket) do
@@ -52,7 +54,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.BookingComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="scheduling-box">
+    <div class="scheduling-box" data-locale={@locale}>
       <div class="slide-container">
         <div class="slide active">
           <div
@@ -68,11 +70,11 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.BookingComponent do
                   class="avatar-image-small"
                 />
                 <div class="organizer-info-small">
-                  <div class="organizer-name">Schedule with</div>
+                  <div class="organizer-name">{gettext("Schedule with")}</div>
                   <div class="organizer-name-full">
                     {Profiles.display_name(@organizer_profile) || ""}
                   </div>
-                  <div class="meeting-duration">{@selected_duration} minutes</div>
+                  <div class="meeting-duration">{gettext("%{duration} minutes", duration: @selected_duration)}</div>
                 </div>
               </div>
             </div>
@@ -83,8 +85,8 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.BookingComponent do
                 <div class="summary-item">
                   <span class="summary-icon">📅</span>
                   <div>
-                    <div class="summary-value">{format_date_european(@selected_date)}</div>
-                    <div class="summary-label">{@selected_time || "No time selected"}</div>
+                    <div class="summary-value">{LocalizationHelpers.format_date(@selected_date)}</div>
+                    <div class="summary-label">{@selected_time || gettext("No time selected")}</div>
                   </div>
                 </div>
                 <div class="summary-item">
@@ -93,7 +95,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.BookingComponent do
                     <div class="summary-value">
                       {TimezoneUtils.format_timezone(@user_timezone || "America/New_York")}
                     </div>
-                    <div class="summary-label">{@selected_duration || 15} min meeting</div>
+                    <div class="summary-label">{LocalizationHelpers.format_duration(@selected_duration)} {gettext("meeting")}</div>
                   </div>
                 </div>
               </div>
@@ -110,14 +112,14 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.BookingComponent do
             >
               <div class="form-group compact">
                 <label for="name" class="form-group label">
-                  Full Name
+                  {gettext("name")}
                 </label>
                 <input
                   type="text"
                   id="name"
                   name="name"
                   class={["form-input", error_class(assigns[:validation_errors], :name)]}
-                  placeholder="Enter your full name"
+                  placeholder={gettext("enter_full_name")}
                   value={assigns[:attendee_name] || ""}
                 />
                 <%= if error = get_error(assigns[:validation_errors], :name) do %>
@@ -132,14 +134,14 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.BookingComponent do
 
               <div class="form-group compact">
                 <label for="email" class="form-group label">
-                  Email Address
+                  {gettext("email")}
                 </label>
                 <input
                   type="email"
                   id="email"
                   name="email"
                   class={["form-input", error_class(assigns[:validation_errors], :email)]}
-                  placeholder="Enter your email address"
+                  placeholder={gettext("enter_email")}
                   value={assigns[:attendee_email] || ""}
                 />
                 <%= if error = get_error(assigns[:validation_errors], :email) do %>
@@ -154,14 +156,14 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.BookingComponent do
 
               <div class="form-group compact">
                 <label for="message" class="form-group label">
-                  Message (Optional)
+                  {gettext("message_optional")}
                 </label>
                 <textarea
                   id="message"
                   name="message"
                   rows="4"
                   class={["form-textarea", error_class(assigns[:validation_errors], :message)]}
-                  placeholder="Tell us about your meeting..."
+                  placeholder={gettext("add_details")}
                 ><%= assigns[:attendee_message] || "" %></textarea>
                 <%= if error = get_error(assigns[:validation_errors], :message) do %>
                   <span
@@ -184,7 +186,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.BookingComponent do
                   disabled={assigns[:submitting]}
                   style="flex: 1;"
                 >
-                  ← Back
+                  ← {gettext("back")}
                 </button>
                 <button
                   type="submit"
@@ -216,9 +218,9 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.BookingComponent do
                       >
                       </path>
                     </svg>
-                    <span>Verifying...</span>
+                    <span>{gettext("Verifying...")}</span>
                   <% else %>
-                    Confirm
+                    {gettext("submit")}
                   <% end %>
                 </button>
               </div>
@@ -231,19 +233,6 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.BookingComponent do
   end
 
   # Helpers
-  defp format_date_european(date) when is_nil(date), do: "Not selected"
-
-  defp format_date_european(date) when is_binary(date) do
-    case Date.from_iso8601(date) do
-      {:ok, parsed_date} -> format_date_european(parsed_date)
-      _ -> date
-    end
-  end
-
-  defp format_date_european(%Date{day: day, month: month, year: year}) do
-    "#{String.pad_leading(to_string(day), 2, "0")}. #{String.pad_leading(to_string(month), 2, "0")}. #{year}"
-  end
-
   defp get_error(nil, _field), do: nil
   defp get_error([], _field), do: nil
 

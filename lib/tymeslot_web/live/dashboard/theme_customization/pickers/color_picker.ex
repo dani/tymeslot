@@ -12,13 +12,13 @@ defmodule TymeslotWeb.Dashboard.ThemeCustomization.Pickers.ColorPicker do
   def color_picker(assigns) do
     ~H"""
     <div class="space-y-6">
-      <p class="text-sm font-black text-slate-400 uppercase tracking-widest">Select a solid color</p>
+      <p class="text-token-sm font-black text-tymeslot-400 uppercase tracking-widest">Select a solid color</p>
       <div class="flex flex-wrap gap-4">
         <%= for color <- ["#0f172a", "#1e1b4b", "#431407", "#082f49", "#052e16", "#4c0519", "#111827", "#1a202c"] do %>
           <button
             type="button"
             class={[
-              "w-14 h-14 rounded-2xl border-4 transition-all duration-300 shadow-sm transform hover:scale-110",
+              "w-14 h-14 rounded-token-2xl border-4 transition-all duration-300 shadow-sm transform hover:scale-110",
               if(@customization.background_value == color,
                 do: "border-turquoise-400 shadow-xl shadow-turquoise-500/20 scale-110",
                 else: "border-white hover:border-turquoise-200"

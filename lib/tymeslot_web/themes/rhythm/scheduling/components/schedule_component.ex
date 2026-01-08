@@ -4,27 +4,14 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ScheduleComponent do
   Extracted from the monolithic RhythmSlidesComponent to improve separation of concerns.
   """
   use TymeslotWeb, :live_component
+  use Gettext, backend: TymeslotWeb.Gettext
 
   alias Tymeslot.Availability.BusinessHours
   alias Tymeslot.Demo
   alias Tymeslot.Profiles
   alias Tymeslot.Utils.TimezoneUtils
   alias TymeslotWeb.Live.Scheduling.Helpers
-
-  @month_names %{
-    1 => "January",
-    2 => "February",
-    3 => "March",
-    4 => "April",
-    5 => "May",
-    6 => "June",
-    7 => "July",
-    8 => "August",
-    9 => "September",
-    10 => "October",
-    11 => "November",
-    12 => "December"
-  }
+  alias TymeslotWeb.Themes.Shared.LocalizationHelpers
 
   @impl true
   def update(assigns, socket) do
@@ -125,7 +112,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ScheduleComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="scheduling-box">
+    <div class="scheduling-box" data-locale={@locale}>
       <div class="slide-container">
         <div class="slide active">
           <div
@@ -141,16 +128,16 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ScheduleComponent do
                   class="avatar-image-small"
                 />
                 <div class="organizer-info-small">
-                  <div class="organizer-name">Schedule with</div>
+                  <div class="organizer-name">{gettext("Schedule with")}</div>
                   <div class="organizer-name-full">
                     {Profiles.display_name(@organizer_profile) || ""}
                   </div>
-                  <div class="meeting-duration">{@selected_duration} minutes</div>
+                  <div class="meeting-duration">{gettext("%{duration} minutes", duration: @selected_duration)}</div>
                 </div>
               </div>
               <!-- Timezone Selector -->
               <div class="timezone-selector-container">
-                <label class="timezone-label">Your timezone:</label>
+                <label class="timezone-label">{gettext("Your timezone")}:</label>
                 <div class="timezone-dropdown-wrapper">
                   <button
                     class="timezone-trigger"
@@ -178,7 +165,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ScheduleComponent do
                         <input
                           id="timezone-search-input"
                           type="text"
-                          placeholder="Search timezones..."
+                          placeholder={gettext("Search cities, countries, or timezones...")}
                           class="timezone-search"
                           phx-keyup="search_timezone"
                           phx-target={@myself}
@@ -234,13 +221,17 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ScheduleComponent do
                 <div class="calendar-grid">
                   <%= for day <- get_week_days(@current_week_start, assigns) do %>
                     <button
-                      class={["calendar-day", @selected_date == day.date && "selected"]}
+                      class={[
+                        "calendar-day",
+                        @selected_date == day.date && "selected",
+                        day.loading && "calendar-day--loading"
+                      ]}
                       data-testid="calendar-day"
                       data-date={day.date}
                       phx-click="select_date"
                       phx-value-date={day.date}
                       phx-target={@myself}
-                      disabled={not day.available}
+                      disabled={not day.available || day.loading}
                     >
                       <div class="day-name">{day.day_name}</div>
                       <div class="day-number">{day.day_number}</div>
@@ -254,12 +245,12 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ScheduleComponent do
                 class="time-slots-section"
                 style="display: flex; flex-direction: column; flex-shrink: 0;"
               >
-                <h3 style="margin-bottom: 8px; flex-shrink: 0;">Available times</h3>
+                <h3 style="margin-bottom: 8px; flex-shrink: 0;">{gettext("Available Times")}</h3>
                 <div class="time-slots-grid" style={get_slots_container_style(@available_slots)}>
                   <%= if @selected_date do %>
                     <%= if @loading_slots do %>
                       <div class="loading-slots">
-                        <span>Loading available times...</span>
+                        <span>{gettext("Loading available times...")}</span>
                       </div>
                     <% else %>
                       <%= if @calendar_error do %>
@@ -268,7 +259,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ScheduleComponent do
                         </div>
                       <% end %>
                       <%= if !@calendar_error && length(@available_slots) > 0 do %>
-                        <%= for {period, slots} <- Helpers.group_slots_by_period(@available_slots) do %>
+                        <%= for {period, slots} <- LocalizationHelpers.group_slots_by_period(@available_slots) do %>
                           <%= if length(slots) > 0 do %>
                             <div class="time-period-section" style="margin-bottom: 12px;">
                               <h4
@@ -291,7 +282,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ScheduleComponent do
                                     phx-value-time={slot}
                                     phx-target={@myself}
                                   >
-                                    {slot}
+                                    {LocalizationHelpers.format_time_by_locale(Helpers.parse_slot_time(slot))}
                                   </button>
                                 <% end %>
                               </div>
@@ -301,15 +292,15 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ScheduleComponent do
                       <% else %>
                         <%= if !@calendar_error do %>
                           <div class="no-slots">
-                            <p>This date is fully booked</p>
-                            <p>Please select another date</p>
+                            <p>{gettext("This date is fully booked")}</p>
+                            <p>{gettext("Please select another date")}</p>
                           </div>
                         <% end %>
                       <% end %>
                     <% end %>
                   <% else %>
                     <div class="no-slots">
-                      <p>Please select a date to see available times</p>
+                      <p>{gettext("Please select a date to see available times")}</p>
                     </div>
                   <% end %>
                 </div>
@@ -328,7 +319,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ScheduleComponent do
                 data-testid="back-step"
                 style="flex: 1;"
               >
-                ← Back
+                ← {gettext("back")}
               </button>
               <button
                 class={
@@ -340,7 +331,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ScheduleComponent do
                 disabled={is_nil(@selected_date) or is_nil(@selected_time)}
                 style="flex: 1;"
               >
-                Next →
+                {gettext("next")} →
               </button>
             </div>
           </div>
@@ -355,42 +346,77 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ScheduleComponent do
     week_end = Date.add(week_start, 6)
 
     if week_start.month == week_end.month do
-      "#{Date.to_string(week_start) |> String.split("-") |> Enum.at(1) |> month_name()} #{week_start.year}"
+      gettext("%{month} %{year}", month: month_name(week_start.month), year: week_start.year)
     else
-      "#{month_name(week_start.month)} - #{month_name(week_end.month)} #{week_start.year}"
+      gettext("%{start_month} - %{end_month} %{year}", 
+        start_month: month_name(week_start.month), 
+        end_month: month_name(week_end.month), 
+        year: week_start.year
+      )
     end
   end
 
   defp month_name(month_num) when is_integer(month_num) do
-    Map.get(@month_names, month_num, "Unknown")
-  end
-
-  defp month_name(month_str) when is_binary(month_str) do
-    month_name(String.to_integer(month_str))
+    case month_num do
+      1 -> gettext("January")
+      2 -> gettext("February")
+      3 -> gettext("March")
+      4 -> gettext("April")
+      5 -> gettext("May")
+      6 -> gettext("June")
+      7 -> gettext("July")
+      8 -> gettext("August")
+      9 -> gettext("September")
+      10 -> gettext("October")
+      11 -> gettext("November")
+      12 -> gettext("December")
+    end
   end
 
   defp get_week_days(week_start, assigns) do
+    availability_map = Map.get(assigns, :month_availability_map)
+
     Enum.map(0..6, fn day_offset ->
       date = Date.add(week_start, day_offset)
+      date_string = Date.to_string(date)
+
+      # Check availability based on availability_map state
+      {is_available, is_loading} =
+        cond do
+          # Loading state
+          availability_map == :loading ->
+            {false, true}
+
+          # Real availability data provided
+          is_map(availability_map) ->
+            real_available = Map.get(availability_map, date_string, false)
+            {real_available, false}
+
+          # No availability map: use business hours logic
+          true ->
+            business_hours_available = day_available?(date, assigns.organizer_profile)
+            {business_hours_available, false}
+        end
 
       %{
-        date: Date.to_string(date),
+        date: date_string,
         day_name: day_name_short(Date.day_of_week(date)),
         day_number: date.day,
-        available: day_available?(date, assigns.organizer_profile)
+        available: is_available,
+        loading: is_loading
       }
     end)
   end
 
   defp day_name_short(day_of_week) do
     case day_of_week do
-      1 -> "MON"
-      2 -> "TUE"
-      3 -> "WED"
-      4 -> "THU"
-      5 -> "FRI"
-      6 -> "SAT"
-      7 -> "SUN"
+      1 -> gettext("MON")
+      2 -> gettext("TUE")
+      3 -> gettext("WED")
+      4 -> gettext("THU")
+      5 -> gettext("FRI")
+      6 -> gettext("SAT")
+      7 -> gettext("SUN")
     end
   end
 

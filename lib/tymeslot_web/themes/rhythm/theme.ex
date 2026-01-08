@@ -11,6 +11,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Theme do
     OverviewComponent,
     ScheduleComponent
   }
+
   alias TymeslotWeb.Themes.Rhythm.Meeting.{Cancel, CancelConfirmed, Reschedule}
 
   @impl true

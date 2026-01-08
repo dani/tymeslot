@@ -4,6 +4,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ConfirmationComponent d
   Features glassmorphism design with elegant transparency effects.
   """
   use TymeslotWeb, :live_component
+  use Gettext, backend: TymeslotWeb.Gettext
 
   import TymeslotWeb.Components.CoreComponents
   import TymeslotWeb.Components.MeetingComponents
@@ -24,7 +25,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ConfirmationComponent d
   @impl true
   def render(assigns) do
     ~H"""
-    <div>
+    <div data-locale={@locale}>
       <.page_layout
         show_steps={true}
         current_step={4}
@@ -86,9 +87,9 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ConfirmationComponent d
                         style="color: rgba(255,255,255,0.9);"
                       >
                         <%= if @is_rescheduling do %>
-                          {gettext("%{name}, your meeting%{organizer} has been rescheduled.", name: @name, organizer: get_organizer_text(@organizer_profile))}
+                          {gettext("%{name}, your meeting %{organizer} has been rescheduled.", name: @name, organizer: get_organizer_text(@organizer_profile))}
                         <% else %>
-                          {gettext("%{name}, your meeting%{organizer} is all set.", name: @name, organizer: get_organizer_text(@organizer_profile))}
+                          {gettext("%{name}, your meeting %{organizer} is all set.", name: @name, organizer: get_organizer_text(@organizer_profile))}
                         <% end %>
                       </p>
 
@@ -121,7 +122,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ConfirmationComponent d
                               </svg>
                             </div>
                             <p class="text-sm" style="color: var(--theme-text, #e2e8f0);">
-                              Confirmation sent to
+                              {gettext("Confirmation sent to")}
                               <span
                                 class="font-semibold"
                                 style="color: var(--theme-primary, #06b6d4);"
@@ -140,7 +141,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ConfirmationComponent d
                           data-testid="schedule-another"
                           class="inline-block"
                         >
-                          Schedule Another Meeting
+                          {gettext("Schedule Another Meeting")}
                         </.action_button>
                       </div>
 
@@ -148,7 +149,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ConfirmationComponent d
                         class="mt-4 text-xs text-center lg:text-left"
                         style="color: rgba(255,255,255,0.7);"
                       >
-                        Need to reschedule? Check your confirmation email.
+                        {gettext("Need to reschedule? Check your confirmation email.")}
                       </p>
                     </div>
                   </div>
@@ -166,6 +167,6 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ConfirmationComponent d
   defp get_organizer_text(nil), do: ""
 
   defp get_organizer_text(organizer_profile) do
-    " with #{organizer_profile.user.name || organizer_profile.full_name}"
+    gettext("with %{name}", name: organizer_profile.user.name || organizer_profile.full_name)
   end
 end

@@ -19,11 +19,15 @@ defmodule TymeslotWeb.Themes.Core.Dispatcher do
   alias TymeslotWeb.Live.Scheduling.Helpers
   alias TymeslotWeb.Themes.Core.{Context, ErrorBoundary, EventBus}
   alias TymeslotWeb.Themes.Shared.Customization.Helpers, as: ThemeCustomizationHelpers
+  alias TymeslotWeb.Themes.Shared.{EventHandlers, LocaleHandler, PathHandlers}
 
   require Logger
 
   @impl true
   def mount(params, session, socket) do
+    # Initialize locale dropdown state
+    socket = assign(socket, :language_dropdown_open, false)
+
     # For all routes with username (including meeting management), resolve the username first
     if params["username"] do
       socket = Helpers.handle_username_resolution(socket, params["username"])
@@ -45,6 +49,14 @@ defmodule TymeslotWeb.Themes.Core.Dispatcher do
 
   @impl true
   def handle_params(params, url, socket) do
+    # Sync locale from params if present
+    socket =
+      if locale = params["locale"] do
+        LocaleHandler.handle_locale_change(socket, locale)
+      else
+        socket
+      end
+
     # Check if this is a meeting management action
     action = socket.assigns[:live_action]
 
@@ -57,6 +69,18 @@ defmodule TymeslotWeb.Themes.Core.Dispatcher do
   end
 
   @impl true
+  def handle_event("toggle_language_dropdown", _params, socket) do
+    EventHandlers.handle_toggle_language_dropdown(socket)
+  end
+
+  def handle_event("close_language_dropdown", _params, socket) do
+    EventHandlers.handle_close_language_dropdown(socket)
+  end
+
+  def handle_event("change_locale", %{"locale" => locale}, socket) do
+    EventHandlers.handle_change_locale(socket, locale, PathHandlers)
+  end
+
   def handle_event("cancel_meeting" = event, params, socket),
     do: handle_meeting_event(event, params, socket)
 
@@ -83,6 +107,11 @@ defmodule TymeslotWeb.Themes.Core.Dispatcher do
 
   @impl true
   def render(assigns) do
+    # Ensure Gettext locale is set correctly for this render cycle
+    if locale = assigns[:locale] do
+      Gettext.put_locale(TymeslotWeb.Gettext, locale)
+    end
+
     action = assigns[:live_action]
 
     if action in [:reschedule, :cancel, :cancel_confirmed] do
@@ -113,7 +142,10 @@ defmodule TymeslotWeb.Themes.Core.Dispatcher do
             render_error(assigns, "Meeting action rendering not implemented for this theme")
 
           e ->
-            Logger.error("Error rendering meeting action #{action} for theme #{theme_id}: #{inspect(e)}")
+            Logger.error(
+              "Error rendering meeting action #{action} for theme #{theme_id}: #{inspect(e)}"
+            )
+
             render_error(assigns, "Meeting action rendering failed")
         end
     end

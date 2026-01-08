@@ -33,7 +33,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Live do
   }
 
   alias TymeslotWeb.Themes.Quill.Scheduling.Wrapper, as: QuillThemeWrapper
-  alias TymeslotWeb.Themes.Shared.{InfoHandlers, SchedulingInit}
+  alias TymeslotWeb.Themes.Shared.{EventHandlers, InfoHandlers, PathHandlers, SchedulingInit}
 
   @impl true
   def mount(params, _session, socket) do
@@ -43,8 +43,6 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Live do
     # Initialize state first
     socket =
       socket
-      |> TymeslotWeb.Themes.Shared.LocaleHandler.assign_locale()
-      |> assign(:language_dropdown_open, false)
       |> assign_initial_state()
       |> ThemeUtils.assign_user_timezone(params)
       |> ThemeUtils.assign_theme_with_preview(params)
@@ -84,7 +82,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Live do
     {:noreply, socket}
   end
 
-  # Handle events from step components
+  # Info handlers
   @impl true
   def handle_info({:step_event, step, event, data}, socket) do
     case step do
@@ -96,31 +94,51 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Live do
     end
   end
 
-  # Other info handlers
   @impl true
   def handle_info(:close_dropdown, socket), do: InfoHandlers.handle_close_dropdown(socket)
 
+  @impl true
   def handle_info({:fetch_available_slots, date, duration, timezone}, socket) do
     InfoHandlers.handle_fetch_available_slots(socket, date, duration, timezone)
   end
 
+  @impl true
   def handle_info({:load_slots, date}, socket) do
     InfoHandlers.handle_load_slots(socket, date)
   end
 
   # Handle month availability fetch completion (success)
+  @impl true
   def handle_info({ref, {:ok, availability_map}}, socket) when is_reference(ref) do
     InfoHandlers.handle_availability_ok(socket, ref, availability_map)
   end
 
   # Handle month availability fetch completion (error)
+  @impl true
   def handle_info({ref, {:error, reason}}, socket) when is_reference(ref) do
     InfoHandlers.handle_availability_error(socket, ref, reason)
   end
 
   # Handle task crash or timeout
+  @impl true
   def handle_info({:DOWN, ref, :process, _pid, reason}, socket) do
     InfoHandlers.handle_availability_down(socket, ref, reason)
+  end
+
+  # Event handlers
+  @impl true
+  def handle_event("toggle_language_dropdown", _params, socket) do
+    EventHandlers.handle_toggle_language_dropdown(socket)
+  end
+
+  @impl true
+  def handle_event("close_language_dropdown", _params, socket) do
+    EventHandlers.handle_close_language_dropdown(socket)
+  end
+
+  @impl true
+  def handle_event("change_locale", %{"locale" => locale}, socket) do
+    EventHandlers.handle_change_locale(socket, locale, PathHandlers)
   end
 
   # Handle step navigation from header
@@ -142,27 +160,6 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Live do
     else
       {:noreply, socket}
     end
-  end
-
-  # Language switcher events
-  @impl true
-  def handle_event("toggle_language_dropdown", _params, socket) do
-    {:noreply, assign(socket, :language_dropdown_open, !socket.assigns.language_dropdown_open)}
-  end
-
-  @impl true
-  def handle_event("close_language_dropdown", _params, socket) do
-    {:noreply, assign(socket, :language_dropdown_open, false)}
-  end
-
-  @impl true
-  def handle_event("change_locale", %{"locale" => locale}, socket) do
-    socket =
-      socket
-      |> TymeslotWeb.Themes.Shared.LocaleHandler.handle_locale_change(locale)
-      |> assign(:language_dropdown_open, false)
-
-    {:noreply, socket}
   end
 
   # Step-specific event handlers
@@ -462,9 +459,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Live do
   end
 
   defp handle_timezone_change(socket, data) do
-    case TimezoneHandlerComponent.handle_timezone_change(socket, data) do
-      {:ok, updated_socket} -> {:noreply, updated_socket}
-    end
+    EventHandlers.handle_timezone_change(socket, data, TimezoneHandlerComponent)
   end
 
   defp handle_timezone_search(socket, params) do
@@ -547,6 +542,8 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Live do
     <QuillThemeWrapper.quill_wrapper
       custom_css={assigns[:custom_css]}
       theme_customization={assigns[:theme_customization]}
+      locale={assigns[:locale]}
+      language_dropdown_open={assigns[:language_dropdown_open]}
     >
       <%= if assigns[:scheduling_error_message] do %>
         <.live_component

@@ -175,20 +175,17 @@ defmodule TymeslotWeb.Dashboard.ThemeCustomizationComponent do
   defp toolbar(assigns) do
     ~H"""
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-10">
-      <div class="flex items-center gap-4">
-        <div class="w-12 h-12 bg-turquoise-50 rounded-xl flex items-center justify-center border border-turquoise-100 shadow-sm">
-          <svg class="w-6 h-6 text-turquoise-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-          </svg>
-        </div>
-        <h2 class="text-3xl font-black text-slate-900 tracking-tight">Customize Style</h2>
-      </div>
+      <.section_header
+        icon={:paint_brush}
+        title="Customize Style"
+        class="mb-0"
+      />
 
       <div class="flex items-center gap-3">
         <%= if @profile && @profile.username do %>
           <button
             type="button"
-            class="btn-secondary py-2.5 px-5 text-sm"
+            class="btn btn-secondary py-2.5 px-5 text-token-sm"
             onclick={"window.open('/#{@profile.username}?theme=#{@theme_id}', '_blank')"}
           >
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -201,7 +198,7 @@ defmodule TymeslotWeb.Dashboard.ThemeCustomizationComponent do
         <button
           phx-click="close_customization"
           phx-target={@parent_component}
-          class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-50 text-slate-600 font-bold hover:bg-slate-100 transition-all border-2 border-transparent hover:border-slate-200"
+          class="flex items-center gap-2 px-5 py-2.5 rounded-token-xl bg-tymeslot-50 text-tymeslot-600 font-bold hover:bg-tymeslot-100 transition-all border-2 border-transparent hover:border-tymeslot-200"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
@@ -218,19 +215,19 @@ defmodule TymeslotWeb.Dashboard.ThemeCustomizationComponent do
     <div class="card-glass">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
         <div>
-          <h3 class="text-xl font-black text-slate-900 tracking-tight">Color Palette</h3>
-          <p class="text-sm text-slate-500 font-bold mt-1">Select the primary colors for your booking page interface.</p>
+          <h3 class="text-token-xl font-black text-tymeslot-900 tracking-tight">Color Palette</h3>
+          <p class="text-token-sm text-tymeslot-500 font-bold mt-1">Select the primary colors for your booking page interface.</p>
         </div>
         <% current_scheme = @presets.color_schemes[@customization.color_scheme] %>
         <%= if current_scheme do %>
-          <div class="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100 shadow-inner">
-            <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">Current</span>
-            <div class="flex items-center gap-1.5 bg-white p-1 rounded-lg border border-slate-100">
+          <div class="flex items-center gap-3 bg-tymeslot-50 px-4 py-2 rounded-token-2xl border border-tymeslot-100 shadow-inner">
+            <span class="text-[10px] font-black uppercase tracking-widest text-tymeslot-400">Current</span>
+            <div class="flex items-center gap-1.5 bg-white p-1 rounded-token-lg border border-tymeslot-100">
               <div class="w-3 h-3 rounded-full" style={"background-color: #{current_scheme.colors.primary}"}></div>
               <div class="w-3 h-3 rounded-full" style={"background-color: #{current_scheme.colors.secondary}"}></div>
               <div class="w-3 h-3 rounded-full" style={"background-color: #{current_scheme.colors.accent}"}></div>
             </div>
-            <span class="text-sm font-black text-slate-700">{current_scheme.name}</span>
+            <span class="text-token-sm font-black text-tymeslot-700">{current_scheme.name}</span>
           </div>
         <% end %>
       </div>
@@ -240,24 +237,24 @@ defmodule TymeslotWeb.Dashboard.ThemeCustomizationComponent do
           <button
             type="button"
             class={[
-              "group/scheme relative flex flex-col items-center p-4 rounded-2xl border-2 transition-all duration-300",
+              "group/scheme relative flex flex-col items-center p-4 rounded-token-2xl border-2 transition-all duration-300",
               if(@customization.color_scheme == scheme_id,
                 do: "bg-turquoise-50 border-turquoise-400 shadow-xl shadow-turquoise-500/10",
-                else: "bg-white border-slate-50 hover:border-turquoise-200 hover:shadow-lg"
+                else: "bg-white border-tymeslot-50 hover:border-turquoise-200 hover:shadow-lg"
               )
             ]}
             phx-click="theme:select_color_scheme"
             phx-value-scheme={scheme_id}
             phx-target={@myself}
           >
-            <div class="flex items-center gap-2 mb-4 bg-slate-50/50 p-2 rounded-xl group-hover/scheme:scale-110 transition-transform">
+            <div class="flex items-center gap-2 mb-4 bg-tymeslot-50/50 p-2 rounded-token-xl group-hover/scheme:scale-110 transition-transform">
               <div class="w-6 h-6 rounded-full shadow-sm border border-white" style={"background-color: #{scheme.colors.primary}"}></div>
               <div class="w-6 h-6 rounded-full shadow-sm border border-white" style={"background-color: #{scheme.colors.secondary}"}></div>
               <div class="w-6 h-6 rounded-full shadow-sm border border-white" style={"background-color: #{scheme.colors.accent}"}></div>
             </div>
             <p class={[
-              "text-sm font-black uppercase tracking-widest transition-colors",
-              if(@customization.color_scheme == scheme_id, do: "text-turquoise-700", else: "text-slate-400 group-hover/scheme:text-slate-600")
+              "text-token-sm font-black uppercase tracking-widest transition-colors",
+              if(@customization.color_scheme == scheme_id, do: "text-turquoise-700", else: "text-tymeslot-400 group-hover/scheme:text-tymeslot-600")
             ]}>{scheme.name}</p>
             
             <%= if @customization.color_scheme == scheme_id do %>
@@ -278,20 +275,20 @@ defmodule TymeslotWeb.Dashboard.ThemeCustomizationComponent do
     ~H"""
     <div class="card-glass">
       <div class="mb-8">
-        <h3 class="text-xl font-black text-slate-900 tracking-tight">Background Design</h3>
-        <p class="text-sm text-slate-500 font-bold mt-1">Choose a visual style that matches your professional identity.</p>
+        <h3 class="text-token-xl font-black text-tymeslot-900 tracking-tight">Background Design</h3>
+        <p class="text-token-sm text-tymeslot-500 font-bold mt-1">Choose a visual style that matches your professional identity.</p>
       </div>
 
       <div class="space-y-10">
-        <div class="flex flex-wrap gap-3 bg-slate-50/50 p-2 rounded-[1.5rem] border-2 border-slate-50">
+        <div class="flex flex-wrap gap-3 bg-tymeslot-50/50 p-2 rounded-[1.5rem] border-2 border-tymeslot-50">
           <%= for {type, icon_path, label} <- background_tabs() do %>
             <button
               type="button"
               class={[
-                "flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-2xl text-sm font-black uppercase tracking-widest transition-all duration-300 border-2",
+                "flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-token-2xl text-token-sm font-black uppercase tracking-widest transition-all duration-300 border-2",
                 if(@browsing_type == type,
-                  do: "bg-white border-white text-turquoise-600 shadow-xl shadow-slate-200/50 scale-[1.02]",
-                  else: "bg-transparent border-transparent text-slate-400 hover:text-slate-600 hover:bg-white/50"
+                  do: "bg-white border-white text-turquoise-600 shadow-xl shadow-tymeslot-200/50 scale-[1.02]",
+                  else: "bg-transparent border-transparent text-tymeslot-400 hover:text-tymeslot-600 hover:bg-white/50"
                 )
               ]}
               phx-click="theme:set_browsing_type"

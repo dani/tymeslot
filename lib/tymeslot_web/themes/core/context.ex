@@ -58,9 +58,26 @@ defmodule TymeslotWeb.Themes.Core.Context do
         (profile && profile.booking_theme) ||
         Registry.default_theme_id()
 
-    preview_mode = Map.has_key?(params, "theme")
+    preview_mode = Map.has_key?(params, "theme") || Map.has_key?(params, "preview")
 
-    new(theme_id, profile, preview: preview_mode)
+    context = new(theme_id, profile, preview: preview_mode)
+
+    if context do
+      # Handle primary-color override
+      if primary_color = params["primary-color"] do
+        # Validate hex color format to prevent CSS injection
+        if Regex.match?(~r/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, primary_color) do
+          customizations = Map.put(context.customizations || %{}, "primary_color", primary_color)
+          %{context | customizations: customizations}
+        else
+          context
+        end
+      else
+        context
+      end
+    else
+      nil
+    end
   end
 
   @doc """

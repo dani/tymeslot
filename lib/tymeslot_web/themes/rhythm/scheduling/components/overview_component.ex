@@ -4,10 +4,12 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.OverviewComponent do
   Extracted from the monolithic RhythmSlidesComponent to improve separation of concerns.
   """
   use TymeslotWeb, :live_component
+  use Gettext, backend: TymeslotWeb.Gettext
 
   alias Tymeslot.Profiles
 
   alias Tymeslot.Demo
+  alias TymeslotWeb.Themes.Shared.LocalizationHelpers
   @impl true
   def update(assigns, socket) do
     filtered_assigns = Map.drop(assigns, [:flash, :socket])
@@ -49,12 +51,12 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.OverviewComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="scheduling-box">
+    <div class="scheduling-box" data-locale={@locale}>
       <div class="slide-container">
         <div class="slide active">
           <div class="slide-content overview-slide">
             <h1 class="slide-title">
-              Schedule with {display_name(@organizer_profile)}
+              {gettext("Schedule with %{name}", name: display_name(@organizer_profile))}
             </h1>
             
     <!-- Organizer Profile -->
@@ -69,10 +71,10 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.OverviewComponent do
               </div>
               <div class="organizer-info">
                 <p class="organizer-greeting">
-                  Hi! I'm {display_name(@organizer_profile)}.
+                  {gettext("Hi! I'm %{name}.", name: display_name(@organizer_profile))}
                 </p>
                 <p class="organizer-instruction">
-                  Pick a meeting duration below.
+                  {gettext("Pick a meeting duration below.")}
                 </p>
               </div>
             </div>
@@ -97,7 +99,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.OverviewComponent do
                         {meeting_type.name}
                       </div>
                       <div class="duration-time">
-                        {meeting_type.duration_minutes} min
+                        {LocalizationHelpers.format_duration(meeting_type.duration_minutes)}
                       </div>
                       <div class="duration-description">
                         {meeting_type.description}
@@ -117,7 +119,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.OverviewComponent do
                 data-testid="next-step"
                 disabled={is_nil(@selected_duration)}
               >
-                Next →
+                {gettext("next")} →
               </button>
             </div>
           </div>

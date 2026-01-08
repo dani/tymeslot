@@ -4,6 +4,8 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ConfirmationComponent 
   Features clean, modern design with focus on readability.
   """
   use TymeslotWeb, :live_component
+  use Gettext, backend: TymeslotWeb.Gettext
+  alias TymeslotWeb.Themes.Shared.LocalizationHelpers
 
   @impl true
   def update(assigns, socket) do
@@ -21,7 +23,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ConfirmationComponent 
   @impl true
   def render(assigns) do
     ~H"""
-    <div>
+    <div data-locale={@locale}>
       <!-- Scheduling Box with Glass Effect -->
       <div class="scheduling-box">
         <div class="slide-container">
@@ -46,21 +48,21 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ConfirmationComponent 
 
                   <h1 class="confirmation-headline" data-testid="confirmation-heading">
                     <%= if @is_rescheduling do %>
-                      Successfully Rescheduled!
+                      {gettext("Successfully Rescheduled!")}
                     <% else %>
-                      You're All Set!
+                      {gettext("You're All Set!")}
                     <% end %>
                   </h1>
 
                   <p class="confirmation-message">
-                    {@name}, your meeting{get_organizer_text(@organizer_profile)} is confirmed
+                    {gettext("%{name}, your meeting %{organizer} is confirmed", name: @name, organizer: get_organizer_text(@organizer_profile))}
                   </p>
                 </div>
                 
     <!-- Meeting Ticket Card -->
                 <div class="meeting-ticket">
                   <div class="ticket-header">
-                    <span class="ticket-label">Meeting Details</span>
+                    <span class="ticket-label">{gettext("Meeting Details")}</span>
                     <span class="ticket-badge">{@duration} min</span>
                   </div>
 
@@ -68,8 +70,8 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ConfirmationComponent 
                     <div class="ticket-row">
                       <div class="ticket-icon">📅</div>
                       <div class="ticket-info">
-                        <span class="ticket-value">{format_date_display(@selected_date)}</span>
-                        <span class="ticket-sublabel">Date</span>
+                        <span class="ticket-value">{LocalizationHelpers.format_date(@selected_date)}</span>
+                        <span class="ticket-sublabel">{gettext("Date")}</span>
                       </div>
                     </div>
 
@@ -88,7 +90,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ConfirmationComponent 
                           <span class="ticket-value">
                             {@organizer_profile.user.name || @organizer_profile.full_name}
                           </span>
-                          <span class="ticket-sublabel">Meeting with</span>
+                          <span class="ticket-sublabel">{gettext("Meeting with")}</span>
                         </div>
                       </div>
                     <% end %>
@@ -104,7 +106,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ConfirmationComponent 
                           d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 002 2z"
                         />
                       </svg>
-                      <span>Sent to <strong>{@email}</strong></span>
+                      <span>{gettext("Sent to")} <strong>{@email}</strong></span>
                     </div>
                   </div>
                 </div>
@@ -117,11 +119,11 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ConfirmationComponent 
                     data-testid="schedule-another"
                     class="action-button-primary"
                   >
-                    Schedule Another Meeting
+                    {gettext("Schedule Another Meeting")}
                   </button>
 
                   <p class="help-text">
-                    Need to make changes? Check your email for reschedule options
+                    {gettext("Need to make changes? Check your email for reschedule options")}
                   </p>
                 </div>
               </div>
@@ -137,17 +139,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ConfirmationComponent 
   defp get_organizer_text(nil), do: ""
 
   defp get_organizer_text(organizer_profile) do
-    " with #{organizer_profile.user.name || organizer_profile.full_name}"
-  end
-
-  defp format_date_display(date_string) do
-    case Date.from_iso8601(date_string) do
-      {:ok, date} ->
-        "#{Calendar.strftime(date, "%B")} #{date.day}, #{date.year}"
-
-      _ ->
-        date_string
-    end
+    gettext("with %{name}", name: organizer_profile.user.name || organizer_profile.full_name)
   end
 
   defp format_timezone_display(timezone) do

@@ -5,6 +5,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Wrapper do
   use Phoenix.Component
 
   import TymeslotWeb.Themes.Shared.Customization.Helpers
+  import TymeslotWeb.Components.LanguageSwitcher
   alias TymeslotWeb.Themes.Shared.Customization.Video, as: VideoHelpers
 
   @doc """
@@ -87,8 +88,20 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Wrapper do
           <div class="video-background-container"></div>
       <% end %>
       
-    <!-- Main wrapper -->
+      <!-- Main wrapper -->
       <div class="video-background-theme">
+        <!-- Language Switcher -->
+        <%= if assigns[:locale] && assigns[:language_dropdown_open] != nil do %>
+          <div class="absolute top-6 right-6 z-50">
+            <.language_switcher
+              locale={@locale}
+              locales={TymeslotWeb.Themes.Shared.LocaleHandler.get_locales_with_metadata()}
+              dropdown_open={@language_dropdown_open}
+              theme="rhythm"
+            />
+          </div>
+        <% end %>
+
         {render_slot(@inner_block)}
       </div>
     </div>

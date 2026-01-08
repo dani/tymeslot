@@ -7,6 +7,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Wrapper do
   alias TymeslotWeb.Themes.Shared.Customization.Video, as: VideoHelpers
 
   import TymeslotWeb.Themes.Shared.Customization.Helpers
+  import TymeslotWeb.Components.LanguageSwitcher
 
   @doc """
   Renders the Quill theme wrapper with custom styles and background.
@@ -65,7 +66,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Wrapper do
         </div>
       <% end %>
       
-    <!-- Apply background styles to main gradient -->
+      <!-- Apply background styles to main gradient -->
       <div
         class={[
           "min-h-screen main-gradient flex flex-col",
@@ -77,6 +78,18 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Wrapper do
             else: ""
         }
       >
+        <!-- Language Switcher -->
+        <%= if assigns[:locale] && assigns[:language_dropdown_open] != nil do %>
+          <div class="absolute top-6 right-6 z-50">
+            <.language_switcher
+              locale={@locale}
+              locales={TymeslotWeb.Themes.Shared.LocaleHandler.get_locales_with_metadata()}
+              dropdown_open={@language_dropdown_open}
+              theme="quill"
+            />
+          </div>
+        <% end %>
+
         {render_slot(@inner_block)}
       </div>
     </div>

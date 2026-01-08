@@ -4,9 +4,11 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.BookingComponent do
   Features glassmorphism design with elegant transparency effects.
   """
   use TymeslotWeb, :live_component
+  use Gettext, backend: TymeslotWeb.Gettext
 
   alias Tymeslot.Utils.TimezoneUtils
   alias TymeslotWeb.Live.Scheduling.Helpers
+  alias TymeslotWeb.Themes.Shared.LocalizationHelpers
 
   import TymeslotWeb.Components.CoreComponents
 
@@ -46,7 +48,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.BookingComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div>
+    <div data-locale={@locale}>
       <.page_layout
         show_steps={true}
         current_step={3}
@@ -77,7 +79,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.BookingComponent do
                   </p>
 
                   <p class="text-xs md:text-sm mb-6" style="color: rgba(255,255,255,0.7);">
-                    {Helpers.format_booking_datetime(@selected_date, @selected_time, @user_timezone)}
+                    {LocalizationHelpers.format_booking_datetime(@selected_date, @selected_time, @user_timezone)}
                   </p>
 
                   <.form

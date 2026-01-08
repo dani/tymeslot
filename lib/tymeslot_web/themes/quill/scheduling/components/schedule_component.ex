@@ -4,9 +4,11 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ScheduleComponent do
   Features glassmorphism design with elegant transparency effects.
   """
   use TymeslotWeb, :live_component
+  use Gettext, backend: TymeslotWeb.Gettext
 
   alias Tymeslot.Utils.TimezoneUtils
   alias TymeslotWeb.Live.Scheduling.Helpers
+  alias TymeslotWeb.Themes.Shared.LocalizationHelpers
 
   import TymeslotWeb.Components.CoreComponents
   import TymeslotWeb.Components.FlagHelpers
@@ -80,35 +82,35 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ScheduleComponent do
   end
 
   # Helper function to format advance booking days for display
-  defp format_advance_booking_days(days) when is_integer(days) and days <= 0, do: "same day only"
-  defp format_advance_booking_days(1), do: "1 day in advance"
+  defp format_advance_booking_days(days) when is_integer(days) and days <= 0, do: gettext("same day only")
+  defp format_advance_booking_days(1), do: gettext("1 day in advance")
 
   defp format_advance_booking_days(days) when is_integer(days) and days < 7,
-    do: "#{days} days in advance"
+    do: gettext("%{days} days in advance", days: days)
 
-  defp format_advance_booking_days(7), do: "1 week in advance"
+  defp format_advance_booking_days(7), do: gettext("1 week in advance")
 
   defp format_advance_booking_days(days) when is_integer(days) and days < 30,
     do: format_weeks_advance(days)
 
-  defp format_advance_booking_days(30), do: "1 month in advance"
+  defp format_advance_booking_days(30), do: gettext("1 month in advance")
 
   defp format_advance_booking_days(days) when is_integer(days) and days < 365,
     do: format_months_advance(days)
 
-  defp format_advance_booking_days(365), do: "1 year in advance"
+  defp format_advance_booking_days(365), do: gettext("1 year in advance")
   defp format_advance_booking_days(days) when is_integer(days), do: format_years_advance(days)
-  defp format_advance_booking_days(_), do: "90 days in advance"
+  defp format_advance_booking_days(_), do: gettext("90 days in advance")
 
   # Helper functions for formatting
-  defp format_weeks_advance(days), do: "#{div(days, 7)} weeks in advance"
-  defp format_months_advance(days), do: "#{div(days, 30)} months in advance"
-  defp format_years_advance(days), do: "#{div(days, 365)} years in advance"
+  defp format_weeks_advance(days), do: gettext("%{weeks} weeks in advance", weeks: div(days, 7))
+  defp format_months_advance(days), do: gettext("%{months} months in advance", months: div(days, 30))
+  defp format_years_advance(days), do: gettext("%{years} years in advance", years: div(days, 365))
 
   @impl true
   def render(assigns) do
     ~H"""
-    <div>
+    <div data-locale={@locale}>
       <.page_layout
         show_steps={true}
         current_step={2}
@@ -123,14 +125,14 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ScheduleComponent do
                   <div class="flex flex-col md:flex-row md:items-start md:justify-between mb-3">
                     <div class="flex-1">
                       <.section_header level={2} class="text-base md:text-lg lg:text-xl mb-1">
-                        Select a Date & Time
+                        {gettext("Select a Date & Time")}
                       </.section_header>
 
                       <%= if @organizer_profile do %>
                         <p class="text-sm md:text-base mb-2" style="color: rgba(255,255,255,0.8);">
-                          Bookings available up to {format_advance_booking_days(
+                          {gettext("Bookings available up to %{advance}", advance: format_advance_booking_days(
                             @organizer_profile.advance_booking_days
-                          )}
+                          ))}
                         </p>
                       <% end %>
 
@@ -138,7 +140,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ScheduleComponent do
                         class="text-base md:text-lg font-medium"
                         style="color: rgba(255,255,255,0.9);"
                       >
-                        Duration: {TimezoneUtils.format_duration(@duration)}
+                        {gettext("Duration: %{duration}", duration: TimezoneUtils.format_duration(@duration))}
                       </p>
                     </div>
 
@@ -148,6 +150,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ScheduleComponent do
                         timezone_search={@timezone_search}
                         timezone_dropdown_open={@timezone_dropdown_open}
                         target={@myself}
+                        locale={@locale}
                       />
                     </div>
                   </div>
@@ -155,8 +158,32 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ScheduleComponent do
                   <div class="flex flex-col lg:flex-row lg:gap-4 xl:gap-6 calendar-slots-container">
                     <div class="flex-1 calendar-section">
                       <div class="flex items-center justify-between mb-1 md:mb-2">
-                        <h2 class="text-sm md:text-base lg:text-lg font-bold" style="color: white;">
-                          Select a Date
+                        <h2 class="text-sm md:text-base lg:text-lg font-bold flex items-center gap-2" style="color: white;">
+                          {gettext("Select a Date")}
+                          <%= if @availability_status == :loading do %>
+                            <svg
+                              class="animate-spin h-4 w-4 text-white opacity-60"
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                            >
+                              <circle
+                                class="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                stroke-width="4"
+                              >
+                              </circle>
+                              <path
+                                class="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                              >
+                              </path>
+                            </svg>
+                          <% end %>
                         </h2>
                         <div class="flex items-center gap-1 md:gap-2">
                           <button
@@ -178,7 +205,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ScheduleComponent do
                             class="text-xs md:text-sm lg:text-base font-semibold px-2 md:px-3"
                             style="color: white;"
                           >
-                            {Helpers.get_month_year_display(@current_year, @current_month)}
+                            {LocalizationHelpers.get_month_year_display(@current_year, @current_month)}
                           </div>
                           <button
                             phx-click="next_month"
@@ -200,15 +227,15 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ScheduleComponent do
                       <div class="calendar-grid-container flex-1">
                         <div class="grid grid-cols-7 gap-0.5 text-center mb-1">
                           <div
-                            :for={day <- ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]}
+                            :for={day <- [gettext("Sun"), gettext("Mon"), gettext("Tue"), gettext("Wed"), gettext("Thu"), gettext("Fri"), gettext("Sat")]}
                             class="text-xs font-medium"
                             style="color: rgba(255,255,255,0.8);"
                           >
-                            {String.slice(day, 0, 2)}
+                            {String.slice(day, 0, 3)}
                           </div>
                         </div>
                         <div class="grid grid-cols-7 gap-0.5">
-                          <%= for day <- Helpers.get_calendar_days(@user_timezone, @current_year, @current_month, @organizer_profile) do %>
+                          <%= for day <- Helpers.get_calendar_days(@user_timezone, @current_year, @current_month, @organizer_profile, @month_availability_map) do %>
                             <.calendar_day
                               phx-click="select_date"
                               phx-target={@myself}
@@ -217,6 +244,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ScheduleComponent do
                               selected={@selected_date == day[:date]}
                               available={day[:available] && !day[:past]}
                               current_month={day[:current_month]}
+                              loading={Map.get(day, :loading, false)}
                             />
                           <% end %>
                         </div>
@@ -242,7 +270,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ScheduleComponent do
                       variant={:secondary}
                       class="flex-1"
                     >
-                      ← Back
+                      ← {gettext("back")}
                     </.action_button>
 
                     <.action_button
@@ -252,7 +280,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ScheduleComponent do
                       disabled={!(@selected_date && @selected_time)}
                       class="flex-1"
                     >
-                      Next Step →
+                      {gettext("next_step")} →
                     </.action_button>
                   </div>
                 </div>
@@ -269,10 +297,10 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ScheduleComponent do
   defp get_current_time_display(timezone) do
     case DateTime.now(timezone) do
       {:ok, datetime} ->
-        Kernel.<>(String.slice(Time.to_string(DateTime.to_time(datetime)), 0, 5), " local time")
+        gettext("%{time} local time", time: String.slice(Time.to_string(DateTime.to_time(datetime)), 0, 5))
 
       _ ->
-        "Local time"
+        gettext("local time")
     end
   end
 
@@ -293,7 +321,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ScheduleComponent do
   # Sub-components for better organization
   defp timezone_selector(assigns) do
     ~H"""
-    <div class="relative w-full md:w-auto md:max-w-xs lg:max-w-sm">
+    <div class="relative w-full md:w-auto md:max-w-xs lg:max-w-sm" data-locale={@locale}>
       <label class="text-sm font-medium block mb-2" style="color: rgba(255,255,255,0.9);">
         <div class="flex items-center gap-2">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -305,7 +333,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ScheduleComponent do
             >
             </path>
           </svg>
-          Your timezone
+          {gettext("Your timezone")}
         </div>
       </label>
       
@@ -383,7 +411,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ScheduleComponent do
                 phx-target={@target}
                 name="search"
                 value={@timezone_search}
-                placeholder="Search cities, countries, or timezones..."
+                placeholder={gettext("Search cities, countries, or timezones...")}
                 class="w-full px-4 py-2 rounded-lg text-sm border-0 pr-10 focus:outline-none focus:ring-2 focus:ring-white/30"
                 style="background: rgba(255,255,255,0.9); color: #2d3436;"
                 autocomplete="off"
@@ -448,14 +476,14 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ScheduleComponent do
     ~H"""
     <div class="time-slots-panel flex flex-col" id="slots-container" phx-hook="AutoScrollToSlots">
       <h2 class="text-sm md:text-base lg:text-lg font-bold mb-1" style="color: white;">
-        Available Times
+        {gettext("Available Times")}
       </h2>
       <div class="slots-box flex-1">
         <%= if @selected_date do %>
           <%= if @loading_slots do %>
             <div class="h-full flex items-center justify-center">
               <.spinner />
-              <span class="ml-3 text-white">Loading available times...</span>
+              <span class="ml-3 text-white">{gettext("Loading available times...")}</span>
             </div>
           <% else %>
             <%= if @calendar_error do %>
@@ -465,7 +493,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ScheduleComponent do
             <% end %>
             <%= if !@calendar_error && length(@available_slots) > 0 do %>
               <div class="space-y-3 pr-2">
-                <%= for {period, slots} <- Helpers.group_slots_by_period(@available_slots) do %>
+                <%= for {period, slots} <- LocalizationHelpers.group_slots_by_period(@available_slots) do %>
                   <%= if length(slots) > 0 do %>
                     <div>
                       <div
@@ -492,8 +520,8 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ScheduleComponent do
             <% else %>
               <%= if !@calendar_error do %>
                 <.empty_state
-                  message="This date is fully booked"
-                  secondary_message="Please select another date"
+                  message={gettext("This date is fully booked")}
+                  secondary_message={gettext("Please select another date")}
                 >
                   <:icon>
                     <path
@@ -511,7 +539,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ScheduleComponent do
         <% else %>
           <div class="h-full flex items-center justify-center">
             <p class="text-sm" style="color: rgba(255,255,255,0.7);">
-              Please select a date to see available times
+              {gettext("Please select a date to see available times")}
             </p>
           </div>
         <% end %>

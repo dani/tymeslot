@@ -18,7 +18,7 @@ defmodule TymeslotWeb.Dashboard.ThemeCustomization.ThemePreviewInline do
     assigns = assign(assigns, :css_vars, css_vars)
 
     ~H"""
-    <div class={"rounded-lg overflow-hidden border border-gray-200 #{ @class }"}>
+    <div class={"rounded-lg overflow-hidden border border-tymeslot-200 #{ @class }"}>
       <!-- Scope CSS variables to this wrapper via inline style -->
       <div class="relative" style={"#{@css_vars}"}>
         <!-- Background layer using the scoped CSS variables -->

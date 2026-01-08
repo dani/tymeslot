@@ -14,13 +14,12 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Live do
   alias TymeslotWeb.Live.Scheduling.Handlers.BookingSubmissionHandlerComponent
 
   alias TymeslotWeb.Live.Scheduling.Handlers.{
-    SlotFetchingHandlerComponent,
     TimezoneHandlerComponent
   }
 
   alias TymeslotWeb.Live.Scheduling.Helpers
   alias TymeslotWeb.Live.Scheduling.ThemeUtils
-  alias TymeslotWeb.Themes.Shared.SchedulingInit
+  alias TymeslotWeb.Themes.Shared.{EventHandlers, InfoHandlers, SchedulingInit}
 
   require Logger
 
@@ -70,7 +69,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Live do
     end
   end
 
-  # Handle events from step components
+  # Info handlers
   @impl true
   def handle_info({:step_event, step, event, data} = msg, socket) do
     Logger.debug("RhythmSchedulingLive handle_info received step_event: #{inspect(msg)}")
@@ -98,29 +97,45 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Live do
     end
   end
 
-  # Other info handlers
   @impl true
-  def handle_info(:close_dropdown, socket) do
-    {:noreply, assign(socket, :timezone_dropdown_open, false)}
-  end
+  def handle_info(:close_dropdown, socket), do: InfoHandlers.handle_close_dropdown(socket)
 
+  @impl true
   def handle_info({:fetch_available_slots, date, duration, timezone}, socket) do
-    case SlotFetchingHandlerComponent.fetch_available_slots(socket, date, duration, timezone) do
-      {:ok, updated_socket} -> {:noreply, updated_socket}
-      {:error, updated_socket} -> {:noreply, updated_socket}
-    end
+    InfoHandlers.handle_fetch_available_slots(socket, date, duration, timezone)
   end
 
+  @impl true
   def handle_info({:load_slots, date}, socket) do
-    case SlotFetchingHandlerComponent.load_slots(socket, date) do
-      {:ok, updated_socket} -> {:noreply, updated_socket}
-    end
+    InfoHandlers.handle_load_slots(socket, date)
+  end
+
+  # Event handlers
+  @impl true
+  def handle_event("toggle_language_dropdown", _params, socket) do
+    EventHandlers.handle_toggle_language_dropdown(socket)
+  end
+
+  @impl true
+  def handle_event("close_language_dropdown", _params, socket) do
+    EventHandlers.handle_close_language_dropdown(socket)
+  end
+
+  @impl true
+  def handle_event("change_locale", %{"locale" => locale}, socket) do
+    EventHandlers.handle_change_locale(socket, locale, PathHandlers)
+  end
+
+  @impl true
+  def handle_event(_event, _params, socket) do
+    # Fallback for any other events
+    {:noreply, socket}
   end
 
   # Handle overview slide events
   defp handle_overview_events(socket, event, data) do
     Logger.debug(
-      "RhythmSchedulingLive handle_overview_events called with event: #{inspect(event)}, data: #{inspect(data)}"
+      "RhythmSchedulingLive handle_overview_events called with data: #{inspect(data)}"
     )
 
     case event do
@@ -434,9 +449,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Live do
   end
 
   defp handle_timezone_change(socket, data) do
-    case TimezoneHandlerComponent.handle_timezone_change(socket, data) do
-      {:ok, updated_socket} -> {:noreply, updated_socket}
-    end
+    EventHandlers.handle_timezone_change(socket, data, TimezoneHandlerComponent)
   end
 
   # Template rendering - uses slides component for main flow, confirmation for final step
@@ -450,6 +463,8 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Live do
     <TymeslotWeb.Themes.Rhythm.Scheduling.Wrapper.rhythm_wrapper
       custom_css={@custom_css}
       theme_customization={@theme_customization}
+      locale={assigns[:locale]}
+      language_dropdown_open={assigns[:language_dropdown_open]}
     >
       <%= if assigns[:scheduling_error_message] do %>
         <div class="h-[70vh] flex items-center justify-center px-4">

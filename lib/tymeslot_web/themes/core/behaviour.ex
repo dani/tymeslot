@@ -54,5 +54,6 @@ defmodule TymeslotWeb.Themes.Core.Behaviour do
   @doc """
   Renders a meeting management action (cancel, reschedule, etc.)
   """
-  @callback render_meeting_action(assigns :: map(), action :: atom()) :: Phoenix.LiveView.Rendered.t()
+  @callback render_meeting_action(assigns :: map(), action :: atom()) ::
+              Phoenix.LiveView.Rendered.t()
 end

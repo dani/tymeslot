@@ -4,6 +4,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.OverviewComponent do
   Features glassmorphism design with elegant transparency effects.
   """
   use TymeslotWeb, :live_component
+  use Gettext, backend: TymeslotWeb.Gettext
 
   alias Tymeslot.Demo
   alias Tymeslot.MeetingTypes
@@ -33,7 +34,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.OverviewComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="flex-1 flex flex-col">
+    <div class="flex-1 flex flex-col" data-locale={@locale}>
       <.page_layout
         show_steps={true}
         current_step={1}

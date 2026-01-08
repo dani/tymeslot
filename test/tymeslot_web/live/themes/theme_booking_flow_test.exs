@@ -22,6 +22,7 @@ defmodule TymeslotWeb.Live.Themes.ThemeBookingFlowTest do
     Tymeslot.CalendarMock
     |> stub(:get_events_for_range_fresh, fn _user_id, _start_date, _end_date -> {:ok, []} end)
     |> stub(:list_events_in_range, fn _start_dt, _end_dt -> {:ok, []} end)
+    |> stub(:get_booking_integration_info, fn _user_id -> {:error, :no_integration} end)
 
     :ok
   end
@@ -89,6 +90,13 @@ defmodule TymeslotWeb.Live.Themes.ThemeBookingFlowTest do
         # Schedule: pick a date + time slot
         target_date = next_business_day(Date.utc_today())
         date_str = Date.to_string(target_date)
+
+        wait_until(fn ->
+          has_element?(
+            view,
+            "button[data-testid='calendar-day'][phx-value-date='#{date_str}']:not([disabled])"
+          )
+        end)
 
         view
         |> element("button[data-testid='calendar-day'][phx-value-date='#{date_str}']")
@@ -266,6 +274,13 @@ defmodule TymeslotWeb.Live.Themes.ThemeBookingFlowTest do
 
         target_date = next_business_day(Date.utc_today())
         date_str = Date.to_string(target_date)
+
+        wait_until(fn ->
+          has_element?(
+            view,
+            "button[data-testid='calendar-day'][phx-value-date='#{date_str}']:not([disabled])"
+          )
+        end)
 
         view
         |> element("button[data-testid='calendar-day'][phx-value-date='#{date_str}']")

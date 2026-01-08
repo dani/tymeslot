@@ -267,8 +267,14 @@ defmodule TymeslotWeb.Themes.Shared.Customization.Capability do
 
     # Generate color CSS if supported
     css_parts =
-      if features[:supports_custom_colors] && customizations["color_scheme"] do
-        color_css = ThemeCustomizations.get_color_scheme_css(customizations["color_scheme"])
+      if features[:supports_custom_colors] do
+        color_css =
+          if customizations["color_scheme"] do
+            ThemeCustomizations.get_color_scheme_css(customizations["color_scheme"])
+          else
+            nil
+          end
+
         if color_css, do: [color_css | css_parts], else: css_parts
       else
         css_parts
@@ -294,8 +300,23 @@ defmodule TymeslotWeb.Themes.Shared.Customization.Capability do
   end
 
   defp generate_background_css(%{"background_type" => "color", "background_value" => value}) do
-    "--theme-background: #{value};"
+    if valid_color?(value) do
+      "--theme-background: #{value};"
+    else
+      nil
+    end
   end
 
   defp generate_background_css(_), do: nil
+
+  defp valid_color?(value) when is_binary(value) do
+    # Support hex colors
+    Regex.match?(~r/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, value) or
+      # Support simple color names (common ones)
+      value in ["transparent", "white", "black", "inherit", "initial"] or
+      # Support rgb/rgba
+      Regex.match?(~r/^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*(\d+(?:\.\d+)?))?\)$/, value)
+  end
+
+  defp valid_color?(_), do: false
 end

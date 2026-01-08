@@ -13,16 +13,16 @@ defmodule TymeslotWeb.Dashboard.ThemeCustomization.Pickers.ImagePicker do
     ~H"""
     <div class="space-y-10">
       <div>
-        <p class="text-sm font-black text-slate-400 uppercase tracking-widest mb-6">Choose from our collection</p>
+        <p class="text-token-sm font-black text-tymeslot-400 uppercase tracking-widest mb-6">Choose from our collection</p>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <%= for {image_id, image} <- @presets.images do %>
             <button
               type="button"
               class={[
-                "group/image relative flex flex-col rounded-2xl overflow-hidden border-4 transition-all duration-500",
+                "group/image relative flex flex-col rounded-token-2xl overflow-hidden border-4 transition-all duration-500",
                 if(@customization.background_value == image_id,
                   do: "border-turquoise-400 shadow-2xl shadow-turquoise-500/20 scale-[1.02]",
-                  else: "border-white hover:border-turquoise-200 hover:shadow-xl hover:shadow-slate-200/50"
+                  else: "border-white hover:border-turquoise-200 hover:shadow-xl hover:shadow-tymeslot-200/50"
                 )
               ]}
               phx-click="theme:select_background"
@@ -37,8 +37,8 @@ defmodule TymeslotWeb.Dashboard.ThemeCustomization.Pickers.ImagePicker do
                   class="w-full h-full object-cover transition-transform duration-700 group-hover/image:scale-110"
                   onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
                 />
-                <div class="absolute inset-0 bg-gradient-to-br from-slate-100 to-slate-200 items-center justify-center hidden">
-                  <svg class="w-12 h-12 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="absolute inset-0 bg-gradient-to-br from-tymeslot-100 to-tymeslot-200 items-center justify-center hidden">
+                  <svg class="w-12 h-12 text-tymeslot-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                 </div>
@@ -57,8 +57,8 @@ defmodule TymeslotWeb.Dashboard.ThemeCustomization.Pickers.ImagePicker do
                   else: "bg-white"
                 )
               ]}>
-                <p class="text-base font-black text-slate-900 tracking-tight">{image.name}</p>
-                <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mt-1">{image.description}</p>
+                <p class="text-token-base font-black text-tymeslot-900 tracking-tight">{image.name}</p>
+                <p class="text-token-xs text-tymeslot-500 font-bold uppercase tracking-widest mt-1">{image.description}</p>
               </div>
             </button>
           <% end %>
@@ -67,14 +67,14 @@ defmodule TymeslotWeb.Dashboard.ThemeCustomization.Pickers.ImagePicker do
 
       <div class="relative py-4">
         <div class="absolute inset-0 flex items-center" aria-hidden="true">
-          <div class="w-full border-t-2 border-slate-100"></div>
+          <div class="w-full border-t-2 border-tymeslot-100"></div>
         </div>
-        <div class="relative flex justify-center text-sm font-black uppercase tracking-[0.2em]">
-          <span class="px-6 bg-white text-slate-400">Or upload your own</span>
+        <div class="relative flex justify-center text-token-sm font-black uppercase tracking-[0.2em]">
+          <span class="px-6 bg-white text-tymeslot-400">Or upload your own</span>
         </div>
       </div>
 
-      <div class="bg-slate-50 p-8 rounded-[2rem] border-2 border-slate-100 border-dashed">
+      <div class="bg-tymeslot-50 p-8 rounded-[2rem] border-2 border-tymeslot-100 border-dashed">
         <form
           id="theme-background-image-form"
           phx-submit="save_background_image"
@@ -102,14 +102,14 @@ defmodule TymeslotWeb.Dashboard.ThemeCustomization.Pickers.ImagePicker do
 
             <%= if @parent_uploads && @parent_uploads[:background_image] do %>
               <%= for entry <- @parent_uploads.background_image.entries do %>
-                <div class="mt-6 p-4 bg-white rounded-2xl border-2 border-slate-100 shadow-sm animate-in zoom-in">
+                <div class="mt-6 p-4 bg-white rounded-token-2xl border-2 border-tymeslot-100 shadow-sm animate-in zoom-in">
                   <div class="flex items-center justify-between mb-2">
-                    <span class="text-slate-700 font-black text-xs uppercase tracking-wider truncate mr-4">
+                    <span class="text-tymeslot-700 font-black text-token-xs uppercase tracking-wider truncate mr-4">
                       {entry.client_name}
                     </span>
-                    <span class="text-turquoise-600 font-black text-xs">{entry.progress}%</span>
+                    <span class="text-turquoise-600 font-black text-token-xs">{entry.progress}%</span>
                   </div>
-                  <div class="bg-slate-100 rounded-full h-2 overflow-hidden shadow-inner">
+                  <div class="bg-tymeslot-100 rounded-full h-2 overflow-hidden shadow-inner">
                     <div
                       class="bg-gradient-to-r from-turquoise-500 to-cyan-500 h-full transition-all duration-300"
                       style={"width: #{entry.progress}%"}
@@ -123,15 +123,15 @@ defmodule TymeslotWeb.Dashboard.ThemeCustomization.Pickers.ImagePicker do
             </button>
           </div>
           
-          <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">JPG, PNG or WebP. Max 5MB.</p>
+          <p class="text-[10px] font-black text-tymeslot-400 uppercase tracking-[0.2em]">JPG, PNG or WebP. Max 5MB.</p>
         </form>
 
         <%= if @customization.background_image_path && @customization.background_value == "custom" do %>
-          <div class="mt-8 p-4 bg-amber-50 border border-amber-100 rounded-2xl flex items-center gap-3">
+          <div class="mt-8 p-4 bg-amber-50 border border-amber-100 rounded-token-2xl flex items-center gap-3">
             <svg class="w-5 h-5 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
             </svg>
-            <p class="text-sm font-bold text-amber-800">
+            <p class="text-token-sm font-bold text-amber-800">
               You have a custom image. Selecting a preset will remove it.
             </p>
           </div>

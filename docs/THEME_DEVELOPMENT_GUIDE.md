@@ -580,6 +580,223 @@ Before releasing a theme, ensure it passes these checks:
 
 The production checklist test (`theme_production_checklist_test.exs`) verifies all of these automatically.
 
+## Multi-Lingual Support
+
+### Overview
+
+Tymeslot booking pages support internationalization (i18n) with automatic browser language detection and a language switcher component.
+
+**Supported Languages:**
+- 🇬🇧 English (default & fallback)
+- 🇩🇪 German (Deutsch)
+- 🇺🇦 Ukrainian (Українська)
+
+### Language Detection Priority
+
+The system detects user language in this order:
+1. Query parameter `?locale=de` (explicit user choice)
+2. Session storage (previous selection)
+3. Browser `Accept-Language` header
+4. Default fallback to English
+
+### Language Switcher Component
+
+The language switcher is automatically integrated into all themes via the theme wrapper:
+
+```heex
+<!-- In your theme wrapper (e.g., quill_wrapper or rhythm_wrapper) -->
+<%= if assigns[:locale] && assigns[:language_dropdown_open] != nil do %>
+  <div class="absolute top-6 right-6 z-50">
+    <.language_switcher
+      locale={@locale}
+      locales={TymeslotWeb.Themes.Shared.LocaleHandler.get_locales_with_metadata()}
+      dropdown_open={@language_dropdown_open}
+      theme="quill"
+    />
+  </div>
+<% end %>
+```
+
+### Adding Translations to Your Theme
+
+#### 1. Use `gettext/1` for all user-facing strings
+
+Replace hardcoded strings with `gettext/1` calls:
+
+```elixir
+# Before
+<h1>Book a Meeting</h1>
+
+# After
+<h1>{gettext("book_meeting")}</h1>
+```
+
+#### 2. For strings with interpolation
+
+```elixir
+# With variables
+{gettext("You're booking a %{duration} meeting with %{name}", 
+  duration: @duration, 
+  name: @organizer_name)}
+```
+
+#### 3. Add Event Handlers to Your LiveView
+
+```elixir
+@impl true
+def mount(params, _session, socket) do
+  socket =
+    socket
+    |> TymeslotWeb.Themes.Shared.LocaleHandler.assign_locale()
+    |> assign(:language_dropdown_open, false)
+    # ... rest of your mount logic
+end
+
+@impl true
+def handle_event("toggle_language_dropdown", _params, socket) do
+  {:noreply, assign(socket, :language_dropdown_open, !socket.assigns.language_dropdown_open)}
+end
+
+@impl true
+def handle_event("close_language_dropdown", _params, socket) do
+  {:noreply, assign(socket, :language_dropdown_open, false)}
+end
+
+@impl true
+def handle_event("change_locale", %{"locale" => locale}, socket) do
+  socket =
+    socket
+    |> TymeslotWeb.Themes.Shared.LocaleHandler.handle_locale_change(locale)
+    |> assign(:language_dropdown_open, false)
+
+  {:noreply, socket}
+end
+```
+
+#### 4. Add Translation Strings
+
+Translation files are located in `priv/gettext/{locale}/LC_MESSAGES/default.po`:
+- `en/LC_MESSAGES/default.po` - English
+- `de/LC_MESSAGES/default.po` - German
+- `uk/LC_MESSAGES/default.po` - Ukrainian
+
+Add your new strings to all three files.
+
+### Theme-Specific Styling
+
+Create language switcher styles for your theme:
+
+**File**: `assets/css/scheduling/themes/your-theme/modules/language-switcher.css`
+
+```css
+/* Language Switcher - Your Theme */
+.language-switcher-button-yourtheme {
+  /* Button styling that matches your theme */
+}
+
+.language-dropdown-yourtheme {
+  /* Dropdown styling that matches your theme */
+}
+
+.language-dropdown-item-yourtheme {
+  /* Dropdown item styling */
+}
+
+.language-dropdown-item-yourtheme.active {
+  /* Active item styling */
+}
+```
+
+Then import it in your theme's main CSS file:
+
+```css
+/* In your-theme/theme.css */
+@import "./modules/language-switcher.css";
+```
+
+### Date & Time Localization
+
+Use the `LocalizationHelpers` shared module for consistent date, time, and duration formatting across themes. This helper ensures that all formats respect the current locale and follow platform standards.
+
+```elixir
+alias TymeslotWeb.Themes.Shared.LocalizationHelpers
+
+# Format a booking date and time with timezone awareness
+# Result: "Wednesday, 15 March 2024 at 14:30 EST" (localized)
+LocalizationHelpers.format_booking_datetime(@selected_date, @selected_time, @user_timezone)
+
+# Group time slots by period (Morning, Afternoon, etc.) with translated labels
+# Result: [{"Morning", [slot1, ...]}, {"Afternoon", [slot2, ...]}, ...]
+LocalizationHelpers.group_slots_by_period(@available_slots)
+
+# Format meeting duration
+# Result: "30 minutes", "1 hour", etc. (localized)
+LocalizationHelpers.format_duration("30min")
+
+# Get translated month or weekday names
+LocalizationHelpers.get_month_name(3) # "March" in 'en', "März" in 'de'
+LocalizationHelpers.day_name_short(1)  # "MON" in 'en', "MO" in 'de'
+```
+
+### Path Generation
+
+Use `PathHandlers` to build consistent internal links that preserve the user's locale and theme selection.
+
+```elixir
+alias TymeslotWeb.Themes.Shared.PathHandlers
+
+# Build a path back to the schedule page from the booking form
+# This automatically includes ?locale=... and ?theme=... parameters
+back_path = PathHandlers.build_path_with_locale(socket, socket.assigns.locale)
+```
+
+### Shared Logic Extraction
+
+To reduce duplication, themes should delegate event and info handling to the shared handlers in `TymeslotWeb.Themes.Shared`:
+
+1.  **EventHandlers**: Handles common UI events like language dropdown toggling and locale changes.
+2.  **InfoHandlers**: Handles asynchronous tasks like slot fetching and availability updates.
+3.  **LocaleHandler**: Manages the socket-level locale state and Gettext synchronization.
+
+Example integration in a theme LiveView:
+
+```elixir
+defmodule TymeslotWeb.Themes.MyTheme.Scheduling.Live do
+  use TymeslotWeb, :live_view
+  alias TymeslotWeb.Themes.Shared.{EventHandlers, InfoHandlers, LocaleHandler, PathHandlers}
+
+  @impl true
+  def mount(params, session, socket) do
+    socket = 
+      socket
+      |> LocaleHandler.assign_locale()
+      |> assign(:language_dropdown_open, false)
+      # ...
+    {:ok, socket}
+  end
+
+  @impl true
+  def handle_event("change_locale", %{"locale" => locale}, socket) do
+    EventHandlers.handle_change_locale(socket, locale, PathHandlers)
+  end
+
+  @impl true
+  def handle_info({:fetch_available_slots, date, duration, timezone}, socket) do
+    InfoHandlers.handle_fetch_available_slots(socket, date, duration, timezone)
+  end
+end
+```
+
+### Best Practices
+
+1. **Don't assume language**: Use `gettext/1` for all visible text
+2. **Use Shared Helpers**: Always use `LocalizationHelpers` for dates/times to ensure consistency.
+3. **Preserve Context**: Always use `PathHandlers` for internal navigation to keep the user's language and theme settings.
+4. **Sanitize Customizations**: If your theme supports custom colors or backgrounds, ensure they are validated to prevent CSS injection. Use the `valid_color?` pattern from `Capability.ex`.
+5. **Test all locales**: Ensure your theme works in en, de, and uk
+6. **Respect layout**: German text is typically longer; ensure your design accommodates this
+7. **Keep translations updated**: When adding new features, add strings to all locale files
+
 ## Don't Over-Engineer
 
 - Start with the simplest theme that works

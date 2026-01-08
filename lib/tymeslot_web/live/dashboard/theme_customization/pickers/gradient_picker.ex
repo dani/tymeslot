@@ -16,7 +16,7 @@ defmodule TymeslotWeb.Dashboard.ThemeCustomization.Pickers.GradientPicker do
         <button
           type="button"
           class={[
-            "group/gradient relative h-32 rounded-2xl overflow-hidden border-4 transition-all duration-500",
+            "group/gradient relative h-32 rounded-token-2xl overflow-hidden border-4 transition-all duration-500",
             if(@customization.background_value == gradient_id,
               do: "border-turquoise-400 shadow-2xl shadow-turquoise-500/20 scale-[1.02]",
               else: "border-white hover:border-turquoise-200"
@@ -29,8 +29,8 @@ defmodule TymeslotWeb.Dashboard.ThemeCustomization.Pickers.GradientPicker do
           phx-target={@myself}
         >
           <div class="absolute inset-0 bg-black/0 group-hover/gradient:bg-black/10 transition-colors"></div>
-          <div class="absolute bottom-3 left-3 right-3 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white shadow-lg">
-            <p class="text-[10px] font-black uppercase tracking-[0.1em] text-slate-900 text-center truncate">{gradient.name}</p>
+          <div class="absolute bottom-3 left-3 right-3 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-token-xl border border-white shadow-lg">
+            <p class="text-[10px] font-black uppercase tracking-[0.1em] text-tymeslot-900 text-center truncate">{gradient.name}</p>
           </div>
           
           <%= if @customization.background_value == gradient_id do %>

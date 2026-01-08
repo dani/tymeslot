@@ -11,6 +11,7 @@ defmodule TymeslotWeb.Themes.Quill.Theme do
     OverviewComponent,
     ScheduleComponent
   }
+
   alias TymeslotWeb.Themes.Quill.Meeting.{Cancel, CancelConfirmed, Reschedule}
 
   @impl true
