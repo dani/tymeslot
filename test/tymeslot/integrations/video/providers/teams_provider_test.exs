@@ -104,30 +104,39 @@ defmodule Tymeslot.Integrations.Video.Providers.TeamsProviderTest do
 
       expect(Tymeslot.HTTPClientMock, :request, fn :post, url, body, headers, _opts ->
         assert url == "https://graph.microsoft.com/v1.0/me/onlineMeetings"
-        assert Enum.any?(headers, fn {k, v} -> String.downcase(k) == "authorization" and v == "Bearer valid_token" end)
-        
+
+        assert Enum.any?(headers, fn {k, v} ->
+                 String.downcase(k) == "authorization" and v == "Bearer valid_token"
+               end)
+
         decoded_body = Jason.decode!(body)
         assert decoded_body["subject"] == "Scheduled Meeting"
 
-        {:ok, %HTTPoison.Response{
-          status_code: 201,
-          body: Jason.encode!(%{
-            "id" => "meeting123",
-            "joinUrl" => "https://teams.microsoft.com/l/meetup-join/19%3ameeting_abc%40thread.v2/0",
-            "joinWebUrl" => "https://teams.microsoft.com/join/abc",
-            "videoTeleconferenceId" => "v-123",
-            "passcode" => "123456",
-            "audioConferencing" => %{
-              "tollNumber" => "+1-555-0100",
-              "conferenceId" => "987654321"
-            }
-          })
-        }}
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 201,
+           body:
+             Jason.encode!(%{
+               "id" => "meeting123",
+               "joinUrl" =>
+                 "https://teams.microsoft.com/l/meetup-join/19%3ameeting_abc%40thread.v2/0",
+               "joinWebUrl" => "https://teams.microsoft.com/join/abc",
+               "videoTeleconferenceId" => "v-123",
+               "passcode" => "123456",
+               "audioConferencing" => %{
+                 "tollNumber" => "+1-555-0100",
+                 "conferenceId" => "987654321"
+               }
+             })
+         }}
       end)
 
       assert {:ok, room_data} = TeamsProvider.create_meeting_room(config)
       assert room_data.room_id == "meeting123"
-      assert room_data.meeting_url == "https://teams.microsoft.com/l/meetup-join/19%3ameeting_abc%40thread.v2/0"
+
+      assert room_data.meeting_url ==
+               "https://teams.microsoft.com/l/meetup-join/19%3ameeting_abc%40thread.v2/0"
+
       assert room_data.provider_data.passcode == "123456"
     end
 
@@ -139,15 +148,17 @@ defmodule Tymeslot.Integrations.Video.Providers.TeamsProviderTest do
       }
 
       expect(Tymeslot.HTTPClientMock, :request, fn :post, _, _, _, _ ->
-        {:ok, %HTTPoison.Response{
-          status_code: 400,
-          body: Jason.encode!(%{
-            "error" => %{
-              "code" => "InvalidRequest",
-              "message" => "The request is invalid"
-            }
-          })
-        }}
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 400,
+           body:
+             Jason.encode!(%{
+               "error" => %{
+                 "code" => "InvalidRequest",
+                 "message" => "The request is invalid"
+               }
+             })
+         }}
       end)
 
       assert {:error, message} = TeamsProvider.create_meeting_room(config)

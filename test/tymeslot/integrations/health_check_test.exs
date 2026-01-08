@@ -4,13 +4,13 @@ defmodule Tymeslot.Integrations.HealthCheckTest do
   import Tymeslot.Factory
   import Mox
 
-  alias Tymeslot.Integrations.HealthCheck
   alias Tymeslot.DatabaseQueries.CalendarIntegrationQueries
+  alias Tymeslot.Integrations.HealthCheck
 
   setup do
     # Start the GenServer with initial_delay: 0 to disable automatic checks
     {:ok, pid} = HealthCheck.start_link(check_interval: 1_000_000, initial_delay: 0)
-    
+
     # Allow the HealthCheck process to use mocks defined in the test process
     Mox.allow(GoogleCalendarAPIMock, self(), pid)
     Mox.allow(Tymeslot.HTTPClientMock, self(), pid)
@@ -76,7 +76,7 @@ defmodule Tymeslot.Integrations.HealthCheckTest do
         send(test_pid, :mock_called)
         {:error, :unauthorized}
       end)
-      
+
       HealthCheck.check_all_integrations()
       assert_receive :mock_called, 1000
       sync_with_server()
@@ -110,12 +110,12 @@ defmodule Tymeslot.Integrations.HealthCheckTest do
       test_pid = self()
 
       # Mock success for both
-      expect(GoogleCalendarAPIMock, :list_primary_events, 1, fn _int, _start, _end -> 
+      expect(GoogleCalendarAPIMock, :list_primary_events, 1, fn _int, _start, _end ->
         send(test_pid, :calendar_mock_called)
-        {:ok, []} 
+        {:ok, []}
       end)
-      
-      stub(Tymeslot.HTTPClientMock, :post, fn _url, _body, _headers, _opts -> 
+
+      stub(Tymeslot.HTTPClientMock, :post, fn _url, _body, _headers, _opts ->
         send(test_pid, :video_mock_called)
         {:ok, %HTTPoison.Response{status_code: 200}}
       end)
@@ -126,13 +126,13 @@ defmodule Tymeslot.Integrations.HealthCheckTest do
       sync_with_server()
 
       report = HealthCheck.get_user_health_report(user.id)
-      
+
       assert length(report.calendar_integrations) == 1
       assert Enum.any?(report.calendar_integrations, &(&1.id == c1.id))
-      
+
       assert length(report.video_integrations) == 1
       assert Enum.any?(report.video_integrations, &(&1.id == v1.id))
-      
+
       assert is_map(report.summary)
     end
   end

@@ -22,6 +22,7 @@ defmodule Tymeslot.Integrations.VideoTest do
   describe "create_integration/3" do
     test "creates a video integration" do
       user = insert(:user)
+
       attrs = %{
         name: "My Meet",
         access_token: "token",
@@ -36,6 +37,7 @@ defmodule Tymeslot.Integrations.VideoTest do
 
     test "normalizes provider name" do
       user = insert(:user)
+
       attrs = %{
         name: "My Meet",
         access_token: "token",
@@ -48,6 +50,7 @@ defmodule Tymeslot.Integrations.VideoTest do
 
     test "validates mirotalk connection before creation" do
       user = insert(:user)
+
       attrs = %{
         name: "Miro",
         api_key: "test_key",
@@ -95,8 +98,26 @@ defmodule Tymeslot.Integrations.VideoTest do
   describe "set_default/2" do
     test "sets integration as default and unsets others" do
       user = insert(:user)
-      i1 = insert(:video_integration, user: user, provider: "google_meet", is_default: true, access_token: "t1", refresh_token: "r1")
-      i2 = insert(:video_integration, user: user, provider: "teams", is_default: false, tenant_id: "t", client_id: "c", client_secret: "s", teams_user_id: "u")
+
+      i1 =
+        insert(:video_integration,
+          user: user,
+          provider: "google_meet",
+          is_default: true,
+          access_token: "t1",
+          refresh_token: "r1"
+        )
+
+      i2 =
+        insert(:video_integration,
+          user: user,
+          provider: "teams",
+          is_default: false,
+          tenant_id: "t",
+          client_id: "c",
+          client_secret: "s",
+          teams_user_id: "u"
+        )
 
       assert {:ok, updated_i2} = Video.set_default(user.id, i2.id)
       assert updated_i2.is_default
@@ -117,6 +138,7 @@ defmodule Tymeslot.Integrations.VideoTest do
 
     test "creates room with default provider" do
       user = insert(:user)
+
       insert(:video_integration,
         user: user,
         provider: "mirotalk",
@@ -127,7 +149,11 @@ defmodule Tymeslot.Integrations.VideoTest do
       )
 
       stub(Tymeslot.HTTPClientMock, :post, fn _url, _body, _headers, _opts ->
-        {:ok, %HTTPoison.Response{status_code: 200, body: "{\"meeting\": \"https://mirotalk.com/room123\"}"}}
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 200,
+           body: "{\"meeting\": \"https://mirotalk.com/room123\"}"
+         }}
       end)
 
       assert {:ok, room} = Video.create_meeting_room(user.id)

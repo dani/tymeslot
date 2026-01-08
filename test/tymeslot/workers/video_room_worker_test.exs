@@ -5,6 +5,7 @@ defmodule Tymeslot.Workers.VideoRoomWorkerTest do
   import Tymeslot.Factory
   import Tymeslot.WorkerTestHelpers
 
+  alias Ecto.UUID
   alias Tymeslot.DatabaseSchemas.MeetingSchema
   alias Tymeslot.Workers.CalendarEventWorker
   alias Tymeslot.Workers.EmailWorker
@@ -32,8 +33,8 @@ defmodule Tymeslot.Workers.VideoRoomWorkerTest do
 
     test "handles non-existent meeting" do
       # Use a valid UUID format that doesn't exist in database
-      non_existent_uuid = Ecto.UUID.generate()
-      
+      non_existent_uuid = UUID.generate()
+
       result = perform_job(VideoRoomWorker, %{"meeting_id" => non_existent_uuid})
 
       # Worker discards jobs for non-existent meetings (no point retrying)
@@ -91,7 +92,7 @@ defmodule Tymeslot.Workers.VideoRoomWorkerTest do
       # This test documents that the provider is resilient
       # In reality, missing "meeting" field causes :invalid_json error
       result = perform_job(VideoRoomWorker, %{"meeting_id" => meeting.id})
-      
+
       # Can be either :ok (if provider is very resilient) or {:error, reason}
       case result do
         :ok -> assert true

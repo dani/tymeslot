@@ -5,6 +5,8 @@ defmodule Tymeslot.Workers.CalendarEventWorkerTest do
   import Tymeslot.Factory
   import Tymeslot.WorkerTestHelpers
 
+  alias Ecto.UUID
+  alias Tymeslot.DatabaseSchemas.MeetingSchema
   alias Tymeslot.Workers.CalendarEventWorker
 
   setup :verify_on_exit!
@@ -25,7 +27,7 @@ defmodule Tymeslot.Workers.CalendarEventWorkerTest do
                })
 
       # Verify meeting was updated with integration info
-      updated_meeting = Repo.get(Tymeslot.DatabaseSchemas.MeetingSchema, meeting.id)
+      updated_meeting = Repo.get(MeetingSchema, meeting.id)
       assert updated_meeting.calendar_integration_id == integration.id
       assert updated_meeting.calendar_path == "primary"
     end
@@ -160,8 +162,8 @@ defmodule Tymeslot.Workers.CalendarEventWorkerTest do
 
     test "handles non-existent meeting gracefully (with valid UUID)" do
       # Use a valid UUID that doesn't exist
-      non_existent_uuid = Ecto.UUID.generate()
-      
+      non_existent_uuid = UUID.generate()
+
       result =
         perform_job(CalendarEventWorker, %{
           "action" => "create",
@@ -250,17 +252,17 @@ defmodule Tymeslot.Workers.CalendarEventWorkerTest do
       end)
 
       assert :ok =
-               perform_job(CalendarEventWorker, %{
-                 "action" => "delete",
-                 "meeting_id" => meeting.id
-               })
+        perform_job(CalendarEventWorker, %{
+          "action" => "delete",
+          "meeting_id" => meeting.id
+        })
     end
 
     test "succeeds even if meeting not found (graceful degradation)" do
       # Meeting doesn't exist, but deletion should still succeed
       # Use a valid UUID that doesn't exist
-      non_existent_uuid = Ecto.UUID.generate()
-      
+      non_existent_uuid = UUID.generate()
+
       assert :ok =
                perform_job(CalendarEventWorker, %{
                  "action" => "delete",
@@ -296,7 +298,7 @@ defmodule Tymeslot.Workers.CalendarEventWorkerTest do
                })
 
       # Meeting should have integration info from last execution
-      updated_meeting = Repo.get(Tymeslot.DatabaseSchemas.MeetingSchema, meeting.id)
+      updated_meeting = Repo.get(MeetingSchema, meeting.id)
       assert updated_meeting.calendar_integration_id == integration.id
     end
   end

@@ -101,7 +101,22 @@ defmodule Tymeslot.Integrations.CalendarTest do
         {:ok, []}
       end)
 
-      assert {:ok, "Google Calendar connection successful"} = Calendar.test_connection(integration)
+      assert {:ok, "Google Calendar connection successful"} =
+               Calendar.test_connection(integration)
+    end
+  end
+
+  describe "calendar_module configuration" do
+    test "falls back to Operations when configured module does not exist" do
+      # Set to a non-existent module
+      Application.put_env(:tymeslot, :calendar_module, NonExistentModule)
+
+      # We don't need to mock Operations because we just want to see if it's called
+      # If it falls back to Operations, it will try to call Operations.get_event.
+      # Since no integrations are set up in this test context, it should return an error.
+      assert {:error, _} = Calendar.get_event("some-uid")
+    after
+      Application.delete_env(:tymeslot, :calendar_module)
     end
   end
 

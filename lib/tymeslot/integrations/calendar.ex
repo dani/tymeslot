@@ -323,11 +323,17 @@ defmodule Tymeslot.Integrations.Calendar do
   def get_calendar_events(_date, organizer_user_id, opts \\ []) do
     debug_module = Keyword.get(opts, :debug_calendar_module)
 
-    if is_function(debug_module, 1) do
-      debug_module.(organizer_user_id)
-    else
-      # Fetch events for the entire booking window
-      fetch_events_for_booking_window(organizer_user_id)
+    cond do
+      is_function(debug_module, 1) ->
+        debug_module.(organizer_user_id)
+
+      is_atom(debug_module) && debug_module != nil ->
+        {start_date, end_date} = calculate_booking_window_range(organizer_user_id)
+        debug_module.get_events_for_range_fresh(organizer_user_id, start_date, end_date)
+
+      true ->
+        # Fetch events for the entire booking window
+        fetch_events_for_booking_window(organizer_user_id)
     end
   end
 
@@ -341,7 +347,8 @@ defmodule Tymeslot.Integrations.Calendar do
       if socket && Map.has_key?(socket, :private) && socket.private[:debug_calendar_module] do
         socket.private[:debug_calendar_module]
       else
-        nil
+        # Try to get from config for tests
+        Application.get_env(:tymeslot, :calendar_module)
       end
 
     get_calendar_events(date, organizer_user_id, debug_calendar_module: debug_module)
@@ -354,7 +361,7 @@ defmodule Tymeslot.Integrations.Calendar do
           {:ok, list()} | {:error, term()}
   def get_events_for_month(user_id, year, month, timezone)
       when is_integer(user_id) and is_integer(year) and is_integer(month) and is_binary(timezone) do
-    Operations.get_events_for_month(user_id, year, month, timezone)
+    calendar_module().get_events_for_month(user_id, year, month, timezone)
   end
 
   @doc """
@@ -372,7 +379,7 @@ defmodule Tymeslot.Integrations.Calendar do
           {:ok, list()} | {:error, term()}
   def get_events_for_range_fresh(user_id, start_date, end_date)
       when is_integer(user_id) do
-    Operations.get_events_for_range_fresh(user_id, start_date, end_date)
+    calendar_module().get_events_for_range_fresh(user_id, start_date, end_date)
   end
 
   @doc """
@@ -381,8 +388,8 @@ defmodule Tymeslot.Integrations.Calendar do
   @spec create_event(map(), user_id() | nil) :: {:ok, map()} | {:error, term()}
   def create_event(event_data, user_id \\ nil) do
     case user_id do
-      id when is_integer(id) and id > 0 -> Operations.create_event(event_data, id)
-      nil -> Operations.create_event(event_data, nil)
+      id when is_integer(id) and id > 0 -> calendar_module().create_event(event_data, id)
+      nil -> calendar_module().create_event(event_data, nil)
       _ -> {:error, :invalid_user_id}
     end
   end
@@ -392,7 +399,7 @@ defmodule Tymeslot.Integrations.Calendar do
   """
   @spec update_event(String.t(), map(), pos_integer() | nil) :: :ok | {:error, term()}
   def update_event(uid, event_data, calendar_integration_id \\ nil) do
-    Operations.update_event(uid, event_data, calendar_integration_id)
+    calendar_module().update_event(uid, event_data, calendar_integration_id)
   end
 
   @doc """
@@ -400,14 +407,14 @@ defmodule Tymeslot.Integrations.Calendar do
   """
   @spec delete_event(String.t(), pos_integer() | nil) :: :ok | {:error, term()}
   def delete_event(uid, calendar_integration_id \\ nil) do
-    Operations.delete_event(uid, calendar_integration_id)
+    calendar_module().delete_event(uid, calendar_integration_id)
   end
 
   @doc """
   Get a single event by UID.
   """
   @spec get_event(String.t()) :: {:ok, map()} | {:error, :not_found | term()}
-  def get_event(uid), do: Operations.get_event(uid)
+  def get_event(uid), do: calendar_module().get_event(uid)
 
   @doc """
   Returns the booking calendar integration info for a user (id and path) used for event creation.
@@ -415,7 +422,23 @@ defmodule Tymeslot.Integrations.Calendar do
   @spec get_booking_integration_info(pos_integer()) ::
           {:ok, %{integration_id: pos_integer(), calendar_path: String.t()}} | {:error, term()}
   def get_booking_integration_info(user_id) when is_integer(user_id) do
-    Operations.get_booking_integration_info(user_id)
+    calendar_module().get_booking_integration_info(user_id)
+  end
+
+  # --- private helpers ---
+
+  defp calendar_module do
+    mod = Application.get_env(:tymeslot, :calendar_module, Operations)
+
+    if Code.ensure_loaded?(mod) do
+      mod
+    else
+      Logger.error(
+        "Configured calendar_module #{inspect(mod)} is not loaded. Falling back to Operations."
+      )
+
+      Operations
+    end
   end
 
   # ---------------------------
@@ -487,19 +510,28 @@ defmodule Tymeslot.Integrations.Calendar do
   @doc false
   @spec fetch_events_for_booking_window(user_id()) :: {:ok, list()} | {:error, term()}
   defp fetch_events_for_booking_window(user_id) do
-    # Get user's profile to determine booking window
+    {start_date, end_date} = calculate_booking_window_range(user_id)
+
+    # We check if profile exists, if not we fallback to list_events for legacy compatibility
+    case ProfileQueries.get_by_user_id(user_id) do
+      {:ok, _profile} ->
+        get_events_for_range_fresh(user_id, start_date, end_date)
+
+      {:error, _reason} ->
+        list_events(user_id)
+    end
+  end
+
+  defp calculate_booking_window_range(user_id) do
     case ProfileQueries.get_by_user_id(user_id) do
       {:ok, profile} ->
         today = Date.utc_today()
-        # Fetch events from today through the entire booking window
-        end_date = Date.add(today, profile.advance_booking_days)
-
-        get_events_for_range_fresh(user_id, today, end_date)
+        {today, Date.add(today, profile.advance_booking_days)}
 
       {:error, _reason} ->
-        # Fallback to list_events if profile not found
-        # This maintains backward compatibility
-        list_events(user_id)
+        today = Date.utc_today()
+        # Default fallback window
+        {today, Date.add(today, 30)}
     end
   end
 end

@@ -12,7 +12,7 @@ defmodule Tymeslot.Integrations.Common.ConfigManagerTest do
       }
 
       assert :ok = ConfigManager.validate_config(%{api_key: "key", base_url: "url"}, schema)
-      
+
       assert {:error, message} = ConfigManager.validate_config(%{api_key: "key"}, schema)
       assert String.contains?(message, "base_url")
     end
@@ -23,7 +23,7 @@ defmodule Tymeslot.Integrations.Common.ConfigManagerTest do
       }
 
       assert :ok = ConfigManager.validate_config(%{timeout: 5000}, schema)
-      
+
       assert {:error, message} = ConfigManager.validate_config(%{timeout: "5000"}, schema)
       assert String.contains?(message, "expected integer")
     end
@@ -33,15 +33,17 @@ defmodule Tymeslot.Integrations.Common.ConfigManagerTest do
         url: %{
           type: :string,
           required: true,
-          validator: fn val -> 
+          validator: fn val ->
             if String.starts_with?(val, "https://"), do: :ok, else: {:error, "must be https"}
           end
         }
       }
 
       assert :ok = ConfigManager.validate_config(%{url: "https://example.com"}, schema)
-      
-      assert {:error, message} = ConfigManager.validate_config(%{url: "http://example.com"}, schema)
+
+      assert {:error, message} =
+               ConfigManager.validate_config(%{url: "http://example.com"}, schema)
+
       assert String.contains?(message, "must be https")
     end
   end
@@ -64,7 +66,9 @@ defmodule Tymeslot.Integrations.Common.ConfigManagerTest do
         enabled: %{type: :boolean}
       }
 
-      {:ok, normalized} = ConfigManager.normalize_config(%{timeout: "5000", enabled: "false"}, schema)
+      {:ok, normalized} =
+        ConfigManager.normalize_config(%{timeout: "5000", enabled: "false"}, schema)
+
       assert normalized.timeout == 5000
       assert normalized.enabled == false
     end
@@ -87,7 +91,7 @@ defmodule Tymeslot.Integrations.Common.ConfigManagerTest do
     test "merges multiple schemas" do
       s1 = %{field1: %{type: :string}}
       s2 = %{field2: %{type: :integer}}
-      
+
       merged = ConfigManager.merge_schemas([s1, s2])
       assert merged[:field1]
       assert merged[:field2]
