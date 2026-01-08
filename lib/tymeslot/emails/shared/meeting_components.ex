@@ -1,7 +1,12 @@
 defmodule Tymeslot.Emails.Shared.MeetingComponents do
   @moduledoc """
   Meeting-specific MJML components for email templates.
-  Handles meeting details, time formatting, video sections, and meeting actions.
+
+  Implements visual hierarchy for meeting data:
+  - **Details Table**: 28px padding card, 12px row spacing, 20px icons.
+  - **Video Section**: 20px padding, 700 weight 18px title, 10px radius button.
+  - **Action Bars**: Responsive layouts for 1, 2, or 3+ buttons.
+  - **Badges**: 24px pill radius, 700 font weight for status/type.
   """
 
   alias Tymeslot.Emails.Shared.{SharedHelpers, Styles}
@@ -12,7 +17,7 @@ defmodule Tymeslot.Emails.Shared.MeetingComponents do
   @spec meeting_details_table(map()) :: String.t()
   def meeting_details_table(details) do
     """
-    <mj-section background-color="#{Styles.background_color(:gray)}" border-radius="12px" padding="24px">
+    <mj-section background-color="#{Styles.background_color(:gray)}" border-radius="12px" padding="28px">
       <mj-column>
         #{detail_row("📅", "Date", SharedHelpers.format_date(details.date), "🕐", "Time", format_meeting_time(details))}
         #{detail_row("⏱️", "Duration", SharedHelpers.format_duration(details.duration), location_icon(details[:location]), "Location", details[:location] || "TBD")}
@@ -58,20 +63,21 @@ defmodule Tymeslot.Emails.Shared.MeetingComponents do
     time_note = get_time_note_if_needed(show_time_note, style, text_color)
 
     """
-    <mj-wrapper padding="12px 0">
-      <mj-section 
-        background-color="#{bg_color}" 
-        border-radius="6px" 
-        border="#{border}" 
-        padding="16px"
+    <mj-wrapper padding="16px 0">
+      <mj-section
+        background-color="#{bg_color}"
+        border-radius="10px"
+        border="#{border}"
+        padding="20px"
       >
         <mj-column>
-          <mj-text 
-            color="#{text_color}" 
-            font-size="16px" 
-            font-weight="600" 
-            align="center" 
-            padding="0 0 12px 0"
+          <mj-text
+            color="#{text_color}"
+            font-size="18px"
+            font-weight="700"
+            align="center"
+            padding="0 0 16px 0"
+            line-height="24px"
           >
             📹 #{title}
           </mj-text>
@@ -82,9 +88,9 @@ defmodule Tymeslot.Emails.Shared.MeetingComponents do
             font-weight="700"
             align="center"
             width="280px"
-            font-size="15px"
-            inner-padding="14px 24px"
-            border-radius="6px">
+            font-size="16px"
+            inner-padding="16px 32px"
+            border-radius="10px">
             #{button_text_full}
           </mj-button>
           #{time_note}
@@ -156,17 +162,17 @@ defmodule Tymeslot.Emails.Shared.MeetingComponents do
     {bg_color, text_color} = get_action_button_colors(action)
 
     """
-    <mj-section padding="16px 0">
+    <mj-section padding="20px 0">
       <mj-column>
         <mj-button
           href="#{action.url}"
           background-color="#{bg_color}"
           color="#{text_color}"
           font-size="#{Styles.font_size(:base)}"
-          font-weight="600"
+          font-weight="700"
           border-radius="#{Styles.button_radius()}"
           inner-padding="#{Styles.button_padding()}"
-          width="300px">
+          width="280px">
           #{action.text}
         </mj-button>
       </mj-column>
@@ -180,7 +186,7 @@ defmodule Tymeslot.Emails.Shared.MeetingComponents do
     {secondary_bg, secondary_text} = get_action_button_colors(secondary_action)
 
     """
-    <mj-section padding="16px 0">
+    <mj-section padding="20px 0">
       <mj-group>
         <mj-column>
           <mj-button
@@ -188,9 +194,9 @@ defmodule Tymeslot.Emails.Shared.MeetingComponents do
             background-color="#{primary_bg}"
             color="#{primary_text}"
             font-size="#{Styles.font_size(:base)}"
-            font-weight="600"
+            font-weight="700"
             border-radius="#{Styles.button_radius()}"
-            inner-padding="#{Styles.button_padding()}"
+            inner-padding="14px 28px"
             width="180px">
             #{primary_action.text}
           </mj-button>
@@ -201,9 +207,9 @@ defmodule Tymeslot.Emails.Shared.MeetingComponents do
             background-color="#{secondary_bg}"
             color="#{secondary_text}"
             font-size="#{Styles.font_size(:base)}"
-            font-weight="600"
+            font-weight="700"
             border-radius="#{Styles.button_radius()}"
-            inner-padding="#{Styles.button_padding()}"
+            inner-padding="14px 28px"
             width="180px">
             #{secondary_action.text}
           </mj-button>
@@ -220,16 +226,16 @@ defmodule Tymeslot.Emails.Shared.MeetingComponents do
         {bg_color, text_color} = get_action_button_colors(action)
 
         """
-        <mj-section padding="4px 0">
+        <mj-section padding="6px 0">
           <mj-column>
             <mj-button
               href="#{action.url}"
               background-color="#{bg_color}"
               color="#{text_color}"
               font-size="#{Styles.font_size(:base)}"
-              font-weight="600"
+              font-weight="700"
               border-radius="#{Styles.button_radius()}"
-              inner-padding="#{Styles.button_padding()}"
+              inner-padding="14px 28px"
               width="260px">
               #{action.text}
             </mj-button>
@@ -276,28 +282,28 @@ defmodule Tymeslot.Emails.Shared.MeetingComponents do
     """
     <mj-table width="100%" cellpadding="0" cellspacing="0">
       <tr>
-        <td style="width: 50%; padding: 8px 12px 8px 0; vertical-align: top;">
+        <td style="width: 50%; padding: 12px 16px 12px 0; vertical-align: top;">
           <table width="100%" cellpadding="0" cellspacing="0">
             <tr>
-              <td style="width: 28px; vertical-align: top; padding-top: 1px;">
-                <span style="font-size: 16px;">#{icon1}</span>
+              <td style="width: 32px; vertical-align: top; padding-top: 2px;">
+                <span style="font-size: 20px;">#{icon1}</span>
               </td>
               <td style="vertical-align: top;">
-                <div style="font-size: #{Styles.font_size(:sm)}; color: #{Styles.text_color(:secondary)}; font-weight: 600;">#{label1}</div>
-                <div style="font-size: #{Styles.font_size(:base)}; color: #{Styles.text_color(:primary)}; margin-top: 2px;">#{value1}</div>
+                <div style="font-size: #{Styles.font_size(:sm)}; color: #{Styles.text_color(:secondary)}; font-weight: 700; margin-bottom: 4px;">#{label1}</div>
+                <div style="font-size: #{Styles.font_size(:base)}; color: #{Styles.text_color(:primary)}; font-weight: 500;">#{value1}</div>
               </td>
             </tr>
           </table>
         </td>
-        <td style="width: 50%; padding: 8px 0 8px 12px; vertical-align: top;">
+        <td style="width: 50%; padding: 12px 0 12px 16px; vertical-align: top;">
           <table width="100%" cellpadding="0" cellspacing="0">
             <tr>
-              <td style="width: 28px; vertical-align: top; padding-top: 1px;">
-                <span style="font-size: 16px;">#{icon2}</span>
+              <td style="width: 32px; vertical-align: top; padding-top: 2px;">
+                <span style="font-size: 20px;">#{icon2}</span>
               </td>
               <td style="vertical-align: top;">
-                <div style="font-size: #{Styles.font_size(:sm)}; color: #{Styles.text_color(:secondary)}; font-weight: 600;">#{label2}</div>
-                <div style="font-size: #{Styles.font_size(:base)}; color: #{Styles.text_color(:primary)}; margin-top: 2px;">#{value2}</div>
+                <div style="font-size: #{Styles.font_size(:sm)}; color: #{Styles.text_color(:secondary)}; font-weight: 700; margin-bottom: 4px;">#{label2}</div>
+                <div style="font-size: #{Styles.font_size(:base)}; color: #{Styles.text_color(:primary)}; font-weight: 500;">#{value2}</div>
               </td>
             </tr>
           </table>
@@ -311,8 +317,8 @@ defmodule Tymeslot.Emails.Shared.MeetingComponents do
 
   defp meeting_type_detail_section(meeting_type) do
     """
-    <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid #{Styles.border_color(:default)};">
-      <span style="background-color: #{Styles.background_color(:blue_light)}; color: #{Styles.component_color(:status_badge_blue)}; padding: 8px 16px; border-radius: 20px; font-size: #{Styles.font_size(:sm)}; font-weight: 600; display: inline-block;">
+    <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid #{Styles.border_color(:default)};">
+      <span style="background-color: #{Styles.background_color(:blue_light)}; color: #{Styles.component_color(:status_badge_blue)}; padding: 10px 20px; border-radius: 24px; font-size: #{Styles.font_size(:sm)}; font-weight: 700; display: inline-block;">
         #{SharedHelpers.sanitize_for_email(meeting_type)}
       </span>
     </div>

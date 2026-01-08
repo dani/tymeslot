@@ -1,7 +1,12 @@
 defmodule Tymeslot.Emails.Shared.UiComponents do
   @moduledoc """
   General UI MJML components for email templates.
-  Handles buttons, alerts, dividers, grids, and other basic UI elements.
+
+  Implements modern UI design tokens:
+  - **Buttons**: 10px radius, 700 font-weight, 16px size.
+  - **Alerts**: 8px radius, 4px left border, 16px 20px padding.
+  - **Titles**: 26px heading size, 800 weight, 24px line-height.
+  - **Cards**: 10px radius, light gray background (#f4f4f5).
   """
 
   alias Tymeslot.Emails.Shared.Styles
@@ -12,7 +17,7 @@ defmodule Tymeslot.Emails.Shared.UiComponents do
   @spec action_button(String.t(), String.t(), keyword()) :: String.t()
   def action_button(text, url, opts \\ []) do
     color = Keyword.get(opts, :color, "primary")
-    width = Keyword.get(opts, :width, "200px")
+    width = Keyword.get(opts, :width, "220px")
 
     """
     <mj-button
@@ -20,10 +25,10 @@ defmodule Tymeslot.Emails.Shared.UiComponents do
       background-color="#{Styles.button_color(color)}"
       color="#{Styles.button_text_color(color)}"
       border-radius="#{Styles.button_radius()}"
-      font-size="15px"
+      font-size="16px"
       inner-padding="#{Styles.button_padding()}"
       width="#{width}"
-      font-weight="600">
+      font-weight="700">
       #{text}
     </mj-button>
     """
@@ -62,14 +67,15 @@ defmodule Tymeslot.Emails.Shared.UiComponents do
     """
     <mj-section padding="0">
       <mj-column>
-        <mj-text 
-          padding="12px 16px" 
-          background-color="#{Styles.alert_background_color(type)}" 
+        <mj-text
+          padding="16px 20px"
+          background-color="#{Styles.alert_background_color(type)}"
           border-left="4px solid #{Styles.alert_border_color(type)}"
-          font-size="14px"
-          line-height="20px"
+          border-radius="8px"
+          font-size="15px"
+          line-height="22px"
         >
-          #{if title, do: "<strong>#{title}</strong><br/>", else: ""}
+          #{if title, do: "<strong style=\"font-weight: 700;\">#{title}</strong><br/>", else: ""}
           #{message}
         </mj-text>
       </mj-column>
@@ -104,20 +110,20 @@ defmodule Tymeslot.Emails.Shared.UiComponents do
     align = Keyword.get(opts, :align, "left")
 
     """
-    <mj-section padding="0 0 16px 0">
+    <mj-section padding="0 0 20px 0">
       <mj-column>
-        #{if icon, do: ~s(<mj-image src="#{icon}" width="48px" padding-bottom="8px" align="#{align}" />), else: ""}
-        <mj-text 
-          font-size="22px" 
-          font-weight="700" 
-          color="#{Styles.text_color(:primary)}" 
-          padding-bottom="#{if subtitle, do: "8px", else: "0"}" 
+        #{if icon, do: ~s(<mj-image src="#{icon}" width="56px" padding-bottom="12px" align="#{align}" />), else: ""}
+        <mj-text
+          font-size="26px"
+          font-weight="800"
+          color="#{Styles.text_color(:primary)}"
+          padding-bottom="#{if subtitle, do: "10px", else: "0"}"
           align="#{align}"
-          line-height="28px"
+          line-height="32px"
         >
           #{title}
         </mj-text>
-        #{if subtitle, do: ~s(<mj-text font-size="15px" color="#{Styles.text_color(:secondary)}" align="#{align}" line-height="22px">#{subtitle}</mj-text>), else: ""}
+        #{if subtitle, do: ~s(<mj-text font-size="16px" color="#{Styles.text_color(:secondary)}" align="#{align}" line-height="24px">#{subtitle}</mj-text>), else: ""}
       </mj-column>
     </mj-section>
     """
@@ -133,18 +139,18 @@ defmodule Tymeslot.Emails.Shared.UiComponents do
       Enum.map_join(items, "\n", fn item ->
         """
         <mj-column>
-          <mj-text 
-            align="center" 
-            font-size="12px" 
-            color="#{Styles.text_color(:secondary)}" 
+          <mj-text
+            align="center"
+            font-size="12px"
+            color="#{Styles.text_color(:secondary)}"
             padding="0 0 2px 0"
           >
             #{item.label}
           </mj-text>
-          <mj-text 
-            align="center" 
-            font-weight="600" 
-            font-size="14px" 
+          <mj-text
+            align="center"
+            font-weight="600"
+            font-size="14px"
             padding="0"
           >
             #{item.value}
@@ -154,8 +160,8 @@ defmodule Tymeslot.Emails.Shared.UiComponents do
       end)
 
     """
-    <mj-wrapper padding="8px 0">
-      <mj-section background-color="#{Styles.meeting_color(:card_bg)}" border-radius="6px" padding="12px">
+    <mj-wrapper padding="12px 0">
+      <mj-section background-color="#{Styles.meeting_color(:card_bg)}" border-radius="10px" padding="16px">
         <mj-group>
           #{columns}
         </mj-group>
@@ -191,20 +197,20 @@ defmodule Tymeslot.Emails.Shared.UiComponents do
     checklist_items = Enum.map_join(items, "<br/>", &"• #{&1}")
 
     """
-    <mj-wrapper padding="8px 0">
-      <mj-section background-color="#{bg_color}" border-radius="6px" padding="12px">
+    <mj-wrapper padding="12px 0">
+      <mj-section background-color="#{bg_color}" border-radius="10px" padding="16px">
         <mj-column>
-          <mj-text 
-            font-size="13px" 
-            font-weight="600" 
-            color="#{text_color}" 
-            padding="0 0 6px 0"
+          <mj-text
+            font-size="14px"
+            font-weight="700"
+            color="#{text_color}"
+            padding="0 0 8px 0"
           >
             #{title}
           </mj-text>
-          <mj-text 
-            font-size="12px" 
-            line-height="18px" 
+          <mj-text
+            font-size="14px"
+            line-height="20px"
             color="#{text_color}"
           >
             #{checklist_items}

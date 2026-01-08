@@ -1,7 +1,20 @@
 defmodule Tymeslot.Emails.Shared.MjmlEmail do
   @moduledoc """
   Base module for MJML email templates.
-  Provides helpers to compile MJML templates to HTML.
+
+  Provides structural design tokens and layout helpers that implement the
+  Tymeslot redesign (January 2026).
+
+  ## Layout Structure
+  - **Wrapper**: 24px horizontal padding on mobile, 12px gutter.
+  - **Container**: 12px border radius, white background.
+  - **Header**: 56px circular avatar, bold 20px organizer name.
+  - **Content**: 24px - 28px vertical padding for clear hierarchy.
+  - **Footer**: 12px bottom radius, subtle gray background, 13px text.
+
+  ## Brand Assets
+  - Uses Google Fonts Inter with weights 400-800.
+  - Consistent SVG-based default avatars.
   """
 
   import Swoosh.Email
@@ -71,43 +84,46 @@ defmodule Tymeslot.Emails.Shared.MjmlEmail do
     <mjml>
       <mj-head>
         <mj-title>Appointment with #{organizer_name}</mj-title>
-        <mj-font name="Inter" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
+        <mj-font name="Inter" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" />
+        <mj-preview>Message from #{organizer_name}</mj-preview>
         #{Styles.mjml_base_attributes()}
         <mj-breakpoint width="480px" />
         #{Styles.email_css_styles()}
       </mj-head>
       <mj-body background-color="#fafafa">
-        <mj-wrapper padding="20px 8px" background-color="#fafafa">
+        <mj-wrapper padding="24px 12px" background-color="#fafafa">
           <!-- Main Container -->
-          <mj-section background-color="#ffffff" border-radius="8px" padding="0">
+          <mj-section background-color="#ffffff" border-radius="12px" padding="0">
             <mj-column>
               <!-- Personal Header with native MJML responsiveness -->
-              <mj-section padding="16px 20px">
+              <mj-section padding="24px 24px 20px 24px">
                 <mj-group>
-                  <mj-column width="25%" vertical-align="middle">
+                  <mj-column width="20%" vertical-align="middle">
                     <mj-image
                       src="#{organizer_avatar_url}"
-                      width="50px"
-                      height="50px"
-                      border-radius="25px"
+                      width="56px"
+                      height="56px"
+                      border-radius="28px"
                       alt="#{organizer_name}"
                       align="center"
                     />
                   </mj-column>
-                  <mj-column width="75%" vertical-align="middle">
+                  <mj-column width="80%" vertical-align="middle">
                     <mj-text
-                      font-size="18px"
+                      font-size="20px"
                       font-weight="700"
-                      padding="0 0 2px 0"
+                      padding="0 0 4px 0"
                       align="left"
+                      line-height="26px"
                     >
                       #{organizer_name}
                     </mj-text>
                     <mj-text
-                      font-size="13px"
+                      font-size="14px"
                       color="#52525b"
                       padding="0"
                       align="left"
+                      line-height="20px"
                     >
                       #{organizer_title}
                     </mj-text>
@@ -116,13 +132,13 @@ defmodule Tymeslot.Emails.Shared.MjmlEmail do
               </mj-section>
 
               <mj-divider
-                padding="0 20px"
+                padding="0 24px"
                 border-color="#e4e4e7"
                 border-width="1px"
               />
 
               <!-- Content Section -->
-              <mj-section padding="8px 20px 20px 20px">
+              <mj-section padding="24px 24px 28px 24px">
                 <mj-column>
                   #{content}
                 </mj-column>
@@ -131,17 +147,18 @@ defmodule Tymeslot.Emails.Shared.MjmlEmail do
               <!-- Footer -->
               <mj-section
                 background-color="#fafafa"
-                border-radius="0 0 8px 8px"
-                padding="12px 20px"
+                border-radius="0 0 12px 12px"
+                padding="16px 24px"
                 border-top="1px solid #e4e4e7"
               >
                 <mj-column>
                   <mj-text
-                    color="#52525b"
-                    font-size="12px"
+                    color="#71717a"
+                    font-size="13px"
                     align="center"
+                    line-height="18px"
                   >
-                    Sent by <a href="#{SharedHelpers.get_app_url()}" style="color: #14b8a6; text-decoration: underline;">Tymeslot</a>
+                    Sent by <a href="#{SharedHelpers.get_app_url()}" style="color: #14b8a6; text-decoration: none; font-weight: 600;">Tymeslot</a>
                   </mj-text>
                 </mj-column>
               </mj-section>

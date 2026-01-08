@@ -1,7 +1,34 @@
 defmodule Tymeslot.Emails.Shared.Styles do
   @moduledoc """
-  Centralized styling configuration for email templates.
-  Provides consistent visual design across all emails.
+  Centralized styling configuration and design tokens for email templates.
+
+  This module serves as the source of truth for the email design system, ensuring
+  consistency with the Tymeslot web application (homepage and dashboard).
+
+  ## Design Tokens
+
+  ### Typography (Inter Font)
+  - **Font Family**: Inter, system-ui, sans-serif
+  - **Base Size**: 16px (for body text and buttons)
+  - **Small Size**: 14px (for labels and secondary text)
+  - **Weights**: 400 (Normal), 500 (Medium), 600 (Semibold), 700 (Bold), 800 (Extrabold)
+
+  ### Color Palette (Turquoise Theme)
+  - **Primary**: #14b8a6 (Turquoise-500)
+  - **Primary Hover**: #0d9488 (Turquoise-600)
+  - **Text Primary**: #18181b (Neutral-900)
+  - **Text Secondary**: #52525b (Neutral-600)
+  - **Background Light**: #fafafa (Neutral-50)
+  - **Background Gray**: #f3f4f6 (Card background)
+
+  ### Spacing & Borders
+  - **Border Radius**: 12px for sections, 10px for buttons/cards, 8px for alerts
+  - **Button Padding**: 16px 32px (Primary), 14px 28px (Secondary)
+  - **Section Padding**: 24px - 28px for modern white-space
+
+  ## Compatibility
+  - Responsive design via MJML components and custom mobile overrides.
+  - Dark mode support using `@media (prefers-color-scheme: dark)` and utility classes.
   """
 
   # Color palette - aligned with design system (turquoise theme)
@@ -76,16 +103,16 @@ defmodule Tymeslot.Emails.Shared.Styles do
   @info_text_dark "#3730a3"
   @success_text_green "#166534"
 
-  # Typography
-  @font_family "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+  # Typography - Aligned with design tokens and Inter font
+  @font_family "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
   @font_size_xs "12px"
-  @font_size_sm "13px"
-  @font_size_base "14px"
+  @font_size_sm "14px"
+  @font_size_base "16px"
   @font_size_md "16px"
   @font_size_lg "18px"
   @font_size_xl "20px"
   @font_size_2xl "24px"
-  @font_size_3xl "28px"
+  @font_size_3xl "30px"
 
   # Spacing
   @spacing_0 "0"
@@ -105,8 +132,8 @@ defmodule Tymeslot.Emails.Shared.Styles do
   @padding_xl "24px"
   @padding_2xl "32px"
 
-  # Components
-  @button_radius "6px"
+  # Components - Aligned with modern design
+  @button_radius "10px"
 
   @doc "Get button color based on type"
   @spec button_color(String.t()) :: String.t()
@@ -145,7 +172,7 @@ defmodule Tymeslot.Emails.Shared.Styles do
 
   @doc "Button padding"
   @spec button_padding() :: String.t()
-  def button_padding, do: "14px 24px"
+  def button_padding, do: "16px 32px"
 
   @doc "Button font size"
   @spec button_font_size() :: String.t()
@@ -176,19 +203,19 @@ defmodule Tymeslot.Emails.Shared.Styles do
   @doc "Table label cell style"
   @spec table_label_style() :: String.t()
   def table_label_style do
-    "padding: #{@spacing_sm} #{@spacing_md} #{@spacing_sm} 0; font-weight: 600; color: #{@text_secondary}; width: 35%; min-width: 100px;"
+    "padding: #{@spacing_md} #{@spacing_lg} #{@spacing_md} 0; font-weight: 700; color: #{@text_secondary}; width: 35%; min-width: 100px; font-size: 14px;"
   end
 
   @doc "Table value cell style"
   @spec table_value_style() :: String.t()
   def table_value_style do
-    "padding: #{@spacing_sm} 0; color: #{@text_primary}; word-break: break-word;"
+    "padding: #{@spacing_md} 0; color: #{@text_primary}; word-break: break-word; font-size: 15px; font-weight: 500;"
   end
 
   @doc "Calendar link style"
   @spec calendar_link_style() :: String.t()
   def calendar_link_style do
-    "color: #{@info_color}; text-decoration: none; font-weight: 500; padding: #{@spacing_xs} #{@spacing_sm}; border: 1px solid #{@border_color}; border-radius: #{@button_radius}; display: inline-block;"
+    "color: #{@info_color}; text-decoration: none; font-weight: 600; padding: #{@spacing_sm} #{@spacing_md}; border: 1px solid #{@border_color}; border-radius: 10px; display: inline-block;"
   end
 
   @doc "Footer link style"
@@ -205,23 +232,34 @@ defmodule Tymeslot.Emails.Shared.Styles do
       /* Minimal overrides for mobile - MJML handles most responsiveness */
       .hide-mobile { display: none !important; }
       .show-mobile { display: block !important; }
-      
+
       /* Table adjustments for better mobile reading */
       .responsive-table td {
         display: block !important;
         width: 100% !important;
-        padding: 6px 0 !important;
+        padding: 8px 0 !important;
         text-align: left !important;
       }
       .responsive-table td:first-child {
-        font-weight: 600 !important;
+        font-weight: 700 !important;
         color: #52525b !important;
-        padding-bottom: 2px !important;
+        padding-bottom: 4px !important;
+        font-size: 14px !important;
       }
       .responsive-table tr {
         display: block !important;
-        padding: 8px 0 !important;
+        padding: 12px 0 !important;
         border-bottom: 1px solid #e4e4e7 !important;
+      }
+    }
+
+    /* Dark mode compatibility - ensure readability */
+    @media (prefers-color-scheme: dark) {
+      .force-white-bg {
+        background-color: #ffffff !important;
+      }
+      .force-light-text {
+        color: #18181b !important;
       }
     }
     """

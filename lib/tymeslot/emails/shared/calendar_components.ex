@@ -1,7 +1,11 @@
 defmodule Tymeslot.Emails.Shared.CalendarComponents do
   @moduledoc """
   Calendar-related MJML components for email templates.
-  Handles calendar links, attendee information, and scheduling-specific elements.
+
+  Implements design tokens for integration links:
+  - **Calendar Links**: 10px outer radius, 8px button radius, 14px text.
+  - **Attendee Info**: 18px heading, 700 weight for labels, 500 weight for values.
+  - **Tables**: Consistent 1px border (#e4e4e7), 16px row padding.
   """
 
   alias Tymeslot.Emails.Shared.{SharedHelpers, Styles}
@@ -14,57 +18,61 @@ defmodule Tymeslot.Emails.Shared.CalendarComponents do
     links = SharedHelpers.calendar_links(meeting_details)
 
     """
-    <mj-section padding="16px 0" background-color="#{Styles.calendar_color(:bg_light)}">
+    <mj-section padding="20px 0 0 0" background-color="#{Styles.calendar_color(:bg_light)}" border-radius="10px">
       <mj-column>
-        <mj-text 
-          align="center" 
-          font-size="14px" 
-          color="#{Styles.calendar_color(:text_muted)}" 
-          padding-bottom="12px"
+        <mj-text
+          align="center"
+          font-size="15px"
+          font-weight="600"
+          color="#{Styles.calendar_color(:text_muted)}"
+          padding-bottom="16px"
         >
           Add to your calendar:
         </mj-text>
       </mj-column>
     </mj-section>
-    <mj-section padding="0 0 16px 0" background-color="#{Styles.calendar_color(:bg_light)}">
+    <mj-section padding="0 0 20px 0" background-color="#{Styles.calendar_color(:bg_light)}" border-radius="0 0 10px 10px">
       <mj-group>
         <mj-column>
-          <mj-button 
-            href="#{links.google}" 
-            background-color="#{Styles.calendar_color(:button_white)}" 
-            color="#{Styles.component_color(:link)}" 
-            border="1px solid #{Styles.border_color(:light_gray)}" 
-            border-radius="6px" 
-            font-size="13px" 
-            inner-padding="8px 16px"
+          <mj-button
+            href="#{links.google}"
+            background-color="#{Styles.calendar_color(:button_white)}"
+            color="#{Styles.component_color(:link)}"
+            border="1px solid #{Styles.border_color(:light_gray)}"
+            border-radius="8px"
+            font-size="14px"
+            font-weight="600"
+            inner-padding="10px 18px"
             width="90px"
           >
             Google
           </mj-button>
         </mj-column>
         <mj-column>
-          <mj-button 
-            href="#{links.outlook}" 
-            background-color="#{Styles.calendar_color(:button_white)}" 
-            color="#{Styles.component_color(:link)}" 
-            border="1px solid #{Styles.border_color(:light_gray)}" 
-            border-radius="6px" 
-            font-size="13px" 
-            inner-padding="8px 16px"
+          <mj-button
+            href="#{links.outlook}"
+            background-color="#{Styles.calendar_color(:button_white)}"
+            color="#{Styles.component_color(:link)}"
+            border="1px solid #{Styles.border_color(:light_gray)}"
+            border-radius="8px"
+            font-size="14px"
+            font-weight="600"
+            inner-padding="10px 18px"
             width="90px"
           >
             Outlook
           </mj-button>
         </mj-column>
         <mj-column>
-          <mj-button 
-            href="#{links.yahoo}" 
-            background-color="#{Styles.calendar_color(:button_white)}" 
-            color="#{Styles.component_color(:link)}" 
-            border="1px solid #{Styles.border_color(:light_gray)}" 
-            border-radius="6px" 
-            font-size="13px" 
-            inner-padding="8px 16px"
+          <mj-button
+            href="#{links.yahoo}"
+            background-color="#{Styles.calendar_color(:button_white)}"
+            color="#{Styles.component_color(:link)}"
+            border="1px solid #{Styles.border_color(:light_gray)}"
+            border-radius="8px"
+            font-size="14px"
+            font-weight="600"
+            inner-padding="10px 18px"
             width="90px"
           >
             Yahoo
@@ -81,12 +89,12 @@ defmodule Tymeslot.Emails.Shared.CalendarComponents do
   @spec attendee_info_section(map()) :: String.t()
   def attendee_info_section(attendee) do
     """
-    <mj-section padding="0 0 20px 0">
+    <mj-section padding="0 0 24px 0">
       <mj-column>
-        <mj-text 
-          font-size="16px" 
-          font-weight="600" 
-          padding-bottom="12px"
+        <mj-text
+          font-size="18px"
+          font-weight="700"
+          padding-bottom="16px"
         >
           Attendee Information
         </mj-text>
@@ -98,7 +106,7 @@ defmodule Tymeslot.Emails.Shared.CalendarComponents do
           <tr style="#{Styles.table_row_style()}">
             <td style="#{Styles.table_label_style()}">Email:</td>
             <td style="#{Styles.table_value_style()}">
-              <a href="mailto:#{attendee.email}" style="color: #{Styles.component_color(:link)};">#{attendee.email}</a>
+              <a href="mailto:#{attendee.email}" style="color: #{Styles.component_color(:link)}; font-weight: 600; text-decoration: none;">#{attendee.email}</a>
             </td>
           </tr>
           #{if attendee[:phone], do: phone_row(attendee.phone), else: ""}
