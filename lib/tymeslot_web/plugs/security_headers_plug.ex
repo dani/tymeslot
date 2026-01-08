@@ -54,11 +54,12 @@ defmodule TymeslotWeb.Plugs.SecurityHeadersPlug do
 
             # Log when embedding is restricted
             if profile.allowed_embed_domains != nil and length(profile.allowed_embed_domains) > 0 do
+              referer = List.first(get_req_header(conn, "referer"))
               Logger.info("Embed security restrictions applied",
                 username: username,
                 profile_id: profile.id,
                 allowed_domains: inspect(profile.allowed_embed_domains),
-                referer: get_req_header(conn, "referer") |> List.first()
+                referer: referer
               )
             end
 
@@ -96,7 +97,7 @@ defmodule TymeslotWeb.Plugs.SecurityHeadersPlug do
 
     case String.split(path, "/", parts: 3) do
       ["", username | _] ->
-        if username not in reserved_paths, do: username, else: nil
+        if username in reserved_paths, do: nil, else: username
 
       _ ->
         nil
@@ -111,10 +112,7 @@ defmodule TymeslotWeb.Plugs.SecurityHeadersPlug do
 
   defp build_security_headers(allowed_domains) when is_list(allowed_domains) do
     # Build CSP frame-ancestors with HTTPS URLs
-    domains =
-      allowed_domains
-      |> Enum.map(&"https://#{&1}")
-      |> Enum.join(" ")
+    domains = Enum.map_join(allowed_domains, " ", &"https://#{&1}")
 
     frame_ancestors = "'self' #{domains}"
 

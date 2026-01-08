@@ -11,6 +11,8 @@ defmodule Tymeslot.Infrastructure.HTTPClientBehaviour do
               {:ok, HTTPoison.Response.t()} | {:error, HTTPoison.Error.t()}
   @callback delete(String.t(), list(), keyword()) ::
               {:ok, HTTPoison.Response.t()} | {:error, HTTPoison.Error.t()}
+  @callback report(String.t(), any(), list(), keyword()) ::
+              {:ok, HTTPoison.Response.t()} | {:error, HTTPoison.Error.t()}
   @callback request(atom() | String.t(), String.t(), any(), list(), keyword()) ::
               {:ok, HTTPoison.Response.t()} | {:error, HTTPoison.Error.t()}
 end

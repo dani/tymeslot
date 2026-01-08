@@ -28,9 +28,6 @@ defmodule Tymeslot.Security.WebhookInputProcessor do
 
       {:error, errors} when is_map(errors) ->
         {:error, errors}
-
-      {:error, error} ->
-        {:error, %{form: error}}
     end
   end
 

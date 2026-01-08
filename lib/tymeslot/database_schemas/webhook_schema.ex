@@ -127,10 +127,11 @@ defmodule Tymeslot.DatabaseSchemas.WebhookSchema do
       in_production?() and String.starts_with?(url, "http://") ->
         {:error, "must use HTTPS in production"}
 
-      in_production?() and is_private_url?(url) ->
+      in_production?() and private_url?(url) ->
         {:error, "cannot use private or local network addresses in production"}
 
-      not in_production?() and (String.contains?(url, "localhost") or String.contains?(url, "127.0.0.1")) ->
+      not in_production?() and
+          (String.contains?(url, "localhost") or String.contains?(url, "127.0.0.1")) ->
         # Allow localhost in dev/test
         :ok
 
@@ -152,7 +153,11 @@ defmodule Tymeslot.DatabaseSchemas.WebhookSchema do
     end
   end
 
-  defp is_private_url?(url) do
+  @doc """
+  Checks if a URL points to a private or local network address.
+  """
+  @spec private_url?(String.t()) :: boolean()
+  def private_url?(url) do
     case URI.parse(url).host do
       nil ->
         true
@@ -162,18 +167,38 @@ defmodule Tymeslot.DatabaseSchemas.WebhookSchema do
         if host in ["localhost", "127.0.0.1", "::1"] do
           true
         else
-          # Resolve hostname and check IP ranges
-          case :inet.getaddr(to_charlist(host), :inet) do
-            {:ok, {10, _, _, _}} -> true
-            {:ok, {172, x, _, _}} when x >= 16 and x <= 31 -> true
-            {:ok, {192, 168, _, _}} -> true
-            {:ok, {127, _, _, _}} -> true
-            {:ok, {169, 254, _, _}} -> true
-            {:ok, {0, 0, 0, 0}} -> true
-            _ -> false
-          end
+          # Resolve hostname and check IP ranges for both IPv4 and IPv6
+          check_ip_address(host)
         end
     end
+  end
+
+  defp check_ip_address(host) do
+    host_charlist = to_charlist(host)
+
+    # Check IPv4
+    ipv4_private =
+      case :inet.getaddr(host_charlist, :inet) do
+        {:ok, {10, _, _, _}} -> true
+        {:ok, {172, x, _, _}} when x >= 16 and x <= 31 -> true
+        {:ok, {192, 168, _, _}} -> true
+        {:ok, {127, _, _, _}} -> true
+        {:ok, {169, 254, _, _}} -> true
+        {:ok, {0, 0, 0, 0}} -> true
+        _ -> false
+      end
+
+    # Check IPv6
+    ipv6_private =
+      case :inet.getaddr(host_charlist, :inet6) do
+        {:ok, {0, 0, 0, 0, 0, 0, 0, 1}} -> true
+        {:ok, {0xFE80, _, _, _, _, _, _, _}} -> true
+        {:ok, {0xFC00, _, _, _, _, _, _, _}} -> true
+        {:ok, {0xFD00, _, _, _, _, _, _, _}} -> true
+        _ -> false
+      end
+
+    ipv4_private or ipv6_private
   end
 
   defp validate_events(changeset) do

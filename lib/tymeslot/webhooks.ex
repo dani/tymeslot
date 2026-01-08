@@ -233,11 +233,11 @@ defmodule Tymeslot.Webhooks do
       {"Content-Type", "application/json"},
       {"User-Agent", "Tymeslot-Webhooks/1.0"},
       {"X-Tymeslot-Signature", signature},
-      {"X-Tymeslot-Timestamp", DateTime.utc_now() |> DateTime.to_iso8601()}
+      {"X-Tymeslot-Timestamp", DateTime.to_iso8601(DateTime.utc_now())}
     ]
   end
 
   defp http_client do
-    Application.get_env(:tymeslot, :http_client, HTTPoison)
+    Application.get_env(:tymeslot, :http_client_module, Tymeslot.Infrastructure.HTTPClient)
   end
 end

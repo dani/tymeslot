@@ -15,7 +15,7 @@ defmodule Tymeslot.Webhooks.PayloadBuilder do
   def build_payload(event_type, meeting, webhook_id) do
     %{
       event: event_type,
-      timestamp: DateTime.utc_now() |> DateTime.to_iso8601(),
+      timestamp: DateTime.to_iso8601(DateTime.utc_now()),
       webhook_id: webhook_id,
       data: %{
         meeting: build_meeting_data(meeting)
@@ -30,10 +30,11 @@ defmodule Tymeslot.Webhooks.PayloadBuilder do
   def build_test_payload do
     %{
       event: "webhook.test",
-      timestamp: DateTime.utc_now() |> DateTime.to_iso8601(),
+      timestamp: DateTime.to_iso8601(DateTime.utc_now()),
       webhook_id: "test",
       data: %{
-        message: "This is a test webhook from Tymeslot. If you receive this, your webhook is configured correctly!",
+        message:
+          "This is a test webhook from Tymeslot. If you receive this, your webhook is configured correctly!",
         test: true
       }
     }
@@ -42,26 +43,28 @@ defmodule Tymeslot.Webhooks.PayloadBuilder do
   # Private functions
 
   defp build_meeting_data(%MeetingSchema{} = meeting) do
-    %{
-      id: meeting.id,
-      uid: meeting.uid,
-      title: meeting.title,
-      summary: meeting.summary,
-      description: meeting.description,
-      start_time: format_datetime(meeting.start_time),
-      end_time: format_datetime(meeting.end_time),
-      duration: meeting.duration,
-      status: meeting.status,
-      meeting_type: meeting.meeting_type,
-      location: meeting.location,
-      organizer: build_organizer_data(meeting),
-      attendee: build_attendee_data(meeting),
-      urls: build_urls(meeting),
-      video: build_video_data(meeting),
-      created_at: format_datetime(meeting.inserted_at),
-      updated_at: format_datetime(meeting.updated_at)
-    }
-    |> maybe_add_cancellation_data(meeting)
+    maybe_add_cancellation_data(
+      %{
+        id: meeting.id,
+        uid: meeting.uid,
+        title: meeting.title,
+        summary: meeting.summary,
+        description: meeting.description,
+        start_time: format_datetime(meeting.start_time),
+        end_time: format_datetime(meeting.end_time),
+        duration: meeting.duration,
+        status: meeting.status,
+        meeting_type: meeting.meeting_type,
+        location: meeting.location,
+        organizer: build_organizer_data(meeting),
+        attendee: build_attendee_data(meeting),
+        urls: build_urls(meeting),
+        video: build_video_data(meeting),
+        created_at: format_datetime(meeting.inserted_at),
+        updated_at: format_datetime(meeting.updated_at)
+      },
+      meeting
+    )
   end
 
   defp build_organizer_data(meeting) do

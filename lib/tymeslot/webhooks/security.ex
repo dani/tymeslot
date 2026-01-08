@@ -26,9 +26,7 @@ defmodule Tymeslot.Webhooks.Security do
   """
   @spec generate_signature(map(), String.t()) :: String.t()
   def generate_signature(payload, secret) when is_map(payload) and is_binary(secret) do
-    payload
-    |> Jason.encode!()
-    |> generate_signature_from_string(secret)
+    generate_signature_from_string(Jason.encode!(payload), secret)
   end
 
   @doc """
@@ -37,8 +35,8 @@ defmodule Tymeslot.Webhooks.Security do
   @spec generate_signature_from_string(String.t(), String.t()) :: String.t()
   def generate_signature_from_string(payload_string, secret)
       when is_binary(payload_string) and is_binary(secret) do
-    :crypto.mac(:hmac, :sha256, secret, payload_string)
-    |> Base.encode16(case: :lower)
+    signature = Base.encode16(:crypto.mac(:hmac, :sha256, secret, payload_string), case: :lower)
+    "sha256=#{signature}"
   end
 
   @doc """
@@ -57,7 +55,6 @@ defmodule Tymeslot.Webhooks.Security do
   """
   @spec generate_secret() :: String.t()
   def generate_secret do
-    :crypto.strong_rand_bytes(32)
-    |> Base.encode64()
+    Base.encode64(:crypto.strong_rand_bytes(32))
   end
 end

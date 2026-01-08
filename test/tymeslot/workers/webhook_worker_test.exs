@@ -8,6 +8,7 @@ defmodule Tymeslot.Workers.WebhookWorkerTest do
   alias Ecto.UUID
   alias Tymeslot.DatabaseSchemas.WebhookDeliverySchema
   alias Tymeslot.DatabaseSchemas.WebhookSchema
+  alias Tymeslot.Webhooks.Security
   alias Tymeslot.Workers.WebhookWorker
 
   setup :verify_on_exit!
@@ -213,12 +214,12 @@ defmodule Tymeslot.Workers.WebhookWorkerTest do
     test "generates HMAC signature when secret is present" do
       meeting = insert(:meeting)
       user = insert(:user)
-      
+
       # Insert webhook with encrypted secret
       # The webhook schema encrypts the secret on insert
       {:ok, webhook} =
-        %Tymeslot.DatabaseSchemas.WebhookSchema{}
-        |> Tymeslot.DatabaseSchemas.WebhookSchema.changeset(%{
+        %WebhookSchema{}
+        |> WebhookSchema.changeset(%{
           name: "Test Webhook",
           url: "https://example.com/webhook",
           secret: "test_secret_key",
@@ -239,9 +240,9 @@ defmodule Tymeslot.Workers.WebhookWorkerTest do
         assert String.starts_with?(signature, "sha256=")
 
         # Verify signature is valid
-        payload = Jason.decode!(body)
         expected_signature =
-          Tymeslot.Webhooks.Security.generate_signature(payload, "test_secret_key")
+          Security.generate_signature_from_string(body, "test_secret_key")
+
         assert signature == expected_signature
 
         {:ok, %{status_code: 200, body: "OK"}}
@@ -258,11 +259,11 @@ defmodule Tymeslot.Workers.WebhookWorkerTest do
     test "includes timestamp header for replay attack prevention" do
       meeting = insert(:meeting)
       user = insert(:user)
-      
+
       # Insert webhook with encrypted secret
       {:ok, webhook} =
-        %Tymeslot.DatabaseSchemas.WebhookSchema{}
-        |> Tymeslot.DatabaseSchemas.WebhookSchema.changeset(%{
+        %WebhookSchema{}
+        |> WebhookSchema.changeset(%{
           name: "Test Webhook",
           url: "https://example.com/webhook",
           secret: "test_secret",

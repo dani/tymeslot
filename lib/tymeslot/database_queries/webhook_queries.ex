@@ -100,7 +100,7 @@ defmodule Tymeslot.DatabaseQueries.WebhookQueries do
   @doc """
   Records a successful webhook delivery.
   """
-  @spec record_success(WebhookSchema.t(), DateTime.t()) ::
+  @spec record_success(WebhookSchema.t(), DateTime.t() | nil) ::
           {:ok, WebhookSchema.t()} | {:error, Ecto.Changeset.t()}
   def record_success(%WebhookSchema{} = webhook, triggered_at \\ nil) do
     triggered_at = triggered_at || DateTime.utc_now()
@@ -117,27 +117,28 @@ defmodule Tymeslot.DatabaseQueries.WebhookQueries do
   """
   @spec record_failure(WebhookSchema.t(), String.t()) ::
           {:ok, WebhookSchema.t()} | {:error, Ecto.Changeset.t()}
-  def record_failure(%WebhookSchema{} = webhook, reason) do
-    new_failure_count = webhook.failure_count + 1
+  def record_failure(%WebhookSchema{id: id}, reason) do
+    # Use atomic increment to prevent race conditions
+    # returning: true is supported by PostgreSQL
+    {1, [updated_webhook]} =
+      WebhookSchema
+      |> where([w], w.id == ^id)
+      |> select([w], w)
+      |> Repo.update_all(
+        set: [last_status: "failed: #{reason}"],
+        inc: [failure_count: 1]
+      )
 
-    attrs = %{
-      last_status: "failed",
-      failure_count: new_failure_count
-    }
-
-    # Auto-disable after 10 consecutive failures
-    attrs =
-      if new_failure_count >= 10 do
-        Map.merge(attrs, %{
-          is_active: false,
-          disabled_at: DateTime.utc_now(),
-          disabled_reason: reason
-        })
-      else
-        attrs
-      end
-
-    update_webhook(webhook, attrs)
+    # Handle auto-disabling if necessary
+    if updated_webhook.failure_count >= 10 do
+      update_webhook(updated_webhook, %{
+        is_active: false,
+        disabled_at: DateTime.utc_now(),
+        disabled_reason: "Too many consecutive failures: #{reason}"
+      })
+    else
+      {:ok, updated_webhook}
+    end
   end
 
   @doc """
@@ -214,7 +215,7 @@ defmodule Tymeslot.DatabaseQueries.WebhookQueries do
   @spec get_delivery_stats(integer(), keyword()) :: map()
   def get_delivery_stats(webhook_id, opts \\ []) do
     days_ago = Keyword.get(opts, :days, 7)
-    since = DateTime.utc_now() |> DateTime.add(-days_ago, :day)
+    since = DateTime.add(DateTime.utc_now(), -days_ago, :day)
 
     query =
       from d in WebhookDeliverySchema,
@@ -246,8 +247,11 @@ defmodule Tymeslot.DatabaseQueries.WebhookQueries do
   Defaults to 30 days but can be overridden.
   """
   @spec cleanup_old_deliveries(integer()) :: {integer(), nil}
-  def cleanup_old_deliveries(days \\ 30) do
-    cutoff = DateTime.utc_now() |> DateTime.add(-days, :day)
+  def cleanup_old_deliveries(days \\ 30)
+  def cleanup_old_deliveries(days) when is_integer(days) and days < 0, do: {0, nil}
+
+  def cleanup_old_deliveries(days) do
+    cutoff = DateTime.add(DateTime.utc_now(), -days, :day)
 
     WebhookDeliverySchema
     |> where([d], d.inserted_at < ^cutoff)

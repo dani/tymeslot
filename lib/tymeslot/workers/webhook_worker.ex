@@ -26,7 +26,11 @@ defmodule Tymeslot.Workers.WebhookWorker do
 
   @impl Oban.Worker
   def perform(%Oban.Job{
-        args: %{"webhook_id" => webhook_id, "event_type" => event_type, "meeting_id" => meeting_id},
+        args: %{
+          "webhook_id" => webhook_id,
+          "event_type" => event_type,
+          "meeting_id" => meeting_id
+        },
         attempt: attempt
       }) do
     with {:ok, webhook} <- WebhookQueries.get_webhook(webhook_id),
@@ -138,9 +142,7 @@ defmodule Tymeslot.Workers.WebhookWorker do
 
   defp deliver_webhook(%WebhookSchema{} = webhook, event_type, meeting, attempt) do
     # Check if webhook is still active
-    if not WebhookSchema.should_be_active?(webhook) do
-      {:error, :disabled}
-    else
+    if WebhookSchema.should_be_active?(webhook) do
       # Decrypt secret if present
       webhook = WebhookSchema.decrypt_secret(webhook)
 
@@ -161,28 +163,50 @@ defmodule Tymeslot.Workers.WebhookWorker do
       result = send_webhook_request(webhook.url, payload, webhook.secret)
 
       # Update delivery log with result
-      update_delivery_with_result(delivery, result)
+      {:ok, delivery} = update_delivery_with_result(delivery, result)
+
+      # Return result for perform/1 to handle success/failure
+      case result do
+        {:ok, status, _body} when status >= 200 and status < 300 ->
+          {:ok, delivery}
+
+        {:ok, status, _body} ->
+          {:error, {:http_error, status}}
+
+        {:error, reason} ->
+          {:error, reason}
+      end
+    else
+      {:error, :disabled}
     end
   end
 
   defp send_webhook_request(url, payload, secret) do
-    headers = build_headers(payload, secret)
-    body = Jason.encode!(payload)
+    # Re-validate URL in production to prevent DNS rebinding attacks
+    if production?() and WebhookSchema.private_url?(url) do
+      {:error, "URL resolves to a private or local network address"}
+    else
+      headers = build_headers(payload, secret)
+      body = Jason.encode!(payload)
 
-    task = Task.async(fn -> http_client().post(url, body, headers, recv_timeout: @delivery_timeout_ms) end)
+      task =
+        Task.async(fn ->
+          http_client().post(url, body, headers, recv_timeout: @delivery_timeout_ms)
+        end)
 
-    case Task.yield(task, @delivery_timeout_ms + 1000) || Task.shutdown(task) do
-      {:ok, {:ok, %{status_code: status, body: response_body}}} ->
-        {:ok, status, response_body}
+      case Task.yield(task, @delivery_timeout_ms + 1000) || Task.shutdown(task) do
+        {:ok, {:ok, %{status_code: status, body: response_body}}} ->
+          {:ok, status, response_body}
 
-      {:ok, {:error, %{reason: reason}}} ->
-        {:error, inspect(reason)}
+        {:ok, {:error, %{reason: reason}}} ->
+          {:error, inspect(reason)}
 
-      {:ok, {:error, reason}} ->
-        {:error, inspect(reason)}
+        {:ok, {:error, reason}} ->
+          {:error, inspect(reason)}
 
-      nil ->
-        {:error, "Request timed out after #{@delivery_timeout_ms}ms"}
+        nil ->
+          {:error, "Request timed out after #{@delivery_timeout_ms}ms"}
+      end
     end
   end
 
@@ -200,7 +224,7 @@ defmodule Tymeslot.Workers.WebhookWorker do
       {"Content-Type", "application/json"},
       {"User-Agent", "Tymeslot-Webhooks/1.0"},
       {"X-Tymeslot-Signature", signature},
-      {"X-Tymeslot-Timestamp", DateTime.utc_now() |> DateTime.to_iso8601()}
+      {"X-Tymeslot-Timestamp", DateTime.to_iso8601(DateTime.utc_now())}
     ]
   end
 
@@ -240,9 +264,13 @@ defmodule Tymeslot.Workers.WebhookWorker do
     end
   end
 
-  defp truncate_response(response), do: inspect(response) |> truncate_response()
+  defp truncate_response(response), do: truncate_response(inspect(response))
 
   defp http_client do
-    Application.get_env(:tymeslot, :http_client, HTTPoison)
+    Application.get_env(:tymeslot, :http_client_module, Tymeslot.Infrastructure.HTTPClient)
+  end
+
+  defp production? do
+    Application.get_env(:tymeslot, :environment) == :prod
   end
 end
