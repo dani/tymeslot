@@ -13,9 +13,15 @@ defmodule TymeslotWeb.Dashboard.DashboardOverviewComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="space-y-10">
+    <div class="space-y-10 pb-20">
+      <.section_header
+        icon={:home}
+        title="Overview"
+        class="mb-0"
+      />
+
       <!-- Welcome Section -->
-      <div class="bg-gradient-to-br from-turquoise-600 via-cyan-600 to-blue-600 rounded-3xl p-8 lg:p-12 text-white shadow-2xl shadow-turquoise-500/20 relative overflow-hidden">
+      <div class="bg-gradient-to-br from-turquoise-600 via-cyan-600 to-blue-600 rounded-token-3xl p-8 lg:p-12 text-white shadow-2xl shadow-turquoise-500/20 relative overflow-hidden">
         <div class="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.15),transparent_50%)]"></div>
         <div class="relative z-10">
           <h1 class="text-4xl lg:text-5xl font-black mb-4 tracking-tight">
@@ -33,25 +39,25 @@ defmodule TymeslotWeb.Dashboard.DashboardOverviewComponent do
         <div class="card-glass h-full">
           <div class="flex items-center justify-between mb-8">
             <div class="flex items-center space-x-3">
-              <h2 class="text-2xl font-black text-slate-900 tracking-tight">Upcoming Meetings</h2>
-              <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-black bg-turquoise-100 text-turquoise-700 uppercase tracking-wider">
+              <h2 class="text-2xl font-black text-tymeslot-900 tracking-tight">Upcoming Meetings</h2>
+              <span class="inline-flex items-center px-3 py-1 rounded-full text-token-xs font-black bg-turquoise-100 text-turquoise-700 uppercase tracking-wider">
                 {length(Map.get(@shared_data || %{}, :upcoming_meetings, []))}
               </span>
             </div>
             <.link
               patch={~p"/dashboard/meetings"}
-              class="text-turquoise-600 hover:text-turquoise-700 font-bold text-sm transition-colors flex items-center gap-1 group"
+              class="text-turquoise-600 hover:text-turquoise-700 font-bold text-token-sm transition-colors flex items-center gap-1 group"
             >
               View all <span class="group-hover:translate-x-1 transition-transform">→</span>
             </.link>
           </div>
 
           <%= if Map.get(@shared_data || %{}, :upcoming_meetings, []) == [] do %>
-            <div class="text-center py-12 bg-slate-50/50 rounded-2xl border-2 border-dashed border-slate-100">
-              <div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
-                <IconComponents.icon name={:calendar} class="w-8 h-8 text-slate-300" />
+            <div class="text-center py-12 bg-tymeslot-50/50 rounded-token-2xl border-2 border-dashed border-tymeslot-100">
+              <div class="w-16 h-16 bg-white rounded-token-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
+                <IconComponents.icon name={:calendar} class="w-8 h-8 text-tymeslot-300" />
               </div>
-              <p class="text-slate-500 font-bold">No upcoming meetings scheduled yet.</p>
+              <p class="text-tymeslot-500 font-bold">No upcoming meetings scheduled yet.</p>
             </div>
           <% else %>
             <div class="space-y-4">
@@ -64,7 +70,7 @@ defmodule TymeslotWeb.Dashboard.DashboardOverviewComponent do
         
     <!-- Quick Actions -->
         <div class="card-glass h-full">
-          <h2 class="text-2xl font-black text-slate-900 tracking-tight mb-8">Quick Actions</h2>
+          <h2 class="text-2xl font-black text-tymeslot-900 tracking-tight mb-8">Quick Actions</h2>
 
           <div class="grid gap-4">
             <.action_link
@@ -107,17 +113,17 @@ defmodule TymeslotWeb.Dashboard.DashboardOverviewComponent do
 
   defp meeting_preview(assigns) do
     ~H"""
-    <div class="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl border-2 border-slate-50 hover:bg-white hover:shadow-md transition-all group">
+    <div class="flex items-center justify-between p-4 bg-tymeslot-50/50 rounded-token-2xl border-2 border-tymeslot-50 hover:bg-white hover:shadow-md transition-all group">
       <div class="flex-1">
-        <div class="text-slate-900 font-black tracking-tight group-hover:text-turquoise-700 transition-colors">
+        <div class="text-tymeslot-900 font-black tracking-tight group-hover:text-turquoise-700 transition-colors">
           {@meeting.title}
         </div>
-        <div class="text-sm text-slate-500 font-bold">
+        <div class="text-token-sm text-tymeslot-500 font-bold">
           {@meeting.attendee_name} • {format_meeting_time(@meeting, @profile.timezone)}
         </div>
       </div>
       <div class="flex-shrink-0">
-        <span class="px-3 py-1 text-xs font-black bg-emerald-100 text-emerald-700 rounded-full uppercase tracking-wider">
+        <span class="px-3 py-1 text-token-xs font-black bg-emerald-100 text-emerald-700 rounded-full uppercase tracking-wider">
           {@meeting.status}
         </span>
       </div>
@@ -129,29 +135,29 @@ defmodule TymeslotWeb.Dashboard.DashboardOverviewComponent do
   attr :icon, :atom, required: true
   attr :title, :string, required: true
   attr :description, :string, required: true
-  attr :color_class, :string, default: "bg-slate-50 text-slate-600"
+  attr :color_class, :string, default: "bg-tymeslot-50 text-tymeslot-600"
 
   defp action_link(assigns) do
     ~H"""
     <.link patch={@patch} class="block group">
-      <div class="flex items-center p-4 rounded-2xl bg-slate-50/50 border-2 border-slate-50 hover:bg-white hover:border-turquoise-100 hover:shadow-xl hover:shadow-turquoise-500/5 transition-all">
+      <div class="flex items-center p-4 rounded-token-2xl bg-tymeslot-50/50 border-2 border-tymeslot-50 hover:bg-white hover:border-turquoise-100 hover:shadow-xl hover:shadow-turquoise-500/5 transition-all">
         <div class="flex-shrink-0 mr-4">
-          <div class={["w-12 h-12 rounded-xl flex items-center justify-center transition-all shadow-sm", @color_class]}>
+          <div class={["w-12 h-12 rounded-token-xl flex items-center justify-center transition-all shadow-sm", @color_class]}>
             <IconComponents.icon name={@icon} class="w-6 h-6" />
           </div>
         </div>
         <div class="flex-1 min-w-0">
-          <div class="text-slate-900 font-black tracking-tight group-hover:text-turquoise-700 transition-colors">
+          <div class="text-tymeslot-900 font-black tracking-tight group-hover:text-turquoise-700 transition-colors">
             {@title}
           </div>
-          <div class="text-sm text-slate-500 font-bold truncate group-hover:text-slate-600 transition-colors">
+          <div class="text-token-sm text-tymeslot-500 font-bold truncate group-hover:text-tymeslot-600 transition-colors">
             {@description}
           </div>
         </div>
         <div class="flex-shrink-0 ml-4">
-          <div class="w-8 h-8 rounded-lg bg-white flex items-center justify-center border border-slate-100 group-hover:border-turquoise-200 group-hover:bg-turquoise-50 transition-all">
+          <div class="w-8 h-8 rounded-token-lg bg-white flex items-center justify-center border border-tymeslot-100 group-hover:border-turquoise-200 group-hover:bg-turquoise-50 transition-all">
             <svg
-              class="w-4 h-4 text-slate-400 group-hover:text-turquoise-600 transition-all transform group-hover:translate-x-0.5"
+              class="w-4 h-4 text-tymeslot-400 group-hover:text-turquoise-600 transition-all transform group-hover:translate-x-0.5"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"

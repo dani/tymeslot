@@ -15,7 +15,7 @@ defmodule TymeslotWeb.Components.DashboardSidebarTest do
     doc = Floki.parse_document!(html)
 
     assert html =~ "Overview"
-    assert html =~ "Settings"
+    assert html =~ "Profile"
     assert html =~ "Availability"
     assert html =~ "Meeting Settings"
     assert html =~ "Calendar"

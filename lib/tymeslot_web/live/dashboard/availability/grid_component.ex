@@ -37,15 +37,15 @@ defmodule TymeslotWeb.Dashboard.Availability.GridComponent do
     ~H"""
     <div class="space-y-8 animate-in fade-in duration-500">
       <!-- Availability Grid -->
-      <div class="card-glass relative overflow-x-auto shadow-2xl shadow-slate-200/50">
+      <div class="card-glass relative overflow-x-auto shadow-2xl shadow-tymeslot-200/50">
         <div class="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-6">
           <div class="flex items-center gap-4">
-            <div class="w-12 h-12 bg-cyan-50 rounded-xl flex items-center justify-center border border-cyan-100 shadow-sm">
+            <div class="w-12 h-12 bg-cyan-50 rounded-token-xl flex items-center justify-center border border-cyan-100 shadow-sm">
               <svg class="w-6 h-6 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
               </svg>
             </div>
-            <h4 class="text-2xl font-black text-slate-900 tracking-tight">Weekly Visual Grid</h4>
+            <h4 class="text-2xl font-black text-tymeslot-900 tracking-tight">Weekly Visual Grid</h4>
           </div>
           
           <div class="flex-shrink-0">
@@ -53,12 +53,12 @@ defmodule TymeslotWeb.Dashboard.Availability.GridComponent do
           </div>
         </div>
 
-        <div class="min-w-[800px] bg-slate-50/50 rounded-3xl p-6 border-2 border-slate-50">
+        <div class="min-w-[800px] bg-tymeslot-50/50 rounded-token-3xl p-6 border-2 border-tymeslot-50">
           <div class="grid grid-cols-8 gap-2 text-xs sm:text-sm">
             <!-- Header Row -->
-            <div class="font-black text-slate-400 uppercase tracking-widest text-center py-4"></div>
+            <div class="font-black text-tymeslot-400 uppercase tracking-widest text-center py-4"></div>
             <%= for {day_name, _day_num} <- [{"Mon", 1}, {"Tue", 2}, {"Wed", 3}, {"Thu", 4}, {"Fri", 5}, {"Sat", 6}, {"Sun", 7}] do %>
-              <div class="font-black text-slate-700 text-center py-4 bg-white rounded-xl border-2 border-white shadow-sm">
+              <div class="font-black text-tymeslot-700 text-center py-4 bg-white rounded-token-xl border-2 border-white shadow-sm">
                 {day_name}
               </div>
             <% end %>
@@ -66,7 +66,7 @@ defmodule TymeslotWeb.Dashboard.Availability.GridComponent do
     <!-- Time Slots Grid (30-minute intervals) -->
             <%= for hour <- 6..22 do %>
               <%= for minute <- [0, 30] do %>
-                <div class="font-black text-slate-400 text-right py-1 pr-4 text-[10px] sm:text-xs uppercase tracking-tighter">
+                <div class="font-black text-tymeslot-400 text-right py-1 pr-4 text-[10px] sm:text-xs uppercase tracking-tighter">
                   {format_time_slot(hour, minute)}
                 </div>
                 <%= for day_num <- 1..7 do %>
@@ -74,11 +74,11 @@ defmodule TymeslotWeb.Dashboard.Availability.GridComponent do
                   <% {slot_status, tooltip} = get_time_slot_status(availability, hour, minute) %>
                   <div
                     class={[
-                      "h-5 sm:h-6 rounded-lg border-2 transition-all duration-300 transform hover:scale-110 hover:z-10",
+                      "h-5 sm:h-6 rounded-token-lg border-2 transition-all duration-300 transform hover:scale-110 hover:z-10",
                       case slot_status do
                         :available -> "border-emerald-200 shadow-sm shadow-emerald-500/10 cursor-pointer"
                         :partial -> "border-amber-200 shadow-sm shadow-amber-500/10 cursor-pointer"
-                        :unavailable -> "bg-slate-100 border-slate-100 opacity-40 hover:opacity-100"
+                        :unavailable -> "bg-tymeslot-100 border-tymeslot-100 opacity-40 hover:opacity-100"
                       end
                     ]}
                     style={
@@ -103,26 +103,26 @@ defmodule TymeslotWeb.Dashboard.Availability.GridComponent do
         </div>
         
     <!-- Legend -->
-        <div class="mt-10 flex flex-wrap items-center justify-center gap-8 bg-slate-50/50 p-6 rounded-2xl border-2 border-slate-50">
+        <div class="mt-10 flex flex-wrap items-center justify-center gap-8 bg-tymeslot-50/50 p-6 rounded-token-2xl border-2 border-tymeslot-50">
           <div class="flex items-center gap-3">
             <div
-              class="w-5 h-5 border-2 border-emerald-200 rounded-lg shadow-sm"
+              class="w-5 h-5 border-2 border-emerald-200 rounded-token-lg shadow-sm"
               style="background-color: #10b981; opacity: 0.8;"
             >
             </div>
-            <span class="text-slate-700 font-bold text-sm">Full Availability</span>
+            <span class="text-tymeslot-700 font-bold text-sm">Full Availability</span>
           </div>
           <div class="flex items-center gap-3">
             <div
-              class="w-5 h-5 border-2 border-amber-200 rounded-lg shadow-sm"
+              class="w-5 h-5 border-2 border-amber-200 rounded-token-lg shadow-sm"
               style="background: linear-gradient(45deg, #10b981 50%, #f59e0b 50%); opacity: 0.8;"
             >
             </div>
-            <span class="text-slate-700 font-bold text-sm">Partial (Breaks)</span>
+            <span class="text-tymeslot-700 font-bold text-sm">Partial (Breaks)</span>
           </div>
           <div class="flex items-center gap-3">
-            <div class="w-5 h-5 bg-slate-200 border-2 border-slate-200 rounded-lg opacity-40"></div>
-            <span class="text-slate-700 font-bold text-sm">Unavailable</span>
+            <div class="w-5 h-5 bg-tymeslot-200 border-2 border-tymeslot-200 rounded-token-lg opacity-40"></div>
+            <span class="text-tymeslot-700 font-bold text-sm">Unavailable</span>
           </div>
         </div>
       </div>

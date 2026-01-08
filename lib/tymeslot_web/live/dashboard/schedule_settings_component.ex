@@ -6,7 +6,6 @@ defmodule TymeslotWeb.Dashboard.ScheduleSettingsComponent do
   use TymeslotWeb, :live_component
 
   alias Tymeslot.Availability.{AvailabilityActions, WeeklySchedule}
-  alias TymeslotWeb.Components.DashboardComponents
   alias TymeslotWeb.Dashboard.Availability.{GridComponent, ListComponent}
 
   @impl true
@@ -73,24 +72,25 @@ defmodule TymeslotWeb.Dashboard.ScheduleSettingsComponent do
     ~H"""
     <div class="space-y-10 pb-20">
       <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-        <DashboardComponents.section_header
+        <.section_header
           icon={:calendar}
           title="Availability"
           class="mb-0"
+          saving={@saving}
         />
 
         <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
           <!-- Input Mode Toggle -->
-          <div class="bg-white border-2 border-slate-50 p-1.5 rounded-2xl shadow-sm flex items-center">
+          <div class="bg-white border-2 border-tymeslot-50 p-1.5 rounded-token-2xl shadow-sm flex items-center">
             <button
               phx-click="toggle_input_mode"
               phx-value-option="list"
               phx-target={@myself}
               class={[
-                "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-black transition-all duration-300",
+                "flex items-center gap-2 px-4 py-2 rounded-token-xl text-sm font-black transition-all duration-300",
                 if(@input_mode == :list,
                   do: "bg-turquoise-50 text-turquoise-700 shadow-sm",
-                  else: "text-slate-400 hover:text-slate-600"
+                  else: "text-tymeslot-400 hover:text-tymeslot-600"
                 )
               ]}
             >
@@ -104,10 +104,10 @@ defmodule TymeslotWeb.Dashboard.ScheduleSettingsComponent do
               phx-value-option="grid"
               phx-target={@myself}
               class={[
-                "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-black transition-all duration-300",
+                "flex items-center gap-2 px-4 py-2 rounded-token-xl text-sm font-black transition-all duration-300",
                 if(@input_mode == :grid,
                   do: "bg-turquoise-50 text-turquoise-700 shadow-sm",
-                  else: "text-slate-400 hover:text-slate-600"
+                  else: "text-tymeslot-400 hover:text-tymeslot-600"
                 )
               ]}
             >
@@ -117,16 +117,6 @@ defmodule TymeslotWeb.Dashboard.ScheduleSettingsComponent do
               Grid
             </button>
           </div>
-
-          <%= if @saving do %>
-            <div class="flex items-center bg-emerald-50 text-emerald-700 px-4 py-2 rounded-full font-black text-xs uppercase tracking-wider border-2 border-emerald-100">
-              <svg class="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Saving changes...
-            </div>
-          <% end %>
         </div>
       </div>
 

@@ -11,16 +11,16 @@ defmodule TymeslotWeb.Live.Dashboard.Meetings.Components do
   @spec filter_tabs(map()) :: Phoenix.LiveView.Rendered.t()
   def filter_tabs(assigns) do
     ~H"""
-    <div class="flex bg-white border-2 border-slate-50 rounded-[1.25rem] p-1.5 shadow-sm max-w-fit">
+    <div class="flex bg-white border-2 border-tymeslot-50 rounded-[1.25rem] p-1.5 shadow-sm max-w-fit">
       <button
         phx-click="filter_meetings"
         phx-value-filter="upcoming"
         phx-target={@target}
         class={[
-          "flex items-center space-x-2 px-6 py-2.5 rounded-xl text-sm font-black transition-all duration-300",
+          "flex items-center space-x-2 px-6 py-2.5 rounded-token-xl text-token-sm font-black transition-all duration-300",
           if(@active == "upcoming",
             do: "bg-gradient-to-br from-turquoise-600 to-cyan-600 text-white shadow-lg shadow-turquoise-500/20",
-            else: "text-slate-500 hover:text-turquoise-600 hover:bg-turquoise-50"
+            else: "text-tymeslot-500 hover:text-turquoise-600 hover:bg-turquoise-50"
           )
         ]}
       >
@@ -32,10 +32,10 @@ defmodule TymeslotWeb.Live.Dashboard.Meetings.Components do
         phx-value-filter="past"
         phx-target={@target}
         class={[
-          "flex items-center space-x-2 px-6 py-2.5 rounded-xl text-sm font-black transition-all duration-300",
+          "flex items-center space-x-2 px-6 py-2.5 rounded-token-xl text-token-sm font-black transition-all duration-300",
           if(@active == "past",
             do: "bg-gradient-to-br from-turquoise-600 to-cyan-600 text-white shadow-lg shadow-turquoise-500/20",
-            else: "text-slate-500 hover:text-turquoise-600 hover:bg-turquoise-50"
+            else: "text-tymeslot-500 hover:text-turquoise-600 hover:bg-turquoise-50"
           )
         ]}
       >
@@ -47,10 +47,10 @@ defmodule TymeslotWeb.Live.Dashboard.Meetings.Components do
         phx-value-filter="cancelled"
         phx-target={@target}
         class={[
-          "flex items-center space-x-2 px-6 py-2.5 rounded-xl text-sm font-black transition-all duration-300",
+          "flex items-center space-x-2 px-6 py-2.5 rounded-token-xl text-token-sm font-black transition-all duration-300",
           if(@active == "cancelled",
             do: "bg-gradient-to-br from-turquoise-600 to-cyan-600 text-white shadow-lg shadow-turquoise-500/20",
-            else: "text-slate-500 hover:text-turquoise-600 hover:bg-turquoise-50"
+            else: "text-tymeslot-500 hover:text-turquoise-600 hover:bg-turquoise-50"
           )
         ]}
       >
@@ -129,15 +129,15 @@ defmodule TymeslotWeb.Live.Dashboard.Meetings.Components do
       <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
         <div class="flex-1">
           <div class="flex items-center gap-3 flex-wrap mb-6">
-            <h4 class="text-2xl font-black text-slate-900 tracking-tight group-hover/card:text-turquoise-700 transition-colors">
+            <h4 class="text-token-2xl font-black text-tymeslot-900 tracking-tight group-hover/card:text-turquoise-700 transition-colors">
               {@meeting.attendee_name}
             </h4>
             <%= if @meeting.attendee_company do %>
-              <span class="text-sm font-bold text-slate-400 bg-slate-50 px-3 py-1 rounded-lg">{@meeting.attendee_company}</span>
+              <span class="text-token-sm font-bold text-tymeslot-400 bg-tymeslot-50 px-3 py-1 rounded-token-lg">{@meeting.attendee_company}</span>
             <% end %>
             <.status_badges meeting={@meeting} />
             <%= if @meeting.meeting_url do %>
-              <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-cyan-50 text-cyan-700 text-xs font-black uppercase tracking-wider rounded-full border border-cyan-100 shadow-sm">
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-cyan-50 text-cyan-700 text-token-xs font-black uppercase tracking-wider rounded-full border border-cyan-100 shadow-sm">
                 <.icon name="video" class="w-3.5 h-3.5" /> Video Call
               </span>
             <% end %>
@@ -145,12 +145,12 @@ defmodule TymeslotWeb.Live.Dashboard.Meetings.Components do
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="flex items-center gap-4">
-              <div class="w-12 h-12 rounded-2xl bg-turquoise-50 flex items-center justify-center shadow-sm border border-turquoise-100 transition-transform group-hover/card:scale-110">
+              <div class="w-12 h-12 rounded-token-2xl bg-turquoise-50 flex items-center justify-center shadow-sm border border-turquoise-100 transition-transform group-hover/card:scale-110">
                 <.icon name="calendar" class="w-6 h-6 text-turquoise-600" />
               </div>
               <div>
-                <p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-0.5">Date & Time</p>
-                <p class="text-slate-700 font-bold">
+                <p class="text-token-xs font-black text-tymeslot-400 uppercase tracking-widest mb-0.5">Date & Time</p>
+                <p class="text-tymeslot-700 font-bold">
                   {Helpers.format_meeting_date(
                     @meeting,
                     Helpers.get_meeting_timezone(@meeting, @profile)
@@ -166,14 +166,14 @@ defmodule TymeslotWeb.Live.Dashboard.Meetings.Components do
             </div>
 
             <div class="flex items-center gap-4">
-              <div class="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center shadow-sm border border-blue-100 transition-transform group-hover/card:scale-110">
+              <div class="w-12 h-12 rounded-token-2xl bg-blue-50 flex items-center justify-center shadow-sm border border-blue-100 transition-transform group-hover/card:scale-110">
                 <.icon name="email" class="w-6 h-6 text-blue-600" />
               </div>
               <div>
-                <p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-0.5">Attendee Email</p>
+                <p class="text-token-xs font-black text-tymeslot-400 uppercase tracking-widest mb-0.5">Attendee Email</p>
                 <a
                   href={"mailto:#{@meeting.attendee_email}"}
-                  class="text-slate-700 hover:text-turquoise-600 transition-colors font-bold"
+                  class="text-tymeslot-700 hover:text-turquoise-600 transition-colors font-bold"
                 >
                   {@meeting.attendee_email}
                 </a>
@@ -182,13 +182,13 @@ defmodule TymeslotWeb.Live.Dashboard.Meetings.Components do
           </div>
 
           <%= if @meeting.description && @meeting.description != "" do %>
-            <div class="mt-8 p-5 bg-slate-50/50 rounded-2xl border-2 border-slate-50 flex gap-4 items-start">
-              <div class="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center flex-shrink-0 border border-slate-100">
-                <.icon name="note" class="w-4 h-4 text-slate-400" />
+            <div class="mt-8 p-5 bg-tymeslot-50/50 rounded-token-2xl border-2 border-tymeslot-50 flex gap-4 items-start">
+              <div class="w-8 h-8 rounded-token-lg bg-white shadow-sm flex items-center justify-center flex-shrink-0 border border-tymeslot-100">
+                <.icon name="note" class="w-4 h-4 text-tymeslot-400" />
               </div>
               <div class="flex-1">
-                <p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Meeting Notes</p>
-                <p class="text-slate-600 font-medium leading-relaxed">{@meeting.description}</p>
+                <p class="text-token-xs font-black text-tymeslot-400 uppercase tracking-widest mb-1">Meeting Notes</p>
+                <p class="text-tymeslot-600 font-medium leading-relaxed">{@meeting.description}</p>
               </div>
             </div>
           <% end %>
@@ -201,7 +201,7 @@ defmodule TymeslotWeb.Live.Dashboard.Meetings.Components do
                 href={@meeting.meeting_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                class="btn-primary py-3 px-4 text-sm w-full"
+                class="btn-primary py-3 px-4 text-token-sm w-full"
               >
                 <.icon name="video" class="w-4 h-4 mr-2" /> Join Meeting
               </a>
@@ -213,7 +213,7 @@ defmodule TymeslotWeb.Live.Dashboard.Meetings.Components do
               phx-target={@target}
               disabled={!Helpers.can_reschedule?(@meeting)}
               class={[
-                "btn-secondary py-3 px-4 text-sm w-full",
+                "btn-secondary py-3 px-4 text-token-sm w-full",
                 if(!Helpers.can_reschedule?(@meeting), do: "opacity-50 cursor-not-allowed", else: "")
               ]}
             >
@@ -227,7 +227,7 @@ defmodule TymeslotWeb.Live.Dashboard.Meetings.Components do
               phx-target={@target}
               disabled={@cancelling_meeting == @meeting.id || !Helpers.can_cancel?(@meeting)}
               class={[
-                "btn-danger py-3 px-4 text-sm w-full",
+                "btn-danger py-3 px-4 text-token-sm w-full",
                 if(!Helpers.can_cancel?(@meeting), do: "opacity-50 cursor-not-allowed", else: "")
               ]}
             >
@@ -254,21 +254,21 @@ defmodule TymeslotWeb.Live.Dashboard.Meetings.Components do
   defp status_badges(assigns) do
     ~H"""
     <%= if @meeting.status == "cancelled" do %>
-      <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 text-red-700 text-xs font-black uppercase tracking-wider rounded-full border border-red-100 shadow-sm">
+      <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 text-red-700 text-token-xs font-black uppercase tracking-wider rounded-full border border-red-100 shadow-sm">
         <.icon name="x" class="w-3 h-3" /> Cancelled
       </span>
     <% else %>
       <%= if @meeting.status == "reschedule_requested" do %>
-        <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-700 text-xs font-black uppercase tracking-wider rounded-full border border-amber-100 shadow-sm">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-700 text-token-xs font-black uppercase tracking-wider rounded-full border border-amber-100 shadow-sm">
           <.icon name="clock" class="w-3 h-3" /> Reschedule Requested
         </span>
       <% else %>
         <%= if Helpers.past_meeting?(@meeting) do %>
-          <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 text-slate-600 text-xs font-black uppercase tracking-wider rounded-full border border-slate-200 shadow-sm">
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-tymeslot-100 text-tymeslot-600 text-token-xs font-black uppercase tracking-wider rounded-full border border-tymeslot-200 shadow-sm">
             <.icon name="check" class="w-3 h-3" /> Completed
           </span>
         <% else %>
-          <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-black uppercase tracking-wider rounded-full border border-emerald-100 shadow-sm">
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 text-token-xs font-black uppercase tracking-wider rounded-full border border-emerald-100 shadow-sm">
             <.icon name="calendar" class="w-3 h-3" /> Scheduled
           </span>
         <% end %>
@@ -282,17 +282,17 @@ defmodule TymeslotWeb.Live.Dashboard.Meetings.Components do
     ~H"""
     <div class="card-glass py-20">
       <div class="text-center max-w-sm mx-auto">
-        <div class="w-24 h-24 mx-auto mb-8 rounded-3xl bg-slate-50 flex items-center justify-center border-2 border-slate-100 shadow-sm transition-transform hover:scale-110 hover:rotate-3 duration-500">
-          <.icon name="calendar" class="w-12 h-12 text-slate-300" />
+        <div class="w-24 h-24 mx-auto mb-8 rounded-token-3xl bg-tymeslot-50 flex items-center justify-center border-2 border-tymeslot-100 shadow-sm transition-transform hover:scale-110 hover:rotate-3 duration-500">
+          <.icon name="calendar" class="w-12 h-12 text-tymeslot-300" />
         </div>
-        <h3 class="text-2xl font-black text-slate-900 tracking-tight mb-3">
+        <h3 class="text-token-2xl font-black text-tymeslot-900 tracking-tight mb-3">
           <%= case @filter do %>
             <% "upcoming" -> %> No upcoming meetings
             <% "past" -> %> No past meetings
             <% "cancelled" -> %> No cancelled meetings
           <% end %>
         </h3>
-        <p class="text-slate-500 font-medium text-lg leading-relaxed">
+        <p class="text-tymeslot-500 font-medium text-lg leading-relaxed">
           <%= case @filter do %>
             <% "upcoming" -> %> Your upcoming appointments will appear here automatically.
             <% "past" -> %> You haven't had any meetings in this period yet.
@@ -318,36 +318,67 @@ defmodule TymeslotWeb.Live.Dashboard.Meetings.Components do
   @spec info_panel(map()) :: Phoenix.LiveView.Rendered.t()
   def info_panel(assigns) do
     ~H"""
-    <div class="mt-8 card-glass">
-      <div class="flex items-start space-x-3">
-        <div class="flex-shrink-0">
-          <.icon name="info" class="w-5 h-5 text-turquoise-600 mt-0.5" />
-        </div>
+    <div class="mt-12 card-glass p-8 lg:p-12 relative overflow-hidden group/info">
+      <div class="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-turquoise-500/5 rounded-full blur-3xl transition-colors group-hover/info:bg-turquoise-500/10"></div>
+
+      <div class="flex flex-col lg:flex-row gap-12 relative z-10">
         <div class="flex-1">
-          <h3 class="text-base font-semibold text-neutral-800 mb-2">Meeting Management</h3>
-          <p class="text-sm text-neutral-600 mb-3">
+          <div class="flex items-center gap-4 mb-6">
+            <div class="w-14 h-14 rounded-token-2xl bg-gradient-to-br from-turquoise-500 to-cyan-600 flex items-center justify-center shadow-lg shadow-turquoise-500/20">
+              <.icon name="info" class="w-7 h-7 text-white" />
+            </div>
+            <h3 class="text-token-3xl font-black text-tymeslot-900 tracking-tight">Meeting Management</h3>
+          </div>
+
+          <p class="text-tymeslot-500 font-bold text-lg leading-relaxed max-w-2xl mb-8">
             Manage all your scheduled meetings in one place. Filter by status and take quick actions on your appointments.
           </p>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
-            <div class="flex items-start space-x-2">
-              <.icon name="swap" class="w-4 h-4 text-turquoise-600 mt-0.5 flex-shrink-0" />
+
+          <div class="flex flex-wrap gap-4">
+            <span class="inline-flex items-center gap-2 px-4 py-2 bg-tymeslot-50 text-tymeslot-600 rounded-token-xl text-token-sm font-black border border-tymeslot-100 shadow-sm">
+              <div class="w-2 h-2 rounded-full bg-turquoise-500"></div>
+              Real-time updates
+            </span>
+            <span class="inline-flex items-center gap-2 px-4 py-2 bg-tymeslot-50 text-tymeslot-600 rounded-token-xl text-token-sm font-black border border-tymeslot-100 shadow-sm">
+              <div class="w-2 h-2 rounded-full bg-cyan-500"></div>
+              Auto-notifications
+            </span>
+          </div>
+        </div>
+
+        <div class="lg:w-80 space-y-4">
+          <div class="p-5 rounded-token-2xl bg-white border-2 border-tymeslot-50 shadow-sm hover:border-turquoise-100 transition-all hover:shadow-md group/item">
+            <div class="flex items-center gap-4">
+              <div class="w-10 h-10 rounded-token-xl bg-turquoise-50 flex items-center justify-center group-hover/item:bg-turquoise-100 transition-colors">
+                <.icon name="swap" class="w-5 h-5 text-turquoise-600" />
+              </div>
               <div>
-                <p class="text-sm font-medium text-neutral-700">Reschedule</p>
-                <p class="text-xs text-neutral-500">Change meeting times</p>
+                <p class="text-token-xs font-black text-tymeslot-400 uppercase tracking-widest mb-0.5">Reschedule</p>
+                <p class="text-tymeslot-700 font-bold">Change meeting times</p>
               </div>
             </div>
-            <div class="flex items-start space-x-2">
-              <.icon name="x" class="w-4 h-4 text-turquoise-600 mt-0.5 flex-shrink-0" />
+          </div>
+
+          <div class="p-5 rounded-token-2xl bg-white border-2 border-tymeslot-50 shadow-sm hover:border-turquoise-100 transition-all hover:shadow-md group/item">
+            <div class="flex items-center gap-4">
+              <div class="w-10 h-10 rounded-token-xl bg-red-50 flex items-center justify-center group-hover/item:bg-red-100 transition-colors">
+                <.icon name="x" class="w-5 h-5 text-red-500" />
+              </div>
               <div>
-                <p class="text-sm font-medium text-neutral-700">Cancel</p>
-                <p class="text-xs text-neutral-500">With auto notifications</p>
+                <p class="text-token-xs font-black text-tymeslot-400 uppercase tracking-widest mb-0.5">Cancel</p>
+                <p class="text-tymeslot-700 font-bold">With auto notifications</p>
               </div>
             </div>
-            <div class="flex items-start space-x-2">
-              <.icon name="video" class="w-4 h-4 text-turquoise-600 mt-0.5 flex-shrink-0" />
+          </div>
+
+          <div class="p-5 rounded-token-2xl bg-white border-2 border-tymeslot-50 shadow-sm hover:border-turquoise-100 transition-all hover:shadow-md group/item">
+            <div class="flex items-center gap-4">
+              <div class="w-10 h-10 rounded-token-xl bg-blue-50 flex items-center justify-center group-hover/item:bg-blue-100 transition-colors">
+                <.icon name="video" class="w-5 h-5 text-blue-600" />
+              </div>
               <div>
-                <p class="text-sm font-medium text-neutral-700">Join Video</p>
-                <p class="text-xs text-neutral-500">Quick meeting access</p>
+                <p class="text-token-xs font-black text-tymeslot-400 uppercase tracking-widest mb-0.5">Join Video</p>
+                <p class="text-tymeslot-700 font-bold">Quick meeting access</p>
               </div>
             </div>
           </div>

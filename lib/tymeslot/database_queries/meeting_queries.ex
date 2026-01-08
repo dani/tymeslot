@@ -112,9 +112,15 @@ defmodule Tymeslot.DatabaseQueries.MeetingQueries do
   """
   @spec get_meeting(String.t()) :: {:ok, Meeting.t()} | {:error, :not_found}
   def get_meeting(id) do
-    case Repo.get(Meeting, id) do
-      nil -> {:error, :not_found}
-      meeting -> {:ok, meeting}
+    case Ecto.UUID.cast(id) do
+      {:ok, uuid} ->
+        case Repo.get(Meeting, uuid) do
+          nil -> {:error, :not_found}
+          meeting -> {:ok, meeting}
+        end
+
+      :error ->
+        {:error, :not_found}
     end
   end
 

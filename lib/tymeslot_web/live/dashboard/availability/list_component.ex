@@ -47,7 +47,7 @@ defmodule TymeslotWeb.Dashboard.Availability.ListComponent do
     with {:ok, day} <- parse_day(day_str),
          %{} = current_availability <-
            AvailabilityActions.get_day_from_schedule(socket.assigns.weekly_schedule, day),
-         {:ok, _updated} <-
+         {:ok, updated_day} <-
            AvailabilityActions.toggle_day_availability(
              profile_id(socket),
              day,
@@ -55,7 +55,7 @@ defmodule TymeslotWeb.Dashboard.Availability.ListComponent do
            ) do
       send(self(), {:flash, {:info, "#{AvailabilityActions.day_name(day)} availability updated"}})
 
-      updated_schedule = toggle_day_in_schedule(socket.assigns.weekly_schedule, day)
+      updated_schedule = update_day_in_schedule(socket.assigns.weekly_schedule, updated_day)
       send(self(), {:reload_schedule})
       {:noreply, assign(socket, :weekly_schedule, updated_schedule)}
     else
@@ -339,10 +339,10 @@ defmodule TymeslotWeb.Dashboard.Availability.ListComponent do
     end)
   end
 
-  defp toggle_day_in_schedule(schedule, day) do
+  defp update_day_in_schedule(schedule, updated_day) do
     Enum.map(schedule, fn day_avail ->
-      if day_avail.day_of_week == day do
-        %{day_avail | is_available: !day_avail.is_available}
+      if day_avail.day_of_week == updated_day.day_of_week do
+        updated_day
       else
         day_avail
       end
@@ -390,7 +390,7 @@ defmodule TymeslotWeb.Dashboard.Availability.ListComponent do
     <div>
       <!-- Timezone Display Header -->
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-2 sm:space-y-0">
-        <h2 class="text-xl font-semibold text-gray-800">Weekly Schedule</h2>
+        <h2 class="text-token-xl font-semibold text-tymeslot-800">Weekly Schedule</h2>
         <Helpers.timezone_display timezone_display={@timezone_display} country_code={@country_code} />
       </div>
       
@@ -429,29 +429,29 @@ defmodule TymeslotWeb.Dashboard.Availability.ListComponent do
   defp day_card(assigns) do
     ~H"""
     <div class={[
-      "card-glass group/day",
+      "card-glass group/day transition-all duration-300",
       if(@day_availability.is_available,
         do: "border-turquoise-100 bg-white shadow-2xl shadow-turquoise-500/5",
-        else: "opacity-60 bg-slate-50 border-slate-100 hover:opacity-100 transition-opacity"
+        else: "opacity-60 bg-tymeslot-50 border-tymeslot-100 hover:opacity-100"
       )
     ]}>
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 gap-4">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-4">
         <div class="flex items-center gap-4">
           <div class={[
-            "w-12 h-12 rounded-xl flex items-center justify-center font-black transition-all",
+            "w-12 h-12 rounded-token-xl flex items-center justify-center font-black transition-all",
             if(@day_availability.is_available,
               do: "bg-turquoise-600 text-white shadow-lg shadow-turquoise-500/30",
-              else: "bg-slate-200 text-slate-500"
+              else: "bg-tymeslot-200 text-tymeslot-500"
             )
           ]}>
             {String.slice(@day_name, 0, 1)}
           </div>
-          <h3 class="text-2xl font-black text-slate-900 tracking-tight group-hover/day:text-turquoise-700 transition-colors">
+          <h3 class="text-token-2xl font-black text-tymeslot-900 tracking-tight group-hover/day:text-turquoise-700 transition-colors">
             {@day_name}
           </h3>
         </div>
 
-        <div class="flex items-center gap-4 bg-slate-50 p-2 rounded-2xl border border-slate-100">
+        <div class="flex items-center gap-4 bg-tymeslot-50 p-2 rounded-token-2xl border border-tymeslot-100">
           <button
             phx-click="toggle_day_available"
             phx-value-day={@day_availability.day_of_week}
@@ -460,35 +460,37 @@ defmodule TymeslotWeb.Dashboard.Availability.ListComponent do
               "relative inline-flex h-9 w-16 flex-shrink-0 cursor-pointer rounded-full border-2 transition-all duration-300 ease-in-out focus:outline-none",
               if(@day_availability.is_available,
                 do: "bg-turquoise-600 border-turquoise-600",
-                else: "bg-slate-300 border-slate-300"
+                else: "bg-tymeslot-300 border-tymeslot-300"
               )
             ]}
             role="switch"
             aria-checked={@day_availability.is_available}
           >
             <span class={[
-              "pointer-events-none absolute top-0.5 inline-block h-7 w-7 transform rounded-full bg-white shadow-lg ring-0 transition duration-300 ease-in-out",
-              if(@day_availability.is_available, do: "translate-x-7.5 left-0.5", else: "translate-x-0.5")
+              "pointer-events-none absolute top-1 left-1 inline-block h-7 w-7 transform rounded-full bg-white shadow-lg ring-0 transition duration-300 ease-in-out",
+              if(@day_availability.is_available, do: "translate-x-7", else: "translate-x-0")
             ]}>
             </span>
           </button>
-          <span class={[
-            "text-sm font-black uppercase tracking-wider pr-2",
-            if(@day_availability.is_available, do: "text-turquoise-700", else: "text-slate-400")
-          ]}>
-            {if @day_availability.is_available, do: "Available", else: "Off"}
-          </span>
+          <div class="w-24 text-left">
+            <span class={[
+              "text-token-sm font-black uppercase tracking-wider",
+              if(@day_availability.is_available, do: "text-turquoise-700", else: "text-tymeslot-400")
+            ]}>
+              {if @day_availability.is_available, do: "Available", else: "Off"}
+            </span>
+          </div>
         </div>
       </div>
 
       <%= if @day_availability.is_available do %>
         <!-- Work Hours -->
-        <div class="mb-10 pb-10 border-b-2 border-slate-50">
+        <div class="mb-6 pb-6 border-b-2 border-tymeslot-50">
           <form phx-change="update_day_hours" phx-target={@myself} phx-debounce="500">
             <input type="hidden" name="day" value={@day_availability.day_of_week} />
             <div class="flex flex-col sm:flex-row sm:items-center gap-6">
               <div class="flex-1">
-                <label class="label">Shift Start</label>
+                <label class="label">Start Time</label>
                 <select name="start" class="input">
                   <%= for {label, value} <- TimeOptions.time_options() do %>
                     <option
@@ -501,7 +503,7 @@ defmodule TymeslotWeb.Dashboard.Availability.ListComponent do
                 </select>
               </div>
               <div class="flex-1">
-                <label class="label">Shift End</label>
+                <label class="label">End Time</label>
                 <select name="end" class="input">
                   <%= for {label, value} <- TimeOptions.time_options() do %>
                     <option value={value} selected={value == format_time(@day_availability.end_time)}>
@@ -515,16 +517,16 @@ defmodule TymeslotWeb.Dashboard.Availability.ListComponent do
         </div>
         
     <!-- Breaks -->
-        <div class="space-y-8">
+        <div class="space-y-4">
           <div class="flex items-center gap-3">
-            <h4 class="text-lg font-black text-slate-900 tracking-tight">Breaks</h4>
+            <h4 class="text-token-lg font-black text-tymeslot-900 tracking-tight">Breaks</h4>
             <% breaks =
               case @day_availability.breaks do
                 %Ecto.Association.NotLoaded{} -> []
                 b when is_list(b) -> b
                 _ -> []
               end %>
-            <span class="bg-slate-100 text-slate-500 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md">
+            <span class="bg-tymeslot-100 text-tymeslot-500 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md">
               {length(breaks)} total
             </span>
           </div>
@@ -532,7 +534,7 @@ defmodule TymeslotWeb.Dashboard.Availability.ListComponent do
           <%= if breaks != [] do %>
             <div class="flex flex-wrap gap-3">
               <%= for break <- breaks do %>
-                <div class="inline-flex items-center bg-white border-2 border-slate-100 rounded-xl px-4 py-2 text-sm font-bold text-slate-700 shadow-sm group/break hover:border-turquoise-200 transition-all">
+                <div class="inline-flex items-center bg-white border-2 border-tymeslot-100 rounded-token-xl px-4 py-2 text-token-sm font-bold text-tymeslot-700 shadow-sm group/break hover:border-turquoise-200 transition-all">
                   <span class="mr-3">{break.label || "Break"}</span>
                   <span class="text-turquoise-600">
                     {format_time(break.start_time)} - {format_time(break.end_time)}
@@ -541,7 +543,7 @@ defmodule TymeslotWeb.Dashboard.Availability.ListComponent do
                     phx-click="show_delete_break_modal"
                     phx-value-break_id={break.id}
                     phx-target={@myself}
-                    class="ml-3 text-slate-300 hover:text-red-500 transition-colors"
+                    class="ml-3 text-tymeslot-300 hover:text-red-500 transition-colors"
                     title="Delete Break"
                   >
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -558,7 +560,7 @@ defmodule TymeslotWeb.Dashboard.Availability.ListComponent do
             phx-submit="add_break"
             phx-change="validate_break"
             phx-target={@myself}
-            class="grid grid-cols-1 lg:grid-cols-4 gap-4 items-end bg-slate-50/50 p-6 rounded-2xl border-2 border-slate-50"
+            class="grid grid-cols-1 lg:grid-cols-4 gap-4 items-end bg-tymeslot-50/50 p-4 rounded-token-2xl border-2 border-tymeslot-50"
           >
             <input type="hidden" name="day" value={@day_availability.day_of_week} />
             <div class="lg:col-span-1">
@@ -606,7 +608,7 @@ defmodule TymeslotWeb.Dashboard.Availability.ListComponent do
               </select>
             </div>
             <div>
-              <button type="submit" class="btn-primary w-full py-3">
+              <button type="submit" class="btn-primary w-full py-3 flex items-center justify-center whitespace-nowrap">
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
                 </svg>
@@ -617,16 +619,16 @@ defmodule TymeslotWeb.Dashboard.Availability.ListComponent do
         </div>
         
     <!-- Action Bar -->
-        <div class="flex flex-wrap items-center justify-between gap-4 mt-10 pt-8 border-t-2 border-slate-50">
+        <div class="flex flex-wrap items-center justify-between gap-4 mt-6 pt-6 border-t-2 border-tymeslot-50">
           <div class="flex flex-wrap gap-3">
             <button
               phx-click="copy_to_days"
               phx-value-from_day={@day_availability.day_of_week}
               phx-value-to_days="1,2,3,4,5,6,7"
               phx-target={@myself}
-              class="btn-secondary py-2 px-4 text-xs"
+              class="btn-secondary py-2 px-4 text-token-xs flex items-center whitespace-nowrap"
             >
-              <svg class="w-3.5 h-3.5 mr-2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-3.5 h-3.5 mr-2 text-tymeslot-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
               </svg>
               Apply to All Days
@@ -636,19 +638,19 @@ defmodule TymeslotWeb.Dashboard.Availability.ListComponent do
               phx-value-from_day={@day_availability.day_of_week}
               phx-value-to_days="1,2,3,4,5"
               phx-target={@myself}
-              class="btn-secondary py-2 px-4 text-xs"
+              class="btn-secondary py-2 px-4 text-token-xs flex items-center whitespace-nowrap"
             >
-              <svg class="w-3.5 h-3.5 mr-2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-3.5 h-3.5 mr-2 text-tymeslot-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
               </svg>
-              Apply to Weekdays
+              Apply to Workdays
             </button>
           </div>
           <button
             phx-click="show_clear_day_modal"
             phx-value-day={@day_availability.day_of_week}
             phx-target={@myself}
-            class="text-slate-400 hover:text-red-600 text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-colors"
+            class="text-tymeslot-400 hover:text-red-600 text-token-xs font-black uppercase tracking-widest flex items-center gap-2 transition-colors"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -657,8 +659,8 @@ defmodule TymeslotWeb.Dashboard.Availability.ListComponent do
           </button>
         </div>
       <% else %>
-        <div class="py-4 px-6 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-100">
-          <p class="text-slate-400 font-bold text-sm">Not taking any bookings on this day.</p>
+        <div class="py-4 px-6 bg-tymeslot-50 rounded-token-2xl border-2 border-dashed border-tymeslot-100">
+          <p class="text-tymeslot-400 font-bold text-token-sm">Not taking any bookings on this day.</p>
         </div>
       <% end %>
     </div>

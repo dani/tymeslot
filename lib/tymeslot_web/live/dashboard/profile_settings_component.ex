@@ -10,7 +10,6 @@ defmodule TymeslotWeb.Dashboard.ProfileSettingsComponent do
   alias Tymeslot.Security.SettingsInputProcessor
   alias Tymeslot.Utils.ChangesetUtils
   alias TymeslotWeb.Components.{CoreComponents, FormSystem}
-  alias TymeslotWeb.Components.DashboardComponents
   alias TymeslotWeb.Components.TimezoneDropdown
   alias TymeslotWeb.Hooks.ModalHook
   alias TymeslotWeb.Live.Dashboard.Shared.DashboardHelpers
@@ -344,135 +343,134 @@ defmodule TymeslotWeb.Dashboard.ProfileSettingsComponent do
   def render(assigns) do
     ~H"""
     <div class="space-y-10 pb-20">
-      <DashboardComponents.section_header icon={:user} title="Profile Settings" saving={@saving} />
+      <.section_header icon={:user} title="Profile Settings" saving={@saving} />
 
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <!-- Left Column: Avatar & Quick Info -->
-        <div class="lg:col-span-1 space-y-8">
-          <div class="card-glass text-center relative overflow-hidden group" phx-hook="AutoUpload" id="avatar-upload-section">
-            <div class="absolute inset-0 bg-gradient-to-br from-turquoise-500/5 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-            
-            <h3 class="text-xl font-black text-slate-900 tracking-tight mb-8 relative z-10">Profile Picture</h3>
-            
-            <div class="relative inline-block mb-8">
-              <div class="w-32 h-32 rounded-[2.5rem] overflow-hidden bg-slate-100 border-4 border-white shadow-2xl relative z-10 mx-auto transform group-hover:scale-105 transition-transform duration-500">
-                <img
-                  src={Profiles.avatar_url(@profile, :thumb)}
-                  alt={Profiles.avatar_alt_text(@profile)}
-                  class="w-full h-full object-cover"
-                />
+      <div class="max-w-5xl mx-auto">
+        <div class="card-glass relative overflow-hidden group">
+          <div class="absolute inset-0 bg-gradient-to-br from-turquoise-500/5 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+          
+          <div class="relative z-10 grid grid-cols-1 lg:grid-cols-3 gap-12 items-start">
+            <!-- Left Side: Avatar Upload -->
+            <div class="lg:col-span-1 space-y-8 text-center pt-4">
+              <h3 class="text-xl font-black text-tymeslot-900 tracking-tight mb-8">Profile Picture</h3>
+              
+              <div class="relative inline-block mb-8" phx-hook="AutoUpload" id="avatar-upload-section">
+                <div class="w-40 h-40 rounded-[2.5rem] overflow-hidden bg-tymeslot-100 border-4 border-white shadow-2xl relative z-10 mx-auto transform group-hover:scale-105 transition-transform duration-500">
+                  <img
+                    src={Profiles.avatar_url(@profile, :thumb)}
+                    alt={Profiles.avatar_alt_text(@profile)}
+                    class="w-full h-full object-cover"
+                  />
+                </div>
+                <div class="absolute inset-0 bg-turquoise-400 blur-2xl opacity-20 rounded-full scale-75 group-hover:opacity-30 transition-opacity"></div>
               </div>
-              <div class="absolute inset-0 bg-turquoise-400 blur-2xl opacity-20 rounded-full scale-75 group-hover:opacity-30 transition-opacity"></div>
-            </div>
 
-            <div class="relative z-10 space-y-4">
-              <form
-                id="avatar-upload-form"
-                phx-submit="upload_avatar"
-                phx-change="validate_avatar"
-                data-auto-upload="true"
-                class="flex flex-col items-center gap-4"
-              >
-                <div class="w-full">
-                  <%= if @parent_uploads && @parent_uploads[:avatar] do %>
-                    <div class="relative group/input">
-                      <.live_file_input
-                        upload={@parent_uploads.avatar}
-                        class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
-                      />
-                      <div class="btn-primary w-full flex items-center justify-center gap-2 py-4">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div class="space-y-4 max-w-[240px] mx-auto">
+                <form
+                  id="avatar-upload-form"
+                  phx-submit="upload_avatar"
+                  phx-change="validate_avatar"
+                  data-auto-upload="true"
+                  class="flex flex-col items-center gap-4"
+                >
+                  <div class="w-full">
+                    <%= if @parent_uploads && @parent_uploads[:avatar] do %>
+                      <div class="relative group/input">
+                        <.live_file_input
+                          upload={@parent_uploads.avatar}
+                          class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+                        />
+                      <div class="btn-primary w-full flex items-center justify-center gap-2 py-4 whitespace-nowrap">
+                        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                         </svg>
                         <span><%= if @parent_uploads.avatar.entries != [], do: "Uploading...", else: "Upload New" %></span>
                       </div>
-                    </div>
-                  <% else %>
-                    <div class="btn-primary w-full opacity-50 cursor-not-allowed py-4">
-                      Upload New
+                      </div>
+                    <% else %>
+                      <div class="btn-primary w-full opacity-50 cursor-not-allowed py-4">
+                        Upload New
+                      </div>
+                    <% end %>
+                  </div>
+
+                  <%= if @profile.avatar do %>
+                    <button
+                      type="button"
+                      phx-click="show_delete_avatar_modal"
+                      phx-target={@myself}
+                      class="btn-danger w-full py-4 flex items-center justify-center gap-2 whitespace-nowrap"
+                    >
+                      <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      <span>Delete Photo</span>
+                    </button>
+                  <% end %>
+                  
+                  <button type="submit" id="avatar-submit-btn" class="hidden">Upload</button>
+                </form>
+
+                <p class="text-[10px] text-tymeslot-400 font-bold uppercase tracking-widest pt-2">
+                  JPG, PNG, GIF or WebP. Max 10MB.
+                </p>
+
+                <!-- Upload progress -->
+                <%= if @parent_uploads && @parent_uploads[:avatar] do %>
+                  <%= for entry <- @parent_uploads.avatar.entries do %>
+                    <div class="mt-6 p-4 bg-turquoise-50 rounded-token-2xl border-2 border-turquoise-100 animate-in fade-in zoom-in">
+                      <div class="flex items-center justify-between mb-2">
+                        <span class="text-turquoise-700 font-black text-xs uppercase tracking-wider">
+                          <%= if entry.progress == 100, do: "Processing...", else: "Uploading..." %>
+                        </span>
+                        <span class="text-turquoise-600 font-black text-xs">{entry.progress}%</span>
+                      </div>
+                      <div class="bg-white rounded-full h-2 overflow-hidden shadow-inner">
+                        <div
+                          class="bg-gradient-to-r from-turquoise-500 to-cyan-500 h-full transition-all duration-300"
+                          style={"width: #{entry.progress}%"}
+                        ></div>
+                      </div>
                     </div>
                   <% end %>
-                </div>
-
-                <%= if @profile.avatar do %>
-                  <button
-                    type="button"
-                    phx-click="show_delete_avatar_modal"
-                    phx-target={@myself}
-                    class="btn-danger w-full py-4"
-                  >
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                    Delete Photo
-                  </button>
                 <% end %>
-                
-                <!-- Hidden submit button for auto-upload -->
-                <button type="submit" id="avatar-submit-btn" class="hidden">Upload</button>
-              </form>
-
-              <p class="text-xs text-slate-400 font-bold uppercase tracking-widest pt-4">
-                JPG, PNG, GIF or WebP. Max 10MB.
-              </p>
+              </div>
             </div>
 
-            <!-- Upload progress -->
-            <%= if @parent_uploads && @parent_uploads[:avatar] do %>
-              <%= for entry <- @parent_uploads.avatar.entries do %>
-                <div class="mt-6 p-4 bg-turquoise-50 rounded-2xl border-2 border-turquoise-100 animate-in fade-in zoom-in">
-                  <div class="flex items-center justify-between mb-2">
-                    <span class="text-turquoise-700 font-black text-xs uppercase tracking-wider">
-                      <%= if entry.progress == 100, do: "Processing...", else: "Uploading..." %>
-                    </span>
-                    <span class="text-turquoise-600 font-black text-xs">{entry.progress}%</span>
-                  </div>
-                  <div class="bg-white rounded-full h-2 overflow-hidden shadow-inner">
-                    <div
-                      class="bg-gradient-to-r from-turquoise-500 to-cyan-500 h-full transition-all duration-300"
-                      style={"width: #{entry.progress}%"}
-                    ></div>
-                  </div>
+            <!-- Right Side: Basic Info Forms -->
+            <div class="lg:col-span-2 space-y-10 lg:border-l-2 lg:border-tymeslot-50 lg:pl-12 pt-4">
+              <div class="flex items-center gap-4 mb-2">
+                <div class="w-12 h-12 bg-cyan-50 rounded-token-xl flex items-center justify-center border border-cyan-100 shadow-sm">
+                  <svg class="w-6 h-6 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
                 </div>
-              <% end %>
-            <% end %>
-          </div>
-        </div>
-
-        <!-- Right Column: Settings Forms -->
-        <div class="lg:col-span-2 space-y-8">
-          <div class="card-glass">
-            <div class="flex items-center gap-4 mb-10">
-              <div class="w-12 h-12 bg-cyan-50 rounded-xl flex items-center justify-center border border-cyan-100 shadow-sm">
-                <svg class="w-6 h-6 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-              </div>
-              <h3 class="text-2xl font-black text-slate-900 tracking-tight">Basic Information</h3>
-            </div>
-
-            <div class="space-y-10">
-              <.full_name_setting profile={@profile} myself={@myself} form_errors={@form_errors} />
-              
-              <div class="border-t-2 border-slate-50 pt-10">
-                <.username_setting
-                  profile={@profile}
-                  username_check={@username_check}
-                  username_available={@username_available}
-                  myself={@myself}
-                  form_errors={@form_errors}
-                />
+                <h3 class="text-2xl font-black text-tymeslot-900 tracking-tight">Basic Information</h3>
               </div>
 
-              <div class="border-t-2 border-slate-50 pt-10">
-                <.timezone_setting
-                  profile={@profile}
-                  timezone_options={@timezone_options}
-                  timezone_dropdown_open={@timezone_dropdown_open}
-                  timezone_search={@timezone_search}
-                  myself={@myself}
-                  form_errors={@form_errors}
-                />
+              <div class="space-y-10">
+                <.full_name_setting profile={@profile} myself={@myself} form_errors={@form_errors} />
+                
+                <div class="border-t-2 border-tymeslot-50 pt-10">
+                  <.username_setting
+                    profile={@profile}
+                    username_check={@username_check}
+                    username_available={@username_available}
+                    myself={@myself}
+                    form_errors={@form_errors}
+                  />
+                </div>
+
+                <div class="border-t-2 border-tymeslot-50 pt-10">
+                  <.timezone_setting
+                    profile={@profile}
+                    timezone_options={@timezone_options}
+                    timezone_dropdown_open={@timezone_dropdown_open}
+                    timezone_search={@timezone_search}
+                    myself={@myself}
+                    form_errors={@form_errors}
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -488,15 +486,15 @@ defmodule TymeslotWeb.Dashboard.ProfileSettingsComponent do
       >
         <:header>
           <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center border border-red-100">
+            <div class="w-10 h-10 bg-red-50 rounded-token-xl flex items-center justify-center border border-red-100">
               <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
             </div>
-            <span class="text-2xl font-black text-slate-900 tracking-tight">Delete Avatar</span>
+            <span class="text-2xl font-black text-tymeslot-900 tracking-tight">Delete Avatar</span>
           </div>
         </:header>
-        <p class="text-slate-600 font-medium text-lg leading-relaxed">
+        <p class="text-tymeslot-600 font-medium text-lg leading-relaxed">
           Are you sure you want to delete your profile picture? This action cannot be undone.
         </p>
         <:footer>
@@ -551,7 +549,7 @@ defmodule TymeslotWeb.Dashboard.ProfileSettingsComponent do
         safe_flags={false}
       />
       <%= if @form_errors[:timezone] do %>
-        <p class="text-sm text-red-400 mt-1">{@form_errors[:timezone]}</p>
+        <p class="text-token-sm text-red-400 mt-1">{@form_errors[:timezone]}</p>
       <% end %>
     </div>
     """
@@ -565,12 +563,13 @@ defmodule TymeslotWeb.Dashboard.ProfileSettingsComponent do
           Your Custom URL
         </label>
         <div class="flex flex-col sm:flex-row items-stretch gap-4">
-          <div class="flex-1 relative group">
+          <div class={[
+            "flex-1 flex items-center input group focus-within:border-turquoise-400 focus-within:bg-white focus-within:shadow-xl focus-within:shadow-turquoise-500/10 transition-all duration-300",
+            if(@form_errors[:username], do: "input-error focus-within:border-red-400 focus-within:bg-white focus-within:shadow-red-500/10", else: "")
+          ]}>
             <% base_url = Policy.app_url() %>
             <% display_url = String.replace(base_url, ~r/^https?:\/\//, "") %>
-            <div class="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-              <span class="text-slate-400 font-bold text-sm tracking-tight">{display_url}/</span>
-            </div>
+            <span class="text-tymeslot-400 font-bold text-token-sm tracking-tight whitespace-nowrap">{display_url}/</span>
             <input
               type="text"
               id="username"
@@ -581,20 +580,17 @@ defmodule TymeslotWeb.Dashboard.ProfileSettingsComponent do
               minlength="3"
               maxlength="30"
               phx-debounce="500"
-              class={[
-                "input pl-[140px]",
-                if(@form_errors[:username], do: "input-error", else: "")
-              ]}
+              class="flex-1 bg-transparent border-none focus:ring-0 p-0 ml-1 text-tymeslot-900 font-medium text-token-sm"
             />
           </div>
-          <button type="submit" class="btn-primary px-8" phx-disable-with="Saving...">
+          <button type="submit" class="btn-primary px-8 whitespace-nowrap" phx-disable-with="Saving...">
             Update URL
           </button>
         </div>
         
         <div class="mt-4">
           <%= if @form_errors[:username] do %>
-            <div class="p-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm font-bold flex items-center gap-2 animate-in slide-in-from-top-1">
+            <div class="p-3 bg-red-50 border border-red-100 rounded-token-xl text-red-600 text-token-sm font-bold flex items-center gap-2 animate-in slide-in-from-top-1">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -605,7 +601,7 @@ defmodule TymeslotWeb.Dashboard.ProfileSettingsComponent do
           <%= if @profile && @profile.username do %>
             <% base_url = Policy.app_url() %>
             <% display_url = String.replace(base_url, ~r/^https?:\/\//, "") %>
-            <div class="flex items-center gap-2 text-sm font-bold text-slate-500">
+            <div class="flex items-center gap-2 text-token-sm font-bold text-tymeslot-500">
               <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
               </svg>
@@ -619,7 +615,7 @@ defmodule TymeslotWeb.Dashboard.ProfileSettingsComponent do
               </a>
             </div>
           <% else %>
-            <p class="text-sm text-slate-500 font-medium">
+            <p class="text-token-sm text-tymeslot-500 font-medium">
               Choose a unique username for your personal booking page.
             </p>
           <% end %>
@@ -628,14 +624,14 @@ defmodule TymeslotWeb.Dashboard.ProfileSettingsComponent do
             <div class="mt-3">
               <%= case @username_available do %>
                 <% true -> %>
-                  <div class="inline-flex items-center px-3 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-black uppercase tracking-wider border border-emerald-100 animate-in zoom-in">
+                  <div class="inline-flex items-center px-3 py-1 rounded-token-lg bg-emerald-50 text-emerald-700 text-xs font-black uppercase tracking-wider border border-emerald-100 animate-in zoom-in">
                     <svg class="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
                     </svg>
                     Available!
                   </div>
                 <% false -> %>
-                  <div class="inline-flex items-center px-3 py-1 rounded-lg bg-red-50 text-red-700 text-xs font-black uppercase tracking-wider border border-red-100 animate-in zoom-in">
+                  <div class="inline-flex items-center px-3 py-1 rounded-token-lg bg-red-50 text-red-700 text-xs font-black uppercase tracking-wider border border-red-100 animate-in zoom-in">
                     <svg class="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" />
                     </svg>

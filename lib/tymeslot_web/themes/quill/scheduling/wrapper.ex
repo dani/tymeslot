@@ -49,7 +49,8 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Wrapper do
           <video autoplay muted loop playsinline class="video-background video">
             <% background_video_path = get_background_video_path(@theme_customization) %>
             <%= if background_video_path do %>
-              <source src={"/uploads/#{background_video_path}"} type="video/mp4" />
+              <% sanitized_path = sanitize_path(background_video_path) %>
+              <source src={"/uploads/#{sanitized_path}"} type="video/mp4" />
             <% else %>
               <!-- Handle preset videos -->
               <% background_value = get_background_value(@theme_customization) %>

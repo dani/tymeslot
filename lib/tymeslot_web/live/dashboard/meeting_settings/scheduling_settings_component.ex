@@ -20,9 +20,9 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.SchedulingSettingsComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="card-glass shadow-2xl shadow-slate-200/50">
+    <div class="card-glass shadow-2xl shadow-tymeslot-200/50">
       <div class="flex items-center mb-10">
-        <div class="w-12 h-12 bg-turquoise-50 rounded-xl flex items-center justify-center mr-4 shadow-sm border border-turquoise-100/50">
+        <div class="w-12 h-12 bg-turquoise-50 rounded-token-xl flex items-center justify-center mr-4 shadow-sm border border-turquoise-100/50">
           <svg class="w-6 h-6 text-turquoise-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
@@ -32,7 +32,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.SchedulingSettingsComponent do
             />
           </svg>
         </div>
-        <h3 class="text-2xl font-black text-slate-900 tracking-tight">Scheduling Preferences</h3>
+        <h3 class="text-2xl font-black text-tymeslot-900 tracking-tight">Scheduling Preferences</h3>
       </div>
 
       <div class="space-y-8">

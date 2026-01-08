@@ -159,17 +159,29 @@ defmodule Tymeslot.ThemeCustomizations.Backgrounds do
 
   defp get_image_css(customization, presets) do
     cond do
-      custom_image?(customization) -> "/uploads/#{customization.background_image_path}"
-      preset_image?(customization) -> get_preset_image_path(customization, presets)
-      true -> nil
+      custom_image?(customization) ->
+        path = sanitize_path(customization.background_image_path)
+        "/uploads/#{path}"
+
+      preset_image?(customization) ->
+        get_preset_image_path(customization, presets)
+
+      true ->
+        nil
     end
   end
 
   defp get_video_css(customization, presets) do
     cond do
-      custom_video?(customization) -> "/uploads/#{customization.background_video_path}"
-      preset_video?(customization) -> get_preset_video_path(customization, presets)
-      true -> nil
+      custom_video?(customization) ->
+        path = sanitize_path(customization.background_video_path)
+        "/uploads/#{path}"
+
+      preset_video?(customization) ->
+        get_preset_video_path(customization, presets)
+
+      true ->
+        nil
     end
   end
 
@@ -209,8 +221,8 @@ defmodule Tymeslot.ThemeCustomizations.Backgrounds do
   defp resolve_image(customization, presets) do
     cond do
       custom_image?(customization) ->
-        {:image,
-         %{url: "/uploads/#{customization.background_image_path}", kind: :custom, name: nil}}
+        path = sanitize_path(customization.background_image_path)
+        {:image, %{url: "/uploads/#{path}", kind: :custom, name: nil}}
 
       preset_image?(customization) ->
         case Map.get(presets.images || %{}, customization.background_value) do
@@ -230,10 +242,12 @@ defmodule Tymeslot.ThemeCustomizations.Backgrounds do
   defp resolve_video(customization, presets) do
     cond do
       custom_video?(customization) ->
+        path = sanitize_path(customization.background_video_path)
+
         {:video,
          %{
            thumbnail_url: nil,
-           video_url: "/uploads/#{customization.background_video_path}",
+           video_url: "/uploads/#{path}",
            kind: :custom,
            name: nil
          }}
@@ -300,6 +314,17 @@ defmodule Tymeslot.ThemeCustomizations.Backgrounds do
     preset = Map.get(presets.videos || %{}, customization.background_value)
     preset && preset.file
   end
+
+  defp sanitize_path(path) when is_binary(path) do
+    # Only allow alphanumeric, dots, dashes, and underscores
+    # This prevents directory traversal and other injection attacks
+    # We also ensure we only take the base filename
+    path
+    |> Path.basename()
+    |> String.replace(~r/[^a-zA-Z0-9\._-]/, "")
+  end
+
+  defp sanitize_path(nil), do: ""
 
   # Private helper functions
 

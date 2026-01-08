@@ -38,8 +38,9 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Wrapper do
               preload="metadata"
             >
               <%= if @theme_customization.background_video_path do %>
+                <% sanitized_path = sanitize_path(@theme_customization.background_video_path) %>
                 <source
-                  src={"/uploads/#{@theme_customization.background_video_path}"}
+                  src={"/uploads/#{sanitized_path}"}
                   type="video/mp4"
                 />
               <% else %>
@@ -64,8 +65,9 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Wrapper do
               preload="metadata"
             >
               <%= if @theme_customization.background_video_path do %>
+                <% sanitized_path = sanitize_path(@theme_customization.background_video_path) %>
                 <source
-                  src={"/uploads/#{@theme_customization.background_video_path}"}
+                  src={"/uploads/#{sanitized_path}"}
                   type="video/mp4"
                 />
               <% else %>

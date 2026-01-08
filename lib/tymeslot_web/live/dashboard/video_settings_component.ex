@@ -14,7 +14,6 @@ defmodule TymeslotWeb.Dashboard.VideoSettingsComponent do
   alias TymeslotWeb.Components.Dashboard.Integrations.Shared.DeleteIntegrationModal
   alias TymeslotWeb.Components.Dashboard.Integrations.Video.CustomConfig
   alias TymeslotWeb.Components.Dashboard.Integrations.Video.MirotalkConfig
-  alias TymeslotWeb.Components.DashboardComponents
   alias TymeslotWeb.Helpers.IntegrationProviders
   alias TymeslotWeb.Hooks.ModalHook
   alias TymeslotWeb.Live.Dashboard.Shared.DashboardHelpers
@@ -333,14 +332,14 @@ defmodule TymeslotWeb.Dashboard.VideoSettingsComponent do
       <%= if @view_mode == :config do %>
         <!-- Configuration Page Mode -->
         <div class="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div class="flex items-center justify-between bg-white p-6 rounded-3xl border-2 border-slate-50 shadow-sm">
+          <div class="flex items-center justify-between bg-white p-6 rounded-token-3xl border-2 border-tymeslot-50 shadow-sm">
             <div class="flex items-center gap-4">
-              <div class="w-12 h-12 bg-turquoise-50 rounded-xl flex items-center justify-center border border-turquoise-100 shadow-sm">
+              <div class="w-12 h-12 bg-turquoise-50 rounded-token-xl flex items-center justify-center border border-turquoise-100 shadow-sm">
                 <svg class="w-6 h-6 text-turquoise-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
               </div>
-              <h2 class="text-3xl font-black text-slate-900 tracking-tight">
+              <h2 class="text-token-3xl font-black text-tymeslot-900 tracking-tight">
                 Setup <%= case @config_provider do
                   "mirotalk" -> "MiroTalk"
                   "custom" -> "Custom Video"
@@ -351,7 +350,7 @@ defmodule TymeslotWeb.Dashboard.VideoSettingsComponent do
             <button
               phx-click="back_to_providers"
               phx-target={@myself}
-              class="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-50 text-slate-600 font-bold hover:bg-slate-100 transition-all"
+              class="flex items-center gap-2 px-4 py-2 rounded-token-xl bg-tymeslot-50 text-tymeslot-600 font-bold hover:bg-tymeslot-100 transition-all"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -381,19 +380,19 @@ defmodule TymeslotWeb.Dashboard.VideoSettingsComponent do
                   saving={@saving}
                 />
               <% _ -> %>
-                <p class="text-slate-500 font-medium">Configuration form not available for this provider.</p>
+                <p class="text-tymeslot-500 font-medium">Configuration form not available for this provider.</p>
             <% end %>
           </div>
         </div>
       <% else %>
         <!-- Providers List Mode -->
-        <DashboardComponents.section_header icon={:video} title="Video Integration" />
+        <.section_header icon={:video} title="Video Integration" />
         
     <!-- Connected Video Providers Section -->
         <%= if @integrations != [] do %>
           <div class="space-y-6">
             <div class="flex items-center gap-3">
-              <h2 class="text-2xl font-black text-slate-900 tracking-tight">Connected Video Providers</h2>
+              <h2 class="text-token-2xl font-black text-tymeslot-900 tracking-tight">Connected Video Providers</h2>
               <span class="bg-turquoise-100 text-turquoise-700 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider">
                 {length(@integrations)} active
               </span>
@@ -418,8 +417,8 @@ defmodule TymeslotWeb.Dashboard.VideoSettingsComponent do
     <!-- Available Video Providers Section -->
         <div class="space-y-8 mt-12">
           <div class="max-w-2xl">
-            <h2 class="text-2xl font-black text-slate-900 tracking-tight mb-3">Available Providers</h2>
-            <p class="text-slate-500 font-medium text-lg">
+            <h2 class="text-token-2xl font-black text-tymeslot-900 tracking-tight mb-3">Available Providers</h2>
+            <p class="text-tymeslot-500 font-medium text-token-lg">
               Choose from our supported video providers to enable seamless meeting experiences for your clients.
             </p>
           </div>

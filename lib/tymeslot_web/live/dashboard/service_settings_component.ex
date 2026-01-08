@@ -8,7 +8,6 @@ defmodule TymeslotWeb.Dashboard.ServiceSettingsComponent do
   alias Tymeslot.MeetingTypes
   alias Tymeslot.Security.MeetingSettingsInputProcessor
   alias TymeslotWeb.Components.Dashboard.MeetingTypes.DeleteMeetingTypeModal
-  alias TymeslotWeb.Components.DashboardComponents
   alias TymeslotWeb.Dashboard.MeetingSettings.Helpers
   alias TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm
   alias TymeslotWeb.Dashboard.MeetingSettings.MeetingTypesListComponent
@@ -33,14 +32,15 @@ defmodule TymeslotWeb.Dashboard.ServiceSettingsComponent do
 
   @impl true
   def update(assigns, socket) do
+    # Merge new assigns into socket
+    socket = assign(socket, assigns)
+
     # Always ensure we have the latest profile data
-    socket =
-      socket
-      |> assign(assigns)
-      |> Helpers.maybe_reload_profile()
+    socket = Helpers.maybe_reload_profile(socket)
 
     # Load meeting settings data directly (own your data)
-    user_id = assigns.current_user.id
+    # Use socket.assigns to handle partial updates from send_update
+    user_id = socket.assigns.current_user.id
     data = DashboardContext.get_meeting_settings_data(user_id)
 
     socket =
@@ -142,8 +142,8 @@ defmodule TymeslotWeb.Dashboard.ServiceSettingsComponent do
     case MeetingSettingsInputProcessor.validate_meeting_type_form(params, metadata: metadata) do
       {:ok, sanitized_params} ->
         ui_state = %{
-          meeting_mode: Map.get(params, "meeting_mode", "personal"),
-          selected_icon: Map.get(params, "icon", "none"),
+          meeting_mode: Map.get(sanitized_params, "meeting_mode", "personal"),
+          selected_icon: Map.get(sanitized_params, "icon", "none"),
           selected_video_integration_id:
             case Map.get(params, "video_integration_id") do
               nil ->
@@ -197,10 +197,18 @@ defmodule TymeslotWeb.Dashboard.ServiceSettingsComponent do
 
     if type do
       case MeetingTypes.toggle_meeting_type_status(type, %{is_active: !type.is_active}) do
-        {:ok, _} ->
+        {:ok, updated_type} ->
           send(self(), {:meeting_type_changed})
           Flash.info("Meeting type status updated")
-          {:noreply, socket}
+
+          # Update local state immediately for responsive UI
+          updated_meeting_types =
+            Enum.map(socket.assigns.meeting_types, fn
+              t when t.id == updated_type.id -> updated_type
+              t -> t
+            end)
+
+          {:noreply, assign(socket, meeting_types: updated_meeting_types)}
 
         {:error, _} ->
           Flash.error("Failed to update meeting type")
@@ -247,15 +255,17 @@ defmodule TymeslotWeb.Dashboard.ServiceSettingsComponent do
   def render(assigns) do
     ~H"""
     <div class="space-y-10 pb-20">
-      <%= if @show_edit_overlay && @editing_type do %>
-        <!-- Edit Meeting Type View -->
+      <%= if (@show_edit_overlay && @editing_type) || @show_add_form do %>
+        <!-- Form View (Add or Edit) -->
         <div class="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div class="flex items-center justify-between bg-white p-6 rounded-3xl border-2 border-slate-50 shadow-sm">
-            <h2 class="text-3xl font-black text-slate-900 tracking-tight">Edit Meeting Type</h2>
+          <div class="flex items-center justify-between bg-white p-6 rounded-token-3xl border-2 border-tymeslot-50 shadow-sm">
+            <h2 class="text-token-3xl font-black text-tymeslot-900 tracking-tight">
+              <%= if @editing_type, do: "Edit Meeting Type", else: "Add Meeting Type" %>
+            </h2>
             <button
-              phx-click="close_edit_overlay"
+              phx-click={if @editing_type, do: "close_edit_overlay", else: "toggle_add_form"}
               phx-target={@myself}
-              class="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-50 text-slate-600 font-bold hover:bg-slate-100 transition-all"
+              class="flex items-center gap-2 px-4 py-2 rounded-token-xl bg-tymeslot-50 text-tymeslot-600 font-bold hover:bg-tymeslot-100 transition-all"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
@@ -267,9 +277,9 @@ defmodule TymeslotWeb.Dashboard.ServiceSettingsComponent do
           <div class="card-glass">
             <.live_component
               module={MeetingTypeForm}
-              id={"meeting-type-form-edit-#{@editing_type.id}"}
+              id={if @editing_type, do: "meeting-type-form-edit-#{@editing_type.id}", else: "meeting-type-form-new"}
               type={@editing_type}
-              is_edit={true}
+              is_edit={!!@editing_type}
               video_integrations={@video_integrations}
               parent_myself={@myself}
               saving={@saving}
@@ -283,23 +293,11 @@ defmodule TymeslotWeb.Dashboard.ServiceSettingsComponent do
       <% else %>
         <!-- Normal View -->
         <div class="space-y-10">
-          <div class="flex items-center justify-between">
-            <DashboardComponents.section_header
-              icon={:grid}
-              title="Meeting Settings"
-              class="mb-0"
-            />
-
-            <%= if @saving do %>
-              <div class="flex items-center bg-emerald-50 text-emerald-700 px-4 py-2 rounded-full font-black text-xs uppercase tracking-wider border-2 border-emerald-100">
-                <svg class="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Saving changes...
-              </div>
-            <% end %>
-          </div>
+          <.section_header
+            icon={:grid}
+            title="Meeting Settings"
+            saving={@saving}
+          />
           
     <!-- Meeting Types Section -->
           <div class="space-y-6">
@@ -309,26 +307,6 @@ defmodule TymeslotWeb.Dashboard.ServiceSettingsComponent do
               editing_type={@editing_type}
               parent_myself={@myself}
             />
-            
-    <!-- Add Meeting Type Form -->
-            <%= if @show_add_form do %>
-              <div class="card-glass animate-in zoom-in duration-300">
-                <h3 class="text-2xl font-black text-slate-900 tracking-tight mb-8">Add Meeting Type</h3>
-                <.live_component
-                  module={MeetingTypeForm}
-                  id="meeting-type-form-new"
-                  type={nil}
-                  is_edit={false}
-                  video_integrations={@video_integrations}
-                  parent_myself={@myself}
-                  saving={@saving}
-                  current_user={@current_user}
-                  client_ip={@client_ip}
-                  user_agent={@user_agent}
-                  form_errors={@form_errors}
-                />
-              </div>
-            <% end %>
           </div>
           
     <!-- Scheduling Settings -->

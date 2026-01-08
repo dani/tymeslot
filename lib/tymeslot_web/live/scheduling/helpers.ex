@@ -154,6 +154,7 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
       end
     end
   end
+end
 
   @doc """
   Gets month availability map showing which days have actual free slots.

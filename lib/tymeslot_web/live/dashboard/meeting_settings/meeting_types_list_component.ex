@@ -17,7 +17,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypesListComponent do
     ~H"""
     <div>
       <div class="flex items-center justify-between mb-6">
-        <h2 class="text-xl font-semibold text-gray-800">Meeting Types</h2>
+        <h2 class="text-token-xl font-semibold text-tymeslot-800">Meeting Types</h2>
         <%= unless @show_add_form || @editing_type do %>
           <button
             phx-click="toggle_add_form"
@@ -40,7 +40,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypesListComponent do
       <%= if @meeting_types == [] && !@show_add_form do %>
         <div class="card-glass text-center py-8">
           <svg
-            class="w-12 h-12 mx-auto text-gray-400 mb-3"
+            class="w-12 h-12 mx-auto text-tymeslot-400 mb-3"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -52,8 +52,8 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypesListComponent do
               d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
-          <p class="text-gray-600">No meeting types configured yet</p>
-          <p class="text-sm text-gray-500 mt-1">
+          <p class="text-tymeslot-600">No meeting types configured yet</p>
+          <p class="text-token-sm text-tymeslot-500 mt-1">
             Create meeting types to offer different appointment options
           </p>
         </div>

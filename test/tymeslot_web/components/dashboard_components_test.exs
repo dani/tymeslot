@@ -4,6 +4,7 @@ defmodule TymeslotWeb.Components.DashboardComponentsTest do
   import Phoenix.Component
   alias Floki
   alias Phoenix.LiveView.JS
+  alias TymeslotWeb.Components.CoreComponents
   alias TymeslotWeb.Components.DashboardComponents
 
   test "form_input renders correctly" do
@@ -293,11 +294,11 @@ defmodule TymeslotWeb.Components.DashboardComponentsTest do
       saving: true
     }
 
-    html = render_component(&DashboardComponents.section_header/1, assigns)
+    html = render_component(&CoreComponents.section_header/1, assigns)
 
     assert html =~ "My Availability"
     assert html =~ "5"
-    assert html =~ "Saving..."
+    assert html =~ "Saving changes..."
     assert html =~ "animate-spin"
   end
 
@@ -309,12 +310,12 @@ defmodule TymeslotWeb.Components.DashboardComponentsTest do
       saving: false
     }
 
-    html = render_component(&DashboardComponents.section_header/1, assigns)
+    html = render_component(&CoreComponents.section_header/1, assigns)
     doc = Floki.parse_document!(html)
 
     assert Floki.text(doc) =~ "My Availability"
     refute html =~ "Saving..."
-    assert Floki.find(doc, "span.bg-blue-100") == []
+    assert Floki.find(doc, "span.bg-turquoise-100") == []
   end
 
   test "confirmation_modal renders correctly" do

@@ -88,11 +88,17 @@ defmodule TymeslotWeb.Components.CoreComponents.Containers do
   end
 
   @doc """
-  Renders a section header with consistent styling.
+  Renders a section header with consistent styling. Supports optional icon, count badge, and saving indicator.
   """
+  attr :icon, :atom, default: nil
+  attr :title, :string, default: nil
+  attr :count, :integer, default: nil
+  attr :saving, :boolean, default: false
   attr :level, :integer, default: 1
+  attr :title_class, :string, default: nil
   attr :class, :string, default: ""
-  slot :inner_block, required: true
+  slot :inner_block
+
   @spec section_header(map()) :: Phoenix.LiveView.Rendered.t()
   def section_header(assigns) do
     size_class =
@@ -103,11 +109,51 @@ defmodule TymeslotWeb.Components.CoreComponents.Containers do
         _ -> "text-xl"
       end
 
-    assigns = assign(assigns, :size_class, size_class)
+    computed_title_class =
+      assigns.title_class || "#{size_class} font-black text-slate-900 tracking-tight"
+
+    assigns =
+      assigns
+      |> assign(:size_class, size_class)
+      |> assign(:computed_title_class, computed_title_class)
 
     ~H"""
-    <h1 class={["font-black tracking-tight mb-4 text-slate-900", @size_class, @class]}>
-      {render_slot(@inner_block)}
+    <div :if={@icon} class={["flex items-center mb-12", @class]}>
+      <div class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center mr-5 shadow-sm border border-slate-100 flex-shrink-0">
+        <TymeslotWeb.Components.Icons.IconComponents.icon name={@icon} class="w-8 h-8 text-turquoise-600" />
+      </div>
+
+      <h1 class={@computed_title_class}>
+        <%= if @title do %>
+          {@title}
+        <% else %>
+          {render_slot(@inner_block)}
+        <% end %>
+      </h1>
+
+      <%= if @count do %>
+        <span class="ml-4 bg-turquoise-100 text-turquoise-700 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider">
+          {@count}
+        </span>
+      <% end %>
+
+      <%= if @saving do %>
+        <div class="ml-auto bg-emerald-50 text-emerald-700 px-4 py-2 rounded-full font-black text-xs uppercase tracking-wider border-2 border-emerald-100 flex items-center">
+          <svg class="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          Saving changes...
+        </div>
+      <% end %>
+    </div>
+
+    <h1 :if={!@icon} class={["font-black tracking-tight mb-4 text-slate-900", @size_class, @class]}>
+      <%= if @title do %>
+        {@title}
+      <% else %>
+        {render_slot(@inner_block)}
+      <% end %>
     </h1>
     """
   end

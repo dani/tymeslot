@@ -6,10 +6,11 @@ defmodule Tymeslot.Security.MeetingSettingsInputProcessor do
   meeting type creation/editing and scheduling settings configuration.
   """
 
+  alias Tymeslot.DatabaseSchemas.MeetingTypeSchema
   alias Tymeslot.Security.{SecurityLogger, UniversalSanitizer}
 
   @doc """
-  Validates meeting type form input (name, duration, description).
+  Validates meeting type form input (name, duration, description, icon, mode).
 
   ## Parameters
   - `params` - Map containing meeting type form parameters
@@ -25,7 +26,9 @@ defmodule Tymeslot.Security.MeetingSettingsInputProcessor do
     with {:ok, sanitized_name} <- validate_meeting_name(params["name"], metadata),
          {:ok, sanitized_duration} <- validate_meeting_duration(params["duration"], metadata),
          {:ok, sanitized_description} <-
-           validate_meeting_description(params["description"], metadata) do
+           validate_meeting_description(params["description"], metadata),
+         {:ok, sanitized_icon} <- validate_icon(params["icon"], metadata),
+         {:ok, sanitized_mode} <- validate_meeting_mode(params["meeting_mode"], metadata) do
       SecurityLogger.log_security_event("meeting_type_form_validation_success", %{
         ip_address: metadata[:ip],
         user_agent: metadata[:user_agent],
@@ -36,7 +39,9 @@ defmodule Tymeslot.Security.MeetingSettingsInputProcessor do
        %{
          "name" => sanitized_name,
          "duration" => sanitized_duration,
-         "description" => sanitized_description
+         "description" => sanitized_description,
+         "icon" => sanitized_icon,
+         "meeting_mode" => sanitized_mode
        }}
     else
       {:error, errors} when is_map(errors) ->
@@ -56,7 +61,7 @@ defmodule Tymeslot.Security.MeetingSettingsInputProcessor do
 
   Returns {:ok, sanitized_value} | {:error, %{field => message}}
   """
-  @spec validate_meeting_type_field(:name | :duration | :description, any(), keyword()) ::
+  @spec validate_meeting_type_field(:name | :duration | :description | :icon | :meeting_mode, any(), keyword()) ::
           {:ok, String.t()} | {:error, map()}
   def validate_meeting_type_field(field, value, opts \\ [])
 
@@ -84,6 +89,24 @@ defmodule Tymeslot.Security.MeetingSettingsInputProcessor do
     case validate_meeting_description(value, metadata) do
       {:ok, sanitized} -> {:ok, sanitized}
       {:error, %{description: _} = err} -> {:error, err}
+    end
+  end
+
+  def validate_meeting_type_field(:icon, value, opts) do
+    metadata = Keyword.get(opts, :metadata, %{})
+
+    case validate_icon(value, metadata) do
+      {:ok, sanitized} -> {:ok, sanitized}
+      {:error, %{icon: _} = err} -> {:error, err}
+    end
+  end
+
+  def validate_meeting_type_field(:meeting_mode, value, opts) do
+    metadata = Keyword.get(opts, :metadata, %{})
+
+    case validate_meeting_mode(value, metadata) do
+      {:ok, sanitized} -> {:ok, sanitized}
+      {:error, %{meeting_mode: _} = err} -> {:error, err}
     end
   end
 
@@ -315,6 +338,48 @@ defmodule Tymeslot.Security.MeetingSettingsInputProcessor do
 
   defp validate_meeting_description(_, _metadata) do
     {:error, %{description: "Description must be text"}}
+  end
+
+  defp validate_icon(nil, _metadata), do: {:ok, "none"}
+  defp validate_icon("", _metadata), do: {:ok, "none"}
+
+  defp validate_icon(icon, metadata) when is_binary(icon) do
+    case UniversalSanitizer.sanitize_and_validate(icon, allow_html: false, metadata: metadata) do
+      {:ok, sanitized_icon} ->
+        if sanitized_icon in MeetingTypeSchema.valid_icons() do
+          {:ok, sanitized_icon}
+        else
+          {:error, %{icon: "Invalid icon selected"}}
+        end
+
+      {:error, error} ->
+        {:error, %{icon: error}}
+    end
+  end
+
+  defp validate_icon(_, _metadata) do
+    {:error, %{icon: "Invalid icon format"}}
+  end
+
+  defp validate_meeting_mode(nil, _metadata), do: {:ok, "personal"}
+  defp validate_meeting_mode("", _metadata), do: {:ok, "personal"}
+
+  defp validate_meeting_mode(mode, metadata) when is_binary(mode) do
+    case UniversalSanitizer.sanitize_and_validate(mode, allow_html: false, metadata: metadata) do
+      {:ok, sanitized_mode} ->
+        if sanitized_mode in ["personal", "video"] do
+          {:ok, sanitized_mode}
+        else
+          {:error, %{meeting_mode: "Invalid meeting mode selected"}}
+        end
+
+      {:error, error} ->
+        {:error, %{meeting_mode: error}}
+    end
+  end
+
+  defp validate_meeting_mode(_, _metadata) do
+    {:error, %{meeting_mode: "Invalid meeting mode format"}}
   end
 
   defp validate_numeric_range(value_str, min, max, field_name) do

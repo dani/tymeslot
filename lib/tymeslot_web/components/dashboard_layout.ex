@@ -21,22 +21,29 @@ defmodule TymeslotWeb.Components.DashboardLayout do
   @spec dashboard_layout(map()) :: Phoenix.LiveView.Rendered.t()
   def dashboard_layout(assigns) do
     ~H"""
-    <div class="min-h-screen" id="dashboard-root" phx-hook="ClipboardCopy">
+    <div class="h-screen flex flex-col overflow-hidden" id="dashboard-root" phx-hook="ClipboardCopy">
       <!-- Top Navigation - Glass box with container -->
-      <.top_navigation current_user={@current_user} profile={@profile} />
-      
-    <!-- Main Layout Area - Sidebar and Content -->
-      <div class="flex relative lg:gap-8">
+      <div class="flex-shrink-0">
+        <.top_navigation current_user={@current_user} profile={@profile} />
+      </div>
+
+      <!-- Main Layout Area - Sidebar and Content -->
+      <div class="flex-1 flex overflow-hidden lg:gap-8">
         <!-- Left Sidebar - Hidden on mobile/tablet, overlay when open -->
         <DashboardSidebar.sidebar
           current_action={@current_action}
           integration_status={@integration_status}
           profile={@profile}
         />
-        
-    <!-- Main Content Area - Full width on mobile/tablet -->
-        <div class="flex-1 min-w-0 w-full lg:ml-0">
-          <div class="max-w-6xl mx-auto px-4 lg:px-8">
+
+        <!-- Main Content Area - Full width on mobile/tablet -->
+        <div
+          id="dashboard-content-container"
+          class="flex-1 min-w-0 w-full lg:ml-0 overflow-y-auto"
+          phx-hook="ScrollReset"
+          data-action={@current_action}
+        >
+          <div class="max-w-6xl mx-auto px-4 lg:px-8 pb-8">
             <main>
               {render_slot(@inner_block)}
             </main>

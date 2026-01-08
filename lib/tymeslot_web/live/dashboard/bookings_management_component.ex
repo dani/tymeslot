@@ -10,7 +10,6 @@ defmodule TymeslotWeb.Dashboard.BookingsManagementComponent do
   alias Tymeslot.Security.MeetingsInputProcessor
   alias TymeslotWeb.Components.Dashboard.Meetings.CancelMeetingModal
   alias TymeslotWeb.Components.Dashboard.Meetings.RescheduleRequestModal
-  alias TymeslotWeb.Components.DashboardComponents
   alias TymeslotWeb.Hooks.ModalHook
   alias TymeslotWeb.Live.Dashboard.Meetings.{Components, Helpers, Loader}
   alias TymeslotWeb.Live.Dashboard.Shared.DashboardHelpers
@@ -363,7 +362,7 @@ defmodule TymeslotWeb.Dashboard.BookingsManagementComponent do
     ~H"""
     <div class="space-y-10 pb-20">
       <div>
-        <DashboardComponents.section_header
+        <.section_header
           icon={:calendar}
           title="Meetings"
         />

@@ -19,13 +19,13 @@ defmodule TymeslotWeb.DashboardLive do
     BookingsManagementComponent,
     CalendarSettingsComponent,
     DashboardOverviewComponent,
+    NotificationSettingsComponent,
     PaymentLiveComponent,
     ProfileSettingsComponent,
     ScheduleSettingsComponent,
     ServiceSettingsComponent,
     ThemeSettingsComponent,
-    VideoSettingsComponent,
-    NotificationSettingsComponent
+    VideoSettingsComponent
   }
 
   alias TymeslotWeb.Live.Dashboard.EmbedSettingsComponent
@@ -236,16 +236,12 @@ defmodule TymeslotWeb.DashboardLive do
     DashboardContext.invalidate_integration_status(socket.assigns.current_user.id)
 
     # Reload data based on current section
-    socket =
-      if socket.assigns.live_action == :meeting_settings do
-        # Reload meeting types for the meeting settings page
-        load_section_specific_data(socket, :meeting_settings)
-      else
-        # For other pages, just reload shared data
-        load_shared_data(socket)
-      end
+    if socket.assigns.live_action == :meeting_settings do
+      # Force update the service settings component to reload its data
+      send_update(ServiceSettingsComponent, id: to_string(:meeting_settings))
+    end
 
-    {:noreply, socket}
+    {:noreply, load_shared_data(socket)}
   end
 
   @spec handle_info({:flash, {atom(), String.t()}}, Phoenix.LiveView.Socket.t()) ::

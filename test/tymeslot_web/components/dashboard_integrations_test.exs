@@ -465,8 +465,9 @@ defmodule TymeslotWeb.Components.DashboardIntegrationsTest do
   end
 
   test "ConfigBase macro can be exercised at runtime" do
+    # credo:disable-for-lines:2 Credo.Check.Warning.UnsafeToAtom
     module_name =
-      Module.concat(__MODULE__, "ConfigBaseRuntime#{System.unique_integer([:positive])}") # credo:disable-line
+      Module.concat(__MODULE__, "ConfigBaseRuntime#{System.unique_integer([:positive])}")
 
     code = """
     defmodule #{module_name} do

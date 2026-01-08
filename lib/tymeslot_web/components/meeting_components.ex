@@ -3,8 +3,7 @@ defmodule TymeslotWeb.Components.MeetingComponents do
   Components specific to meetings, scheduling, and calendars.
   These components understand the meeting domain.
   """
-  use Phoenix.Component
-  import TymeslotWeb.Components.CoreComponents
+  use TymeslotWeb, :html
   alias Tymeslot.Availability.Calculate
   alias Tymeslot.Profiles
   alias Tymeslot.Utils.{DateTimeUtils, TimezoneUtils}
@@ -38,22 +37,35 @@ defmodule TymeslotWeb.Components.MeetingComponents do
 
   @spec meeting_summary(map()) :: Phoenix.LiveView.Rendered.t()
   def meeting_summary(assigns) do
+    assigns =
+      assigns
+      |> assign_new(:title, fn -> "Meeting Details" end)
+      |> assign_new(:date_label, fn -> "Date" end)
+      |> assign_new(:time_label, fn -> "Time" end)
+      |> assign_new(:duration_label, fn -> "Duration" end)
+      |> assign_new(:with_label, fn -> "With" end)
+      |> assign_new(:reschedule_label, fn -> "Reschedule" end)
+      |> assign_new(:cancel_label, fn -> "Cancel" end)
+      |> assign_new(:formatted_date, fn -> format_date(assigns.meeting.start_time) end)
+      |> assign_new(:formatted_time, fn -> format_time(assigns.meeting.start_time, assigns.timezone) end)
+      |> assign_new(:formatted_duration, fn -> "#{assigns.meeting.duration} minutes" end)
+
     ~H"""
-    <.meeting_details_card title="Meeting Details">
+    <.meeting_details_card title={@title}>
       <dl class="space-y-3">
-        <.detail_row label="Date" value={format_meeting_date(@meeting.start_time)} />
-        <.detail_row label="Time" value={format_meeting_time(@meeting.start_time, @timezone)} />
-        <.detail_row label="Duration" value={"#{@meeting.duration} minutes"} />
-        <.detail_row label="With" value={@meeting.organizer_name} />
+        <.detail_row label={@date_label} value={@formatted_date} />
+        <.detail_row label={@time_label} value={@formatted_time} />
+        <.detail_row label={@duration_label} value={@formatted_duration} />
+        <.detail_row label={@with_label} value={@meeting.organizer_name} />
       </dl>
 
       <%= if @show_actions do %>
         <div class="mt-4 flex gap-2">
           <.link navigate={@meeting.reschedule_url} class="action-button action-button--secondary">
-            Reschedule
+            {@reschedule_label}
           </.link>
           <.link navigate={@meeting.cancel_url} class="action-button action-button--danger">
-            Cancel
+            {@cancel_label}
           </.link>
         </div>
       <% end %>
@@ -78,25 +90,34 @@ defmodule TymeslotWeb.Components.MeetingComponents do
         _ -> "grid grid-cols-2 gap-2 text-xs"
       end
 
-    assigns = assign(assigns, :grid_class, grid_class)
+    assigns =
+      assigns
+      |> assign(:grid_class, grid_class)
+      |> assign_new(:date_label, fn -> "Date" end)
+      |> assign_new(:time_label, fn -> "Time" end)
+      |> assign_new(:duration_label, fn -> "Duration" end)
+      |> assign_new(:timezone_label, fn -> "Timezone" end)
+      |> assign_new(:formatted_date, fn -> format_date(assigns.date) end)
+      |> assign_new(:formatted_duration, fn -> format_duration(assigns.duration) end)
+      |> assign_new(:formatted_timezone, fn -> format_timezone(assigns.timezone) end)
 
     ~H"""
     <div class={@grid_class}>
       <div>
-        <p class="booking-detail-label">Date</p>
-        <p class="booking-detail-value">{format_date(@date)}</p>
+        <p class="booking-detail-label">{@date_label}</p>
+        <p class="booking-detail-value">{@formatted_date}</p>
       </div>
       <div>
-        <p class="booking-detail-label">Time</p>
+        <p class="booking-detail-label">{@time_label}</p>
         <p class="booking-detail-value">{@time}</p>
       </div>
       <div>
-        <p class="booking-detail-label">Duration</p>
-        <p class="booking-detail-value">{format_duration(@duration)}</p>
+        <p class="booking-detail-label">{@duration_label}</p>
+        <p class="booking-detail-value">{@formatted_duration}</p>
       </div>
       <div>
-        <p class="booking-detail-label">Timezone</p>
-        <p class="booking-detail-value">{format_timezone(@timezone)}</p>
+        <p class="booking-detail-label">{@timezone_label}</p>
+        <p class="booking-detail-value">{@formatted_timezone}</p>
       </div>
     </div>
     """
@@ -111,6 +132,7 @@ defmodule TymeslotWeb.Components.MeetingComponents do
   attr :selected, :boolean, default: false
   attr :available, :boolean, default: true
   attr :current_month, :boolean, default: true
+  attr :loading, :boolean, default: false
   attr :rest, :global
 
   @spec calendar_day(map()) :: Phoenix.LiveView.Rendered.t()
@@ -123,11 +145,12 @@ defmodule TymeslotWeb.Components.MeetingComponents do
         !@available && "calendar-day--unavailable",
         !@current_month && "calendar-day--other-month",
         @day.is_today && "calendar-day--today",
-        Map.get(@day, :past, false) && "calendar-day--past"
+        Map.get(@day, :past, false) && "calendar-day--past",
+        @loading && "calendar-day--loading"
       ]}
       data-testid="calendar-day"
       data-date={@day[:date] || @day["date"]}
-      disabled={!@available || !@current_month}
+      disabled={!@available || !@current_month || @loading}
       {@rest}
     >
       <span class="calendar-day__number">{@day.day}</span>
@@ -153,7 +176,7 @@ defmodule TymeslotWeb.Components.MeetingComponents do
       data-testid="time-slot"
       {@rest}
     >
-      {Calendar.strftime(@slot.start_time, "%-I:%M %p")}
+      {format_time_by_locale(@slot.start_time)}
     </button>
     """
   end
@@ -479,15 +502,17 @@ defmodule TymeslotWeb.Components.MeetingComponents do
     datetime |> DateTime.to_date() |> format_date()
   end
 
-  defp format_meeting_date(datetime) do
-    Calendar.strftime(datetime, "%B %d, %Y")
+  defp format_time(datetime, timezone) do
+    case DateTime.shift_zone(datetime, timezone) do
+      {:ok, shifted} -> 
+        Elixir.Calendar.strftime(shifted, "%H:%M") <> " " <> shifted.zone_abbr
+      _ -> 
+        Elixir.Calendar.strftime(datetime, "%H:%M") <> " UTC"
+    end
   end
 
-  defp format_meeting_time(datetime, timezone) do
-    case DateTime.shift_zone(datetime, timezone) do
-      {:ok, shifted} -> Calendar.strftime(shifted, "%I:%M %p %Z")
-      _ -> Calendar.strftime(datetime, "%I:%M %p UTC")
-    end
+  defp format_time_by_locale(dt) do
+    Elixir.Calendar.strftime(dt, "%H:%M")
   end
 
   defp format_duration(duration) when is_binary(duration) do

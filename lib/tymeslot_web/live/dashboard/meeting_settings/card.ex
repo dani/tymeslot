@@ -20,11 +20,11 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Card do
       <div class="flex items-center justify-between mb-4">
         <div class="flex items-center">
           <%= if @type.icon && @type.icon != "none" do %>
-            <span class={[@type.icon, "w-6 h-6 text-gray-600 mr-3"]} />
+            <span class={[@type.icon, "w-6 h-6 text-tymeslot-600 mr-3"]} />
           <% end %>
           <div>
-            <h3 class="text-lg font-medium text-gray-800">{@type.name}</h3>
-            <p class="text-sm text-gray-600">{@type.duration_minutes} minutes</p>
+            <h3 class="text-token-lg font-medium text-tymeslot-800">{@type.name}</h3>
+            <p class="text-token-sm text-tymeslot-600">{@type.duration_minutes} minutes</p>
           </div>
         </div>
         <button
@@ -35,7 +35,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Card do
             "relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2",
             if(@type.is_active,
               do: "bg-teal-500 border-teal-500",
-              else: "bg-gray-300 border-gray-300"
+              else: "bg-tymeslot-300 border-tymeslot-300"
             )
           ]}
           role="switch"
@@ -50,7 +50,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Card do
               "absolute inset-0 flex h-full w-full items-center justify-center transition-opacity duration-200 ease-in-out",
               if(@type.is_active, do: "opacity-0", else: "opacity-100")
             ]}>
-              <svg class="h-3 w-3 text-gray-400" fill="none" viewBox="0 0 12 12">
+              <svg class="h-3 w-3 text-tymeslot-400" fill="none" viewBox="0 0 12 12">
                 <path
                   d="M4 8l2-2m0 0l2-2M6 6L4 4m2 2l2 2"
                   stroke="currentColor"
@@ -76,10 +76,10 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Card do
         <!-- Meeting Type Details -->
         <div class="mb-4">
           <%= if @type.description do %>
-            <p class="text-sm text-gray-600 mb-3">{@type.description}</p>
+            <p class="text-token-sm text-tymeslot-600 mb-3">{@type.description}</p>
           <% end %>
 
-          <div class="flex items-center space-x-4 text-sm text-gray-600">
+          <div class="flex items-center space-x-4 text-token-sm text-tymeslot-600">
             <div class="flex items-center">
               <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -157,7 +157,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Card do
           </button>
         </div>
       <% else %>
-        <p class="text-gray-500 text-sm">Meeting type is currently disabled</p>
+        <p class="text-tymeslot-500 text-token-sm">Meeting type is currently disabled</p>
       <% end %>
     </div>
     """

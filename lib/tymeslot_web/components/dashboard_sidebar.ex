@@ -63,9 +63,9 @@ defmodule TymeslotWeb.Components.DashboardSidebar do
             :if={LinkAccessPolicy.can_link?(@profile, @integration_status)}
             href={LinkAccessPolicy.scheduling_path(@profile)}
             target="_blank"
-            class="dashboard-nav-link flex-1 flex items-center space-x-3 px-4 py-4 text-sm font-black rounded-2xl transition-all duration-300 bg-gradient-to-br from-turquoise-600 to-cyan-600 text-white shadow-lg shadow-turquoise-500/30 hover:shadow-xl hover:shadow-turquoise-500/40 transform hover:-translate-y-1"
+            class="dashboard-nav-link flex-1 flex items-center space-x-3 px-4 py-4 text-sm font-black rounded-2xl transition-all duration-300 bg-gradient-to-br from-turquoise-600 to-cyan-600 text-white hover:text-white hover:translate-x-0 shadow-lg shadow-turquoise-500/30 hover:shadow-xl hover:shadow-turquoise-500/40 hover:from-turquoise-700 hover:to-cyan-700 group"
           >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -74,7 +74,7 @@ defmodule TymeslotWeb.Components.DashboardSidebar do
               >
               </path>
             </svg>
-            <span>View Page</span>
+            <span class="text-white">View Page</span>
           </.link>
           <div
             :if={!LinkAccessPolicy.can_link?(@profile, @integration_status)}
@@ -97,7 +97,7 @@ defmodule TymeslotWeb.Components.DashboardSidebar do
             :if={LinkAccessPolicy.can_link?(@profile, @integration_status)}
             type="button"
             phx-click="copy_scheduling_link"
-            class="dashboard-nav-link px-4 py-4 rounded-2xl transition-all duration-300 bg-white border-2 border-slate-100 text-slate-700 hover:border-turquoise-400 hover:text-turquoise-700 shadow-sm hover:shadow-md transform hover:-translate-y-1 group relative"
+            class="dashboard-nav-link px-4 py-4 rounded-2xl transition-all duration-300 bg-white border-2 border-slate-100 text-slate-700 hover:border-turquoise-400 hover:text-turquoise-700 hover:translate-x-0 shadow-sm hover:shadow-md group relative"
             title="Copy link to clipboard"
           >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -130,92 +130,123 @@ defmodule TymeslotWeb.Components.DashboardSidebar do
         </div>
         
     <!-- Navigation Links -->
-        <nav class="space-y-2">
-          <.nav_link patch={~p"/dashboard"} current={@current_action} action={:overview}>
-            <IconComponents.icon name={:home} class="w-5 h-5" />
-            <span>Overview</span>
-          </.nav_link>
+        <nav class="space-y-3 mt-6">
+          <div>
+            <div class="dashboard-nav-section-title">General</div>
+            <div class="space-y-0">
+              <.nav_link patch={~p"/dashboard"} current={@current_action} action={:overview}>
+                <IconComponents.icon name={:home} class="w-5 h-5" />
+                <span>Overview</span>
+              </.nav_link>
 
-          <.nav_link patch={~p"/dashboard/settings"} current={@current_action} action={:settings}>
-            <IconComponents.icon name={:user} class="w-5 h-5" />
-            <span>Settings</span>
-          </.nav_link>
+              <.nav_link patch={~p"/dashboard/meetings"} current={@current_action} action={:meetings}>
+                <IconComponents.icon name={:clock} class="w-5 h-5" />
+                <span>Meetings</span>
+              </.nav_link>
+            </div>
+          </div>
 
-          <.nav_link
-            patch={~p"/dashboard/availability"}
-            current={@current_action}
-            action={:availability}
-          >
-            <IconComponents.icon name={:calendar} class="w-5 h-5" />
-            <span>Availability</span>
-          </.nav_link>
+          <div>
+            <div class="dashboard-nav-section-title">Scheduling</div>
+            <div class="space-y-0">
+              <.nav_link
+                patch={~p"/dashboard/meeting-settings"}
+                current={@current_action}
+                action={:meeting_settings}
+                show_notification={not (@integration_status[:has_meeting_types] || false)}
+                notification_type="info"
+              >
+                <IconComponents.icon name={:grid} class="w-5 h-5" />
+                <span>Meeting Types</span>
+              </.nav_link>
 
-          <.nav_link
-            patch={~p"/dashboard/meeting-settings"}
-            current={@current_action}
-            action={:meeting_settings}
-            show_notification={not (@integration_status[:has_meeting_types] || false)}
-            notification_type="info"
-          >
-            <IconComponents.icon name={:grid} class="w-5 h-5" />
-            <span>Meeting Settings</span>
-          </.nav_link>
+              <.nav_link
+                patch={~p"/dashboard/availability"}
+                current={@current_action}
+                action={:availability}
+              >
+                <IconComponents.icon name={:calendar} class="w-5 h-5" />
+                <span>Availability</span>
+              </.nav_link>
 
-          <.nav_link
-            patch={~p"/dashboard/calendar"}
-            current={@current_action}
-            action={:calendar}
-            show_notification={not (@integration_status[:has_calendar] || false)}
-            notification_type="info"
-          >
-            <IconComponents.icon name={:calendar} class="w-5 h-5" />
-            <span>Calendar</span>
-          </.nav_link>
+              <.nav_link patch={~p"/dashboard/theme"} current={@current_action} action={:theme}>
+                <IconComponents.icon name={:paint_brush} class="w-5 h-5" />
+                <span>Theme</span>
+              </.nav_link>
+            </div>
+          </div>
 
-          <.nav_link
-            patch={~p"/dashboard/video"}
-            current={@current_action}
-            action={:video}
-            show_notification={not (@integration_status[:has_video] || false)}
-            notification_type="info"
-          >
-            <IconComponents.icon name={:video} class="w-5 h-5" />
-            <span>Video</span>
-          </.nav_link>
+          <div>
+            <div class="dashboard-nav-section-title">Integrations</div>
+            <div class="space-y-0">
+              <.nav_link
+                patch={~p"/dashboard/calendar"}
+                current={@current_action}
+                action={:calendar}
+                show_notification={not (@integration_status[:has_calendar] || false)}
+                notification_type="info"
+              >
+                <IconComponents.icon name={:calendar} class="w-5 h-5" />
+                <span>Calendar</span>
+              </.nav_link>
 
-          <.nav_link
-            patch={~p"/dashboard/notifications"}
-            current={@current_action}
-            action={:notifications}
-          >
-            <IconComponents.icon name={:bell} class="w-5 h-5" />
-            <span>Notifications</span>
-          </.nav_link>
+              <.nav_link
+                patch={~p"/dashboard/video"}
+                current={@current_action}
+                action={:video}
+                show_notification={not (@integration_status[:has_video] || false)}
+                notification_type="info"
+              >
+                <IconComponents.icon name={:video} class="w-5 h-5" />
+                <span>Video</span>
+              </.nav_link>
+            </div>
+          </div>
 
-          <.nav_link patch={~p"/dashboard/theme"} current={@current_action} action={:theme}>
-            <IconComponents.icon name={:paint_brush} class="w-5 h-5" />
-            <span>Theme</span>
-          </.nav_link>
+          <div>
+            <div class="dashboard-nav-section-title">Distribution</div>
+            <div class="space-y-0">
+              <.nav_link patch={~p"/dashboard/embed"} current={@current_action} action={:embed}>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+                  >
+                  </path>
+                </svg>
+                <span>Embed & Share</span>
+              </.nav_link>
+            </div>
+          </div>
 
-          <.nav_link patch={~p"/dashboard/meetings"} current={@current_action} action={:meetings}>
-            <IconComponents.icon name={:clock} class="w-5 h-5" />
-            <span>Meetings</span>
-          </.nav_link>
+          <div>
+            <div class="dashboard-nav-section-title">Account</div>
+            <div class="space-y-0">
+              <.nav_link patch={~p"/dashboard/settings"} current={@current_action} action={:settings}>
+                <IconComponents.icon name={:user} class="w-5 h-5" />
+                <span>Profile</span>
+              </.nav_link>
 
-          <.nav_link patch={~p"/dashboard/embed"} current={@current_action} action={:embed}>
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
-            </svg>
-            <span>Embed & Share</span>
-          </.nav_link>
+              <.nav_link
+                patch={~p"/dashboard/notifications"}
+                current={@current_action}
+                action={:notifications}
+              >
+                <IconComponents.icon name={:bell} class="w-5 h-5" />
+                <span>Notifications</span>
+              </.nav_link>
 
-          <.nav_link patch={~p"/dashboard/payment"} current={@current_action} action={:payment}>
-            <IconComponents.icon name={:credit_card} class="w-5 h-5" />
-            <span>Payment</span>
-            <span class="ml-auto text-xs bg-turquoise-100 text-turquoise-700 px-2 py-0.5 rounded-full">
-              Coming soon
-            </span>
-          </.nav_link>
+              <.nav_link patch={~p"/dashboard/payment"} current={@current_action} action={:payment}>
+                <IconComponents.icon name={:credit_card} class="w-5 h-5" />
+                <span>Payment</span>
+                <span class="ml-auto text-xs bg-turquoise-100 text-turquoise-700 px-2 py-0.5 rounded-full">
+                  Coming soon
+                </span>
+              </.nav_link>
+            </div>
+          </div>
         </nav>
       </div>
     </aside>
@@ -236,7 +267,7 @@ defmodule TymeslotWeb.Components.DashboardSidebar do
     <.link
       patch={@patch}
       class={[
-        "dashboard-nav-link flex items-center space-x-3 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200",
+        "dashboard-nav-link flex items-center space-x-3 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200",
         if(@current == @action,
           do: "dashboard-nav-link--active",
           else: ""

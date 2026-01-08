@@ -17,7 +17,7 @@
 }
 
 .page-title {
-  @apply text-4xl font-black text-slate-900 tracking-tight;
+  @apply text-4xl font-black text-tymeslot-900 tracking-tight;
 }
 
 /* Integration Card Components */
@@ -61,7 +61,7 @@
 }
 
 .status-badge--inactive {
-  @apply bg-slate-100 text-slate-500 border border-slate-200;
+  @apply bg-tymeslot-100 text-tymeslot-500 border border-tymeslot-200;
 }
 
 .integration-provider {
@@ -246,19 +246,28 @@
 
 /* Dashboard Sidebar */
 .dashboard-sidebar {
-  @apply bg-white border-r-2 border-slate-50 transition-all duration-300;
+  @apply bg-white border-r-2 border-tymeslot-50 transition-glass;
   position: relative;
+}
+
+.dashboard-nav-section-title {
+  @apply px-4 text-token-xs font-black text-tymeslot-400 uppercase tracking-widest mb-1 flex items-center;
+}
+
+.dashboard-nav-section-title::after {
+  content: '';
+  @apply flex-1 h-[1px] bg-tymeslot-100 ml-3 opacity-50;
 }
 
 /* Dashboard Navigation Links */
 .dashboard-nav-link {
-  @apply text-slate-600 font-bold transition-all duration-300 flex items-center space-x-3 px-4 py-3 text-sm rounded-xl;
+  @apply text-tymeslot-600 font-bold transition-glass flex items-center space-x-3 px-4 py-2 text-sm rounded-token-xl;
   @apply hover:text-turquoise-600 hover:bg-turquoise-50/50 hover:translate-x-1;
 }
 
 .dashboard-nav-link--active {
   @apply text-white bg-gradient-to-r from-turquoise-600 to-cyan-600 shadow-lg shadow-turquoise-500/20 font-black;
-  @apply hover:text-white hover:translate-x-0;
+  @apply hover:text-white hover:from-turquoise-700 hover:to-cyan-700 hover:translate-x-0;
 }
 
 .dashboard-nav-link--active svg {
@@ -453,9 +462,35 @@
 
 .dashboard-nav-notification--info {
   background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
-  box-shadow: 
-    0 1px 4px rgba(107, 114, 128, 0.2),
-    0 0 0 1px rgba(75, 85, 99, 0.1);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Selector Buttons - Used for mode selection in forms */
+.glass-selector {
+  @apply flex-1 p-4 rounded-token-2xl border-2 transition-glass box-border h-16
+         hover:scale-[1.02] hover:shadow-md flex items-center justify-center cursor-pointer;
+  @apply bg-tymeslot-50 border-tymeslot-200 text-tymeslot-600;
+}
+
+.glass-selector:hover {
+  @apply border-turquoise-200 bg-turquoise-50/30;
+  color: var(--color-primary-700);
+}
+
+.glass-selector--active {
+  background: var(--glass-gradient-primary) !important;
+  border-color: var(--color-primary-400) !important;
+  color: var(--color-text-on-glass) !important;
+  @apply shadow-lg shadow-turquoise-500/20;
+}
+
+.glass-selector--active .selector-icon {
+  color: white !important;
+}
+
+.selector-icon {
+  @apply w-5 h-5 mr-2 transition-colors duration-300;
+  @apply text-tymeslot-500;
 }
 
 /* Subtle hover effect for badges */

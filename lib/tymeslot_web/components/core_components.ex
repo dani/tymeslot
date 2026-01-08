@@ -110,9 +110,14 @@ defmodule TymeslotWeb.Components.CoreComponents do
   @doc """
   Renders a section header with consistent styling.
   """
+  attr :icon, :atom, default: nil
+  attr :title, :string, default: nil
+  attr :count, :integer, default: nil
+  attr :saving, :boolean, default: false
   attr :level, :integer, default: 1
+  attr :title_class, :string, default: nil
   attr :class, :string, default: ""
-  slot :inner_block, required: true
+  slot :inner_block
   @spec section_header(map()) :: Phoenix.LiveView.Rendered.t()
   def section_header(assigns), do: Containers.section_header(assigns)
 

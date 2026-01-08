@@ -94,7 +94,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm do
           <%= if errors = Map.get(@form_errors, :duration) do %>
             <p class="form-error">{Helpers.format_errors(errors)}</p>
           <% end %>
-          <p class="mt-1 text-sm text-gray-600">
+          <p class="mt-1 text-token-sm text-tymeslot-600">
             Enter a duration between 5 and 480 minutes
           </p>
         </div>
@@ -131,11 +131,11 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm do
               type="button"
               phx-click={JS.push("select_icon", value: %{icon: icon_value}, target: @myself)}
               class={[
-                "relative rounded-md border-2 transition-colors duration-200 group",
+                "relative rounded-token-md border-2 transition-colors duration-200 group",
                 "w-10 h-10 flex items-center justify-center overflow-hidden",
                 if(@selected_icon == icon_value,
                   do: "bg-gradient-to-br from-teal-50 to-teal-100 border-teal-500 shadow-md",
-                  else: "bg-white/50 border-gray-300/50 hover:border-teal-400/50 hover:bg-white/70"
+                  else: "bg-white/50 border-tymeslot-300/50 hover:border-teal-400/50 hover:bg-white/70"
                 )
               ]}
               style="width: 40px; height: 40px; min-width: 40px; min-height: 40px; max-width: 40px; max-height: 40px;"
@@ -143,7 +143,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm do
             >
               <%= if icon_value == "none" do %>
                 <svg
-                  class="w-6 h-6 text-gray-400"
+                  class="w-6 h-6 text-tymeslot-400"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -162,7 +162,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm do
                     "block",
                     if(@selected_icon == icon_value,
                       do: "text-teal-600",
-                      else: "text-gray-500 group-hover:text-teal-500"
+                      else: "text-tymeslot-500 group-hover:text-teal-500"
                     )
                   ]}
                   style="width: 32px; height: 32px; min-width: 32px; min-height: 32px;"
@@ -171,7 +171,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm do
             </button>
           <% end %>
         </div>
-        <p class="mt-2 text-sm text-gray-600">
+        <p class="mt-2 text-token-sm text-tymeslot-600">
           Choose an icon to represent this meeting type, or select "No Icon" for no visual indicator.
         </p>
         <%= if errors = Map.get(@form_errors, :icon) do %>
@@ -188,18 +188,14 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm do
             type="button"
             phx-click={JS.push("toggle_meeting_mode", value: %{mode: "personal"}, target: @myself)}
             class={[
-              "flex-1 py-4 px-4 rounded-lg border-2 transition-all duration-200 box-border h-16",
-              "hover:scale-[1.02] hover:shadow-lg flex items-center justify-center",
-              if(@meeting_mode == "personal",
-                do: "glass-gradient border-teal-500 shadow-lg shadow-teal-500/20",
-                else: "card-glass border-gray-300/20 hover:border-teal-400/50"
-              )
+              "glass-selector",
+              if(@meeting_mode == "personal", do: "glass-selector--active")
             ]}
           >
-            <div class="flex items-center justify-center space-x-2">
+            <div class="flex items-center justify-center">
               <span class={[
-                "hero-user w-5 h-5",
-                if(@meeting_mode == "personal", do: "text-teal-600", else: "text-gray-600")
+                "hero-user selector-icon",
+                if(@meeting_mode == "personal", do: "!text-white")
               ]} />
               <span class="font-medium">In-Person</span>
             </div>
@@ -209,18 +205,14 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm do
             type="button"
             phx-click={JS.push("toggle_meeting_mode", value: %{mode: "video"}, target: @myself)}
             class={[
-              "flex-1 py-4 px-4 rounded-lg border-2 transition-all duration-200 box-border h-16",
-              "hover:scale-[1.02] hover:shadow-lg flex items-center justify-center",
-              if(@meeting_mode == "video",
-                do: "glass-gradient border-teal-500 shadow-lg shadow-teal-500/20",
-                else: "card-glass border-gray-300/20 hover:border-teal-400/50"
-              )
+              "glass-selector",
+              if(@meeting_mode == "video", do: "glass-selector--active")
             ]}
           >
-            <div class="flex items-center justify-center space-x-2">
+            <div class="flex items-center justify-center">
               <span class={[
-                "hero-video-camera w-5 h-5",
-                if(@meeting_mode == "video", do: "text-teal-600", else: "text-gray-600")
+                "hero-video-camera selector-icon",
+                if(@meeting_mode == "video", do: "!text-white")
               ]} />
               <span class="font-medium">Video Meeting</span>
             </div>
@@ -229,12 +221,12 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm do
 
         <%= if @meeting_mode == "video" do %>
           <div class="mt-4">
-            <label class="label text-sm">
+            <label class="label text-token-sm">
               Select Video Provider
             </label>
             <%= if @video_integrations == [] do %>
-              <div class="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-                <p class="text-sm text-yellow-700">
+              <div class="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-token-lg">
+                <p class="text-token-sm text-yellow-700">
                   No video integrations configured.
                   <a href="/dashboard/video-integrations" class="underline hover:text-yellow-800">
                     Set up video integration
@@ -253,24 +245,14 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm do
                       )
                     }
                     class={[
-                      "p-2 rounded-lg border-2 transition-all duration-200 box-border h-20 flex items-center justify-center",
-                      "hover:scale-[1.02] hover:shadow-lg",
-                      if(@selected_video_integration_id == integration.id,
-                        do: "glass-gradient border-teal-500 shadow-lg shadow-teal-500/20",
-                        else: "card-glass border-gray-300/20 hover:border-teal-400/50"
-                      )
+                      "glass-selector !h-20",
+                      if(@selected_video_integration_id == integration.id, do: "glass-selector--active")
                     ]}
                     title={integration.name}
                   >
                     <div class="flex flex-col items-center justify-center space-y-1">
                       <.provider_icon provider={integration.provider} size="compact" />
-                      <span class={[
-                        "text-sm font-medium truncate max-w-full",
-                        if(@selected_video_integration_id == integration.id,
-                          do: "text-teal-700",
-                          else: "text-gray-700"
-                        )
-                      ]}>
+                      <span class="text-token-sm font-medium truncate max-w-full">
                         {integration.name}
                       </span>
                     </div>
@@ -307,7 +289,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm do
         <button
           type="button"
           phx-click={if @is_edit, do: "close_edit_overlay", else: "toggle_add_form"}
-          phx-target={@myself}
+          phx-target={@parent_myself}
           class="btn btn-secondary"
         >
           Cancel
