@@ -381,3 +381,325 @@ msgstr "Ihr Name"
 #, elixir-autogen, elixir-format
 msgid "john@example.com"
 msgstr "max@beispiel.de"
+
+#: lib/tymeslot_web/themes/rhythm/scheduling/components/booking_component.ex:75
+#: lib/tymeslot_web/themes/rhythm/scheduling/components/schedule_component.ex:148
+#, elixir-autogen, elixir-format
+msgid "%{duration} minutes"
+msgstr "%{duration} Minuten"
+
+#: lib/tymeslot_web/themes/rhythm/scheduling/components/overview_component.ex:72
+#, elixir-autogen, elixir-format
+msgid "Hi! I'm %{name}."
+msgstr "Hallo! Ich bin %{name}."
+
+#: lib/tymeslot_web/themes/rhythm/scheduling/components/overview_component.ex:75
+#, elixir-autogen, elixir-format
+msgid "Pick a meeting duration below."
+msgstr "Wähle unten eine Besprechungsdauer."
+
+#: lib/tymeslot_web/themes/rhythm/scheduling/components/booking_component.ex:71
+#: lib/tymeslot_web/themes/rhythm/scheduling/components/schedule_component.ex:144
+#, elixir-autogen, elixir-format
+msgid "Schedule with"
+msgstr "Termin mit"
+
+msgid "Schedule Another Meeting"
+msgstr "Weiteren Termin vereinbaren"
+
+msgid "Successfully Rescheduled!"
+msgstr "Erfolgreich verschoben!"
+
+msgid "You're All Set!"
+msgstr "Alles bereit!"
+
+msgid "Meeting Details"
+msgstr "Termindetails"
+
+msgid "Meeting with"
+msgstr "Termin mit"
+
+msgid "Sent to"
+msgstr "Gesendet an"
+
+msgid "Need to make changes? Check your email for reschedule options"
+msgstr "Müssen Sie Änderungen vornehmen? Überprüfen Sie Ihre E-Mail auf Verschiebungsoptionen"
+
+msgid "Select a Date & Time"
+msgstr "Datum & Uhrzeit auswählen"
+
+msgid "Bookings available up to %{advance}"
+msgstr "Buchungen möglich bis zu %{advance}"
+
+msgid "Duration: %{duration}"
+msgstr "Dauer: %{duration}"
+
+msgid "Select a Date"
+msgstr "Datum auswählen"
+
+msgid "next_step"
+msgstr "Nächster Schritt"
+
+msgid "Your timezone"
+msgstr "Ihre Zeitzone"
+
+msgid "Search cities, countries, or timezones..."
+msgstr "Städte, Länder oder Zeitzonen suchen..."
+
+msgid "Available Times"
+msgstr "Verfügbare Zeiten"
+
+msgid "Loading available times..."
+msgstr "Verfügbare Zeiten werden geladen..."
+
+msgid "This date is fully booked"
+msgstr "Dieser Tag ist ausgebucht"
+
+msgid "Please select another date"
+msgstr "Bitte wählen Sie ein anderes Datum"
+
+msgid "Please select a date to see available times"
+msgstr "Bitte wählen Sie ein Datum, um verfügbare Zeiten zu sehen"
+
+msgid "%{time} local time"
+msgstr "%{time} Ortszeit"
+
+msgid "local time"
+msgstr "Ortszeit"
+
+msgid "same day only"
+msgstr "nur am selben Tag"
+
+msgid "1 day in advance"
+msgstr "1 Tag im Voraus"
+
+msgid "%{days} days in advance"
+msgstr "%{days} Tage im Voraus"
+
+msgid "1 week in advance"
+msgstr "1 Woche im Voraus"
+
+msgid "%{weeks} weeks in advance"
+msgstr "%{weeks} Wochen im Voraus"
+
+msgid "1 month in advance"
+msgstr "1 Monat im Voraus"
+
+msgid "%{months} months in advance"
+msgstr "%{months} Monate im Voraus"
+
+msgid "1 year in advance"
+msgstr "1 Jahr im Voraus"
+
+msgid "%{years} years in advance"
+msgstr "%{years} Jahre im Voraus"
+
+msgid "90 days in advance"
+msgstr "90 Tage im Voraus"
+
+msgid "Confirmation sent to"
+msgstr "Bestätigung gesendet an"
+
+msgid "Need to reschedule? Check your confirmation email."
+msgstr "Müssen Sie den Termin verschieben? Überprüfen Sie Ihre Bestätigungs-E-Mail."
+
+msgid "with %{name}"
+msgstr "mit %{name}"
+
+msgid "%{name}, your meeting %{organizer} is confirmed"
+msgstr "%{name}, Ihr Termin %{organizer} ist bestätigt"
+
+msgid "%{name}, your meeting %{organizer} has been rescheduled."
+msgstr "%{name}, Ihr Termin %{organizer} wurde verschoben."
+
+msgid "%{name}, your meeting %{organizer} is all set."
+msgstr "%{name}, Ihr Termin %{organizer} ist bestätigt."
+
+msgid "Theme Error"
+msgstr "Theme-Fehler"
+
+msgid "Retry"
+msgstr "Wiederholen"
+
+msgid "Page not found. Redirected to homepage."
+msgstr "Seite nicht gefunden. Zur Startseite weitergeleitet."
+
+msgid "time_format_type"
+msgstr "24h"
+
+msgid "Monday"
+msgstr "Montag"
+
+msgid "Tuesday"
+msgstr "Dienstag"
+
+msgid "Wednesday"
+msgstr "Mittwoch"
+
+msgid "Thursday"
+msgstr "Donnerstag"
+
+msgid "Friday"
+msgstr "Freitag"
+
+msgid "Saturday"
+msgstr "Samstag"
+
+msgid "Sunday"
+msgstr "Sonntag"
+
+msgid "January"
+msgstr "Januar"
+
+msgid "February"
+msgstr "Februar"
+
+msgid "March"
+msgstr "März"
+
+msgid "April"
+msgstr "April"
+
+msgid "May"
+msgstr "Mai"
+
+msgid "June"
+msgstr "Juni"
+
+msgid "July"
+msgstr "Juli"
+
+msgid "August"
+msgstr "August"
+
+msgid "September"
+msgstr "September"
+
+msgid "October"
+msgstr "Oktober"
+
+msgid "November"
+msgstr "November"
+
+msgid "December"
+msgstr "Dezember"
+
+msgid "Night"
+msgstr "Nacht"
+
+msgid "Morning"
+msgstr "Vormittag"
+
+msgid "Afternoon"
+msgstr "Nachmittag"
+
+msgid "Evening"
+msgstr "Abend"
+
+msgid "MON"
+msgstr "MO"
+
+msgid "TUE"
+msgstr "DI"
+
+msgid "WED"
+msgstr "MI"
+
+msgid "THU"
+msgstr "DO"
+
+msgid "FRI"
+msgstr "FR"
+
+msgid "SAT"
+msgstr "SA"
+
+msgid "SUN"
+msgstr "SO"
+
+msgid "%{weekday}, %{day} %{month} %{year} at %{time} %{timezone}"
+msgstr "%{weekday}, %{day}. %{month} %{year} um %{time} %{timezone}"
+
+msgid "%{date} at %{time}"
+msgstr "%{date} um %{time}"
+
+msgid "Invalid date/time"
+msgstr "Ungültiges Datum/Uhrzeit"
+
+msgid "Date"
+msgstr "Datum"
+
+msgid "Time"
+msgstr "Uhrzeit"
+
+msgid "Timezone"
+msgstr "Zeitzone"
+
+msgid "Reschedule"
+msgstr "Verschieben"
+
+msgid "Cancel"
+msgstr "Absagen"
+
+msgid "%{start_month} - %{end_month} %{year}"
+msgstr "%{start_month} - %{end_month} %{year}"
+
+msgid "%{time} %{timezone}"
+msgstr "%{time} %{timezone}"
+
+msgid "%{time} UTC"
+msgstr "%{time} UTC"
+
+msgid "With"
+msgstr "Mit"
+
+msgid "Sun"
+msgstr "So"
+
+msgid "Mon"
+msgstr "Mo"
+
+msgid "Tue"
+msgstr "Di"
+
+msgid "Wed"
+msgstr "Mi"
+
+msgid "Thu"
+msgstr "Do"
+
+msgid "Fri"
+msgstr "Fr"
+
+msgid "Sat"
+msgstr "Sa"
+
+msgid "User Not Found"
+msgstr "Benutzer nicht gefunden"
+
+msgid "1 minute"
+msgstr "1 Minute"
+
+msgid "%{minutes} minutes"
+msgstr "%{minutes} Minuten"
+
+msgid "1 hour"
+msgstr "1 Stunde"
+
+msgid "%{count} hours"
+msgstr "%{count} Stunden"
+
+msgid "%{hour_text} %{minute_text}"
+msgstr "%{hour_text} %{minute_text}"
+
+msgid "Unknown duration"
+msgstr "Unbekannte Dauer"
+
+msgid "Invalid date"
+msgstr "Ungültiges Datum"
+
+msgid "%{month} %{day}, %{year}"
+msgstr "%{day}. %{month} %{year}"
+
+msgid "%{month} %{year}"
+msgstr "%{month} %{year}"

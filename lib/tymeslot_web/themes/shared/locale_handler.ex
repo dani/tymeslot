@@ -4,14 +4,17 @@ defmodule TymeslotWeb.Themes.Shared.LocaleHandler do
   Provides functions for managing locale in LiveView context.
   """
 
+  alias Phoenix.Component
+
   @doc """
   Assigns the current locale to the socket from the connection assigns.
   Sets the locale in Gettext for the current process.
   """
+  @spec assign_locale(Phoenix.LiveView.Socket.t()) :: Phoenix.LiveView.Socket.t()
   def assign_locale(socket) do
     locale = socket.assigns[:locale] || default_locale()
     Gettext.put_locale(TymeslotWeb.Gettext, locale)
-    Phoenix.Component.assign(socket, :locale, locale)
+    Component.assign(socket, :locale, locale)
   end
 
   @doc """
@@ -24,6 +27,7 @@ defmodule TymeslotWeb.Themes.Shared.LocaleHandler do
 
   Changes are idempotent to avoid unnecessary updates.
   """
+  @spec handle_locale_change(Phoenix.LiveView.Socket.t(), String.t()) :: Phoenix.LiveView.Socket.t()
   def handle_locale_change(socket, new_locale) do
     current_locale = socket.assigns[:locale]
 
@@ -39,7 +43,7 @@ defmodule TymeslotWeb.Themes.Shared.LocaleHandler do
         # Update socket assigns
         # Note: For persistence across navigation, themes should push_patch
         # with the locale in query params
-        Phoenix.Component.assign(socket, :locale, new_locale)
+        Component.assign(socket, :locale, new_locale)
 
       true ->
         socket
@@ -49,6 +53,7 @@ defmodule TymeslotWeb.Themes.Shared.LocaleHandler do
   @doc """
   Returns the list of supported locale codes.
   """
+  @spec supported_locales() :: [String.t()]
   def supported_locales do
     Application.get_env(:tymeslot, TymeslotWeb.Gettext)[:locales] || ["en"]
   end
@@ -56,6 +61,7 @@ defmodule TymeslotWeb.Themes.Shared.LocaleHandler do
   @doc """
   Returns the full locale metadata including name and country code for UI rendering.
   """
+  @spec get_locales_with_metadata() :: [map()]
   def get_locales_with_metadata do
     Application.get_env(:tymeslot, :locales)[:supported] || []
   end
@@ -63,6 +69,7 @@ defmodule TymeslotWeb.Themes.Shared.LocaleHandler do
   @doc """
   Returns the default locale code.
   """
+  @spec default_locale() :: String.t()
   def default_locale do
     Application.get_env(:tymeslot, :locales)[:default] || "en"
   end

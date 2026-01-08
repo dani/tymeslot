@@ -15,26 +15,30 @@ defmodule TymeslotWeb.Plugs.LocalePlug do
   - Header injection attacks
   - DoS via extremely long inputs
   """
+  alias TymeslotWeb.Themes.Shared.LocaleHandler
   import Plug.Conn
   require Logger
 
-  @supported_locales ["en", "de", "uk"]
-  @default_locale "en"
   @max_locale_length 10
   @max_header_length 1000
   @max_tags_count 20
 
+  @spec init(keyword()) :: keyword()
   def init(opts), do: opts
 
+  @spec call(Plug.Conn.t(), keyword()) :: Plug.Conn.t()
   def call(conn, _opts) do
     locale =
       get_locale_from_params(conn) ||
         get_locale_from_session(conn) ||
         get_locale_from_header(conn) ||
-        @default_locale
+        LocaleHandler.default_locale()
 
     # Validate locale is supported
-    locale = if locale in @supported_locales, do: locale, else: @default_locale
+    locale =
+      if locale in LocaleHandler.supported_locales(),
+        do: locale,
+        else: LocaleHandler.default_locale()
 
     # Store in session for persistence
     conn = put_session(conn, :locale, locale)
@@ -98,9 +102,8 @@ defmodule TymeslotWeb.Plugs.LocalePlug do
     else
       case String.split(tag, ";q=") do
         [locale] ->
-          with normalized when not is_nil(normalized) <- normalize_locale(locale) do
-            {normalized, 1.0}
-          else
+          case normalize_locale(locale) do
+            normalized when not is_nil(normalized) -> {normalized, 1.0}
             _ -> nil
           end
 
@@ -108,9 +111,8 @@ defmodule TymeslotWeb.Plugs.LocalePlug do
           case Float.parse(quality) do
             # Validate quality score is within HTTP spec (0.0 to 1.0)
             {q, _} when q >= 0.0 and q <= 1.0 ->
-              with normalized when not is_nil(normalized) <- normalize_locale(locale) do
-                {normalized, q}
-              else
+              case normalize_locale(locale) do
+                normalized when not is_nil(normalized) -> {normalized, q}
                 _ -> nil
               end
 
@@ -193,7 +195,7 @@ defmodule TymeslotWeb.Plugs.LocalePlug do
 
   defp find_best_match(parsed_locales) do
     Enum.find_value(parsed_locales, fn {locale, _quality} ->
-      if locale in @supported_locales, do: locale
+      if locale in LocaleHandler.supported_locales(), do: locale
     end)
   end
 end

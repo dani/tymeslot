@@ -4,17 +4,15 @@ defmodule TymeslotWeb.Live.MultilingualBookingTest do
   import Phoenix.LiveViewTest
   import Tymeslot.Factory
 
-  alias Tymeslot.Demo
-
   setup do
-    # Create a user with calendar connection for booking flow
+    # Create a user with calendar integration for booking flow
     user = insert(:user)
-    profile = insert(:profile, user: user)
+    profile = insert(:profile, user: user, username: "testuser")
 
-    insert(:calendar_connection,
+    insert(:calendar_integration,
       user: user,
       provider: "google",
-      status: "connected"
+      is_active: true
     )
 
     insert(:meeting_type,
@@ -24,26 +22,22 @@ defmodule TymeslotWeb.Live.MultilingualBookingTest do
       is_active: true
     )
 
-    {:ok, user: user, profile: profile, username: Demo.username(profile)}
+    {:ok, user: user, profile: profile, username: profile.username}
   end
 
   describe "language detection and switching" do
     test "detects language from query parameter", %{conn: conn, username: username} do
-      {:ok, view, _html} = live(conn, "/#{username}?locale=de")
-
-      # Verify locale is set in assigns
-      assert view.assigns.locale == "de"
+      view = start_view(conn, username, "de")
 
       # Verify Gettext locale is set
       assert Gettext.get_locale(TymeslotWeb.Gettext) == "de"
+      assert render(view) =~ "data-locale=\"de\""
     end
 
     test "persists language selection across navigation", %{conn: conn, username: username} do
       # Start with German
-      {:ok, view, _html} = live(conn, "/#{username}?locale=de")
-      assert view.assigns.locale == "de"
+      view = start_view(conn, username, "de")
 
-      # Select a duration and navigate (this would normally trigger navigation)
       # The locale should persist in the session
       session_locale = get_session(view, :locale)
       assert session_locale == "de"
@@ -54,22 +48,19 @@ defmodule TymeslotWeb.Live.MultilingualBookingTest do
       username: username
     } do
       # Start in English
-      {:ok, view, _html} = live(conn, "/#{username}")
-      assert view.assigns.locale == "en"
+      view = start_view(conn, username)
+      assert render(view) =~ "data-locale=\"en\""
 
       # Switch to German via dropdown
-      view
-      |> element("button[phx-click='change_locale'][phx-value-locale='de']")
-      |> render_click()
-
-      assert view.assigns.locale == "de"
+      {:ok, view, _html} = change_locale(conn, view, "de")
+      assert render(view) =~ "data-locale=\"de\""
 
       # Navigate to a different page - locale should persist
       # This simulates the user navigating while staying in the same session
       {:ok, new_view, _html} = live(conn, "/#{username}")
 
       # The new view should have the German locale from the session
-      assert new_view.assigns.locale == "de"
+      assert render(new_view) =~ "data-locale=\"de\""
     end
 
     test "switches language via language switcher without losing state", %{
@@ -77,23 +68,19 @@ defmodule TymeslotWeb.Live.MultilingualBookingTest do
       username: username
     } do
       # Start in English
-      {:ok, view, _html} = live(conn, "/#{username}")
-      assert view.assigns.locale == "en"
+      view = start_view(conn, username)
 
       # Open language dropdown
       view |> element("button[phx-click='toggle_language_dropdown']") |> render_click()
-      assert view.assigns.language_dropdown_open == true
+
+      # Verify dropdown is open
+      assert render(view) =~ "role=\"menu\""
 
       # Switch to German
-      view
-      |> element("button[phx-click='change_locale'][phx-value-locale='de']")
-      |> render_click()
+      {:ok, view, _html} = change_locale(conn, view, "de")
 
-      # Verify language changed
-      assert view.assigns.locale == "de"
-
-      # Verify dropdown closed
-      assert view.assigns.language_dropdown_open == false
+      # Verify dropdown closed (in the NEW view)
+      refute render(view) =~ "role=\"menu\""
 
       # Verify Gettext locale updated
       assert Gettext.get_locale(TymeslotWeb.Gettext) == "de"
@@ -102,8 +89,8 @@ defmodule TymeslotWeb.Live.MultilingualBookingTest do
     test "accepts Accept-Language header for initial locale", %{conn: conn, username: username} do
       conn = put_req_header(conn, "accept-language", "uk-UA,uk;q=0.9")
 
-      {:ok, view, _html} = live(conn, "/#{username}")
-      assert view.assigns.locale == "uk"
+      view = start_view(conn, username)
+      assert render(view) =~ "data-locale=\"uk\""
     end
 
     test "language switcher displays all supported locales", %{conn: conn, username: username} do
@@ -121,22 +108,22 @@ defmodule TymeslotWeb.Live.MultilingualBookingTest do
 
   describe "language switcher UI interactions" do
     test "opens and closes language dropdown", %{conn: conn, username: username} do
-      {:ok, view, _html} = live(conn, "/#{username}")
+      view = start_view(conn, username)
 
       # Initially closed
-      assert view.assigns.language_dropdown_open == false
+      refute render(view) =~ "role=\"menu\""
 
       # Open dropdown
       view |> element("button[phx-click='toggle_language_dropdown']") |> render_click()
-      assert view.assigns.language_dropdown_open == true
+      assert render(view) =~ "role=\"menu\""
 
       # Close via click-away
       view |> element("div[phx-click-away='close_language_dropdown']") |> render_click()
-      assert view.assigns.language_dropdown_open == false
+      refute render(view) =~ "role=\"menu\""
     end
 
     test "shows current language as active in dropdown", %{conn: conn, username: username} do
-      {:ok, view, html} = live(conn, "/#{username}?locale=de")
+      view = start_view(conn, username, "de")
 
       # Open dropdown
       html =
@@ -149,60 +136,78 @@ defmodule TymeslotWeb.Live.MultilingualBookingTest do
 
   describe "locale fallback behavior" do
     test "falls back to English for unsupported locale", %{conn: conn, username: username} do
-      {:ok, view, _html} = live(conn, "/#{username}?locale=fr")
+      view = start_view(conn, username, "fr")
 
       # Should fall back to English
-      assert view.assigns.locale == "en"
+      assert render(view) =~ "data-locale=\"en\""
     end
 
     test "handles missing Accept-Language header gracefully", %{conn: conn, username: username} do
-      {:ok, view, _html} = live(conn, "/#{username}")
+      view = start_view(conn, username)
 
       # Should default to English
-      assert view.assigns.locale == "en"
+      assert render(view) =~ "data-locale=\"en\""
     end
 
     test "handles malformed locale parameter gracefully", %{conn: conn, username: username} do
-      {:ok, view, _html} = live(conn, "/#{username}?locale=invalid123")
+      view = start_view(conn, username, "invalid123")
 
       # Should fall back to English
-      assert view.assigns.locale == "en"
+      assert render(view) =~ "data-locale=\"en\""
     end
   end
 
   describe "multilingual booking flow completeness" do
     test "completes full booking flow in German", %{conn: conn, username: username} do
-      {:ok, view, _html} = live(conn, "/#{username}?locale=de&duration=30min")
+      view = start_view(conn, username, "de", "30min")
 
       # Verify we're in German
-      assert view.assigns.locale == "de"
+      assert render(view) =~ "data-locale=\"de\""
 
       # Flow should work regardless of language
-      # This tests that the feature is functional, not the specific translations
-      assert view.assigns.current_state == :overview
+      assert has_element?(view, "[data-testid='duration-option']")
     end
 
     test "completes full booking flow in Ukrainian", %{conn: conn, username: username} do
-      {:ok, view, _html} = live(conn, "/#{username}?locale=uk&duration=30min")
+      view = start_view(conn, username, "uk", "30min")
 
       # Verify we're in Ukrainian
-      assert view.assigns.locale == "uk"
+      assert render(view) =~ "data-locale=\"uk\""
 
       # Flow should work regardless of language
-      assert view.assigns.current_state == :overview
+      assert has_element?(view, "[data-testid='duration-option']")
     end
 
     test "language persists throughout booking flow steps", %{conn: conn, username: username} do
-      {:ok, view, _html} = live(conn, "/#{username}?locale=de&duration=30min")
+      view = start_view(conn, username, "de", "30min")
 
       # Start in German
-      assert view.assigns.locale == "de"
-      assert view.assigns.current_state == :overview
+      assert render(view) =~ "data-locale=\"de\""
+      assert has_element?(view, "[data-testid='duration-option']")
 
-      # Navigate to next step - language should persist
-      # Note: Full navigation testing would require mocking calendar availability
-      # This test verifies the locale assignment mechanism is in place
-      assert view.assigns.locale == "de"
+      # Verify the locale is still German
+      assert render(view) =~ "data-locale=\"de\""
     end
+  end
+
+  # Helper Functions
+
+  defp start_view(conn, username, locale \\ nil, duration \\ nil) do
+    url = "/#{username}"
+
+    query_params = URI.encode_query(Enum.reject([locale: locale, duration: duration], fn {_, v} -> is_nil(v) end))
+
+    url = if query_params == "", do: url, else: "#{url}?#{query_params}"
+
+    {:ok, view, _html} = live(conn, url)
+
+    view
+  end
+
+  defp change_locale(conn, view, locale) do
+    view
+    |> element("button[phx-click='change_locale'][phx-value-locale='#{locale}']")
+    |> render_click()
+    |> follow_redirect(conn)
   end
 end

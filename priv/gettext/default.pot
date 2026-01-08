@@ -381,3 +381,30 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "john@example.com"
 msgstr ""
+
+#: lib/tymeslot_web/themes/rhythm/scheduling/components/booking_component.ex:75
+#: lib/tymeslot_web/themes/rhythm/scheduling/components/schedule_component.ex:148
+#, elixir-autogen, elixir-format
+msgid "%{duration} minutes"
+msgstr ""
+
+#: lib/tymeslot_web/themes/rhythm/scheduling/components/overview_component.ex:72
+#, elixir-autogen, elixir-format
+msgid "Hi! I'm %{name}."
+msgstr ""
+
+#: lib/tymeslot_web/themes/rhythm/scheduling/components/overview_component.ex:75
+#, elixir-autogen, elixir-format
+msgid "Pick a meeting duration below."
+msgstr ""
+
+#: lib/tymeslot_web/themes/rhythm/scheduling/components/booking_component.ex:71
+#: lib/tymeslot_web/themes/rhythm/scheduling/components/schedule_component.ex:144
+#, elixir-autogen, elixir-format
+msgid "Schedule with"
+msgstr ""
+
+#: lib/tymeslot_web/themes/rhythm/scheduling/components/overview_component.ex:57
+#, elixir-autogen, elixir-format
+msgid "Schedule with %{name}"
+msgstr ""

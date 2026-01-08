@@ -12,6 +12,7 @@ defmodule TymeslotWeb.Components.LanguageSwitcher do
   attr :dropdown_open, :boolean, default: false
   attr :theme, :string, default: "quill"
 
+  @spec language_switcher(map()) :: Phoenix.LiveView.Rendered.t()
   def language_switcher(assigns) do
     ~H"""
     <div class="language-switcher relative" phx-click-away="close_language_dropdown">

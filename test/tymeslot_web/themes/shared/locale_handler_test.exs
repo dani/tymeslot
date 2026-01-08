@@ -5,16 +5,24 @@ defmodule TymeslotWeb.Themes.Shared.LocaleHandlerTest do
 
   alias TymeslotWeb.Themes.Shared.LocaleHandler
 
+  setup do
+    # Create a minimal LiveView socket structure for testing
+    socket = %Phoenix.LiveView.Socket{
+      assigns: %{locale: "en"},
+      endpoint: TymeslotWeb.Endpoint
+    }
+
+    {:ok, socket: socket}
+  end
+
   describe "assign_locale/1" do
     test "assigns locale from socket assigns", %{conn: conn} do
-      {:ok, lv, _html} = live(conn, "/")
+      {:ok, _lv, _html} = live(conn, "/")
 
-      socket =
-        Phoenix.LiveView.Socket
-        |> struct(%{
-          assigns: %{locale: "de"},
-          endpoint: TymeslotWeb.Endpoint
-        })
+      socket = %Phoenix.LiveView.Socket{
+        assigns: %{locale: "de"},
+        endpoint: TymeslotWeb.Endpoint
+      }
 
       socket = LocaleHandler.assign_locale(socket)
 
@@ -23,12 +31,10 @@ defmodule TymeslotWeb.Themes.Shared.LocaleHandlerTest do
     end
 
     test "uses default locale when not present in assigns" do
-      socket =
-        Phoenix.LiveView.Socket
-        |> struct(%{
-          assigns: %{},
-          endpoint: TymeslotWeb.Endpoint
-        })
+      socket = %Phoenix.LiveView.Socket{
+        assigns: %{},
+        endpoint: TymeslotWeb.Endpoint
+      }
 
       socket = LocaleHandler.assign_locale(socket)
 
@@ -37,12 +43,10 @@ defmodule TymeslotWeb.Themes.Shared.LocaleHandlerTest do
     end
 
     test "sets Gettext locale for current process" do
-      socket =
-        Phoenix.LiveView.Socket
-        |> struct(%{
-          assigns: %{locale: "uk"},
-          endpoint: TymeslotWeb.Endpoint
-        })
+      socket = %Phoenix.LiveView.Socket{
+        assigns: %{locale: "uk"},
+        endpoint: TymeslotWeb.Endpoint
+      }
 
       # Initial state
       Gettext.put_locale(TymeslotWeb.Gettext, "en")
@@ -55,20 +59,6 @@ defmodule TymeslotWeb.Themes.Shared.LocaleHandlerTest do
   end
 
   describe "handle_locale_change/2" do
-    setup do
-      # Create a minimal LiveView socket-like structure for testing
-      socket = %Phoenix.LiveView.Socket{
-        assigns: %{locale: "en"},
-        endpoint: TymeslotWeb.Endpoint,
-        private: %{
-          connect_params: %{},
-          connect_info: %{}
-        }
-      }
-
-      {:ok, socket: socket}
-    end
-
     test "changes locale when valid", %{socket: socket} do
       updated_socket = LocaleHandler.handle_locale_change(socket, "de")
 
@@ -135,10 +125,10 @@ defmodule TymeslotWeb.Themes.Shared.LocaleHandlerTest do
     test "updates Gettext locale on each change", %{socket: socket} do
       Gettext.put_locale(TymeslotWeb.Gettext, "en")
 
-      socket = LocaleHandler.handle_locale_change(socket, "de")
+      _socket = LocaleHandler.handle_locale_change(socket, "de")
       assert Gettext.get_locale(TymeslotWeb.Gettext) == "de"
 
-      socket = LocaleHandler.handle_locale_change(socket, "uk")
+      _socket = LocaleHandler.handle_locale_change(socket, "uk")
       assert Gettext.get_locale(TymeslotWeb.Gettext) == "uk"
     end
   end
@@ -248,14 +238,11 @@ defmodule TymeslotWeb.Themes.Shared.LocaleHandlerTest do
     end
 
     test "handles socket without locale assign gracefully" do
-      socket = %Phoenix.LiveView.Socket{
-        assigns: %{},
-        endpoint: TymeslotWeb.Endpoint,
-        private: %{
-          connect_params: %{},
-          connect_info: %{}
+      socket =
+        %Phoenix.LiveView.Socket{
+          assigns: %{},
+          endpoint: TymeslotWeb.Endpoint
         }
-      }
 
       updated_socket = LocaleHandler.handle_locale_change(socket, "de")
 

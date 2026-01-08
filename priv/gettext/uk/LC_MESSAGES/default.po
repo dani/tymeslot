@@ -381,3 +381,326 @@ msgstr "Ваше ім'я"
 #, elixir-autogen, elixir-format
 msgid "john@example.com"
 msgstr "ivan@приклад.ua"
+
+#: lib/tymeslot_web/themes/rhythm/scheduling/components/booking_component.ex:75
+#: lib/tymeslot_web/themes/rhythm/scheduling/components/schedule_component.ex:148
+#, elixir-autogen, elixir-format
+msgid "%{duration} minutes"
+msgstr "%{duration} хвилин"
+
+#: lib/tymeslot_web/themes/rhythm/scheduling/components/overview_component.ex:72
+#, elixir-autogen, elixir-format
+msgid "Hi! I'm %{name}."
+msgstr "Привіт! Я %{name}."
+
+#: lib/tymeslot_web/themes/rhythm/scheduling/components/overview_component.ex:75
+#, elixir-autogen, elixir-format
+msgid "Pick a meeting duration below."
+msgstr "Виберіть тривалість зустрічі нижче."
+
+#: lib/tymeslot_web/themes/rhythm/scheduling/components/booking_component.ex:71
+#: lib/tymeslot_web/themes/rhythm/scheduling/components/schedule_component.ex:144
+#, elixir-autogen, elixir-format
+msgid "Schedule with"
+msgstr "Зустріч з"
+
+msgid "Schedule Another Meeting"
+msgstr "Запланувати ще одну зустріч"
+
+msgid "Successfully Rescheduled!"
+msgstr "Успішно перенесено!"
+
+msgid "You're All Set!"
+msgstr "Все готово!"
+
+msgid "Meeting Details"
+msgstr "Деталі зустрічі"
+
+msgid "Meeting with"
+msgstr "Зустріч з"
+
+msgid "Sent to"
+msgstr "Надіслано на"
+
+msgid "Need to make changes? Check your email for reschedule options"
+msgstr "Потрібно внести зміни? Перевірте свою електронну пошту на наявність варіантів перенесення"
+
+msgid "Select a Date & Time"
+msgstr "Виберіть дату та час"
+
+msgid "Bookings available up to %{advance}"
+msgstr "Бронювання доступне до %{advance}"
+
+msgid "Duration: %{duration}"
+msgstr "Тривалість: %{duration}"
+
+msgid "Select a Date"
+msgstr "Виберіть дату"
+
+msgid "next_step"
+msgstr "Наступний крок"
+
+msgid "Your timezone"
+msgstr "Ваш часовий пояс"
+
+msgid "Search cities, countries, or timezones..."
+msgstr "Пошук міст, країн або часових поясів..."
+
+msgid "Available Times"
+msgstr "Доступний час"
+
+msgid "Loading available times..."
+msgstr "Завантаження доступного часу..."
+
+msgid "This date is fully booked"
+msgstr "Ця дата повністю заброньована"
+
+msgid "Please select another date"
+msgstr "Будь ласка, виберіть іншу дату"
+
+msgid "Please select a date to see available times"
+msgstr "Будь ласка, виберіть дату, щоб побачити доступний час"
+
+msgid "%{time} local time"
+msgstr "%{time} місцевий час"
+
+msgid "local time"
+msgstr "місцевий час"
+
+msgid "same day only"
+msgstr "тільки в той же день"
+
+msgid "1 day in advance"
+msgstr "за 1 день"
+
+msgid "%{days} days in advance"
+msgstr "за %{days} дні(в)"
+
+msgid "1 week in advance"
+msgstr "за 1 тиждень"
+
+msgid "%{weeks} weeks in advance"
+msgstr "за %{weeks} тижні(в)"
+
+msgid "1 month in advance"
+msgstr "за 1 місяць"
+
+msgid "%{months} months in advance"
+msgstr "за %{months} місяці(в)"
+
+msgid "1 year in advance"
+msgstr "за 1 рік"
+
+msgid "%{years} years in advance"
+msgstr "за %{years} роки(ів)"
+
+msgid "90 days in advance"
+msgstr "за 90 днів"
+
+msgid "Confirmation sent to"
+msgstr "Підтвердження надіслано на"
+
+msgid "Need to reschedule? Check your confirmation email."
+msgstr "Потрібно перенести зустріч? Перевірте електронний лист із підтвердженням."
+
+msgid "with %{name}"
+msgstr "з %{name}"
+
+msgid "%{name}, your meeting %{organizer} is confirmed"
+msgstr "%{name}, вашу зустріч %{organizer} підтверджено"
+
+msgid "%{name}, your meeting %{organizer} has been rescheduled."
+msgstr "%{name}, вашу зустріч %{organizer} перенесено."
+
+msgid "%{name}, your meeting %{organizer} is all set."
+msgstr "%{name}, вашу зустріч %{organizer} підтверджено."
+
+msgid "Theme Error"
+msgstr "Помилка теми"
+
+msgid "Retry"
+msgstr "Повторити"
+
+msgid "Page not found. Redirected to homepage."
+msgstr "Сторінку не знайдено. Перенаправлено на головну."
+
+msgid "time_format_type"
+msgstr "24h"
+
+msgid "Monday"
+msgstr "Понеділок"
+
+msgid "Tuesday"
+msgstr "Вівторок"
+
+msgid "Wednesday"
+msgstr "Середа"
+
+msgid "Thursday"
+msgstr "Четвер"
+
+msgid "Friday"
+msgstr "П'ятниця"
+
+msgid "Saturday"
+msgstr "Субота"
+
+msgid "Sunday"
+msgstr "Неділя"
+
+msgid "January"
+msgstr "Січень"
+
+msgid "February"
+msgstr "Лютий"
+
+msgid "March"
+msgstr "Березень"
+
+msgid "April"
+msgstr "Квітень"
+
+msgid "May"
+msgstr "Травень"
+
+msgid "June"
+msgstr "Червень"
+
+msgid "July"
+msgstr "Липень"
+
+msgid "August"
+msgstr "Серпень"
+
+msgid "September"
+msgstr "Вересень"
+
+msgid "October"
+msgstr "Жовтень"
+
+msgid "November"
+msgstr "Листопад"
+
+msgid "December"
+msgstr "Грудень"
+
+msgid "Night"
+msgstr "Ніч"
+
+msgid "Morning"
+msgstr "Ранок"
+
+msgid "Afternoon"
+msgstr "День"
+
+msgid "Evening"
+msgstr "Вечір"
+
+msgid "MON"
+msgstr "ПН"
+
+msgid "TUE"
+msgstr "ВТ"
+
+msgid "WED"
+msgstr "СР"
+
+msgid "THU"
+msgstr "ЧТ"
+
+msgid "FRI"
+msgstr "ПТ"
+
+msgid "SAT"
+msgstr "СБ"
+
+msgid "SUN"
+msgstr "НД"
+
+msgid "%{weekday}, %{day} %{month} %{year} at %{time} %{timezone}"
+msgstr "%{weekday}, %{day} %{month} %{year} о %{time} %{timezone}"
+
+msgid "%{date} at %{time}"
+msgstr "%{date} о %{time}"
+
+msgid "Invalid date/time"
+msgstr "Некоректна дата/час"
+
+msgid "Date"
+msgstr "Дата"
+
+msgid "Time"
+msgstr "Час"
+
+msgid "Timezone"
+msgstr "Часовий пояс"
+
+msgid "Reschedule"
+msgstr "Перенести"
+
+msgid "Cancel"
+msgstr "Скасувати"
+
+msgid "%{start_month} - %{end_month} %{year}"
+msgstr "%{start_month} - %{end_month} %{year}"
+
+msgid "%{time} %{timezone}"
+msgstr "%{time} %{timezone}"
+
+msgid "%{time} UTC"
+msgstr "%{time} UTC"
+
+msgid "With"
+msgstr "З"
+
+
+msgid "User Not Found"
+msgstr "Користувача не знайдено"
+
+msgid "1 minute"
+msgstr "1 хвилина"
+
+msgid "%{minutes} minutes"
+msgstr "%{minutes} хвилин"
+
+msgid "1 hour"
+msgstr "1 година"
+
+msgid "%{count} hours"
+msgstr "%{count} годин"
+
+msgid "%{hour_text} %{minute_text}"
+msgstr "%{hour_text} %{minute_text}"
+
+msgid "Unknown duration"
+msgstr "Невідома тривалість"
+
+msgid "Invalid date"
+msgstr "Некоректна дата"
+
+msgid "%{month} %{day}, %{year}"
+msgstr "%{day} %{month} %{year}"
+
+msgid "%{month} %{year}"
+msgstr "%{month} %{year}"
+
+msgid "Sun"
+msgstr "Нд"
+
+msgid "Mon"
+msgstr "Пн"
+
+msgid "Tue"
+msgstr "Вт"
+
+msgid "Wed"
+msgstr "Ср"
+
+msgid "Thu"
+msgstr "Чт"
+
+msgid "Fri"
+msgstr "Пт"
+
+msgid "Sat"
+msgstr "Сб"

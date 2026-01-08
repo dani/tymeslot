@@ -55,7 +55,7 @@ defmodule TymeslotWeb.Plugs.LocalePlugTest do
       assert get_session(conn, :locale) == "en"
     end
 
-    test "prioritizes query parameter over session", %{conn: conn} do
+    test "prioritizes query parameter over session", %{conn: _conn} do
       conn =
         build_conn()
         |> init_test_session(%{})
@@ -68,7 +68,7 @@ defmodule TymeslotWeb.Plugs.LocalePlugTest do
       assert get_session(conn, :locale) == "de"
     end
 
-    test "prioritizes query parameter over Accept-Language header", %{conn: conn} do
+    test "prioritizes query parameter over Accept-Language header", %{conn: _conn} do
       conn =
         build_conn()
         |> init_test_session(%{})
@@ -207,7 +207,7 @@ defmodule TymeslotWeb.Plugs.LocalePlugTest do
 
     test "limits number of language tags to prevent DoS", %{conn: conn} do
       # Create header with many tags (more than max count of 20)
-      many_tags = Enum.map(1..50, fn i -> "lang#{i}" end) |> Enum.join(",")
+      many_tags = Enum.map_join(1..50, ",", fn i -> "lang#{i}" end)
 
       conn =
         conn
@@ -253,7 +253,7 @@ defmodule TymeslotWeb.Plugs.LocalePlugTest do
   end
 
   describe "locale validation" do
-    test "rejects unsupported locale codes", %{conn: conn} do
+    test "rejects unsupported locale codes", %{conn: _conn} do
       conn =
         build_conn()
         |> init_test_session(%{})
@@ -265,7 +265,7 @@ defmodule TymeslotWeb.Plugs.LocalePlugTest do
       assert conn.assigns.locale == "en"
     end
 
-    test "handles empty locale string", %{conn: conn} do
+    test "handles empty locale string", %{conn: _conn} do
       conn =
         build_conn()
         |> init_test_session(%{})
@@ -276,7 +276,7 @@ defmodule TymeslotWeb.Plugs.LocalePlugTest do
       assert conn.assigns.locale == "en"
     end
 
-    test "handles nil locale", %{conn: conn} do
+    test "handles nil locale", %{conn: _conn} do
       conn =
         build_conn()
         |> init_test_session(%{})
@@ -287,7 +287,7 @@ defmodule TymeslotWeb.Plugs.LocalePlugTest do
       assert conn.assigns.locale == "en"
     end
 
-    test "truncates extremely long locale strings", %{conn: conn} do
+    test "truncates extremely long locale strings", %{conn: _conn} do
       # Create a locale string longer than max length
       long_locale = String.duplicate("a", 100)
 
@@ -302,7 +302,7 @@ defmodule TymeslotWeb.Plugs.LocalePlugTest do
       assert conn.assigns.locale == "en"
     end
 
-    test "handles invalid UTF-8 in locale param", %{conn: conn} do
+    test "handles invalid UTF-8 in locale param", %{conn: _conn} do
       # Invalid UTF-8 sequence
       invalid_utf8 = <<0xFF, 0xFE, 0xFD>>
 
@@ -316,7 +316,7 @@ defmodule TymeslotWeb.Plugs.LocalePlugTest do
       assert conn.assigns.locale == "en"
     end
 
-    test "rejects path traversal attempts", %{conn: conn} do
+    test "rejects path traversal attempts", %{conn: _conn} do
       conn =
         build_conn()
         |> init_test_session(%{})
@@ -328,7 +328,7 @@ defmodule TymeslotWeb.Plugs.LocalePlugTest do
       assert conn.assigns.locale == "de"
     end
 
-    test "removes Unicode bidirectional override characters", %{conn: conn} do
+    test "removes Unicode bidirectional override characters", %{conn: _conn} do
       # U+202E is right-to-left override
       locale_with_bidi = "d\u202Ee"
 
@@ -343,7 +343,7 @@ defmodule TymeslotWeb.Plugs.LocalePlugTest do
       assert conn.assigns.locale == "de"
     end
 
-    test "removes control characters", %{conn: conn} do
+    test "removes control characters", %{conn: _conn} do
       locale_with_controls = "d\u0000e\u001F"
 
       conn =
@@ -358,7 +358,7 @@ defmodule TymeslotWeb.Plugs.LocalePlugTest do
   end
 
   describe "locale persistence" do
-    test "persists selected locale to session", %{conn: conn} do
+    test "persists selected locale to session", %{conn: _conn} do
       conn =
         build_conn()
         |> init_test_session(%{})
@@ -380,7 +380,7 @@ defmodule TymeslotWeb.Plugs.LocalePlugTest do
       assert get_session(conn, :locale) == "uk"
     end
 
-    test "updates Gettext locale for current process", %{conn: conn} do
+    test "updates Gettext locale for current process", %{conn: _conn} do
       conn =
         build_conn()
         |> init_test_session(%{})
