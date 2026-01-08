@@ -59,21 +59,21 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.BookingComponent do
               <.glass_morphism_card class="booking-form-card">
                 <div class="p-4 md:p-6 lg:p-8">
                   <.section_header level={2} class="text-2xl md:text-3xl lg:text-4xl mb-4">
-                    Enter Your Details
+                    {gettext("Enter Your Details")}
                   </.section_header>
 
                   <p
                     class="text-base md:text-lg lg:text-xl mb-4"
                     style="color: rgba(255,255,255,0.85); line-height: 1.5;"
                   >
-                    You're booking a
-                    <span class="font-semibold" style="color: var(--theme-primary);">
-                      {TimezoneUtils.format_duration(@duration)}
-                    </span>
-                    meeting{if @organizer_profile,
-                      do:
-                        " with <span class=\"font-semibold\" style=\"color: var(--theme-primary);\">#{get_organizer_name(@organizer_profile, @username_context)}</span>"
-                        |> raw}
+                    <%= if @organizer_profile do %>
+                      {gettext("You're booking a %{duration} meeting with %{name}", 
+                        duration: TimezoneUtils.format_duration(@duration), 
+                        name: get_organizer_name(@organizer_profile, @username_context))}
+                    <% else %>
+                      {gettext("You're booking a %{duration} meeting", 
+                        duration: TimezoneUtils.format_duration(@duration))}
+                    <% end %>
                   </p>
 
                   <p class="text-xs md:text-sm mb-6" style="color: rgba(255,255,255,0.7);">
@@ -91,8 +91,8 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.BookingComponent do
                     <.form_field
                       form={@form}
                       field={:name}
-                      label="Your Name"
-                      placeholder="John Doe"
+                      label={gettext("Your Name")}
+                      placeholder={gettext("John Doe")}
                       required={true}
                       touched_fields={@touched_fields}
                       phx-debounce="blur"
@@ -104,9 +104,9 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.BookingComponent do
                     <.form_field
                       form={@form}
                       field={:email}
-                      label="Email Address"
+                      label={gettext("Email Address")}
                       type="email"
-                      placeholder="john@example.com"
+                      placeholder={gettext("john@example.com")}
                       required={true}
                       touched_fields={@touched_fields}
                       phx-debounce="blur"
@@ -118,8 +118,8 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.BookingComponent do
                     <.form_textarea
                       form={@form}
                       field={:message}
-                      label="Additional Message (Optional)"
-                      placeholder="Let me know what you'd like to discuss..."
+                      label={gettext("Additional Message (Optional)")}
+                      placeholder={gettext("Let me know what you'd like to discuss...")}
                       rows={3}
                       touched_fields={@touched_fields}
                       phx-debounce="blur"
@@ -137,20 +137,20 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.BookingComponent do
                         variant={:secondary}
                         class="flex-1"
                       >
-                        ← Back
+                        ← {gettext("back")}
                       </.action_button>
 
                       <.loading_button
                         type="submit"
                         id="submit-booking-button"
                         loading={@submitting}
-                        loading_text="Verifying..."
+                        loading_text={gettext("Verifying...")}
                         disabled={!Helpers.form_valid?(@form)}
                         data-testid="submit-booking"
                         class="flex-1"
                         title={get_submit_title(@submitting, @form)}
                       >
-                        Schedule Meeting 🎆
+                        {if @is_rescheduling, do: gettext("reschedule_meeting"), else: gettext("book_meeting")} 🎆
                       </.loading_button>
                     </div>
                   </.form>
@@ -171,9 +171,9 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.BookingComponent do
 
   defp get_submit_title(submitting, form) do
     cond do
-      submitting -> "Verifying slot availability and creating your meeting..."
-      !Helpers.form_valid?(form) -> "Please fill in all required fields"
-      true -> "Click to schedule your meeting"
+      submitting -> gettext("Verifying slot availability and creating your meeting...")
+      !Helpers.form_valid?(form) -> gettext("Please fill in all required fields")
+      true -> gettext("Click to schedule your meeting")
     end
   end
 end

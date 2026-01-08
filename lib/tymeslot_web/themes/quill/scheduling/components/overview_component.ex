@@ -66,16 +66,16 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.OverviewComponent do
                       class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-2 md:mb-4 text-center md:text-left"
                       style="color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.1);"
                     >
-                      Let's Connect!
+                      {gettext("Let's Connect!")}
                     </h1>
                     <p
                       class="text-sm sm:text-base md:text-lg lg:text-xl mb-3 sm:mb-4 md:mb-6 text-center md:text-left"
                       style="color: rgba(255,255,255,0.9);"
                     >
                       <%= if display_name = Profiles.display_name(@organizer_profile) do %>
-                        Hi, I'm {display_name}. Select how much time you need for our conversation.
+                        {gettext("Hi, I'm %{name}. Select how much time you need for our conversation.", name: display_name)}
                       <% else %>
-                        Select how much time you need for our conversation.
+                        {gettext("Select how much time you need for our conversation.")}
                       <% end %>
                     </p>
 
@@ -84,8 +84,8 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.OverviewComponent do
                         <% @username_context && @meeting_types == [] -> %>
                           <!-- No meeting types available for this user -->
                           <div class="text-center py-8 text-purple-300">
-                            <p class="text-lg font-medium">No meeting types available</p>
-                            <p class="text-sm mt-1">Please contact the organizer</p>
+                            <p class="text-lg font-medium">{gettext("No meeting types available")}</p>
+                            <p class="text-sm mt-1">{gettext("Please contact the organizer")}</p>
                           </div>
                         <% @username_context && length(@meeting_types) > 0 -> %>
                           <!-- Show user's configured meeting types -->
@@ -132,11 +132,11 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.OverviewComponent do
                         disabled={!assigns[:selected_duration]}
                         title={
                           unless assigns[:selected_duration],
-                            do: "Please select a meeting duration first"
+                            do: gettext("Please select a meeting duration first")
                         }
                         class="w-full"
                       >
-                        Next Step →
+                        {gettext("next")} →
                       </.action_button>
                     </div>
                   </div>

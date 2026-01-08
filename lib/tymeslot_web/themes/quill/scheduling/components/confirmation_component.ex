@@ -74,9 +74,9 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ConfirmationComponent d
                       <div data-testid="confirmation-heading">
                         <.section_header class="text-xl sm:text-2xl md:text-3xl lg:text-4xl">
                           <%= if @is_rescheduling do %>
-                            Meeting Rescheduled!
+                            {gettext("Meeting Rescheduled!")}
                           <% else %>
-                            Meeting Confirmed!
+                            {gettext("meeting_confirmed")}
                           <% end %>
                         </.section_header>
                       </div>
@@ -85,9 +85,11 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ConfirmationComponent d
                         class="text-sm sm:text-base md:text-lg mb-3 sm:mb-4"
                         style="color: rgba(255,255,255,0.9);"
                       >
-                        {@name}, your meeting{get_organizer_text(@organizer_profile)} {if @is_rescheduling,
-                          do: "has been rescheduled",
-                          else: "is all set"}.
+                        <%= if @is_rescheduling do %>
+                          {gettext("%{name}, your meeting%{organizer} has been rescheduled.", name: @name, organizer: get_organizer_text(@organizer_profile))}
+                        <% else %>
+                          {gettext("%{name}, your meeting%{organizer} is all set.", name: @name, organizer: get_organizer_text(@organizer_profile))}
+                        <% end %>
                       </p>
 
                       <.meeting_details_card title="">

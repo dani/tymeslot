@@ -83,4 +83,37 @@ defmodule TymeslotWeb.Components.FlagHelpers do
     />
     """
   end
+
+  @doc """
+  Renders a flag for a language locale code.
+  Maps locale codes to appropriate country flags for language selection UI.
+
+  ## Examples
+
+      <.locale_flag locale="en" class="w-5 h-4" />
+      <.locale_flag locale="de" class="w-5 h-4" />
+      <.locale_flag locale="uk" class="w-5 h-4" />
+  """
+  attr :locale, :string, required: true
+  attr :class, :string, default: ""
+  attr :show_fallback, :boolean, default: true
+
+  @spec locale_flag(map()) :: Phoenix.LiveView.Rendered.t()
+  def locale_flag(assigns) do
+    country_code = locale_to_country_code(assigns.locale)
+    assigns = assign(assigns, :country_code, country_code)
+
+    ~H"""
+    <.safe_flag
+      country_code={@country_code}
+      class={@class}
+      show_fallback={@show_fallback}
+    />
+    """
+  end
+
+  defp locale_to_country_code("en"), do: :gbr
+  defp locale_to_country_code("de"), do: :deu
+  defp locale_to_country_code("uk"), do: :ukr
+  defp locale_to_country_code(_), do: nil
 end

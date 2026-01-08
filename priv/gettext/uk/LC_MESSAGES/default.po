@@ -1,0 +1,383 @@
+## Ukrainian translations
+msgid ""
+msgstr ""
+"Language: uk\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10||n%100>=20) ? 1 : 2);\n"
+
+#: Navigation
+msgid "overview"
+msgstr "Огляд"
+
+msgid "schedule"
+msgstr "Розклад"
+
+msgid "booking"
+msgstr "Бронювання"
+
+msgid "confirmation"
+msgstr "Підтвердження"
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/overview_component.ex:139
+#, elixir-autogen
+msgid "next"
+msgstr "Далі"
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:140
+#, elixir-autogen
+msgid "back"
+msgstr "Назад"
+
+msgid "continue"
+msgstr "Продовжити"
+
+msgid "submit"
+msgstr "Відправити"
+
+msgid "schedule_another"
+msgstr "Запланувати ще одну зустріч"
+
+msgid "close"
+msgstr "Закрити"
+
+#: Overview Step
+msgid "select_meeting_duration"
+msgstr "Виберіть тривалість зустрічі"
+
+msgid "choose_meeting_type"
+msgstr "Виберіть тип зустрічі"
+
+msgid "select_duration"
+msgstr "Виберіть тривалість"
+
+#: Schedule Step
+msgid "select_date"
+msgstr "Виберіть дату"
+
+msgid "select_time"
+msgstr "Виберіть час"
+
+msgid "no_available_slots"
+msgstr "Немає доступних слотів у цей день"
+
+msgid "timezone"
+msgstr "Часовий пояс"
+
+msgid "search_timezone"
+msgstr "Пошук часового поясу..."
+
+msgid "choose_date_time"
+msgstr "Виберіть дату та час"
+
+msgid "select_date_time"
+msgstr "Виберіть дату та час"
+
+msgid "available"
+msgstr "Доступно"
+
+msgid "unavailable"
+msgstr "Недоступно"
+
+#: Booking Step
+msgid "name"
+msgstr "Ім'я"
+
+msgid "email"
+msgstr "Електронна пошта"
+
+msgid "message_optional"
+msgstr "Повідомлення (необов'язково)"
+
+msgid "enter_full_name"
+msgstr "Введіть ваше повне ім'я"
+
+msgid "enter_email"
+msgstr "ваша.пошта@приклад.ua"
+
+msgid "add_details"
+msgstr "Додайте будь-які деталі..."
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:153
+#, elixir-autogen
+msgid "book_meeting"
+msgstr "Забронювати зустріч"
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:153
+#, elixir-autogen
+msgid "reschedule_meeting"
+msgstr "Перенести зустріч"
+
+msgid "enter_details"
+msgstr "Введіть ваші дані"
+
+msgid "your_information"
+msgstr "Ваша інформація"
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/confirmation_component.ex:79
+#, elixir-autogen
+msgid "meeting_confirmed"
+msgstr "Зустріч підтверджено!"
+
+msgid "confirmation_email_sent"
+msgstr "Ми надіслали лист підтвердження на %{email}"
+
+msgid "add_to_calendar"
+msgstr "Додати до календаря"
+
+msgid "meeting_details"
+msgstr "Деталі зустрічі"
+
+msgid "date_and_time"
+msgstr "Дата і час"
+
+msgid "duration"
+msgstr "Тривалість"
+
+msgid "location"
+msgstr "Місце"
+
+msgid "thank_you"
+msgstr "Дякуємо!"
+
+msgid "see_you_soon"
+msgstr "До зустрічі"
+
+#: Error Messages
+msgid "something_went_wrong"
+msgstr "Щось пішло не так"
+
+msgid "try_again_later"
+msgstr "Будь ласка, спробуйте пізніше"
+
+msgid "invalid_meeting_link"
+msgstr "Недійсне посилання на зустріч"
+
+msgid "slot_no_longer_available"
+msgstr "Цей часовий слот більше недоступний"
+
+msgid "name_required"
+msgstr "Ім'я обов'язкове"
+
+msgid "email_required"
+msgstr "Електронна пошта обов'язкова"
+
+msgid "email_invalid"
+msgstr "Будь ласка, введіть дійсну адресу електронної пошти"
+
+msgid "calendar_setup_required"
+msgstr "Ми ще не можемо показати цю сторінку планування"
+
+msgid "connect_calendar_first"
+msgstr "Якщо ви організатор, будь ласка, підключіть календар у вашій панелі керування."
+
+#: Status
+msgid "loading"
+msgstr "Завантаження..."
+
+msgid "submitting"
+msgstr "Відправка..."
+
+#: Time formats
+msgid "minutes"
+msgstr "хвилин"
+
+msgid "hour"
+msgstr "година"
+
+msgid "hours"
+msgstr "годин"
+
+msgid "minute"
+msgstr "хвилина"
+
+#: Calendar
+msgid "january"
+msgstr "Січень"
+
+msgid "february"
+msgstr "Лютий"
+
+msgid "march"
+msgstr "Березень"
+
+msgid "april"
+msgstr "Квітень"
+
+msgid "may"
+msgstr "Травень"
+
+msgid "june"
+msgstr "Червень"
+
+msgid "july"
+msgstr "Липень"
+
+msgid "august"
+msgstr "Серпень"
+
+msgid "september"
+msgstr "Вересень"
+
+msgid "october"
+msgstr "Жовтень"
+
+msgid "november"
+msgstr "Листопад"
+
+msgid "december"
+msgstr "Грудень"
+
+msgid "sunday"
+msgstr "Неділя"
+
+msgid "monday"
+msgstr "Понеділок"
+
+msgid "tuesday"
+msgstr "Вівторок"
+
+msgid "wednesday"
+msgstr "Середа"
+
+msgid "thursday"
+msgstr "Четвер"
+
+msgid "friday"
+msgstr "П'ятниця"
+
+msgid "saturday"
+msgstr "Субота"
+
+msgid "sun"
+msgstr "Нд"
+
+msgid "mon"
+msgstr "Пн"
+
+msgid "tue"
+msgstr "Вт"
+
+msgid "wed"
+msgstr "Ср"
+
+msgid "thu"
+msgstr "Чт"
+
+msgid "fri"
+msgstr "Пт"
+
+msgid "sat"
+msgstr "Сб"
+
+#: Language UI
+msgid "change_language"
+msgstr "Змінити мову"
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/confirmation_component.ex:89
+#, elixir-autogen, elixir-format
+msgid "%{name}, your meeting%{organizer} has been rescheduled."
+msgstr "%{name}, вашу зустріч%{organizer} перенесено."
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/confirmation_component.ex:91
+#, elixir-autogen, elixir-format
+msgid "%{name}, your meeting%{organizer} is all set."
+msgstr "%{name}, вашу зустріч%{organizer} підтверджено."
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:121
+#, elixir-autogen, elixir-format
+msgid "Additional Message (Optional)"
+msgstr "Додаткове повідомлення (необов'язково)"
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:176
+#, elixir-autogen, elixir-format
+msgid "Click to schedule your meeting"
+msgstr "Натисніть, щоб запланувати зустріч"
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:107
+#, elixir-autogen, elixir-format
+msgid "Email Address"
+msgstr "Адреса електронної пошти"
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:62
+#, elixir-autogen, elixir-format
+msgid "Enter Your Details"
+msgstr "Введіть ваші дані"
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/overview_component.ex:76
+#, elixir-autogen, elixir-format
+msgid "Hi, I'm %{name}. Select how much time you need for our conversation."
+msgstr "Привіт, я %{name}. Виберіть, скільки часу вам потрібно для нашої розмови."
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:95
+#, elixir-autogen, elixir-format
+msgid "John Doe"
+msgstr "Іван Петренко"
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:122
+#, elixir-autogen, elixir-format
+msgid "Let me know what you'd like to discuss..."
+msgstr "Дайте мені знати, що ви хочете обговорити..."
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/overview_component.ex:69
+#, elixir-autogen, elixir-format
+msgid "Let's Connect!"
+msgstr "Давайте зв'яжемося!"
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/confirmation_component.ex:77
+#, elixir-autogen, elixir-format
+msgid "Meeting Rescheduled!"
+msgstr "Зустріч перенесено!"
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/overview_component.ex:87
+#, elixir-autogen, elixir-format
+msgid "No meeting types available"
+msgstr "Немає доступних типів зустрічей"
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/overview_component.ex:88
+#, elixir-autogen, elixir-format
+msgid "Please contact the organizer"
+msgstr "Будь ласка, зв'яжіться з організатором"
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:175
+#, elixir-autogen, elixir-format
+msgid "Please fill in all required fields"
+msgstr "Будь ласка, заповніть всі обов'язкові поля"
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/overview_component.ex:135
+#, elixir-autogen, elixir-format
+msgid "Please select a meeting duration first"
+msgstr "Будь ласка, спочатку виберіть тривалість зустрічі"
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/overview_component.ex:78
+#, elixir-autogen, elixir-format
+msgid "Select how much time you need for our conversation."
+msgstr "Виберіть, скільки часу вам потрібно для нашої розмови."
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:174
+#, elixir-autogen, elixir-format
+msgid "Verifying slot availability and creating your meeting..."
+msgstr "Перевірка доступності та створення вашої зустрічі..."
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:147
+#, elixir-autogen, elixir-format
+msgid "Verifying..."
+msgstr "Перевірка..."
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:74
+#, elixir-autogen, elixir-format
+msgid "You're booking a %{duration} meeting"
+msgstr "Ви бронюєте зустріч на %{duration}"
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:70
+#, elixir-autogen, elixir-format
+msgid "You're booking a %{duration} meeting with %{name}"
+msgstr "Ви бронюєте зустріч на %{duration} з %{name}"
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:94
+#, elixir-autogen, elixir-format
+msgid "Your Name"
+msgstr "Ваше ім'я"
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:109
+#, elixir-autogen, elixir-format
+msgid "john@example.com"
+msgstr "ivan@приклад.ua"

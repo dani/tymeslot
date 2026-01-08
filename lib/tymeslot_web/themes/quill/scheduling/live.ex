@@ -33,9 +33,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Live do
   }
 
   alias TymeslotWeb.Themes.Quill.Scheduling.Wrapper, as: QuillThemeWrapper
-  alias TymeslotWeb.Themes.Shared.SchedulingInit
-
-  require Logger
+  alias TymeslotWeb.Themes.Shared.{InfoHandlers, SchedulingInit}
 
   @impl true
   def mount(params, _session, socket) do
@@ -45,6 +43,8 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Live do
     # Initialize state first
     socket =
       socket
+      |> TymeslotWeb.Themes.Shared.LocaleHandler.assign_locale()
+      |> assign(:language_dropdown_open, false)
       |> assign_initial_state()
       |> ThemeUtils.assign_user_timezone(params)
       |> ThemeUtils.assign_theme_with_preview(params)
@@ -98,21 +98,29 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Live do
 
   # Other info handlers
   @impl true
-  def handle_info(:close_dropdown, socket) do
-    {:noreply, assign(socket, :timezone_dropdown_open, false)}
-  end
+  def handle_info(:close_dropdown, socket), do: InfoHandlers.handle_close_dropdown(socket)
 
   def handle_info({:fetch_available_slots, date, duration, timezone}, socket) do
-    case SlotFetchingHandlerComponent.fetch_available_slots(socket, date, duration, timezone) do
-      {:ok, updated_socket} -> {:noreply, updated_socket}
-      {:error, updated_socket} -> {:noreply, updated_socket}
-    end
+    InfoHandlers.handle_fetch_available_slots(socket, date, duration, timezone)
   end
 
   def handle_info({:load_slots, date}, socket) do
-    case SlotFetchingHandlerComponent.load_slots(socket, date) do
-      {:ok, updated_socket} -> {:noreply, updated_socket}
-    end
+    InfoHandlers.handle_load_slots(socket, date)
+  end
+
+  # Handle month availability fetch completion (success)
+  def handle_info({ref, {:ok, availability_map}}, socket) when is_reference(ref) do
+    InfoHandlers.handle_availability_ok(socket, ref, availability_map)
+  end
+
+  # Handle month availability fetch completion (error)
+  def handle_info({ref, {:error, reason}}, socket) when is_reference(ref) do
+    InfoHandlers.handle_availability_error(socket, ref, reason)
+  end
+
+  # Handle task crash or timeout
+  def handle_info({:DOWN, ref, :process, _pid, reason}, socket) do
+    InfoHandlers.handle_availability_down(socket, ref, reason)
   end
 
   # Handle step navigation from header
@@ -134,6 +142,27 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Live do
     else
       {:noreply, socket}
     end
+  end
+
+  # Language switcher events
+  @impl true
+  def handle_event("toggle_language_dropdown", _params, socket) do
+    {:noreply, assign(socket, :language_dropdown_open, !socket.assigns.language_dropdown_open)}
+  end
+
+  @impl true
+  def handle_event("close_language_dropdown", _params, socket) do
+    {:noreply, assign(socket, :language_dropdown_open, false)}
+  end
+
+  @impl true
+  def handle_event("change_locale", %{"locale" => locale}, socket) do
+    socket =
+      socket
+      |> TymeslotWeb.Themes.Shared.LocaleHandler.handle_locale_change(locale)
+      |> assign(:language_dropdown_open, false)
+
+    {:noreply, socket}
   end
 
   # Step-specific event handlers
@@ -281,6 +310,10 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Live do
     |> assign(:meeting_type, nil)
     |> assign(:current_year, today.year)
     |> assign(:current_month, today.month)
+    |> assign(:month_availability_map, nil)
+    |> assign(:availability_status, :not_loaded)
+    |> assign(:availability_task, nil)
+    |> assign(:availability_task_ref, nil)
     |> Helpers.setup_form_state()
     |> assign(:client_ip, nil)
     |> assign(:submission_token, nil)
@@ -350,10 +383,14 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Live do
         _ -> {Date.utc_today().year, Date.utc_today().month}
       end
 
-    socket
-    |> assign(:current_year, current_year)
-    |> assign(:current_month, current_month)
-    |> assign(:duration, params["duration"] || socket.assigns[:selected_duration])
+    socket =
+      socket
+      |> assign(:current_year, current_year)
+      |> assign(:current_month, current_month)
+      |> assign(:duration, params["duration"] || socket.assigns[:selected_duration])
+
+    # Trigger month availability fetch in background
+    fetch_month_availability_async(socket)
   end
 
   defp handle_state_entry(socket, :booking, _params) do
@@ -473,7 +510,8 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Live do
       |> assign(:selected_time, nil)
       |> assign(:available_slots, [])
 
-    {:noreply, socket}
+    # Trigger availability refresh for new month
+    fetch_month_availability_async(socket)
   end
 
   defp handle_form_validation(socket, booking_params) do
@@ -533,5 +571,49 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Live do
       <% end %>
     </QuillThemeWrapper.quill_wrapper>
     """
+  end
+
+  # Private helper functions
+
+  @doc false
+  defp fetch_month_availability_async(socket) do
+    # Only fetch if we have the required data and not already loading for this month/year
+    has_required_data =
+      socket.assigns[:organizer_user_id] &&
+        socket.assigns[:organizer_profile] &&
+        socket.assigns[:current_year] &&
+        socket.assigns[:current_month]
+
+    if has_required_data do
+      # Kill old task if it exists to avoid race conditions and resource leaks
+      if old_task = socket.assigns[:availability_task] do
+        Task.shutdown(old_task, :brutal_kill)
+      end
+
+      # Set loading state
+      socket =
+        socket
+        |> assign(:month_availability_map, :loading)
+        |> assign(:availability_status, :loading)
+
+      # Spawn async task to fetch availability
+      task =
+        Task.async(fn ->
+          Helpers.get_month_availability(
+            socket.assigns.organizer_user_id,
+            socket.assigns.current_year,
+            socket.assigns.current_month,
+            socket.assigns.user_timezone,
+            socket.assigns.organizer_profile,
+            socket
+          )
+        end)
+
+      socket
+      |> assign(:availability_task, task)
+      |> assign(:availability_task_ref, task.ref)
+    else
+      socket
+    end
   end
 end
