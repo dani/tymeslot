@@ -23,8 +23,7 @@ defmodule Tymeslot.DatabaseSchemas.ProfileSchemaTest do
 
       for domain <- valid_domains do
         changeset =
-          %ProfileSchema{}
-          |> ProfileSchema.changeset(%{
+          ProfileSchema.changeset(%ProfileSchema{}, %{
             user_id: user.id,
             timezone: "Europe/Kyiv",
             allowed_embed_domains: [domain]
@@ -53,8 +52,7 @@ defmodule Tymeslot.DatabaseSchemas.ProfileSchemaTest do
 
       for {domain, reason} <- invalid_domains do
         changeset =
-          %ProfileSchema{}
-          |> ProfileSchema.changeset(%{
+          ProfileSchema.changeset(%ProfileSchema{}, %{
             user_id: user.id,
             timezone: "Europe/Kyiv",
             allowed_embed_domains: [domain]
@@ -73,8 +71,7 @@ defmodule Tymeslot.DatabaseSchemas.ProfileSchemaTest do
       domains_20 = for i <- 1..20, do: "example#{i}.com"
 
       changeset_20 =
-        %ProfileSchema{}
-        |> ProfileSchema.changeset(%{
+        ProfileSchema.changeset(%ProfileSchema{}, %{
           user_id: user.id,
           timezone: "Europe/Kyiv",
           allowed_embed_domains: domains_20
@@ -86,8 +83,7 @@ defmodule Tymeslot.DatabaseSchemas.ProfileSchemaTest do
       domains_21 = for i <- 1..21, do: "example#{i}.com"
 
       changeset_21 =
-        %ProfileSchema{}
-        |> ProfileSchema.changeset(%{
+        ProfileSchema.changeset(%ProfileSchema{}, %{
           user_id: user.id,
           timezone: "Europe/Kyiv",
           allowed_embed_domains: domains_21
@@ -109,8 +105,7 @@ defmodule Tymeslot.DatabaseSchemas.ProfileSchemaTest do
       assert byte_size(domain_255) == 255
 
       changeset_255 =
-        %ProfileSchema{}
-        |> ProfileSchema.changeset(%{
+        ProfileSchema.changeset(%ProfileSchema{}, %{
           user_id: user.id,
           timezone: "Europe/Kyiv",
           allowed_embed_domains: [domain_255]
@@ -124,8 +119,7 @@ defmodule Tymeslot.DatabaseSchemas.ProfileSchemaTest do
       assert byte_size(domain_256) == 256
 
       changeset_256 =
-        %ProfileSchema{}
-        |> ProfileSchema.changeset(%{
+        ProfileSchema.changeset(%ProfileSchema{}, %{
           user_id: user.id,
           timezone: "Europe/Kyiv",
           allowed_embed_domains: [domain_256]
@@ -147,8 +141,7 @@ defmodule Tymeslot.DatabaseSchemas.ProfileSchemaTest do
       ]
 
       changeset =
-        %ProfileSchema{}
-        |> ProfileSchema.changeset(%{
+        ProfileSchema.changeset(%ProfileSchema{}, %{
           user_id: user.id,
           timezone: "Europe/Kyiv",
           allowed_embed_domains: mixed_domains
@@ -168,8 +161,7 @@ defmodule Tymeslot.DatabaseSchemas.ProfileSchemaTest do
 
       for domain <- unicode_domains do
         changeset =
-          %ProfileSchema{}
-          |> ProfileSchema.changeset(%{
+          ProfileSchema.changeset(%ProfileSchema{}, %{
             user_id: user.id,
             timezone: "Europe/Kyiv",
             allowed_embed_domains: [domain]
@@ -183,8 +175,7 @@ defmodule Tymeslot.DatabaseSchemas.ProfileSchemaTest do
 
     test "allows empty list", %{user: user} do
       changeset =
-        %ProfileSchema{}
-        |> ProfileSchema.changeset(%{
+        ProfileSchema.changeset(%ProfileSchema{}, %{
           user_id: user.id,
           timezone: "Europe/Kyiv",
           allowed_embed_domains: []
@@ -195,8 +186,7 @@ defmodule Tymeslot.DatabaseSchemas.ProfileSchemaTest do
 
     test "handles nil allowed_embed_domains", %{user: user} do
       changeset =
-        %ProfileSchema{}
-        |> ProfileSchema.changeset(%{
+        ProfileSchema.changeset(%ProfileSchema{}, %{
           user_id: user.id,
           timezone: "Europe/Kyiv",
           allowed_embed_domains: nil
@@ -216,8 +206,7 @@ defmodule Tymeslot.DatabaseSchemas.ProfileSchemaTest do
 
       for domain <- multi_level_domains do
         changeset =
-          %ProfileSchema{}
-          |> ProfileSchema.changeset(%{
+          ProfileSchema.changeset(%ProfileSchema{}, %{
             user_id: user.id,
             timezone: "Europe/Kyiv",
             allowed_embed_domains: [domain]
@@ -237,8 +226,7 @@ defmodule Tymeslot.DatabaseSchemas.ProfileSchemaTest do
 
       for domain <- number_domains do
         changeset =
-          %ProfileSchema{}
-          |> ProfileSchema.changeset(%{
+          ProfileSchema.changeset(%ProfileSchema{}, %{
             user_id: user.id,
             timezone: "Europe/Kyiv",
             allowed_embed_domains: [domain]
@@ -254,8 +242,7 @@ defmodule Tymeslot.DatabaseSchemas.ProfileSchemaTest do
       domain = "#{long_label}.com"
 
       changeset =
-        %ProfileSchema{}
-        |> ProfileSchema.changeset(%{
+        ProfileSchema.changeset(%ProfileSchema{}, %{
           user_id: user.id,
           timezone: "Europe/Kyiv",
           allowed_embed_domains: [domain]
@@ -270,8 +257,7 @@ defmodule Tymeslot.DatabaseSchemas.ProfileSchemaTest do
       domain = "#{max_label}.com"
 
       changeset =
-        %ProfileSchema{}
-        |> ProfileSchema.changeset(%{
+        ProfileSchema.changeset(%ProfileSchema{}, %{
           user_id: user.id,
           timezone: "Europe/Kyiv",
           allowed_embed_domains: [domain]

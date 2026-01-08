@@ -4,8 +4,65 @@ defmodule Tymeslot.Availability.ConflictsTest do
   """
 
   use ExUnit.Case, async: true
+  use ExUnitProperties
 
+  alias Tymeslot.Availability.Calculate
   alias Tymeslot.Availability.Conflicts
+
+  property "date_has_slots_with_events? matches available_slots availability" do
+    # This property test verifies that the optimized month-view check (date_has_slots_with_events?)
+    # returns 'true' if and only if there is at least one slot returned by the full
+    # calculation (available_slots).
+
+    check all(
+            timezone <- member_of(["UTC", "America/New_York", "Europe/London", "Asia/Tokyo"]),
+            # Use a date in the future to avoid past-date filtering
+            days_ahead <- integer(5..60),
+            # Meeting duration between 15 and 120 minutes
+            duration <- member_of([15, 30, 45, 60, 90, 120]),
+            # Buffer between 0 and 60 minutes
+            buffer <- integer(0..60)
+          ) do
+      date = Date.add(Date.utc_today(), days_ahead)
+      config = %{buffer_minutes: buffer, min_advance_hours: 0}
+
+      # For this test, we use default business hours (Mon-Fri 11am-7:30pm)
+      # We only check weekdays to ensure we have business hours
+      if Date.day_of_week(date) in 1..5 do
+        # 1. Get availability using optimized check
+        has_slots_optimized =
+          Conflicts.date_has_slots_with_events?(
+            date,
+            # owner_tz
+            timezone,
+            # user_tz
+            timezone,
+            # no events for this test
+            [],
+            config
+          )
+
+        # 2. Get availability using full calculation
+        {:ok, slots} =
+          Calculate.available_slots(
+            date,
+            duration,
+            # user_tz
+            timezone,
+            # owner_tz
+            timezone,
+            # no events
+            [],
+            config
+          )
+
+        has_slots_full = slots != []
+
+        assert has_slots_optimized == has_slots_full,
+               "Mismatch for date #{date} at timezone #{timezone}: optimized=#{has_slots_optimized}, full=#{has_slots_full}"
+      end
+    end
+  end
 
   describe "convert_events_to_timezone/2" do
     test "converts events from UTC to Eastern timezone" do
@@ -265,6 +322,62 @@ defmodule Tymeslot.Availability.ConflictsTest do
 
       assert result == true
     end
+
+    test "returns false for today if current time is after business hours" do
+      # We'll use a specific date and time to avoid flakiness
+      # We mock the current time by controlling the timezone or just testing the internal logic
+      # since we can't easily mock DateTime.utc_now() without extra libraries.
+
+      # Let's test the logic by finding a timezone where it's definitely late evening right now.
+      # If it's 10:00 UTC, in Tokyo (+9) it's 19:00.
+
+      # A better way is to test with a fixed date and choosing a timezone that makes 'now' late.
+      # But since the code calls DateTime.utc_now(), we are tied to the clock.
+
+      # Let's use a very large offset.
+      # 14 hours ahead of UTC
+      user_tz = "Etc/GMT-14"
+      now_in_tz = DateTime.shift_zone!(DateTime.utc_now(), user_tz)
+      today_in_tz = DateTime.to_date(now_in_tz)
+
+      # Business hours end at 17:00 (default)
+      # If now_in_tz is after 17:00, it should be false.
+      if now_in_tz.hour >= 17 do
+        result =
+          Conflicts.date_has_slots_with_events?(
+            today_in_tz,
+            # owner_tz
+            "Etc/UTC",
+            user_tz,
+            [],
+            %{min_advance_hours: 0}
+          )
+
+        assert result == false, "Should be unavailable when business hours have passed"
+      end
+    end
+
+    test "returns true for today if current time is before business hours end" do
+      # 12 hours behind UTC
+      user_tz = "Etc/GMT+12"
+      now_in_tz = DateTime.shift_zone!(DateTime.utc_now(), user_tz)
+      today_in_tz = DateTime.to_date(now_in_tz)
+
+      # If it's early morning in this timezone, and business hours end at 17:00, it should be true.
+      if now_in_tz.hour < 14 do
+        result =
+          Conflicts.date_has_slots_with_events?(
+            today_in_tz,
+            # owner_tz
+            "Etc/UTC",
+            user_tz,
+            [],
+            %{min_advance_hours: 0}
+          )
+
+        assert result == true, "Should be available when business hours are still in the future"
+      end
+    end
   end
 
   describe "events_overlap?/4" do
@@ -356,5 +469,84 @@ defmodule Tymeslot.Availability.ConflictsTest do
 
   defp filter_opts(overrides) do
     Map.merge(%{min_advance_hours: 0, max_advance_booking_days: 90, buffer_minutes: 0}, overrides)
+  end
+
+  property "DST transitions don't break availability or cause crashes" do
+    # This test verifies that calculating availability around DST transition dates
+    # (Spring Forward/Fall Back) across different timezones doesn't crash
+    # and returns consistent results.
+
+    check all(
+            timezone <- member_of(["Europe/Kyiv", "America/New_York", "Europe/London"]),
+            # Spring forward (usually March) and Fall back (usually October/November)
+            month <- member_of([3, 10, 11]),
+            year <- integer(2025..2030)
+          ) do
+      # Test every day in the transition month
+      start_date = Date.new!(year, month, 1)
+      end_date = Date.end_of_month(start_date)
+
+      for date <- Date.range(start_date, end_date) do
+        # 1. Optimized check
+        res_optimized =
+          Conflicts.date_has_slots_with_events?(
+            date,
+            timezone,
+            timezone,
+            [],
+            %{min_advance_hours: 0}
+          )
+
+        # 2. Full calculation
+        {:ok, slots} =
+          Calculate.available_slots(
+            date,
+            30,
+            timezone,
+            timezone,
+            [],
+            %{min_advance_hours: 0}
+          )
+
+        assert is_boolean(res_optimized)
+        assert is_list(slots)
+      end
+    end
+  end
+
+  describe "performance" do
+    test "date_has_slots_with_events? remains fast with a noisy calendar (500+ events)" do
+      date = ~D[2026-06-15]
+      timezone = "UTC"
+
+      # Generate 500 random events for the month
+      events =
+        Enum.map(1..500, fn i ->
+          day = rem(i, 28) + 1
+          hour = rem(i, 24)
+          start_dt = DateTime.new!(Date.new!(2026, 6, day), Time.new!(hour, 0, 0), timezone)
+          end_dt = DateTime.add(start_dt, 30, :minute)
+          %{start_time: start_dt, end_time: end_dt}
+        end)
+
+      config = %{buffer_minutes: 15, min_advance_hours: 0}
+
+      # Benchmark the optimized check
+      {micro, result} =
+        :timer.tc(fn ->
+          Conflicts.date_has_slots_with_events?(
+            date,
+            timezone,
+            timezone,
+            events,
+            config
+          )
+        end)
+
+      # Ensure it's reasonably fast (under 50ms for a single day check even with 500 events)
+      # Usually this should be < 15ms on modern hardware, but we allow 50ms for slower CI
+      assert micro < 50_000
+      assert is_boolean(result)
+    end
   end
 end

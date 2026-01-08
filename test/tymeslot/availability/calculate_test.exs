@@ -155,6 +155,65 @@ defmodule Tymeslot.Availability.CalculateTest do
         assert today_entry.past == false
       end
     end
+
+    test "handles loading state in availability_map" do
+      today = Date.utc_today()
+      days = Calculate.get_calendar_days("Etc/UTC", today.year, today.month, %{}, :loading)
+
+      # All future days should have loading: true and available: false
+      future_days = Enum.filter(days, &(&1.date >= Date.to_string(today)))
+
+      for day <- future_days do
+        assert day.loading == true
+        assert day.available == false
+      end
+    end
+
+    test "respects availability_map when provided as map" do
+      today = Date.utc_today()
+      today_str = Date.to_string(today)
+      tomorrow_str = Date.to_string(Date.add(today, 1))
+
+      # Mock availability map: today available, tomorrow unavailable
+      availability_map = %{
+        today_str => true,
+        tomorrow_str => false
+      }
+
+      days =
+        Calculate.get_calendar_days("Etc/UTC", today.year, today.month, %{}, availability_map)
+
+      today_entry = Enum.find(days, &(&1.date == today_str))
+      tomorrow_entry = Enum.find(days, &(&1.date == tomorrow_str))
+
+      assert today_entry.available == true
+      assert tomorrow_entry.available == false
+      assert today_entry.loading == false
+      assert tomorrow_entry.loading == false
+    end
+
+    test "uses fallback_availability_fn from config when provided" do
+      today = Date.utc_today()
+      today_str = Date.to_string(today)
+      tomorrow = Date.add(today, 1)
+      tomorrow_str = Date.to_string(tomorrow)
+
+      # Callback that only makes tomorrow available
+      fallback_fn = fn
+        ^tomorrow -> true
+        _ -> false
+      end
+
+      config = %{fallback_availability_fn: fallback_fn}
+
+      days = Calculate.get_calendar_days("Etc/UTC", today.year, today.month, config)
+
+      today_entry = Enum.find(days, &(&1.date == today_str))
+      tomorrow_entry = Enum.find(days, &(&1.date == tomorrow_str))
+
+      assert today_entry.available == false
+      assert tomorrow_entry.available == true
+    end
   end
 
   describe "month_availability/6" do

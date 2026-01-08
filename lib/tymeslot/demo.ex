@@ -95,7 +95,47 @@ defmodule Tymeslot.Demo do
           socket
         )
 
-  @spec get_calendar_days(String.t(), integer(), integer(), map()) :: [map()]
-  def get_calendar_days(user_timezone, year, month, organizer_profile),
-    do: provider().get_calendar_days(user_timezone, year, month, organizer_profile)
+  @spec get_month_availability(
+          integer(),
+          integer(),
+          integer(),
+          String.t(),
+          map(),
+          map() | nil
+        ) :: {:ok, map()} | {:error, any()}
+  def get_month_availability(
+        user_id,
+        year,
+        month,
+        user_timezone,
+        organizer_profile,
+        socket \\ nil
+      ),
+      do:
+        provider().get_month_availability(
+          user_id,
+          year,
+          month,
+          user_timezone,
+          organizer_profile,
+          socket
+        )
+
+  @spec get_calendar_days(String.t(), integer(), integer(), map(), map() | atom() | nil) ::
+          [map()]
+  def get_calendar_days(
+        user_timezone,
+        year,
+        month,
+        organizer_profile,
+        availability_map \\ nil
+      ),
+      do:
+        provider().get_calendar_days(
+          user_timezone,
+          year,
+          month,
+          organizer_profile,
+          availability_map
+        )
 end

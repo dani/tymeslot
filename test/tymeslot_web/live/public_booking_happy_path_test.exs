@@ -7,6 +7,7 @@ defmodule TymeslotWeb.PublicBookingHappyPathTest do
   alias Tymeslot.DatabaseSchemas.MeetingSchema
   alias Tymeslot.Repo
   alias Tymeslot.Security.RateLimiter
+  alias Tymeslot.TestMocks
 
   setup :verify_on_exit!
 
@@ -15,9 +16,7 @@ defmodule TymeslotWeb.PublicBookingHappyPathTest do
     ensure_rate_limiter_started()
     RateLimiter.clear_all()
 
-    Tymeslot.CalendarMock
-    |> stub(:get_events_for_range_fresh, fn _user_id, _start_date, _end_date -> {:ok, []} end)
-    |> stub(:list_events_in_range, fn _start_dt, _end_dt -> {:ok, []} end)
+    TestMocks.setup_calendar_mocks()
 
     :ok
   end
@@ -76,6 +75,10 @@ defmodule TymeslotWeb.PublicBookingHappyPathTest do
     target_date = Date.add(today, 1)
     target_date = maybe_advance_calendar_to_month(view, today, target_date)
     date_str = Date.to_string(target_date)
+
+    wait_until(fn ->
+      has_element?(view, "button.calendar-day[phx-value-date='#{date_str}']:not([disabled])")
+    end)
 
     view
     |> element("button.calendar-day[phx-value-date='#{date_str}']")

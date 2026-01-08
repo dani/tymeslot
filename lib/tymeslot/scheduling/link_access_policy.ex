@@ -5,8 +5,8 @@ defmodule Tymeslot.Scheduling.LinkAccessPolicy do
   dispatcher to ensure consistent behavior and early error reporting.
   """
 
-  alias Tymeslot.Integrations.CalendarManagement
   alias Tymeslot.Demo
+  alias Tymeslot.Integrations.CalendarManagement
 
   @type dashboard_reason :: :no_username | :no_calendar
   @type public_reason :: :no_calendar

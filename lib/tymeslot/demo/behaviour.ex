@@ -61,7 +61,7 @@ defmodule Tymeslot.Demo.Behaviour do
   @doc """
   Gets weekly schedule for a profile.
   """
-  @callback get_weekly_schedule(profile_id :: integer()) :: map() | nil
+  @callback get_weekly_schedule(profile_id :: integer()) :: [map()]
 
   @doc """
   Lists active meeting types for a user.
@@ -112,12 +112,25 @@ defmodule Tymeslot.Demo.Behaviour do
             ) :: {:ok, [map()]} | {:error, any()}
 
   @doc """
+  Gets month availability map showing which days have actual free slots.
+  """
+  @callback get_month_availability(
+              user_id :: integer(),
+              year :: integer(),
+              month :: integer(),
+              user_timezone :: String.t(),
+              organizer_profile :: map(),
+              socket :: map() | nil
+            ) :: {:ok, map()} | {:error, any()}
+
+  @doc """
   Gets calendar days for a month.
   """
   @callback get_calendar_days(
               user_timezone :: String.t(),
               year :: integer(),
               month :: integer(),
-              organizer_profile :: map()
+              organizer_profile :: map(),
+              availability_map :: map() | atom() | nil
             ) :: [map()]
 end

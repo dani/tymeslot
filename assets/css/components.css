@@ -1,6 +1,6 @@
 /* Brand Card */
 .brand-card {
-  @apply bg-white border-2 border-slate-100 rounded-3xl p-6 shadow-xl shadow-slate-200/50 transition-all duration-300;
+  @apply bg-white border-2 border-tymeslot-100 rounded-token-3xl p-6 shadow-xl shadow-tymeslot-200/50 transition-glass;
 }
 
 .brand-card:hover {
@@ -9,13 +9,13 @@
 
 /* Glass Morphism Card - Refined for 2026 */
 .glass-morphism-card {
-  @apply bg-white/80 backdrop-blur-xl rounded-3xl border border-white/40 shadow-2xl;
+  @apply bg-white/80 backdrop-blur-xl rounded-token-3xl border border-white/40 shadow-2xl;
   box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.1);
 }
 
 /* Meeting Details Card - Modernized */
 .meeting-details-card {
-  @apply bg-gradient-to-br from-turquoise-50 to-cyan-50 border border-turquoise-100 rounded-2xl p-6 shadow-sm;
+  @apply bg-gradient-to-br from-turquoise-50 to-cyan-50 border border-turquoise-100 rounded-token-2xl p-6 shadow-sm;
 }
 
 @media (min-width: 640px) {
@@ -26,7 +26,7 @@
 
 /* Action Buttons - Global Branding */
 .action-button {
-  @apply px-6 py-3 rounded-2xl font-bold transition-all duration-300 transform disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-base;
+  @apply px-6 py-3 rounded-token-2xl font-bold transition-glass transform disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-token-base;
 }
 
 .action-button:hover:not(:disabled) {
@@ -38,11 +38,11 @@
 }
 
 .action-button--primary:hover:not(:disabled) {
-  @apply from-turquoise-500 to-cyan-500 shadow-turquoise-500/40 scale-[1.02];
+  @apply from-turquoise-700 to-cyan-700 shadow-turquoise-500/40 scale-[1.02];
 }
 
 .action-button--secondary {
-  @apply bg-white border-2 border-slate-200 text-slate-700 hover:border-turquoise-400 hover:text-turquoise-700 shadow-sm;
+  @apply bg-white border-2 border-tymeslot-200 text-tymeslot-700 hover:border-turquoise-400 hover:text-turquoise-700 shadow-sm;
 }
 
 .action-button--secondary:hover:not(:disabled) {
@@ -101,10 +101,11 @@
 
 /* Calendar Day */
 .calendar-day {
-  @apply w-full flex items-center justify-center rounded-md transition-all duration-200 relative font-semibold;
-  padding: 0.375rem;
-  min-height: 2.5rem;
-  font-size: 0.875rem; /* 14px */
+  @apply w-full flex items-center justify-center rounded-token-md relative font-semibold;
+  padding: var(--spacing-1-5);
+  min-height: var(--spacing-10);
+  font-size: var(--font-size-sm);
+  transition: var(--transition-glass-smooth), opacity 0.5s ease-out, background-color 0.5s ease-out;
 }
 
 /* Slightly smaller for limited height */
@@ -156,13 +157,32 @@
 .calendar-day--unavailable {
   @apply cursor-not-allowed opacity-30;
   background: var(--color-glass-bg-overlay);
-  color: rgba(255,255,255,0.3);
+  color: var(--color-text-on-glass);
+  transition: opacity 0.5s ease-out, background-color 0.5s ease-out;
 }
 
 /* Past days */
 .calendar-day--unavailable.calendar-day--past {
-  background: rgba(255,255,255,0.05);
-  color: rgba(255,255,255,0.2);
+  background: var(--color-glass-bg-overlay);
+  color: var(--color-text-on-glass);
+  opacity: 0.2;
+}
+
+/* Loading days - checking availability */
+.calendar-day--loading {
+  @apply cursor-wait opacity-60;
+  background: var(--color-glass-bg-medium);
+  color: var(--color-text-on-glass);
+  animation: pulse-loading 2s ease-in-out infinite;
+}
+
+@keyframes pulse-loading {
+  0%, 100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 0.8;
+  }
 }
 
 /* Other month days */
@@ -191,11 +211,11 @@
 }
 
 .form-field__label {
-  @apply block text-sm font-black mb-2 text-slate-800 uppercase tracking-wider;
+  @apply block text-token-sm font-black mb-2 text-tymeslot-800 uppercase tracking-wider;
 }
 
 .form-field__input {
-  @apply w-full px-4 py-3 rounded-2xl border-2 border-slate-100 bg-slate-50/50 transition-all duration-300 font-medium;
+  @apply w-full px-4 py-3 rounded-token-2xl border-2 border-tymeslot-100 bg-tymeslot-50/50 transition-glass font-medium;
   @apply focus:outline-none focus:border-turquoise-400 focus:bg-white focus:shadow-lg focus:shadow-turquoise-500/10;
 }
 
@@ -265,7 +285,7 @@ body,
 }
 
 .progress-step-circle {
-  @apply w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black transition-all duration-300 border-2;
+  @apply w-10 h-10 rounded-token-xl flex items-center justify-center text-token-sm font-black transition-glass border-2;
 }
 
 .progress-step-circle--completed {
@@ -277,11 +297,11 @@ body,
 }
 
 .progress-step-circle--inactive {
-  @apply bg-slate-50 border-slate-100 text-slate-400;
+  @apply bg-tymeslot-50 border-tymeslot-100 text-tymeslot-400;
 }
 
 .progress-step-connector {
-  @apply w-12 h-[2px] bg-slate-100 mx-2 transition-colors duration-300;
+  @apply w-12 h-[2px] bg-tymeslot-100 mx-2 transition-colors duration-300;
 }
 
 .progress-step-connector--completed {
@@ -290,15 +310,15 @@ body,
 
 /* Onboarding Step Containers */
 .onboarding-step {
-  @apply text-center text-slate-900;
+  @apply text-center text-tymeslot-900;
 }
 
 .onboarding-welcome-icon {
-  @apply w-24 h-24 bg-turquoise-50 rounded-[2rem] border-2 border-turquoise-100 flex items-center justify-center mx-auto mb-8 shadow-xl shadow-turquoise-500/10 transform hover:scale-110 hover:rotate-3 transition-all duration-500;
+  @apply w-24 h-24 bg-turquoise-50 rounded-token-3xl border-2 border-turquoise-100 flex items-center justify-center mx-auto mb-8 shadow-xl shadow-turquoise-500/10 transform hover:scale-110 hover:rotate-3 transition-glass;
 }
 
 .onboarding-feature-icon {
-  @apply w-12 h-12 bg-slate-50 rounded-xl border-2 border-slate-100 flex items-center justify-center mt-1 shadow-sm transition-transform;
+  @apply w-12 h-12 bg-tymeslot-50 rounded-token-xl border-2 border-tymeslot-100 flex items-center justify-center mt-1 shadow-sm transition-transform;
 }
 
 .onboarding-feature-item:hover .onboarding-feature-icon {
@@ -310,27 +330,27 @@ body,
 }
 
 .onboarding-feature-item {
-  @apply flex items-start gap-5 p-5 rounded-2xl bg-white border-2 border-slate-50 hover:border-turquoise-100 hover:shadow-xl hover:shadow-turquoise-500/5 transition-all;
+  @apply flex items-start gap-5 p-5 rounded-token-2xl bg-white border-2 border-tymeslot-50 hover:border-turquoise-100 hover:shadow-xl hover:shadow-turquoise-500/5 transition-glass;
 }
 
 .onboarding-title {
-  @apply text-4xl lg:text-5xl font-black text-slate-900 mb-4 tracking-tight;
+  @apply text-token-4xl lg:text-token-5xl font-black text-tymeslot-900 mb-4 tracking-tight;
 }
 
 .onboarding-subtitle {
-  @apply text-xl text-slate-500 font-medium leading-relaxed;
+  @apply text-token-xl text-tymeslot-500 font-medium leading-relaxed;
 }
 
 .onboarding-step-title {
-  @apply text-3xl font-black text-slate-900 mb-3 tracking-tight;
+  @apply text-token-3xl font-black text-tymeslot-900 mb-3 tracking-tight;
 }
 
 .onboarding-step-description {
-  @apply text-lg text-slate-500 font-medium;
+  @apply text-token-lg text-tymeslot-500 font-medium;
 }
 
 .onboarding-feature-title {
-  @apply text-lg font-black text-slate-900 tracking-tight mb-1 transition-colors;
+  @apply text-token-lg font-black text-tymeslot-900 tracking-tight mb-1 transition-colors;
 }
 
 .onboarding-feature-item:hover .onboarding-feature-title {
@@ -338,7 +358,7 @@ body,
 }
 
 .onboarding-feature-description {
-  @apply text-slate-500 font-medium leading-relaxed;
+  @apply text-tymeslot-500 font-medium leading-relaxed;
 }
 
 
@@ -352,7 +372,7 @@ body,
 }
 
 .onboarding-modal-backdrop {
-  @apply fixed inset-0 bg-slate-900/60 backdrop-blur-sm;
+  @apply fixed inset-0 bg-tymeslot-900/60 backdrop-blur-sm;
 }
 
 .onboarding-modal-content {

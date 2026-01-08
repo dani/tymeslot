@@ -49,9 +49,21 @@ defmodule Tymeslot.ThemeCustomizations do
   def upsert_theme_customization(profile_id, theme_id, attrs) do
     case get_by_profile_and_theme(profile_id, theme_id) do
       nil ->
-        create_theme_customization(profile_id, theme_id, attrs)
+        # Create with required defaults if not present
+        create_attrs =
+          Map.merge(
+            %{
+              "color_scheme" => "default",
+              "background_type" => "gradient",
+              "background_value" => "gradient_1"
+            },
+            attrs
+          )
+
+        create_theme_customization(profile_id, theme_id, create_attrs)
 
       customization ->
+        # Update only the provided fields
         update_theme_customization(customization, attrs)
     end
   end
@@ -66,8 +78,30 @@ defmodule Tymeslot.ThemeCustomizations do
       |> Map.put("profile_id", profile_id)
       |> Map.put("theme_id", theme_id)
 
-    # Create the customization (no need to update profile flag anymore)
-    ThemeCustomizationQueries.create(attrs)
+    # Create the customization with race condition handling
+    case ThemeCustomizationQueries.create(attrs) do
+      {:ok, result} ->
+        {:ok, result}
+
+      {:error, changeset} ->
+        # If we hit a unique constraint, it means another request created it concurrently.
+        # In this case, we should update the existing record instead.
+        if has_unique_constraint_error?(changeset) do
+          case get_by_profile_and_theme(profile_id, theme_id) do
+            # Should not happen if constraint violated
+            nil -> {:error, changeset}
+            customization -> update_theme_customization(customization, attrs)
+          end
+        else
+          {:error, changeset}
+        end
+    end
+  end
+
+  defp has_unique_constraint_error?(changeset) do
+    Enum.any?(changeset.errors, fn {field, {_msg, opts}} ->
+      field == :profile_id and Keyword.get(opts, :constraint) == :unique
+    end)
   end
 
   @doc """

@@ -6,6 +6,7 @@ defmodule Tymeslot.DatabaseSchemas.ProfileSchema do
   import Ecto.Changeset
 
   alias Tymeslot.DatabaseSchemas.ThemeCustomizationSchema
+  alias Tymeslot.Security.UniversalSanitizer
   alias Tymeslot.Utils.TimezoneUtils
   alias TymeslotWeb.Themes.Core.Registry
 
@@ -88,7 +89,6 @@ defmodule Tymeslot.DatabaseSchemas.ProfileSchema do
     )
     |> unique_constraint(:username)
   end
-
 
   defp validate_username(changeset) do
     changeset
@@ -184,70 +184,80 @@ defmodule Tymeslot.DatabaseSchemas.ProfileSchema do
         changeset
 
       domains when is_list(domains) ->
-        # Enforce maximum domain limit
-        max_domains = 20
-
-        cond do
-          length(domains) > max_domains ->
-            add_error(
-              changeset,
-              :allowed_embed_domains,
-              "cannot have more than #{max_domains} domains (currently #{length(domains)})"
-            )
-
-          true ->
-            # Sanitize and validate each domain
-            {invalid_domains, too_long_domains} =
-              Enum.reduce(domains, {[], []}, fn domain, {invalid_acc, too_long_acc} ->
-                cond do
-                  # Check length first (before sanitization)
-                  byte_size(domain) > 255 ->
-                    {invalid_acc, [domain | too_long_acc]}
-
-                  true ->
-                    # Sanitize domain to handle Unicode/emoji
-                    case Tymeslot.Security.UniversalSanitizer.sanitize_and_validate(domain,
-                           allow_html: false,
-                           max_length: 255,
-                           on_too_long: :error,
-                           log_events: false
-                         ) do
-                      {:ok, sanitized_domain} ->
-                        if valid_domain?(sanitized_domain) do
-                          {invalid_acc, too_long_acc}
-                        else
-                          {[domain | invalid_acc], too_long_acc}
-                        end
-
-                      {:error, _} ->
-                        {[domain | invalid_acc], too_long_acc}
-                    end
-                end
-              end)
-
-            cond do
-              not Enum.empty?(too_long_domains) ->
-                add_error(
-                  changeset,
-                  :allowed_embed_domains,
-                  "domains exceed maximum length of 255 characters: #{Enum.join(Enum.take(too_long_domains, 3), ", ")}#{if length(too_long_domains) > 3, do: "...", else: ""}"
-                )
-
-              not Enum.empty?(invalid_domains) ->
-                add_error(
-                  changeset,
-                  :allowed_embed_domains,
-                  "contains invalid domains: #{Enum.join(Enum.take(invalid_domains, 3), ", ")}#{if length(invalid_domains) > 3, do: "...", else: ""}"
-                )
-
-              true ->
-                changeset
-            end
-        end
+        do_validate_embed_domains(changeset, domains)
 
       _ ->
         add_error(changeset, :allowed_embed_domains, "must be a list of domains")
     end
+  end
+
+  defp do_validate_embed_domains(changeset, domains) do
+    max_domains = 20
+
+    if length(domains) > max_domains do
+      add_error(
+        changeset,
+        :allowed_embed_domains,
+        "cannot have more than #{max_domains} domains (currently #{length(domains)})"
+      )
+    else
+      {invalid_domains, too_long_domains} = validate_domain_list(domains)
+      add_domain_errors(changeset, invalid_domains, too_long_domains)
+    end
+  end
+
+  defp validate_domain_list(domains) do
+    Enum.reduce(domains, {[], []}, fn domain, {invalid_acc, too_long_acc} ->
+      case validate_single_domain(domain) do
+        :ok -> {invalid_acc, too_long_acc}
+        :too_long -> {invalid_acc, [domain | too_long_acc]}
+        :invalid -> {[domain | invalid_acc], too_long_acc}
+      end
+    end)
+  end
+
+  defp validate_single_domain(domain) do
+    if byte_size(domain) > 255 do
+      :too_long
+    else
+      case UniversalSanitizer.sanitize_and_validate(domain,
+             allow_html: false,
+             max_length: 255,
+             on_too_long: :error,
+             log_events: false
+           ) do
+        {:ok, sanitized_domain} ->
+          if valid_domain?(sanitized_domain), do: :ok, else: :invalid
+
+        {:error, _} ->
+          :invalid
+      end
+    end
+  end
+
+  defp add_domain_errors(changeset, invalid_domains, too_long_domains) do
+    cond do
+      too_long_domains != [] ->
+        add_error(
+          changeset,
+          :allowed_embed_domains,
+          "domains exceed maximum length of 255 characters: #{format_error_list(too_long_domains)}"
+        )
+
+      invalid_domains != [] ->
+        add_error(
+          changeset,
+          :allowed_embed_domains,
+          "contains invalid domains: #{format_error_list(invalid_domains)}"
+        )
+
+      true ->
+        changeset
+    end
+  end
+
+  defp format_error_list(list) do
+    "#{Enum.join(Enum.take(list, 3), ", ")}#{if length(list) > 3, do: "...", else: ""}"
   end
 
   # Validates a single domain format

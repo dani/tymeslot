@@ -192,9 +192,32 @@ defmodule Tymeslot.Availability.Calculate do
 
   Returns a list of day objects for calendar rendering, including
   availability, current month status, and other display properties.
+
+  ## Parameters
+    - user_timezone: Timezone of the user viewing the calendar
+    - year: Year to display
+    - month: Month to display (1-12)
+    - config: Configuration map with profile_id, max_advance_booking_days, etc.
+    - availability_map: Optional map of date strings to boolean availability.
+      Can be:
+      - nil: Use business hours logic only (fast, but not conflict-aware)
+      - :loading: Mark all days as loading state
+      - %{}: Use real conflict-aware availability from the map
+
+  ## Examples
+
+      # Fast render with business hours only
+      get_calendar_days("America/New_York", 2026, 1, %{profile_id: 1})
+
+      # With real availability data
+      get_calendar_days("America/New_York", 2026, 1, %{profile_id: 1}, %{"2026-01-15" => true})
+
+      # Loading state
+      get_calendar_days("America/New_York", 2026, 1, %{profile_id: 1}, :loading)
   """
-  @spec get_calendar_days(String.t(), integer(), integer(), map()) :: list(map())
-  def get_calendar_days(user_timezone, year, month, config \\ %{}) do
+  @spec get_calendar_days(String.t(), integer(), integer(), map(), map() | atom() | nil) ::
+          list(map())
+  def get_calendar_days(user_timezone, year, month, config \\ %{}, availability_map \\ nil) do
     # Get today in user's timezone
     today =
       case DateTime.now(user_timezone) do
@@ -213,30 +236,60 @@ defmodule Tymeslot.Availability.Calculate do
 
     # Configuration
     max_advance_booking_days = Map.get(config, :max_advance_booking_days, 90)
+    fallback_availability_fn = Map.get(config, :fallback_availability_fn)
 
     # Generate 42 days (6 weeks) for consistent calendar display
     Enum.map(0..41, fn offset ->
       date = Date.add(first_display_date, offset)
+      date_string = Date.to_string(date)
 
-      # Business logic for availability
-      profile_id = Map.get(config, :profile_id)
+      is_past = Date.compare(date, today) == :lt
 
-      is_business_day =
-        if profile_id do
-          BusinessHours.business_day?(date, profile_id)
-        else
-          BusinessHours.business_day?(date)
+      # Determine availability based on availability_map state
+      {is_available, is_loading} =
+        cond do
+          # Past dates are never available
+          is_past ->
+            {false, false}
+
+          # Loading state: mark as loading
+          availability_map == :loading ->
+            {false, true}
+
+          # Real availability data provided: use it
+          is_map(availability_map) ->
+            real_available = Map.get(availability_map, date_string, false)
+            {real_available, false}
+
+          # If a custom fallback checker is provided, use it
+          is_function(fallback_availability_fn, 1) ->
+            {fallback_availability_fn.(date), false}
+
+          # Default: No availability map, use business hours logic
+          true ->
+            # Business logic for basic availability checks
+            profile_id = Map.get(config, :profile_id)
+
+            is_business_day =
+              if profile_id do
+                BusinessHours.business_day?(date, profile_id)
+              else
+                BusinessHours.business_day?(date)
+              end
+
+            is_future = Date.compare(date, today) != :lt
+            is_within_limit = Date.diff(date, today) <= max_advance_booking_days
+
+            business_hours_available = is_business_day && is_future && is_within_limit
+            {business_hours_available, false}
         end
 
-      is_future = Date.compare(date, today) != :lt
-      is_within_limit = Date.diff(date, today) <= max_advance_booking_days
-      is_available = is_business_day && is_future && is_within_limit
-
       %{
-        date: Date.to_string(date),
+        date: date_string,
         day: date.day,
         available: is_available,
-        past: Date.compare(date, today) == :lt,
+        loading: is_loading,
+        past: is_past,
         today: date == today,
         current_month: date.month == month
       }

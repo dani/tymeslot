@@ -44,11 +44,11 @@ defmodule TymeslotWeb.Live.Scheduling.Handlers.SlotFetchingHandlerComponent do
       end
   """
   @spec fetch_available_slots(
-          map(),
-          any(),
-          any(),
-          any()
-        ) :: {:ok, map()} | {:error, map()}
+          Phoenix.LiveView.Socket.t(),
+          String.t(),
+          String.t() | integer(),
+          String.t()
+        ) :: {:ok, Phoenix.LiveView.Socket.t()} | {:error, Phoenix.LiveView.Socket.t()}
   def fetch_available_slots(socket, date, duration, timezone) do
     case Helpers.get_available_slots(
            date,
@@ -149,9 +149,9 @@ defmodule TymeslotWeb.Live.Scheduling.Handlers.SlotFetchingHandlerComponent do
 
   ## Examples
 
-      SlotFetchingHandlerComponent.load_slots(socket, ~D[2024-01-15])
+      SlotFetchingHandlerComponent.load_slots(socket, "2024-01-15")
   """
-  @spec load_slots(Phoenix.LiveView.Socket.t(), Date.t()) ::
+  @spec load_slots(Phoenix.LiveView.Socket.t(), String.t()) ::
           {:ok, Phoenix.LiveView.Socket.t()}
   def load_slots(socket, date) do
     duration = socket.assigns[:duration] || socket.assigns[:selected_duration]

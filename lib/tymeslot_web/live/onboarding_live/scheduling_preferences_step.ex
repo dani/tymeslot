@@ -18,6 +18,7 @@ defmodule TymeslotWeb.OnboardingLive.SchedulingPreferencesStep do
   * `profile` - The user's profile struct
   * `form_errors` - Map of form validation errors
   """
+  @spec scheduling_preferences_step(map()) :: Phoenix.LiveView.Rendered.t()
   def scheduling_preferences_step(assigns) do
     ~H"""
     <div class="onboarding-step">

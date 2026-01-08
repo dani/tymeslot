@@ -109,7 +109,11 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
         organizer_profile,
         socket \\ nil
       ) do
-    with {:ok, date} <- Date.from_iso8601(date_string),
+    # Security: Ensure user_id matches the profile owner to prevent IDOR
+    if organizer_profile && organizer_user_id != organizer_profile.user_id do
+      {:error, :unauthorized}
+    else
+      with {:ok, date} <- Date.from_iso8601(date_string),
          {:ok, owner_timezone} <- get_owner_timezone(organizer_profile) do
       # Check if this is a demo user
       if demo_user?(organizer_profile) || (socket && Demo.demo_mode?(socket)) do
@@ -152,14 +156,102 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
   end
 
   @doc """
-  Gets calendar days for month view.
+  Gets month availability map showing which days have actual free slots.
+
+  This fetches calendar events for the month and calculates real availability
+  including conflicts, used to grey out fully booked days.
+
+  ## Parameters
+    - user_id: The organizer's user ID
+    - year: Year to check
+    - month: Month to check (1-12)
+    - user_timezone: Timezone of the user viewing
+    - organizer_profile: Profile with booking settings
+
+  ## Returns
+    - `{:ok, map}` where map keys are date strings ("2026-01-15") and values are booleans
+    - `{:error, reason}` if calendar fetch fails
   """
-  @spec get_calendar_days(String.t(), integer(), integer(), map() | nil) :: [map()]
-  def get_calendar_days(user_timezone, year, month, organizer_profile) do
+  @spec get_month_availability(
+          integer(),
+          integer(),
+          integer(),
+          String.t(),
+          map(),
+          Phoenix.LiveView.Socket.t() | nil
+        ) :: {:ok, map()} | {:error, any()}
+  def get_month_availability(
+        user_id,
+        year,
+        month,
+        user_timezone,
+        organizer_profile,
+        socket \\ nil
+      ) do
+    # Security: Ensure user_id matches the profile owner to prevent IDOR
+    cond do
+      organizer_profile && user_id != organizer_profile.user_id ->
+        {:error, :unauthorized}
+
+      demo_user?(organizer_profile) || (socket && Demo.demo_mode?(socket)) ->
+        # Delegate to demo provider
+        Demo.get_month_availability(
+          user_id,
+          year,
+          month,
+          user_timezone,
+          organizer_profile,
+          socket
+        )
+
+      true ->
+        with {:ok, owner_timezone} <- get_owner_timezone(organizer_profile),
+           start_date <- Date.new!(year, month, 1),
+           {:ok, events} <-
+             Calendar.get_calendar_events_from_socket(
+               start_date,
+               user_id,
+               socket
+             ) do
+        config = %{
+          profile_id: organizer_profile.id,
+          max_advance_booking_days: organizer_profile.advance_booking_days,
+          min_advance_hours: organizer_profile.min_advance_hours,
+          buffer_minutes: organizer_profile.buffer_minutes
+        }
+
+        Calculate.month_availability(
+          year,
+          month,
+          owner_timezone,
+          user_timezone,
+          events,
+          config
+        )
+      end
+    end
+  end
+
+  @doc """
+  Gets calendar days for month view.
+
+  ## Parameters
+    - user_timezone: Timezone of the user viewing
+    - year: Year to display
+    - month: Month to display (1-12)
+    - organizer_profile: Profile with booking settings
+    - availability_map: Optional real availability data. Can be:
+      - nil: Use business hours only (fast)
+      - :loading: Show loading state
+      - %{}: Use real conflict-aware availability
+  """
+  @spec get_calendar_days(String.t(), integer(), integer(), map() | nil, map() | atom() | nil) ::
+          [map()]
+  def get_calendar_days(user_timezone, year, month, organizer_profile, availability_map \\ nil) do
     if organizer_profile do
       if demo_user?(organizer_profile) do
         # Delegate to demo provider for calendar days
-        Demo.get_calendar_days(user_timezone, year, month, organizer_profile)
+        Demo.get_calendar_days(user_timezone, year, month, organizer_profile, availability_map)
       else
         config = %{
           profile_id: organizer_profile.id,
@@ -168,7 +260,7 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
           buffer_minutes: organizer_profile.buffer_minutes
         }
 
-        Calculate.get_calendar_days(user_timezone, year, month, config)
+        Calculate.get_calendar_days(user_timezone, year, month, config, availability_map)
       end
     else
       # Return empty calendar days when profile is nil
@@ -248,21 +340,6 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
   end
 
   @doc """
-  Groups time slots by period of day.
-  """
-  @spec group_slots_by_period([map()]) :: [{String.t(), [map()]}]
-  def group_slots_by_period(slots) do
-    grouped = DateTimeUtils.group_slots_by_period(slots)
-
-    [
-      {"Night", Map.get(grouped, "Night", [])},
-      {"Morning", Map.get(grouped, "Morning", [])},
-      {"Afternoon", Map.get(grouped, "Afternoon", [])},
-      {"Evening", Map.get(grouped, "Evening", [])}
-    ]
-  end
-
-  @doc """
   Parses slot time string to DateTime for display.
   """
   @spec parse_slot_time(String.t()) :: DateTime.t()
@@ -275,64 +352,6 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
       {:error, _} ->
         DateTime.utc_now()
     end
-  end
-
-  @doc """
-  Formats booking datetime for display.
-  """
-  @spec format_booking_datetime(String.t() | any(), String.t() | any(), String.t() | any()) ::
-          String.t()
-  def format_booking_datetime(date, time, timezone)
-      when is_binary(date) and is_binary(time) and is_binary(timezone) do
-    # Handle both ISO date strings and Date structs
-    with {:ok, date_struct} <- parse_date(date),
-         # Ensure time has seconds
-         time_string <- ensure_time_format(time),
-         {:ok, time_obj} <- Time.from_iso8601(time_string),
-         {:ok, naive_dt} <- NaiveDateTime.new(date_struct, time_obj),
-         {:ok, dt} <- DateTime.from_naive(naive_dt, timezone) do
-      Elixir.Calendar.strftime(dt, "%A, %d %B %Y at %H:%M %Z")
-    else
-      _error ->
-        # Fallback formatting
-        "#{date} at #{time}"
-    end
-  end
-
-  def format_booking_datetime(_date, _time, _timezone), do: "Invalid date/time"
-
-  defp parse_date(date) when is_binary(date), do: Date.from_iso8601(date)
-
-  defp ensure_time_format(time) when is_binary(time) do
-    case String.split(time, ":") do
-      [_h, _m, _s] -> time
-      [_h, _m] -> time <> ":00"
-      _ -> time
-    end
-  end
-
-  @doc """
-  Gets month and year display string.
-  """
-  @spec get_month_year_display(integer(), integer()) :: String.t()
-  def get_month_year_display(year, month) do
-    month_names = [
-      "January",
-      "February",
-      "March",
-      "April",
-      "May",
-      "June",
-      "July",
-      "August",
-      "September",
-      "October",
-      "November",
-      "December"
-    ]
-
-    month_name = Enum.at(month_names, month - 1)
-    "#{month_name} #{year}"
   end
 
   @doc """
@@ -383,8 +402,17 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
       organizer_profile: organizer_profile
     } = socket.assigns
 
+    # Use availability map if present, otherwise nil (will use business hours only)
+    availability_map = Map.get(socket.assigns, :month_availability_map)
+
     calendar_days =
-      get_calendar_days(user_timezone, current_year, current_month, organizer_profile)
+      get_calendar_days(
+        user_timezone,
+        current_year,
+        current_month,
+        organizer_profile,
+        availability_map
+      )
 
     assign(socket, :calendar_days, calendar_days)
   end

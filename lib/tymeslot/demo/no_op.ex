@@ -119,7 +119,26 @@ defmodule Tymeslot.Demo.NoOp do
   end
 
   @impl true
-  def get_calendar_days(_user_timezone, _year, _month, _organizer_profile) do
+  def get_month_availability(
+        _user_id,
+        _year,
+        _month,
+        _user_timezone,
+        _organizer_profile,
+        _socket
+      ) do
+    # NoOp implementation returns empty map; caller should fall back to real logic
+    {:ok, %{}}
+  end
+
+  @impl true
+  def get_calendar_days(
+        _user_timezone,
+        _year,
+        _month,
+        _organizer_profile,
+        _availability_map \\ nil
+      ) do
     # NoOp implementation returns empty list; caller should fall back to real logic
     []
   end

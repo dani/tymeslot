@@ -107,7 +107,7 @@ defmodule Tymeslot.Profiles.EmbedDomainsTest do
 
       assert {:error, changeset} = Profiles.update_allowed_embed_domains(profile, [long_domain])
       assert changeset.errors[:allowed_embed_domains] != nil
-      assert changeset.errors[:allowed_embed_domains] |> elem(0) =~ "exceed maximum length"
+      assert elem(changeset.errors[:allowed_embed_domains], 0) =~ "exceed maximum length"
     end
 
     test "rejects more than 20 domains", %{profile: profile} do
@@ -115,7 +115,7 @@ defmodule Tymeslot.Profiles.EmbedDomainsTest do
 
       assert {:error, changeset} = Profiles.update_allowed_embed_domains(profile, domains)
       assert changeset.errors[:allowed_embed_domains] != nil
-      assert changeset.errors[:allowed_embed_domains] |> elem(0) =~ "cannot have more than 20"
+      assert elem(changeset.errors[:allowed_embed_domains], 0) =~ "cannot have more than 20"
     end
 
     test "accepts exactly 20 domains", %{profile: profile} do

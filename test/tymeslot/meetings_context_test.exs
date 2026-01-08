@@ -22,11 +22,7 @@ defmodule Tymeslot.MeetingsContextTest do
     Mox.set_mox_global()
 
     TestMocks.setup_email_mocks()
-
-    # Set up calendar mock globally for async operations
-    Tymeslot.CalendarMock
-    |> stub(:get_events_for_range_fresh, fn _user_id, _start_date, _end_date -> {:ok, []} end)
-    |> stub(:list_events_in_range, fn _start_time, _end_time -> {:ok, []} end)
+    TestMocks.setup_calendar_mocks()
 
     :ok
   end

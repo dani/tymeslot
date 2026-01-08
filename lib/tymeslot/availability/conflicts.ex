@@ -85,31 +85,70 @@ defmodule Tymeslot.Availability.Conflicts do
         config \\ %{}
       ) do
     buffer_minutes = Map.get(config, :buffer_minutes, 15)
+    min_advance_hours = Map.get(config, :min_advance_hours, 3)
+    profile_id = Map.get(config, :profile_id)
 
-    # Define fallback business hours
-    {start_time, end_time} = BusinessHours.business_hours_range()
+    # Get current time in user timezone
+    current_time =
+      case DateTime.shift_zone(DateTime.utc_now(), user_timezone) do
+        {:ok, dt} -> dt
+        _ -> DateTime.shift_zone!(DateTime.utc_now(), "Etc/UTC")
+      end
+
+    minimum_booking_time = DateTime.add(current_time, min_advance_hours * 60, :minute)
+
+    # Check if this is today
+    today = DateTime.to_date(current_time)
+    is_today = date == today
+
+    params = %{
+      target_date: date,
+      profile_id: profile_id,
+      owner_tz: owner_timezone,
+      user_tz: user_timezone,
+      is_today: is_today,
+      min_booking_time: minimum_booking_time,
+      events: events_in_user_tz,
+      buffer: buffer_minutes
+    }
 
     # Check the selected date and adjacent days in owner's timezone
     Enum.any?([Date.add(date, -1), date, Date.add(date, 1)], fn d ->
+      check_day_for_slots(d, params)
+    end)
+  end
+
+  defp check_day_for_slots(d, params) do
+    # Look up business hours for this specific day
+    {start_time, end_time} =
+      if params.profile_id do
+        BusinessHours.business_hours_range(params.profile_id, Date.day_of_week(d))
+      else
+        BusinessHours.business_hours_range()
+      end
+
+    if is_nil(start_time) or is_nil(end_time) do
+      false
+    else
       # Create datetime range in owner's timezone for this specific date
-      owner_start = create_datetime_safe(d, start_time, owner_timezone)
-      owner_end = create_datetime_safe(d, end_time, owner_timezone)
+      owner_start = create_datetime_safe(d, start_time, params.owner_tz)
+      owner_end = create_datetime_safe(d, end_time, params.owner_tz)
 
       # Convert to user's timezone
-      case {DateTime.shift_zone(owner_start, user_timezone),
-            DateTime.shift_zone(owner_end, user_timezone)} do
+      case {DateTime.shift_zone(owner_start, params.user_tz),
+            DateTime.shift_zone(owner_end, params.user_tz)} do
         {{:ok, user_start}, {:ok, user_end}} ->
           # Only proceed if this owner-day's window actually intersects with the user's selected date
-          if DateTime.to_date(user_start) == date or DateTime.to_date(user_end) == date do
-            # Check if any event blocks the entire business day window
-            not Enum.any?(events_in_user_tz, fn event ->
-              buffered_start = DateTime.add(event.start_time, -buffer_minutes, :minute)
-              buffered_end = DateTime.add(event.end_time, buffer_minutes, :minute)
-
-              # Check if this event covers the entire business hours window
-              DateTime.compare(buffered_start, user_start) != :gt and
-                DateTime.compare(buffered_end, user_end) != :lt
-            end)
+          if DateTime.to_date(user_start) == params.target_date or
+               DateTime.to_date(user_end) == params.target_date do
+            check_window_availability(
+              user_end,
+              params.is_today,
+              params.min_booking_time,
+              params.events,
+              user_start,
+              params.buffer
+            )
           else
             false
           end
@@ -117,7 +156,30 @@ defmodule Tymeslot.Availability.Conflicts do
         _ ->
           false
       end
-    end)
+    end
+  end
+
+  defp check_window_availability(user_end, is_today, min_booking_time, events, user_start, buffer) do
+    # For today, check if the business hours end is still in the future
+    # (accounting for minimum advance booking time)
+    if is_today and DateTime.compare(user_end, min_booking_time) != :gt do
+      # All slots for today have passed (end of business hours < minimum booking time)
+      false
+    else
+      # Check if any event blocks the entire business day window
+      not Enum.any?(events, fn event ->
+        event_covers_range?(event, user_start, user_end, buffer)
+      end)
+    end
+  end
+
+  defp event_covers_range?(event, user_start, user_end, buffer) do
+    buffered_start = DateTime.add(event.start_time, -buffer, :minute)
+    buffered_end = DateTime.add(event.end_time, buffer, :minute)
+
+    # Check if this event covers the entire business hours window
+    DateTime.compare(buffered_start, user_start) != :gt and
+      DateTime.compare(buffered_end, user_end) != :lt
   end
 
   # Private functions
@@ -139,8 +201,12 @@ defmodule Tymeslot.Availability.Conflicts do
       {:ok, datetime} ->
         datetime
 
+      {:ambiguous, first, _second} ->
+        # For DST transitions, we consistently pick the first occurrence (usually the one before the fold)
+        first
+
       {:error, _reason} ->
-        # Fallback to UTC if timezone is invalid
+        # Fallback to UTC if timezone is invalid or time doesn't exist (DST gap)
         DateTime.new!(date, time, "Etc/UTC")
     end
   end

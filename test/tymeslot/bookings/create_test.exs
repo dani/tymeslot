@@ -77,6 +77,11 @@ defmodule Tymeslot.Bookings.CreateTest do
       end
     end
 
+    @spec get_booking_integration_info(integer()) :: {:ok, map()} | {:error, term()}
+    def get_booking_integration_info(_user_id) do
+      {:error, :no_integration}
+    end
+
     @spec set_response(term()) :: :ok
     def set_response(response) do
       Agent.update(__MODULE__, fn _ -> %{response: response} end)
