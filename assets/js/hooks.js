@@ -2,10 +2,11 @@
 import { PasswordToggle } from "./password_toggle";
 import { AuthVideo, RhythmVideo, QuillVideo } from "./video_hooks";
 import { ConfirmDelete, PageReload } from "./ui_interaction_hooks";
-import { Flash, AutoScrollToSlots, AutoFocus } from "./utility_hooks";
+import { Flash, AutoScrollToSlots, AutoFocus, ScrollReset } from "./utility_hooks";
 import { RecaptchaV3Hook } from "./hooks/recaptcha_v3_hook";
 import { ClipboardCopy } from "./clipboard_hook";
 import { AutoUpload } from "./hooks/auto_upload";
+import { EmbedPreview } from "./hooks/embed_preview";
 
 const Hooks = {};
 
@@ -25,6 +26,7 @@ Hooks.PageReload = PageReload;
 Hooks.Flash = Flash;
 Hooks.AutoScrollToSlots = AutoScrollToSlots;
 Hooks.AutoFocus = AutoFocus;
+Hooks.ScrollReset = ScrollReset;
 
 // reCAPTCHA hook
 Hooks.RecaptchaV3 = RecaptchaV3Hook;
@@ -34,5 +36,8 @@ Hooks.ClipboardCopy = ClipboardCopy;
 
 // Generic auto-upload hook for all file uploads
 Hooks.AutoUpload = AutoUpload;
+
+// Embed preview hook for dashboard
+Hooks.EmbedPreview = EmbedPreview;
 
 export default Hooks;

@@ -18,7 +18,7 @@ defmodule TymeslotWeb do
   """
 
   @spec static_paths() :: [String.t()]
-  def static_paths, do: ~w(assets css fonts icons images uploads videos robots.txt)
+  def static_paths, do: ~w(assets css fonts icons images uploads videos robots.txt embed.js)
 
   @spec router() :: Macro.t()
   def router do
@@ -29,6 +29,46 @@ defmodule TymeslotWeb do
       import Plug.Conn
       import Phoenix.Controller
       import Phoenix.LiveView.Router
+
+      # =============================================================================
+      # Shared Pipelines
+      # =============================================================================
+
+      pipeline :browser do
+        plug :accepts, ["html"]
+        plug :fetch_session
+        plug :fetch_live_flash
+        plug :put_root_layout, html: {TymeslotWeb.Layouts, :root}
+        plug :protect_from_forgery
+        plug :put_secure_browser_headers
+        plug TymeslotWeb.Plugs.SecurityHeadersPlug
+        plug TymeslotWeb.Plugs.FetchCurrentUser
+        plug TymeslotWeb.Plugs.ThemePlug
+      end
+
+      pipeline :theme_browser do
+        plug :accepts, ["html"]
+        plug :fetch_session
+        plug :fetch_live_flash
+        plug :put_root_layout, html: {TymeslotWeb.Layouts, :scheduling_root}
+        plug :protect_from_forgery
+        plug :put_secure_browser_headers
+        plug TymeslotWeb.Plugs.SecurityHeadersPlug, allow_embedding: true
+        plug TymeslotWeb.Plugs.FetchCurrentUser
+        plug TymeslotWeb.Plugs.LocalePlug
+        plug TymeslotWeb.Plugs.ThemePlug
+        # Distribution-specific theme protections (e.g., for SaaS)
+        plug TymeslotWeb.Plugs.ThemeProtectionPlug
+      end
+
+      pipeline :api do
+        plug :accepts, ["json"]
+        plug TymeslotWeb.Plugs.SecurityHeadersPlug
+      end
+
+      pipeline :require_authenticated_user do
+        plug TymeslotWeb.Plugs.RequireAuthPlug
+      end
     end
   end
 

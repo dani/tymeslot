@@ -578,6 +578,63 @@ defmodule Tymeslot.Profiles do
     end
   end
 
+  @doc """
+  Updates the allowed embed domains for a profile.
+  Accepts a comma-separated string or a list of domains.
+  """
+  @spec update_allowed_embed_domains(profile, String.t() | [String.t()]) :: result(profile)
+  def update_allowed_embed_domains(%ProfileSchema{} = profile, domains) when is_binary(domains) do
+    require Logger
+
+    # Parse comma-separated string
+    domain_list =
+      domains
+      |> String.split(",")
+      |> Enum.map(&String.trim/1)
+      |> Enum.reject(&(&1 == ""))
+
+    update_allowed_embed_domains(profile, domain_list)
+  end
+
+  def update_allowed_embed_domains(%ProfileSchema{} = profile, domains) when is_list(domains) do
+    require Logger
+
+    # Normalize domains (trim, lowercase, sanitize)
+    normalized_domains =
+      domains
+      |> Enum.map(&String.trim/1)
+      |> Enum.map(&String.downcase/1)
+      |> Enum.reject(&(&1 == ""))
+      |> Enum.uniq()
+
+    Logger.info("Updating allowed embed domains",
+      user_id: profile.user_id,
+      profile_id: profile.id,
+      domain_count: length(normalized_domains),
+      previous_count: length(profile.allowed_embed_domains || [])
+    )
+
+    case update_profile(profile, %{allowed_embed_domains: normalized_domains}) do
+      {:ok, _updated_profile} = result ->
+        Logger.info("Successfully updated embed domains",
+          user_id: profile.user_id,
+          profile_id: profile.id,
+          domains: inspect(normalized_domains)
+        )
+
+        result
+
+      {:error, changeset} = error ->
+        Logger.warning("Failed to update embed domains",
+          user_id: profile.user_id,
+          profile_id: profile.id,
+          errors: inspect(changeset.errors)
+        )
+
+        error
+    end
+  end
+
   # Private functions for file handling
 
   defp store_avatar_file(uploaded_entry, profile) do

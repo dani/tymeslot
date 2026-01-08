@@ -2,45 +2,6 @@ defmodule TymeslotWeb.Router do
   use TymeslotWeb, :router
 
   # =============================================================================
-  # Pipelines
-  # =============================================================================
-
-  pipeline :browser do
-    plug :accepts, ["html"]
-    plug :fetch_session
-    plug :fetch_live_flash
-    plug :put_root_layout, html: {TymeslotWeb.Layouts, :root}
-    plug :protect_from_forgery
-    plug :put_secure_browser_headers
-    plug TymeslotWeb.Plugs.SecurityHeadersPlug
-    plug TymeslotWeb.Plugs.FetchCurrentUser
-    plug TymeslotWeb.Plugs.ThemePlug
-  end
-
-  pipeline :theme_browser do
-    plug :accepts, ["html"]
-    plug :fetch_session
-    plug :fetch_live_flash
-    plug :put_root_layout, html: {TymeslotWeb.Layouts, :scheduling_root}
-    plug :protect_from_forgery
-    plug :put_secure_browser_headers
-    plug TymeslotWeb.Plugs.SecurityHeadersPlug
-    plug TymeslotWeb.Plugs.FetchCurrentUser
-    plug TymeslotWeb.Plugs.ThemePlug
-    # Distribution-specific theme protections (e.g., for SaaS)
-    plug TymeslotWeb.Plugs.ThemeProtectionPlug
-  end
-
-  pipeline :api do
-    plug :accepts, ["json"]
-    plug TymeslotWeb.Plugs.SecurityHeadersPlug
-  end
-
-  pipeline :require_authenticated_user do
-    plug TymeslotWeb.Plugs.RequireAuthPlug
-  end
-
-  # =============================================================================
   # Healthcheck (early to avoid wildcard username routes)
   # =============================================================================
 

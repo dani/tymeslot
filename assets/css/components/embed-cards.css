@@ -1,0 +1,48 @@
+/**
+ * Embed Settings Component Styles
+ * For dashboard embed options cards
+ */
+
+.embed-option-card {
+  @apply bg-white rounded-token-2xl border-2 border-tymeslot-200 shadow-sm hover:shadow-lg transition-glass hover:border-turquoise-300;
+}
+
+.embed-option-card:hover {
+  @apply -translate-y-1;
+}
+
+/* Code block styling for embed snippets */
+.embed-option-card pre {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+}
+
+.embed-option-card code {
+  @apply text-tymeslot-200;
+}
+
+/* Animation for copy button */
+.embed-option-card button[phx-click="copy_code"] {
+  animation: fadeIn 0.3s var(--transition-glass-smooth);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Hover effects for preview cards */
+.embed-option-card .bg-tymeslot-50 {
+  transition: var(--transition-glass-smooth);
+}
+
+.embed-option-card:hover .bg-tymeslot-50 {
+  @apply bg-tymeslot-100;
+}
