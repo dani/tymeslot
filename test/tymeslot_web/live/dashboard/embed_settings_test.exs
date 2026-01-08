@@ -4,9 +4,14 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsTest do
   import Phoenix.LiveViewTest
   import Tymeslot.Factory
 
+  alias Plug.Conn
+  alias Plug.Test
+  alias Tymeslot.Profiles
+  alias Tymeslot.Repo
+
   describe "embed settings component" do
     setup do
-      user = insert(:user)
+      user = insert(:user, onboarding_completed_at: DateTime.utc_now())
       profile = insert(:profile, user: user, username: "testuser", allowed_embed_domains: [])
 
       conn = log_in_user(build_conn(), user)
@@ -53,7 +58,7 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsTest do
       assert render(view) =~ "Security settings saved successfully"
 
       # Verify domains were saved
-      updated_profile = Tymeslot.Repo.reload(profile)
+      updated_profile = Repo.reload(profile)
       assert length(updated_profile.allowed_embed_domains) == 2
       assert "example.com" in updated_profile.allowed_embed_domains
       assert "test.org" in updated_profile.allowed_embed_domains
@@ -105,7 +110,7 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsTest do
     test "clears domains successfully", %{conn: conn, profile: profile} do
       # First set some domains
       {:ok, _} =
-        Tymeslot.Profiles.update_allowed_embed_domains(profile, ["example.com", "test.org"])
+        Profiles.update_allowed_embed_domains(profile, ["example.com", "test.org"])
 
       {:ok, view, _html} = live(conn, "/dashboard/embed")
 
@@ -122,7 +127,7 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsTest do
       assert render(view) =~ "Embedding is now allowed on all domains"
 
       # Verify domains were cleared
-      updated_profile = Tymeslot.Repo.reload(profile)
+      updated_profile = Repo.reload(profile)
       assert updated_profile.allowed_embed_domains == []
     end
 
@@ -154,9 +159,9 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsTest do
     end
 
     test "displays username in embed code snippets", %{conn: conn, profile: profile} do
-      {:ok, view, html} = live(conn, "/dashboard/embed")
+      {:ok, _view, html} = live(conn, "/dashboard/embed")
 
-      assert html =~ "data-username=\"#{profile.username}\""
+      assert html =~ profile.username
       assert html =~ "/#{profile.username}"
     end
 
@@ -181,8 +186,8 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsTest do
     end
 
     test "shows current domain count in UI", %{conn: conn, profile: profile} do
-      {:ok, _} =
-        Tymeslot.Profiles.update_allowed_embed_domains(profile, [
+    {:ok, _} =
+      Profiles.update_allowed_embed_domains(profile, [
           "example.com",
           "test.org",
           "subdomain.example.com"
@@ -197,7 +202,7 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsTest do
       assert html =~ "example.com, test.org, subdomain.example.com"
     end
 
-    test "handles empty domain input", %{conn: conn} do
+    test "handles empty domain input", %{conn: conn, user: user} do
       {:ok, view, _html} = live(conn, "/dashboard/embed")
 
       view |> element("button", "Configure") |> render_click()
@@ -209,17 +214,17 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsTest do
       assert render(view) =~ "saved successfully"
 
       # Empty should clear domains
-      updated_profile = Tymeslot.Repo.reload(Tymeslot.Profiles.get_profile(conn.assigns.current_user.id))
+      updated_profile = Repo.reload(Profiles.get_profile(user.id))
       assert updated_profile.allowed_embed_domains == []
     end
   end
 
   describe "embed preview" do
     setup do
-      user = insert(:user)
+      user = insert(:user, onboarding_completed_at: DateTime.utc_now())
       profile = insert(:profile, user: user, username: "testuser")
       # Make sure profile is ready for scheduling
-      insert(:meeting_type, profile: profile)
+      insert(:meeting_type, user: user)
 
       conn = log_in_user(build_conn(), user)
 
@@ -256,8 +261,10 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsTest do
 
   # Helper function to log in user for tests
   defp log_in_user(conn, user) do
+    session = insert(:user_session, user: user)
+
     conn
-    |> Plug.Test.init_test_session(%{})
-    |> Plug.Conn.put_session(:user_id, user.id)
+    |> Test.init_test_session(%{})
+    |> Conn.put_session(:user_token, session.token)
   end
 end

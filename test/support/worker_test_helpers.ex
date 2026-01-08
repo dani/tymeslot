@@ -13,7 +13,7 @@ defmodule Tymeslot.WorkerTestHelpers do
 
   @doc """
   Sets up a complete calendar scenario with user, integration, and meeting.
-  
+
   ## Options
     * `:uid` - Meeting UID (default: "test-uid")
     * `:with_calendar_path` - Include calendar_path in meeting (default: true)
@@ -72,6 +72,7 @@ defmodule Tymeslot.WorkerTestHelpers do
   @doc """
   Mocks a successful calendar event creation including the post-creation integration info fetch.
   """
+  @spec expect_calendar_create_success(integer(), String.t()) :: :ok
   def expect_calendar_create_success(integration_id, returned_uid \\ "remote-uid-123") do
     # Mock the event creation
     expect(Tymeslot.CalendarMock, :create_event, fn _event_data, _user_id ->
@@ -87,6 +88,7 @@ defmodule Tymeslot.WorkerTestHelpers do
   @doc """
   Mocks a successful calendar event update.
   """
+  @spec expect_calendar_update_success() :: :ok
   def expect_calendar_update_success do
     expect(Tymeslot.CalendarMock, :update_event, fn _uid, _data, _integration_id ->
       :ok
@@ -96,6 +98,7 @@ defmodule Tymeslot.WorkerTestHelpers do
   @doc """
   Mocks a successful calendar event deletion.
   """
+  @spec expect_calendar_delete_success() :: :ok
   def expect_calendar_delete_success do
     expect(Tymeslot.CalendarMock, :delete_event, fn _uid, _integration_id ->
       :ok
@@ -105,6 +108,7 @@ defmodule Tymeslot.WorkerTestHelpers do
   @doc """
   Mocks a successful HTTP POST request.
   """
+  @spec expect_http_success(integer(), String.t()) :: :ok
   def expect_http_success(status_code \\ 200, body \\ "OK") do
     expect(Tymeslot.HTTPClientMock, :post, fn _url, _body, _headers, _opts ->
       {:ok, %HTTPoison.Response{status_code: status_code, body: body}}
@@ -113,12 +117,13 @@ defmodule Tymeslot.WorkerTestHelpers do
 
   @doc """
   Mocks a successful MiroTalk video room creation with all required API calls.
-  
+
   MiroTalk requires multiple API calls:
   1. POST /api/v1/meeting - Creates the room (returns meeting URL)
   2. POST /api/v1/join - Generates organizer join token
   3. POST /api/v1/join - Generates participant join token
   """
+  @spec expect_mirotalk_success(String.t()) :: :ok
   def expect_mirotalk_success(room_url \\ "https://test.mirotalk.com/join/test-room-123") do
     # First two calls: room creation
     Tymeslot.HTTPClientMock

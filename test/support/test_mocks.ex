@@ -44,7 +44,10 @@ defmodule Tymeslot.TestMocks do
 
     Tymeslot.CalendarMock
     |> stub(:list_events_in_range, fn _start_time, _end_time -> result end)
-    |> stub(:get_events_for_range_fresh, fn _start_date, _end_date -> result end)
+    |> stub(:get_events_for_range_fresh, fn _user_id, _start_date, _end_date -> result end)
+    |> stub(:get_booking_integration_info, fn _user_id ->
+      {:error, :no_integration}
+    end)
 
     # Setup OAuth helper mocks
     google_url =

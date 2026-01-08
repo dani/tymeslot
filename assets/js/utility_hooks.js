@@ -73,3 +73,34 @@ export const AutoFocus = {
     }
   }
 };
+
+// Reset scroll position to top when action changes (on navigation)
+export const ScrollReset = {
+  mounted() {
+    this.currentAction = String(this.el.dataset.action || '');
+  },
+  
+  updated() {
+    const newAction = String(this.el.dataset.action || '');
+    const currentActionStr = String(this.currentAction || '');
+    
+    if (newAction !== currentActionStr) {
+      this.currentAction = newAction;
+      this.scrollToTop();
+    }
+  },
+  
+  scrollToTop() {
+    // Check if we should scroll the window (for full-page views) or the element
+    const scrollWindow = this.el.dataset.scrollWindow === 'true' || 
+                        this.el.scrollHeight <= this.el.clientHeight;
+    
+    if (scrollWindow) {
+      // Scroll the window to the top (for full-page views)
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    } else {
+      // If the element has a scroll height, reset its scroll
+      this.el.scrollTop = 0;
+    }
+  }
+};

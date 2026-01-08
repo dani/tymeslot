@@ -15,6 +15,8 @@ defmodule Tymeslot.Factory do
   alias Tymeslot.DatabaseSchemas.UserSchema
   alias Tymeslot.DatabaseSchemas.UserSessionSchema
   alias Tymeslot.DatabaseSchemas.VideoIntegrationSchema
+  alias Tymeslot.DatabaseSchemas.WebhookDeliverySchema
+  alias Tymeslot.DatabaseSchemas.WebhookSchema
   alias Tymeslot.DatabaseSchemas.WeeklyAvailabilitySchema
   alias Tymeslot.Security.Password
   alias Tymeslot.Security.Token
@@ -198,6 +200,30 @@ defmodule Tymeslot.Factory do
       background_type: "gradient",
       background_value: "gradient_1",
       profile: build(:profile)
+    }
+  end
+
+  @spec webhook_factory() :: Tymeslot.DatabaseSchemas.WebhookSchema.t()
+  def webhook_factory do
+    %WebhookSchema{
+      name: sequence(:webhook_name, &"Webhook #{&1}"),
+      url: sequence(:webhook_url, &"https://example.com/webhook/#{&1}"),
+      secret: "secure_secret_123",
+      events: ["meeting.created", "meeting.cancelled"],
+      is_active: true,
+      user: build(:user)
+    }
+  end
+
+  @spec webhook_delivery_factory() :: Tymeslot.DatabaseSchemas.WebhookDeliverySchema.t()
+  def webhook_delivery_factory do
+    %WebhookDeliverySchema{
+      webhook: build(:webhook),
+      event_type: "meeting.created",
+      payload: %{"test" => true},
+      response_status: 200,
+      attempt_count: 1,
+      inserted_at: DateTime.utc_now()
     }
   end
 end

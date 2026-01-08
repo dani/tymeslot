@@ -111,7 +111,11 @@ defmodule TymeslotWeb.Router do
     pipe_through :theme_browser
 
     live_session :meeting_management,
-      on_mount: [TymeslotWeb.Hooks.ThemeHook, TymeslotWeb.Hooks.ClientInfoHook] do
+      on_mount: [
+        TymeslotWeb.Hooks.LocaleHook,
+        TymeslotWeb.Hooks.ThemeHook,
+        TymeslotWeb.Hooks.ClientInfoHook
+      ] do
       live "/:username/meeting/:meeting_uid/cancel", Themes.Core.Dispatcher, :cancel
 
       live "/:username/meeting/:meeting_uid/cancel-confirmed",
@@ -127,7 +131,11 @@ defmodule TymeslotWeb.Router do
     pipe_through :theme_browser
 
     live_session :username_scheduling,
-      on_mount: [TymeslotWeb.Hooks.ThemeHook, TymeslotWeb.Hooks.ClientInfoHook] do
+      on_mount: [
+        TymeslotWeb.Hooks.LocaleHook,
+        TymeslotWeb.Hooks.ThemeHook,
+        TymeslotWeb.Hooks.ClientInfoHook
+      ] do
       live "/:username", Themes.Core.Dispatcher, :overview
       live "/:username/schedule/:duration", Themes.Core.Dispatcher, :schedule
       live "/:username/schedule/:duration/book", Themes.Core.Dispatcher, :booking

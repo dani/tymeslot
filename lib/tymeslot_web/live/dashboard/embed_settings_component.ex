@@ -5,12 +5,16 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsComponent do
   """
   use TymeslotWeb, :live_component
 
+  alias Ecto.Changeset
+  alias Tymeslot.Profiles
   alias Tymeslot.Scheduling.LinkAccessPolicy
+  alias Tymeslot.Security.RateLimiter
   alias TymeslotWeb.Endpoint
+  alias TymeslotWeb.Live.Shared.Flash
 
   require Logger
 
-  import Phoenix.LiveView, only: [put_flash: 3, push_event: 3]
+  import Phoenix.LiveView, only: [push_event: 3]
 
   @impl true
   def update(assigns, socket) do
@@ -91,7 +95,7 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsComponent do
           <div class="p-6">
             <div class="flex items-start justify-between mb-4">
               <div>
-                <h3 class="text-xl font-bold text-tymeslot-900">Inline Embed</h3>
+                <h3 class="text-token-xl font-bold text-tymeslot-900">Inline Embed</h3>
                 <p class="text-token-sm text-tymeslot-600 mt-1">Embed directly into your webpage</p>
               </div>
               <span class="px-3 py-1 text-token-xs font-semibold bg-turquoise-100 text-turquoise-700 rounded-full">
@@ -163,7 +167,7 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsComponent do
           <div class="p-6">
             <div class="flex items-start justify-between mb-4">
               <div>
-                <h3 class="text-xl font-bold text-tymeslot-900">Popup Modal</h3>
+                <h3 class="text-token-xl font-bold text-tymeslot-900">Popup Modal</h3>
                 <p class="text-token-sm text-tymeslot-600 mt-1">Trigger a modal overlay with a button</p>
               </div>
               <span class="px-3 py-1 text-token-xs font-semibold bg-blue-100 text-blue-700 rounded-full">
@@ -235,7 +239,7 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsComponent do
           <div class="p-6">
             <div class="flex items-start justify-between mb-4">
               <div>
-                <h3 class="text-xl font-bold text-tymeslot-900">Direct Link</h3>
+                <h3 class="text-token-xl font-bold text-tymeslot-900">Direct Link</h3>
                 <p class="text-token-sm text-tymeslot-600 mt-1">Simple link to your booking page</p>
               </div>
               <span class="px-3 py-1 text-token-xs font-semibold bg-tymeslot-100 text-tymeslot-700 rounded-full">
@@ -304,7 +308,7 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsComponent do
           <div class="p-6">
             <div class="flex items-start justify-between mb-4">
               <div>
-                <h3 class="text-xl font-bold text-tymeslot-900">Floating Button</h3>
+                <h3 class="text-token-xl font-bold text-tymeslot-900">Floating Button</h3>
                 <p class="text-token-sm text-tymeslot-600 mt-1">Fixed button in corner of page</p>
               </div>
               <span class="px-3 py-1 text-token-xs font-semibold bg-purple-100 text-purple-700 rounded-full">
@@ -373,7 +377,7 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsComponent do
               <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
               </svg>
-              <h3 class="text-2xl font-bold text-tymeslot-900">Security & Domain Control</h3>
+              <h3 class="text-token-2xl font-bold text-tymeslot-900">Security & Domain Control</h3>
             </div>
             <p class="text-tymeslot-600">
               Control which websites can embed your booking page
@@ -484,7 +488,7 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsComponent do
       <div class="bg-gradient-to-br from-tymeslot-50 to-tymeslot-100 rounded-token-2xl border-2 border-tymeslot-200 p-8">
         <div class="flex items-center justify-between mb-6">
           <div>
-            <h3 class="text-2xl font-bold text-tymeslot-900">Test It Live</h3>
+            <h3 class="text-token-2xl font-bold text-tymeslot-900">Test It Live</h3>
             <p class="text-tymeslot-600 mt-1">Try your booking widget in action</p>
           </div>
           <button
@@ -570,7 +574,10 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsComponent do
     {:noreply,
      socket
      |> push_event("copy-to-clipboard", %{text: String.trim(code)})
-     |> put_flash(:info, "Code copied to clipboard!")}
+     |> then(fn s ->
+       Flash.info("Code copied to clipboard!")
+       s
+     end)}
   end
 
   def handle_event("toggle_preview", _params, socket) do
@@ -586,40 +593,65 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsComponent do
   end
 
   def handle_event("save_embed_domains", %{"allowed_domains" => domains_str}, socket) do
-    alias Tymeslot.Profiles
+    user_id = socket.assigns.current_user.id
 
-    case Profiles.update_allowed_embed_domains(socket.assigns.profile, domains_str) do
-      {:ok, updated_profile} ->
-        # Format the domains for display
-        allowed_domains_str =
-          case updated_profile.allowed_embed_domains do
-            nil -> ""
-            [] -> ""
-            domains -> Enum.join(domains, ", ")
-          end
+    # Rate limit: 10 updates per hour per user
+    case RateLimiter.check_rate(
+           {:embed_domain_update, user_id},
+           60_000 * 60,
+           10
+         ) do
+      {:allow, _count} ->
+        case Profiles.update_allowed_embed_domains(socket.assigns.profile, domains_str) do
+          {:ok, updated_profile} ->
+            # Format the domains for display
+            allowed_domains_str =
+              case updated_profile.allowed_embed_domains do
+                nil -> ""
+                [] -> ""
+                domains -> Enum.join(domains, ", ")
+              end
+
+            {:noreply,
+             socket
+             |> assign(:profile, updated_profile)
+             |> assign(:allowed_domains_str, allowed_domains_str)
+             |> then(fn s ->
+               Flash.info("Security settings saved successfully!")
+               s
+             end)}
+
+          {:error, %Changeset{} = changeset} ->
+            errors =
+              Enum.map_join(
+                Changeset.traverse_errors(changeset, fn {msg, _opts} -> msg end),
+                "; ",
+                fn {field, messages} ->
+                  "#{field}: #{Enum.join(messages, ", ")}"
+                end
+              )
+
+            {:noreply,
+             socket
+             |> then(fn s ->
+               Flash.error("Failed to save: #{errors}")
+               s
+             end)}
+        end
+
+      {:deny, _limit} ->
+        Logger.warning("Embed domain update rate limit exceeded", user_id: user_id)
 
         {:noreply,
          socket
-         |> assign(:profile, updated_profile)
-         |> assign(:allowed_domains_str, allowed_domains_str)
-         |> put_flash(:info, "Security settings saved successfully!")}
-
-      {:error, %Ecto.Changeset{} = changeset} ->
-        errors =
-          Ecto.Changeset.traverse_errors(changeset, fn {msg, _opts} -> msg end)
-          |> Enum.map(fn {field, messages} ->
-            "#{field}: #{Enum.join(messages, ", ")}"
-          end)
-          |> Enum.join("; ")
-
-        {:noreply, put_flash(socket, :error, "Failed to save: #{errors}")}
+         |> then(fn s ->
+           Flash.error("Too many updates. Please wait a moment before trying again.")
+           s
+         end)}
     end
   end
 
   def handle_event("clear_embed_domains", _params, socket) do
-    alias Tymeslot.Profiles
-    alias Tymeslot.Security.RateLimiter
-
     user_id = socket.assigns.current_user.id
 
     # Rate limit: 10 updates per hour per user
@@ -635,21 +667,29 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsComponent do
              socket
              |> assign(:profile, updated_profile)
              |> assign(:allowed_domains_str, "")
-             |> put_flash(:info, "Embedding is now allowed on all domains")}
+             |> then(fn s ->
+               Flash.info("Embedding is now allowed on all domains")
+               s
+             end)}
 
           {:error, reason} ->
-            {:noreply, put_flash(socket, :error, "Failed to clear settings: #{inspect(reason)}")}
+            {:noreply,
+             socket
+             |> then(fn s ->
+               Flash.error("Failed to clear settings: #{inspect(reason)}")
+               s
+             end)}
         end
 
       {:deny, _limit} ->
         Logger.warning("Embed domain clear rate limit exceeded", user_id: user_id)
 
         {:noreply,
-         put_flash(
-           socket,
-           :error,
-           "Too many updates. Please wait a moment before trying again."
-         )}
+         socket
+         |> then(fn s ->
+           Flash.error("Too many updates. Please wait a moment before trying again.")
+           s
+         end)}
     end
   end
 end
