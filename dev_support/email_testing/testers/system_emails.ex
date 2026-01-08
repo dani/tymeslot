@@ -7,9 +7,12 @@ defmodule Tymeslot.EmailTesting.Testers.SystemEmails do
   alias Tymeslot.Emails.EmailService
 
   @spec test_calendar_sync_error(String.t()) :: :ok | :error
-  def test_calendar_sync_error(_email) do
+  def test_calendar_sync_error(email) do
     meeting = %{
+      id: 1,
       organizer_user_id: 1,
+      organizer_name: "Test Organizer",
+      organizer_email: email,
       start_time: DateTime.add(DateTime.utc_now(), 86_400, :second),
       duration: 30,
       location: "Video Call"

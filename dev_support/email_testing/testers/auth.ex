@@ -8,7 +8,7 @@ defmodule Tymeslot.EmailTesting.Testers.Auth do
 
   @spec test_email_verification(String.t()) :: :ok | :error
   def test_email_verification(email) do
-    user = %{email: email, name: "Test User"}
+    user = %{id: 1, email: email, name: "Test User"}
     verification_url = "https://example.com/verify/test-token"
 
     try do
@@ -32,7 +32,7 @@ defmodule Tymeslot.EmailTesting.Testers.Auth do
 
   @spec test_password_reset(String.t()) :: :ok | :error
   def test_password_reset(email) do
-    user = %{email: email, name: "Test User"}
+    user = %{id: 1, email: email, name: "Test User"}
     reset_url = "https://example.com/reset/test-token"
 
     try do
