@@ -36,6 +36,27 @@ defmodule Tymeslot.Integrations.Shared.LockTest do
                Lock.with_lock("lock_456", fn -> :ok end)
     end
 
+    test "recovers from GenServer crash" do
+      # Acquire a lock
+      assert :ok = Lock.with_lock("temp_lock", fn -> :ok end)
+
+      # Verify table exists
+      assert :ets.info(@table) != :undefined
+
+      # Kill the GenServer
+      pid = Process.whereis(Lock)
+      Process.exit(pid, :kill)
+
+      # Wait for restart
+      Process.sleep(50)
+
+      # New GenServer should have recreated the table
+      assert :ets.info(@table) != :undefined
+
+      # Should be able to acquire the "same" lock again because the old table is gone
+      assert :ok = Lock.with_lock("temp_lock", fn -> :ok end)
+    end
+
     test "cleans up monitors when overwriting expired lock" do
       key = "expired_lock_123"
 
@@ -87,6 +108,28 @@ defmodule Tymeslot.Integrations.Shared.LockTest do
       
       assert_receive :locked
       assert {:error, :refresh_in_progress} = Lock.with_lock(:google, 999, fn -> :ok end)
+    end
+
+    test "uses configured timeout" do
+      # Set a very short timeout for :test_provider
+      Application.put_env(:tymeslot, :integration_locks, [test_provider: 50])
+      
+      key = :test_provider
+      
+      # Acquire lock
+      assert :ok = Lock.with_lock(key, fn -> 
+        # Wait until just after timeout
+        Process.sleep(100)
+        :ok
+      end)
+      
+      # Now it should be acquirable because it's expired (even if process still runs)
+      # Wait a bit for the old lock to be considered expired
+      Process.sleep(10)
+      assert :ok = Lock.with_lock(key, fn -> :ok end)
+      
+      # Clean up config
+      Application.delete_env(:tymeslot, :integration_locks)
     end
   end
 end

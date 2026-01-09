@@ -82,7 +82,6 @@ defmodule Tymeslot.Auth.AuthActionsTest do
 
       assert {:ok, result} = AuthActions.convert_profile_params(params)
       assert result.full_name == "Test User"
-      # Nested maps may or may not be converted - depends on implementation
     end
   end
 
@@ -114,7 +113,11 @@ defmodule Tymeslot.Auth.AuthActionsTest do
                AuthActions.validate_signup_input(params)
     end
 
-    test "returns error when terms are not accepted" do
+    test "returns error when terms are not accepted (if enforced)" do
+      # Set config to enforce legal agreements for this test
+      Application.put_env(:tymeslot, :enforce_legal_agreements, true)
+      on_exit(fn -> Application.put_env(:tymeslot, :enforce_legal_agreements, false) end)
+
       params = %{
         "email" => "test@example.com",
         "password" => "ValidPassword123!",

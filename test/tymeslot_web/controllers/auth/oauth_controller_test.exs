@@ -146,6 +146,62 @@ defmodule TymeslotWeb.OAuthControllerTest do
       assert Flash.get(conn.assigns.flash, :error) =~ "Email address is required"
     end
 
+    test "creates user and requires email verification if needed", %{conn: conn} do
+      user_data = %{
+        "oauth_provider" => "github",
+        "oauth_email" => "unverified@example.com",
+        "oauth_github_id" => "12345",
+        "oauth_verified" => "false"
+      }
+
+      :meck.expect(OAuthHelper, :create_oauth_user, fn :github, _data, _profile ->
+        user = Factory.insert(:user, email: "unverified@example.com", provider: "github", verified_at: nil)
+        # Add the virtual field that the controller checks
+        user = Map.put(user, :needs_email_verification, true)
+        {:ok, user}
+      end)
+
+      conn = post(conn, ~p"/auth/complete", user_data)
+
+      assert redirected_to(conn) == "/dashboard"
+      assert Flash.get(conn.assigns.flash, :info) =~ "Please check your email to verify"
+    end
+
+    test "handles user creation failure with changeset", %{conn: conn} do
+      user_data = %{
+        "oauth_provider" => "github",
+        "oauth_email" => "fail@example.com",
+        "oauth_github_id" => "12345"
+      }
+
+      :meck.expect(OAuthHelper, :create_oauth_user, fn :github, _data, _profile ->
+        changeset = Ecto.Changeset.add_error(%Ecto.Changeset{}, :email, "can't be blank")
+        {:error, changeset}
+      end)
+
+      conn = post(conn, ~p"/auth/complete", user_data)
+
+      assert redirected_to(conn) =~ "/auth/complete-registration"
+      assert Flash.get(conn.assigns.flash, :error) =~ "Email address is required"
+    end
+
+    test "handles user creation failure with other errors", %{conn: conn} do
+      user_data = %{
+        "oauth_provider" => "github",
+        "oauth_email" => "error@example.com",
+        "oauth_github_id" => "12345"
+      }
+
+      :meck.expect(OAuthHelper, :create_oauth_user, fn :github, _data, _profile ->
+        {:error, :user_creation_failed}
+      end)
+
+      conn = post(conn, ~p"/auth/complete", user_data)
+
+      assert redirected_to(conn) == "/auth/login"
+      assert Flash.get(conn.assigns.flash, :error) =~ "Failed to create user account"
+    end
+
     test "rejects unsupported oauth_provider", %{conn: conn} do
       user_data = %{
         "oauth_provider" => "totally_new_provider",

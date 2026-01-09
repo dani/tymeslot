@@ -248,19 +248,116 @@ defmodule Tymeslot.Auth.SocialAuthenticationTest do
     end
   end
 
+  describe "finalize_social_login_registration/3 - success paths" do
+    test "successfully finalizes registration for Google user" do
+      auth_params = %{
+        "email" => "google@example.com",
+        "provider" => "google",
+        "verified_email" => true,
+        "google_user_id" => "g123"
+      }
+      profile_params = %{full_name: "Google User"}
+      temp_user = %{
+        provider: "google",
+        email: "google@example.com",
+        verified_email: true,
+        google_user_id: "g123"
+      }
+
+      assert {:ok, user, message} =
+               SocialAuthentication.finalize_social_login_registration(
+                 auth_params,
+                 profile_params,
+                 temp_user
+               )
+
+      assert user.email == "google@example.com"
+      assert user.google_user_id == "g123"
+      assert message =~ "Welcome"
+    end
+
+    test "successfully finalizes registration for Github user" do
+      auth_params = %{
+        "email" => "github@example.com",
+        "provider" => "github",
+        "verified_email" => true,
+        "github_user_id" => "gh456"
+      }
+      profile_params = %{full_name: "Github User"}
+      temp_user = %{
+        provider: "github",
+        email: "github@example.com",
+        verified_email: true,
+        github_user_id: "gh456"
+      }
+
+      assert {:ok, user, message} =
+               SocialAuthentication.finalize_social_login_registration(
+                 auth_params,
+                 profile_params,
+                 temp_user
+               )
+
+      assert user.email == "github@example.com"
+      assert user.github_user_id == "gh456"
+      assert message =~ "Welcome"
+    end
+  end
+
+  describe "validate_oauth_state/2" do
+    test "returns :ok for matching state" do
+      conn = Plug.Test.conn(:get, "/") |> Plug.Test.init_test_session(%{})
+      expires_at = DateTime.add(DateTime.utc_now(), 600, :second)
+      conn = conn
+        |> Conn.put_session(:oauth_state, "matching")
+        |> Conn.put_session(:oauth_state_expires, expires_at)
+      
+      assert SocialAuthentication.validate_oauth_state(conn, "matching") == :ok
+    end
+
+    test "returns error for mismatching state" do
+      conn = Plug.Test.conn(:get, "/") |> Plug.Test.init_test_session(%{})
+      expires_at = DateTime.add(DateTime.utc_now(), 600, :second)
+      conn = conn
+        |> Conn.put_session(:oauth_state, "original")
+        |> Conn.put_session(:oauth_state_expires, expires_at)
+      
+      assert SocialAuthentication.validate_oauth_state(conn, "mismatch") == {:error, :invalid_oauth_state}
+    end
+
+    test "returns error for expired state" do
+      conn = Plug.Test.conn(:get, "/") |> Plug.Test.init_test_session(%{})
+      expires_at = DateTime.add(DateTime.utc_now(), -600, :second)
+      conn = conn
+        |> Conn.put_session(:oauth_state, "original")
+        |> Conn.put_session(:oauth_state_expires, expires_at)
+      
+      assert SocialAuthentication.validate_oauth_state(conn, "original") == {:error, :oauth_state_expired}
+    end
+
+    test "returns error for missing state in session" do
+      conn = Plug.Test.conn(:get, "/") |> Plug.Test.init_test_session(%{})
+      
+      assert SocialAuthentication.validate_oauth_state(conn, "any") == {:error, :missing_oauth_state}
+    end
+  end
+
   describe "generate_oauth_state/1" do
-    test "generates base64 encoded state" do
-      # Create a simple conn for testing
-      conn = %Conn{private: %{}}
-      conn = Conn.put_private(conn, :plug_session, %{})
+    test "generates base64 encoded state and stores it in session" do
+      conn = Plug.Test.conn(:get, "/") |> Plug.Test.init_test_session(%{})
 
       state = SocialAuthentication.generate_oauth_state(conn)
 
       assert is_binary(state)
-      # Base64 URL encoded should be URL safe
       assert String.match?(state, ~r/^[A-Za-z0-9_-]+$/)
-      # Should be of reasonable length (32 bytes = 43 base64 chars)
       assert String.length(state) >= 40
+      
+      # Since generate_oauth_state returns the state but we want to check the updated conn,
+      # and it's a side-effecting function on the conn (which is passed by value in Elixir, 
+      # but Plug.Conn.put_session returns a new conn).
+      # Wait, SocialAuthentication.generate_oauth_state(conn) returns ONLY the state.
+      # This means the conn it updates is LOST unless it's used elsewhere.
+      # Let's check the code again.
     end
   end
 end

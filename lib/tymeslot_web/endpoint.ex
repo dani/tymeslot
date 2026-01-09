@@ -11,6 +11,7 @@ defmodule TymeslotWeb.Endpoint do
     signing_salt: "l7NJun+3qhaGqCXhUilh970bEOPhlhaxO/3dDjzzqzMMNLsu07lxymgjDQNGkev+",
     # Changed from "Strict" to "Lax" to allow OAuth callbacks
     same_site: "Lax",
+    http_only: true,
     secure: Application.compile_env(:tymeslot, :secure_cookies, false)
   ]
 

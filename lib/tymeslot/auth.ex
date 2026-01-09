@@ -453,6 +453,17 @@ defmodule Tymeslot.Auth do
   end
 
   @doc """
+  Gets a user by email.
+  """
+  @spec get_user_by_email(String.t()) :: term() | nil
+  def get_user_by_email(email) do
+    case UserQueries.get_user_by_email(email) do
+      {:ok, user} -> user
+      {:error, :not_found} -> nil
+    end
+  end
+
+  @doc """
   Gets a user by ID.
   """
   @spec get_user(integer()) :: {:ok, Ecto.Schema.t()} | {:error, :not_found}
