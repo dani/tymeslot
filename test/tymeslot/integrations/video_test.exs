@@ -5,7 +5,6 @@ defmodule Tymeslot.Integrations.VideoTest do
   import Tymeslot.Factory
 
   alias Tymeslot.Integrations.Video
-  alias Tymeslot.Integrations.Video.Providers.MiroTalkProvider
 
   setup :verify_on_exit!
 
