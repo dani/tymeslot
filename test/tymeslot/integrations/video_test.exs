@@ -59,6 +59,7 @@ defmodule Tymeslot.Integrations.VideoTest do
       user = insert(:user)
       attrs = %{
         "name" => "Safe Integration",
+        "custom_meeting_url" => "https://meet.jit.si/my-room",
         "some_crazy_key_that_does_not_exist_as_atom_12345" => "value"
       }
 

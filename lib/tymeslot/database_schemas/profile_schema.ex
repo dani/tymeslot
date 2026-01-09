@@ -287,28 +287,15 @@ defmodule Tymeslot.DatabaseSchemas.ProfileSchema do
       # Standard domain validation (ASCII only after sanitization)
       # Each label must be 1-63 chars, can contain letters, numbers, hyphens (not at start/end)
       # Domain must have at least one dot (unless localhost)
-      # Supports wildcard prefix like *.example.com
       true ->
         labels = String.split(domain, ".")
 
         length(labels) >= 2 and
-          labels
-          |> Enum.with_index()
-          |> Enum.all?(fn {label, index} ->
-            cond do
-              # Allow '*' as the very first label
-              label == "*" and index == 0 ->
-                true
-
-              # Standard label validation
-              byte_size(label) > 0 and
-                byte_size(label) <= 63 and
-                String.match?(label, ~r/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/i) ->
-                true
-
-              true ->
-                false
-            end
+          Enum.all?(labels, fn label ->
+            # Standard label validation
+            byte_size(label) > 0 and
+              byte_size(label) <= 63 and
+              String.match?(label, ~r/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/i)
           end)
     end
   end

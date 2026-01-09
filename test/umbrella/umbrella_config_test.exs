@@ -1,5 +1,5 @@
 defmodule Tymeslot.UmbrellaConfigTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   describe "SaaS app detection" do
     test "saas_mode flag is set when SaaS app is present" do

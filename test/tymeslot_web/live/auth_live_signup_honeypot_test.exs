@@ -16,6 +16,15 @@ defmodule TymeslotWeb.AuthLiveSignupHoneypotTest do
   setup do
     ensure_rate_limiter_started()
     RateLimiter.clear_all()
+
+    # Ensure legal agreements are enforced for consistent form structure in tests
+    original_enforce = Application.get_env(:tymeslot, :enforce_legal_agreements)
+    Application.put_env(:tymeslot, :enforce_legal_agreements, true)
+
+    on_exit(fn ->
+      Application.put_env(:tymeslot, :enforce_legal_agreements, original_enforce)
+    end)
+
     :ok
   end
 

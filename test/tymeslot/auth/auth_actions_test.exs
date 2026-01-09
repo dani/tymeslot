@@ -3,7 +3,7 @@ defmodule Tymeslot.Auth.AuthActionsTest do
   Tests for AuthActions module - focusing on pure functions and validation logic.
   """
 
-  use Tymeslot.DataCase, async: true
+  use Tymeslot.DataCase, async: false
 
   alias Tymeslot.Auth.AuthActions
 
@@ -115,8 +115,9 @@ defmodule Tymeslot.Auth.AuthActionsTest do
 
     test "returns error when terms are not accepted (if enforced)" do
       # Set config to enforce legal agreements for this test
+      original = Application.get_env(:tymeslot, :enforce_legal_agreements)
       Application.put_env(:tymeslot, :enforce_legal_agreements, true)
-      on_exit(fn -> Application.put_env(:tymeslot, :enforce_legal_agreements, false) end)
+      on_exit(fn -> Application.put_env(:tymeslot, :enforce_legal_agreements, original) end)
 
       params = %{
         "email" => "test@example.com",
