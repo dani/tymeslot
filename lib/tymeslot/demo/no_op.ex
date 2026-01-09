@@ -40,7 +40,7 @@ defmodule Tymeslot.Demo.NoOp do
   def demo_profile?(_profile), do: false
 
   @impl true
-  def demo_mode?(_socket), do: false
+  def demo_mode?(_context), do: false
 
   @impl true
   def get_profile_by_username(username) when is_binary(username) do
@@ -103,7 +103,7 @@ defmodule Tymeslot.Demo.NoOp do
   end
 
   @impl true
-  def get_orchestrator(_socket), do: Tymeslot.Bookings.Orchestrator
+  def get_orchestrator(_context), do: Tymeslot.Bookings.Orchestrator
 
   @impl true
   def get_available_slots(
@@ -112,7 +112,7 @@ defmodule Tymeslot.Demo.NoOp do
         _user_timezone,
         _organizer_user_id,
         _organizer_profile,
-        _socket
+        _context
       ) do
     # NoOp implementation returns empty list; caller should fall back to real logic
     {:ok, []}
@@ -125,7 +125,7 @@ defmodule Tymeslot.Demo.NoOp do
         _month,
         _user_timezone,
         _organizer_profile,
-        _socket
+        _context
       ) do
     # NoOp implementation returns empty map; caller should fall back to real logic
     {:ok, %{}}

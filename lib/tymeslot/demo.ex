@@ -31,7 +31,7 @@ defmodule Tymeslot.Demo do
   def demo_profile?(profile), do: provider().demo_profile?(profile)
 
   @spec demo_mode?(map()) :: boolean()
-  def demo_mode?(socket), do: provider().demo_mode?(socket)
+  def demo_mode?(context), do: provider().demo_mode?(context)
 
   @spec get_profile_by_username(String.t()) :: map() | nil
   def get_profile_by_username(username), do: provider().get_profile_by_username(username)
@@ -73,7 +73,7 @@ defmodule Tymeslot.Demo do
     do: provider().find_by_duration_string(user_id, duration_string)
 
   @spec get_orchestrator(map()) :: module()
-  def get_orchestrator(socket), do: provider().get_orchestrator(socket)
+  def get_orchestrator(context), do: provider().get_orchestrator(context)
 
   @spec get_available_slots(String.t(), String.t(), String.t(), integer(), map(), map() | nil) ::
           {:ok, [map()]} | {:error, any()}
@@ -83,7 +83,7 @@ defmodule Tymeslot.Demo do
         user_timezone,
         organizer_user_id,
         organizer_profile,
-        socket \\ nil
+        context \\ nil
       ),
       do:
         provider().get_available_slots(
@@ -92,7 +92,7 @@ defmodule Tymeslot.Demo do
           user_timezone,
           organizer_user_id,
           organizer_profile,
-          socket
+          context
         )
 
   @spec get_month_availability(
@@ -109,7 +109,7 @@ defmodule Tymeslot.Demo do
         month,
         user_timezone,
         organizer_profile,
-        socket \\ nil
+        context \\ nil
       ),
       do:
         provider().get_month_availability(
@@ -118,7 +118,7 @@ defmodule Tymeslot.Demo do
           month,
           user_timezone,
           organizer_profile,
-          socket
+          context
         )
 
   @spec get_calendar_days(String.t(), integer(), integer(), map(), map() | atom() | nil) ::

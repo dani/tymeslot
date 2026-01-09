@@ -34,7 +34,7 @@ defmodule Tymeslot.Demo.Behaviour do
   @doc """
   Checks if a socket/context is in demo mode.
   """
-  @callback demo_mode?(socket :: map()) :: boolean()
+  @callback demo_mode?(context :: map()) :: boolean()
 
   @doc """
   Gets a profile by username (returns demo profile if applicable).
@@ -97,7 +97,7 @@ defmodule Tymeslot.Demo.Behaviour do
   @doc """
   Gets the orchestrator module to use.
   """
-  @callback get_orchestrator(socket :: map()) :: module()
+  @callback get_orchestrator(context :: map()) :: module()
 
   @doc """
   Gets available slots for a date.
@@ -108,7 +108,7 @@ defmodule Tymeslot.Demo.Behaviour do
               user_timezone :: String.t(),
               organizer_user_id :: integer(),
               organizer_profile :: map(),
-              socket :: map() | nil
+              context :: map() | nil
             ) :: {:ok, [map()]} | {:error, any()}
 
   @doc """
@@ -120,7 +120,7 @@ defmodule Tymeslot.Demo.Behaviour do
               month :: integer(),
               user_timezone :: String.t(),
               organizer_profile :: map(),
-              socket :: map() | nil
+              context :: map() | nil
             ) :: {:ok, map()} | {:error, any()}
 
   @doc """

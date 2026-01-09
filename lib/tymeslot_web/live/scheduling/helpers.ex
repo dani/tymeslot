@@ -99,7 +99,7 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
           String.t(),
           integer(),
           map(),
-          Phoenix.LiveView.Socket.t() | nil
+          map() | nil
         ) :: {:ok, [map()]} | {:error, any()}
   def get_available_slots(
         date_string,
@@ -107,7 +107,7 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
         user_timezone,
         organizer_user_id,
         organizer_profile,
-        socket \\ nil
+        context \\ nil
       ) do
     # Security: Ensure user_id matches the profile owner to prevent IDOR
     if organizer_profile && organizer_user_id != organizer_profile.user_id do
@@ -116,7 +116,7 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
       with {:ok, date} <- Date.from_iso8601(date_string),
            {:ok, owner_timezone} <- get_owner_timezone(organizer_profile) do
         # Check if this is a demo user
-        if demo_user?(organizer_profile) || (socket && Demo.demo_mode?(socket)) do
+        if demo_user?(organizer_profile) || get_from_context(context, :demo_mode) do
           # Use demo provider for availability generation
           Demo.get_available_slots(
             date_string,
@@ -124,15 +124,15 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
             user_timezone,
             organizer_user_id,
             organizer_profile,
-            socket
+            context
           )
         else
           # Regular flow for real users
           with {:ok, events} <-
-                 Calendar.get_calendar_events_from_socket(
+                 Calendar.get_calendar_events_from_context(
                    date,
                    organizer_user_id,
-                   socket
+                   context
                  ),
                duration_minutes <- parse_duration_minutes(duration) do
             config = %{
@@ -168,6 +168,7 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
     - month: Month to check (1-12)
     - user_timezone: Timezone of the user viewing
     - organizer_profile: Profile with booking settings
+    - context: Optional context map (replacing socket)
 
   ## Returns
     - `{:ok, map}` where map keys are date strings ("2026-01-15") and values are booleans
@@ -179,7 +180,7 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
           integer(),
           String.t(),
           map(),
-          Phoenix.LiveView.Socket.t() | nil
+          map() | nil
         ) :: {:ok, map()} | {:error, any()}
   def get_month_availability(
         user_id,
@@ -187,14 +188,14 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
         month,
         user_timezone,
         organizer_profile,
-        socket \\ nil
+        context \\ nil
       ) do
     # Security: Ensure user_id matches the profile owner to prevent IDOR
     cond do
       organizer_profile && user_id != organizer_profile.user_id ->
         {:error, :unauthorized}
 
-      demo_user?(organizer_profile) || (socket && Demo.demo_mode?(socket)) ->
+      demo_user?(organizer_profile) || get_from_context(context, :demo_mode) ->
         # Delegate to demo provider
         Demo.get_month_availability(
           user_id,
@@ -202,17 +203,17 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
           month,
           user_timezone,
           organizer_profile,
-          socket
+          context
         )
 
       true ->
         with {:ok, owner_timezone} <- get_owner_timezone(organizer_profile),
              start_date <- Date.new!(year, month, 1),
              {:ok, events} <-
-               Calendar.get_calendar_events_from_socket(
+               Calendar.get_calendar_events_from_context(
                  start_date,
                  user_id,
-                 socket
+                 context
                ) do
           config = %{
             profile_id: organizer_profile.id,
@@ -416,5 +417,24 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
       )
 
     assign(socket, :calendar_days, calendar_days)
+  end
+
+  defp get_from_context(nil, _key), do: nil
+
+  defp get_from_context(context, key) do
+    case context do
+      %{assigns: assigns} = socket ->
+        # Handle Phoenix.LiveView.Socket (check assigns then private)
+        case Map.get(assigns, key) do
+          nil -> if Map.has_key?(socket, :private), do: Map.get(socket.private, key), else: nil
+          val -> val
+        end
+
+      %{} = map ->
+        Map.get(map, key)
+
+      _ ->
+        nil
+    end
   end
 end

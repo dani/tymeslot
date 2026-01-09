@@ -50,12 +50,20 @@ defmodule TymeslotWeb.Live.Scheduling.Handlers.SlotFetchingHandlerComponent do
           String.t()
         ) :: {:ok, Phoenix.LiveView.Socket.t()} | {:error, Phoenix.LiveView.Socket.t()}
   def fetch_available_slots(socket, date, duration, timezone) do
+    # Prepare context map for better performance and to avoid extra DB lookups in core
+    context = %{
+      demo_mode: socket.assigns[:demo_mode],
+      organizer_profile: socket.assigns.organizer_profile,
+      debug_calendar_module: socket.private[:debug_calendar_module]
+    }
+
     case Helpers.get_available_slots(
            date,
            duration,
            timezone,
            socket.assigns.organizer_user_id,
-           socket.assigns.organizer_profile
+           socket.assigns.organizer_profile,
+           context
          ) do
       {:ok, slots} ->
         socket =

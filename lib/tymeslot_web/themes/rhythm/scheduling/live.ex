@@ -497,8 +497,22 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Live do
     if has_required_data && socket.assigns[:availability_status] != :loading do
       # Kill old task if it exists
       if old_task = socket.assigns[:availability_task] do
+        # Log cancellation before shutdown
+        Logger.debug("Cancelling previous availability fetch task due to user navigation",
+          user_id: socket.assigns.organizer_user_id,
+          month: socket.assigns.current_month,
+          year: socket.assigns.current_year
+        )
+
         Task.shutdown(old_task, :brutal_kill)
       end
+
+      # Prepare a minimal context map for the task to avoid passing the full socket
+      context = %{
+        demo_mode: Demo.demo_mode?(socket),
+        organizer_profile: socket.assigns.organizer_profile,
+        debug_calendar_module: socket.private[:debug_calendar_module]
+      }
 
       if Application.get_env(:tymeslot, :environment) == :test do
         # Synchronous for tests
@@ -510,7 +524,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Live do
                socket.assigns.current_month,
                socket.assigns.user_timezone,
                socket.assigns.organizer_profile,
-               socket
+               context
              ) do
           {:ok, availability} ->
             send(self(), {ref, {:ok, availability}})
@@ -531,16 +545,23 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Live do
           |> assign(:month_availability_map, :loading)
           |> assign(:availability_status, :loading)
 
+        # Extract values needed for closure to avoid capturing socket
+        organizer_user_id = socket.assigns.organizer_user_id
+        current_year = socket.assigns.current_year
+        current_month = socket.assigns.current_month
+        user_timezone = socket.assigns.user_timezone
+        organizer_profile = socket.assigns.organizer_profile
+
         # Spawn async task
         task =
           Task.async(fn ->
             Helpers.get_month_availability(
-              socket.assigns.organizer_user_id,
-              socket.assigns.current_year,
-              socket.assigns.current_month,
-              socket.assigns.user_timezone,
-              socket.assigns.organizer_profile,
-              socket
+              organizer_user_id,
+              current_year,
+              current_month,
+              user_timezone,
+              organizer_profile,
+              context
             )
           end)
 
