@@ -4,6 +4,7 @@ defmodule TymeslotWeb.Components.MeetingComponents do
   These components understand the meeting domain.
   """
   use TymeslotWeb, :html
+  alias Calendar
   alias Tymeslot.Availability.Calculate
   alias Tymeslot.Profiles
   alias Tymeslot.Utils.{DateTimeUtils, TimezoneUtils}
@@ -47,7 +48,9 @@ defmodule TymeslotWeb.Components.MeetingComponents do
       |> assign_new(:reschedule_label, fn -> "Reschedule" end)
       |> assign_new(:cancel_label, fn -> "Cancel" end)
       |> assign_new(:formatted_date, fn -> format_date(assigns.meeting.start_time) end)
-      |> assign_new(:formatted_time, fn -> format_time(assigns.meeting.start_time, assigns.timezone) end)
+      |> assign_new(:formatted_time, fn ->
+        format_time(assigns.meeting.start_time, assigns.timezone)
+      end)
       |> assign_new(:formatted_duration, fn -> "#{assigns.meeting.duration} minutes" end)
 
     ~H"""
@@ -504,15 +507,16 @@ defmodule TymeslotWeb.Components.MeetingComponents do
 
   defp format_time(datetime, timezone) do
     case DateTime.shift_zone(datetime, timezone) do
-      {:ok, shifted} -> 
-        Elixir.Calendar.strftime(shifted, "%H:%M") <> " " <> shifted.zone_abbr
-      _ -> 
-        Elixir.Calendar.strftime(datetime, "%H:%M") <> " UTC"
+      {:ok, shifted} ->
+        Calendar.strftime(shifted, "%H:%M") <> " " <> shifted.zone_abbr
+
+      _ ->
+        Calendar.strftime(datetime, "%H:%M") <> " UTC"
     end
   end
 
   defp format_time_by_locale(dt) do
-    Elixir.Calendar.strftime(dt, "%H:%M")
+    Calendar.strftime(dt, "%H:%M")
   end
 
   defp format_duration(duration) when is_binary(duration) do

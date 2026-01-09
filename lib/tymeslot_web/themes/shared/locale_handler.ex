@@ -27,7 +27,8 @@ defmodule TymeslotWeb.Themes.Shared.LocaleHandler do
 
   Changes are idempotent to avoid unnecessary updates.
   """
-  @spec handle_locale_change(Phoenix.LiveView.Socket.t(), String.t()) :: Phoenix.LiveView.Socket.t()
+  @spec handle_locale_change(Phoenix.LiveView.Socket.t(), String.t()) ::
+          Phoenix.LiveView.Socket.t()
   def handle_locale_change(socket, new_locale) do
     current_locale = socket.assigns[:locale]
 

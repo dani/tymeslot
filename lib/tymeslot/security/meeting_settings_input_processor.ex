@@ -61,7 +61,11 @@ defmodule Tymeslot.Security.MeetingSettingsInputProcessor do
 
   Returns {:ok, sanitized_value} | {:error, %{field => message}}
   """
-  @spec validate_meeting_type_field(:name | :duration | :description | :icon | :meeting_mode, any(), keyword()) ::
+  @spec validate_meeting_type_field(
+          :name | :duration | :description | :icon | :meeting_mode,
+          any(),
+          keyword()
+        ) ::
           {:ok, String.t()} | {:error, map()}
   def validate_meeting_type_field(field, value, opts \\ [])
 

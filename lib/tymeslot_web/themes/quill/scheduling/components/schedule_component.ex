@@ -82,7 +82,9 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ScheduleComponent do
   end
 
   # Helper function to format advance booking days for display
-  defp format_advance_booking_days(days) when is_integer(days) and days <= 0, do: gettext("same day only")
+  defp format_advance_booking_days(days) when is_integer(days) and days <= 0,
+    do: gettext("same day only")
+
   defp format_advance_booking_days(1), do: gettext("1 day in advance")
 
   defp format_advance_booking_days(days) when is_integer(days) and days < 7,
@@ -104,7 +106,10 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ScheduleComponent do
 
   # Helper functions for formatting
   defp format_weeks_advance(days), do: gettext("%{weeks} weeks in advance", weeks: div(days, 7))
-  defp format_months_advance(days), do: gettext("%{months} months in advance", months: div(days, 30))
+
+  defp format_months_advance(days),
+    do: gettext("%{months} months in advance", months: div(days, 30))
+
   defp format_years_advance(days), do: gettext("%{years} years in advance", years: div(days, 365))
 
   @impl true
@@ -297,7 +302,9 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ScheduleComponent do
   defp get_current_time_display(timezone) do
     case DateTime.now(timezone) do
       {:ok, datetime} ->
-        gettext("%{time} local time", time: String.slice(Time.to_string(DateTime.to_time(datetime)), 0, 5))
+        gettext("%{time} local time",
+          time: String.slice(Time.to_string(DateTime.to_time(datetime)), 0, 5)
+        )
 
       _ ->
         gettext("local time")

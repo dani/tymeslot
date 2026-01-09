@@ -27,8 +27,8 @@ defmodule Tymeslot.Workers.VideoRoomWorkerTest do
       # String meeting_id should be converted to string internally
       result = perform_job(VideoRoomWorker, %{"meeting_id" => "invalid-id"})
 
-      # Should fail with error (meeting not found)
-      assert {:error, _} = result
+      # Should discard job (meeting not found)
+      assert {:discard, "Meeting not found"} = result
     end
 
     test "handles non-existent meeting" do

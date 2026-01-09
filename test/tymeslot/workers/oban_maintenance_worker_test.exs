@@ -92,7 +92,6 @@ defmodule Tymeslot.Workers.ObanMaintenanceWorkerTest do
   end
 
   describe "perform/1 - old job deletion" do
-
     test "deletes old jobs in terminal states" do
       old_date = DateTime.add(DateTime.utc_now(), -95, :day)
 

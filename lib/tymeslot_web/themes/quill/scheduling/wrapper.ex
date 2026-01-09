@@ -42,7 +42,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Wrapper do
           </style>
         <% end %>
       <% end %>
-      
+
     <!-- Render background video if configured -->
       <%= if @has_video_background do %>
         <div class="video-background">
@@ -66,7 +66,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Wrapper do
           </video>
         </div>
       <% end %>
-      
+
       <!-- Apply background styles to main gradient -->
       <div
         class={[

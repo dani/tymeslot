@@ -348,9 +348,9 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ScheduleComponent do
     if week_start.month == week_end.month do
       gettext("%{month} %{year}", month: month_name(week_start.month), year: week_start.year)
     else
-      gettext("%{start_month} - %{end_month} %{year}", 
-        start_month: month_name(week_start.month), 
-        end_month: month_name(week_end.month), 
+      gettext("%{start_month} - %{end_month} %{year}",
+        start_month: month_name(week_start.month),
+        end_month: month_name(week_end.month),
         year: week_start.year
       )
     end
@@ -422,7 +422,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ScheduleComponent do
 
   defp day_available?(date, organizer_profile) do
     today = Date.utc_today()
-    is_weekday = BusinessHours.business_day?(date)
+    is_weekday = BusinessHours.business_day?(date, organizer_profile.id)
     is_future = Date.compare(date, today) != :lt
     is_within_limit = Date.diff(date, today) <= organizer_profile.advance_booking_days
 

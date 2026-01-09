@@ -118,28 +118,27 @@ defmodule Tymeslot.Workers.CalendarEventWorkerTest do
     end
 
     test "handles malformed meeting_id (string when UUID expected)" do
-      # String meeting_id that's not a valid UUID will cause a CastError
-      # This error happens inside the Task, resulting in an EXIT
+      # String meeting_id that's not a valid UUID will cause a CastError in DB query
       result =
         perform_job(CalendarEventWorker, %{
           "action" => "create",
           "meeting_id" => "not-a-number"
         })
 
-      # When the Task crashes with CastError, Oban catches it as an error tuple
-      assert match?({:error, _}, result) or match?({:EXIT, _}, result)
+      # Worker discards jobs for non-existent meetings
+      assert {:discard, "Meeting not found"} = result
     end
 
     test "handles negative meeting_id (invalid for binary_id)" do
-      # Negative integer when binary_id (UUID) expected will cause a CastError
+      # Negative integer when binary_id (UUID) expected will cause a CastError in DB query
       result =
         perform_job(CalendarEventWorker, %{
           "action" => "create",
           "meeting_id" => -1
         })
 
-      # When the Task crashes with CastError, Oban catches it as an error tuple
-      assert match?({:error, _}, result) or match?({:EXIT, _}, result)
+      # Worker discards jobs for non-existent meetings
+      assert {:discard, "Meeting not found"} = result
     end
 
     test "handles missing action" do
@@ -170,7 +169,7 @@ defmodule Tymeslot.Workers.CalendarEventWorkerTest do
           "meeting_id" => non_existent_uuid
         })
 
-      assert {:error, :meeting_not_found} = result
+      assert {:discard, "Meeting not found"} = result
     end
 
     test "handles missing calendar integration on update" do
@@ -252,10 +251,10 @@ defmodule Tymeslot.Workers.CalendarEventWorkerTest do
       end)
 
       assert :ok =
-        perform_job(CalendarEventWorker, %{
-          "action" => "delete",
-          "meeting_id" => meeting.id
-        })
+               perform_job(CalendarEventWorker, %{
+                 "action" => "delete",
+                 "meeting_id" => meeting.id
+               })
     end
 
     test "succeeds even if meeting not found (graceful degradation)" do

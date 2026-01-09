@@ -3,13 +3,14 @@ defmodule TymeslotWeb.Dashboard.Notifications.NotificationsIntegrationTest do
   import Phoenix.LiveViewTest
   import Tymeslot.AuthTestHelpers
   import Tymeslot.TestFixtures
+  alias Tymeslot.DatabaseQueries.UserQueries
   alias Tymeslot.Webhooks
 
   setup %{conn: conn} do
     # Create a user and log them in
     user = create_user_fixture()
-    {:ok, user} = Tymeslot.DatabaseQueries.UserQueries.mark_onboarding_complete(user)
-    
+    {:ok, user} = UserQueries.mark_onboarding_complete(user)
+
     conn = log_in_user(conn, user)
     {:ok, conn: conn, user: user}
   end
@@ -43,7 +44,7 @@ defmodule TymeslotWeb.Dashboard.Notifications.NotificationsIntegrationTest do
       assert render(view) =~ "Webhook created successfully"
       assert render(view) =~ "My n8n Webhook"
       assert render(view) =~ "ACTIVE"
-      
+
       # Verify DB
       [webhook] = Webhooks.list_webhooks(user.id)
       assert webhook.name == "My n8n Webhook"
@@ -56,7 +57,7 @@ defmodule TymeslotWeb.Dashboard.Notifications.NotificationsIntegrationTest do
 
       assert render(view) =~ "Webhook status updated"
       assert render(view) =~ "INACTIVE"
-      
+
       [webhook] = Webhooks.list_webhooks(user.id)
       refute webhook.is_active
 
@@ -66,7 +67,7 @@ defmodule TymeslotWeb.Dashboard.Notifications.NotificationsIntegrationTest do
       |> render_click()
 
       assert render(view) =~ "Edit Webhook"
-      
+
       # 6. Update webhook
       view
       |> form("#webhook-form-modal form", %{
@@ -80,7 +81,7 @@ defmodule TymeslotWeb.Dashboard.Notifications.NotificationsIntegrationTest do
 
       assert render(view) =~ "Webhook updated successfully"
       assert render(view) =~ "Updated Webhook Name"
-      
+
       [webhook] = Webhooks.list_webhooks(user.id)
       assert webhook.name == "Updated Webhook Name"
       assert webhook.url == "https://example.com/updated"
@@ -99,7 +100,7 @@ defmodule TymeslotWeb.Dashboard.Notifications.NotificationsIntegrationTest do
 
       assert render(view) =~ "Webhook deleted successfully"
       assert render(view) =~ "No Webhooks Yet"
-      
+
       assert Webhooks.list_webhooks(user.id) == []
     end
 

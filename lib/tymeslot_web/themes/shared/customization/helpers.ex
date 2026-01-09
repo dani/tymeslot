@@ -163,10 +163,10 @@ defmodule TymeslotWeb.Themes.Shared.Customization.Helpers do
 
   defp valid_color?(value) when is_binary(value) do
     # Support hex colors
+    # Support simple color names (common ones)
+    # Support rgb/rgba
     Regex.match?(~r/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, value) or
-      # Support simple color names (common ones)
       value in ["transparent", "white", "black", "inherit", "initial"] or
-      # Support rgb/rgba
       Regex.match?(~r/^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*(\d+(?:\.\d+)?))?\)$/, value)
   end
 
@@ -237,9 +237,17 @@ defmodule TymeslotWeb.Themes.Shared.Customization.Helpers do
   def sanitize_path(nil), do: ""
 
   def sanitize_path(path) when is_binary(path) do
+    # Only allow alphanumeric, dots, dashes, and underscores in each segment
+    # This prevents directory traversal and other injection attacks
     path
-    |> Path.basename()
-    |> String.replace(~r/[^a-zA-Z0-9\._-]/, "")
+    |> String.split("/")
+    |> Enum.map(fn segment ->
+      segment
+      |> String.replace(~r/[^a-zA-Z0-9\._-]/, "")
+      |> String.replace("..", "")
+    end)
+    |> Enum.filter(&(&1 != "" and &1 != "." and &1 != ".."))
+    |> Enum.join("/")
   end
 
   defp get_preset_image_style(background_value) do

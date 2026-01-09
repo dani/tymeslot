@@ -70,8 +70,8 @@ defmodule TymeslotWeb.Plugs.SecurityHeadersPlugTest do
         |> Map.put(:request_path, "/#{profile.username}")
         |> SecurityHeadersPlug.call(allow_embedding: true)
 
-      assert [x_frame_options] = get_resp_header(conn, "x-frame-options")
-      assert x_frame_options == "ALLOWALL"
+      # X-Frame-Options should be omitted when all embeds are allowed
+      assert get_resp_header(conn, "x-frame-options") == []
 
       assert [csp] = get_resp_header(conn, "content-security-policy")
       assert csp =~ "frame-ancestors 'self' *"
@@ -86,8 +86,8 @@ defmodule TymeslotWeb.Plugs.SecurityHeadersPlugTest do
       assert [csp] = get_resp_header(conn, "content-security-policy")
       assert csp =~ "frame-ancestors 'self' *"
 
-      assert [x_frame_options] = get_resp_header(conn, "x-frame-options")
-      assert x_frame_options == "ALLOWALL"
+      # X-Frame-Options should be omitted when all embeds are allowed
+      assert get_resp_header(conn, "x-frame-options") == []
     end
 
     test "falls back to permissive when profile not found", %{conn: conn} do
@@ -99,8 +99,8 @@ defmodule TymeslotWeb.Plugs.SecurityHeadersPlugTest do
       assert [csp] = get_resp_header(conn, "content-security-policy")
       assert csp =~ "frame-ancestors 'self' *"
 
-      assert [x_frame_options] = get_resp_header(conn, "x-frame-options")
-      assert x_frame_options == "ALLOWALL"
+      # X-Frame-Options should be omitted when all embeds are allowed
+      assert get_resp_header(conn, "x-frame-options") == []
     end
 
     test "handles nil allowed_embed_domains", %{conn: conn} do
@@ -114,6 +114,9 @@ defmodule TymeslotWeb.Plugs.SecurityHeadersPlugTest do
 
       assert [csp] = get_resp_header(conn, "content-security-policy")
       assert csp =~ "frame-ancestors 'self' *"
+
+      # X-Frame-Options should be omitted
+      assert get_resp_header(conn, "x-frame-options") == []
     end
 
     test "doesn't extract username from reserved paths", %{conn: conn} do
@@ -164,7 +167,7 @@ defmodule TymeslotWeb.Plugs.SecurityHeadersPlugTest do
   describe "username extraction" do
     test "extracts username from root path", %{conn: conn} do
       user = insert(:user)
-      profile = insert(:profile, user: user, username: "john", allowed_embed_domains: [])
+      _profile = insert(:profile, user: user, username: "john", allowed_embed_domains: [])
 
       conn =
         conn
@@ -179,7 +182,7 @@ defmodule TymeslotWeb.Plugs.SecurityHeadersPlugTest do
     test "extracts username from nested paths", %{conn: conn} do
       user = insert(:user)
 
-      profile =
+      _profile =
         insert(:profile, user: user, username: "sarah", allowed_embed_domains: ["example.com"])
 
       conn =

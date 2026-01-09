@@ -147,9 +147,9 @@ defmodule TymeslotWeb.Plugs.LocalePlug do
         |> String.to_charlist()
         |> Enum.reject(fn char ->
           # C0 and C1 control characters
+          # Unicode bidirectional formatting characters
           (char >= 0x0000 and char <= 0x001F) or
             (char >= 0x007F and char <= 0x009F) or
-            # Unicode bidirectional formatting characters
             (char >= 0x200E and char <= 0x200F) or
             (char >= 0x202A and char <= 0x202E)
         end)
@@ -163,8 +163,6 @@ defmodule TymeslotWeb.Plugs.LocalePlug do
       nil
     end
   end
-
-  defp sanitize_locale_input(_), do: nil
 
   defp normalize_locale(locale) when is_binary(locale) do
     normalized =
@@ -188,8 +186,6 @@ defmodule TymeslotWeb.Plugs.LocalePlug do
       valid -> valid
     end
   end
-
-  defp normalize_locale(_), do: nil
 
   defp find_best_match([]), do: nil
 

@@ -381,7 +381,7 @@ defmodule TymeslotWeb.Plugs.LocalePlugTest do
     end
 
     test "updates Gettext locale for current process", %{conn: _conn} do
-      conn =
+      _conn =
         build_conn()
         |> init_test_session(%{})
         |> Map.put(:params, %{"locale" => "de"})

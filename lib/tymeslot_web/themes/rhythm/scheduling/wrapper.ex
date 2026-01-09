@@ -23,7 +23,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Wrapper do
           }
         </style>
       <% end %>
-      
+
     <!-- Render background based on type -->
       <%= cond do %>
         <% @theme_customization && @theme_customization.background_type == "video" -> %>
@@ -89,7 +89,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Wrapper do
           <!-- Default gradient background -->
           <div class="video-background-container"></div>
       <% end %>
-      
+
       <!-- Main wrapper -->
       <div class="video-background-theme">
         <!-- Language Switcher -->

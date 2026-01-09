@@ -114,47 +114,47 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
       {:error, :unauthorized}
     else
       with {:ok, date} <- Date.from_iso8601(date_string),
-         {:ok, owner_timezone} <- get_owner_timezone(organizer_profile) do
-      # Check if this is a demo user
-      if demo_user?(organizer_profile) || (socket && Demo.demo_mode?(socket)) do
-        # Use demo provider for availability generation
-        Demo.get_available_slots(
-          date_string,
-          duration,
-          user_timezone,
-          organizer_user_id,
-          organizer_profile,
-          socket
-        )
-      else
-        # Regular flow for real users
-        with {:ok, events} <-
-               Calendar.get_calendar_events_from_socket(
-                 date,
-                 organizer_user_id,
-                 socket
-               ),
-             duration_minutes <- parse_duration_minutes(duration) do
-          config = %{
-            profile_id: organizer_profile.id,
-            max_advance_booking_days: organizer_profile.advance_booking_days,
-            min_advance_hours: organizer_profile.min_advance_hours,
-            buffer_minutes: organizer_profile.buffer_minutes
-          }
-
-          Calculate.available_slots(
-            date,
-            duration_minutes,
+           {:ok, owner_timezone} <- get_owner_timezone(organizer_profile) do
+        # Check if this is a demo user
+        if demo_user?(organizer_profile) || (socket && Demo.demo_mode?(socket)) do
+          # Use demo provider for availability generation
+          Demo.get_available_slots(
+            date_string,
+            duration,
             user_timezone,
-            owner_timezone,
-            events,
-            config
+            organizer_user_id,
+            organizer_profile,
+            socket
           )
+        else
+          # Regular flow for real users
+          with {:ok, events} <-
+                 Calendar.get_calendar_events_from_socket(
+                   date,
+                   organizer_user_id,
+                   socket
+                 ),
+               duration_minutes <- parse_duration_minutes(duration) do
+            config = %{
+              profile_id: organizer_profile.id,
+              max_advance_booking_days: organizer_profile.advance_booking_days,
+              min_advance_hours: organizer_profile.min_advance_hours,
+              buffer_minutes: organizer_profile.buffer_minutes
+            }
+
+            Calculate.available_slots(
+              date,
+              duration_minutes,
+              user_timezone,
+              owner_timezone,
+              events,
+              config
+            )
+          end
         end
       end
     end
   end
-end
 
   @doc """
   Gets month availability map showing which days have actual free slots.
@@ -207,29 +207,29 @@ end
 
       true ->
         with {:ok, owner_timezone} <- get_owner_timezone(organizer_profile),
-           start_date <- Date.new!(year, month, 1),
-           {:ok, events} <-
-             Calendar.get_calendar_events_from_socket(
-               start_date,
-               user_id,
-               socket
-             ) do
-        config = %{
-          profile_id: organizer_profile.id,
-          max_advance_booking_days: organizer_profile.advance_booking_days,
-          min_advance_hours: organizer_profile.min_advance_hours,
-          buffer_minutes: organizer_profile.buffer_minutes
-        }
+             start_date <- Date.new!(year, month, 1),
+             {:ok, events} <-
+               Calendar.get_calendar_events_from_socket(
+                 start_date,
+                 user_id,
+                 socket
+               ) do
+          config = %{
+            profile_id: organizer_profile.id,
+            max_advance_booking_days: organizer_profile.advance_booking_days,
+            min_advance_hours: organizer_profile.min_advance_hours,
+            buffer_minutes: organizer_profile.buffer_minutes
+          }
 
-        Calculate.month_availability(
-          year,
-          month,
-          owner_timezone,
-          user_timezone,
-          events,
-          config
-        )
-      end
+          Calculate.month_availability(
+            year,
+            month,
+            owner_timezone,
+            user_timezone,
+            events,
+            config
+          )
+        end
     end
   end
 

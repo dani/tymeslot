@@ -311,10 +311,10 @@ defmodule TymeslotWeb.Themes.Shared.Customization.Capability do
 
   defp valid_color?(value) when is_binary(value) do
     # Support hex colors
+    # Support simple color names (common ones)
+    # Support rgb/rgba
     Regex.match?(~r/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, value) or
-      # Support simple color names (common ones)
       value in ["transparent", "white", "black", "inherit", "initial"] or
-      # Support rgb/rgba
       Regex.match?(~r/^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*(\d+(?:\.\d+)?))?\)$/, value)
   end
 

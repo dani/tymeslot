@@ -316,12 +316,17 @@ defmodule Tymeslot.ThemeCustomizations.Backgrounds do
   end
 
   defp sanitize_path(path) when is_binary(path) do
-    # Only allow alphanumeric, dots, dashes, and underscores
+    # Only allow alphanumeric, dots, dashes, and underscores in each segment
     # This prevents directory traversal and other injection attacks
-    # We also ensure we only take the base filename
     path
-    |> Path.basename()
-    |> String.replace(~r/[^a-zA-Z0-9\._-]/, "")
+    |> String.split("/")
+    |> Enum.map(fn segment ->
+      segment
+      |> String.replace(~r/[^a-zA-Z0-9\._-]/, "")
+      |> String.replace("..", "")
+    end)
+    |> Enum.filter(&(&1 != "" and &1 != "." and &1 != ".."))
+    |> Enum.join("/")
   end
 
   defp sanitize_path(nil), do: ""

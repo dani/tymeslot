@@ -1,5 +1,5 @@
 defmodule Tymeslot.Integrations.CalendarTest do
-  use Tymeslot.DataCase, async: true
+  use Tymeslot.DataCase, async: false
 
   import Tymeslot.Factory
   import Mox

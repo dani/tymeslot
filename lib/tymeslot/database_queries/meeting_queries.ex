@@ -10,6 +10,7 @@ defmodule Tymeslot.DatabaseQueries.MeetingQueries do
   import Ecto.Query, warn: false
 
   alias Ecto.Changeset
+  alias Ecto.UUID
   alias Tymeslot.DatabaseQueries.UserQueries
   alias Tymeslot.DatabaseSchemas.MeetingSchema, as: Meeting
   alias Tymeslot.Repo
@@ -112,7 +113,7 @@ defmodule Tymeslot.DatabaseQueries.MeetingQueries do
   """
   @spec get_meeting(String.t()) :: {:ok, Meeting.t()} | {:error, :not_found}
   def get_meeting(id) do
-    case Ecto.UUID.cast(id) do
+    case UUID.cast(id) do
       {:ok, uuid} ->
         case Repo.get(Meeting, uuid) do
           nil -> {:error, :not_found}

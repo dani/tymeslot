@@ -328,7 +328,7 @@ defmodule Tymeslot.Integrations.Calendar do
         debug_module.(organizer_user_id)
 
       is_atom(debug_module) && debug_module != nil ->
-        {start_date, end_date} = calculate_booking_window_range(organizer_user_id)
+        {start_date, end_date} = calculate_booking_window_range(organizer_user_id, opts)
         debug_module.get_events_for_range_fresh(organizer_user_id, start_date, end_date)
 
       true ->
@@ -351,7 +351,12 @@ defmodule Tymeslot.Integrations.Calendar do
         Application.get_env(:tymeslot, :calendar_module)
       end
 
-    get_calendar_events(date, organizer_user_id, debug_calendar_module: debug_module)
+    opts = [
+      debug_calendar_module: debug_module,
+      organizer_profile: socket && Map.get(socket.assigns || %{}, :organizer_profile)
+    ]
+
+    get_calendar_events(date, organizer_user_id, opts)
   end
 
   @doc """
@@ -522,8 +527,14 @@ defmodule Tymeslot.Integrations.Calendar do
     end
   end
 
-  defp calculate_booking_window_range(user_id) do
-    case ProfileQueries.get_by_user_id(user_id) do
+  defp calculate_booking_window_range(user_id, opts \\ []) do
+    profile_result =
+      case Keyword.get(opts, :organizer_profile) do
+        %{} = profile -> {:ok, profile}
+        nil -> ProfileQueries.get_by_user_id(user_id)
+      end
+
+    case profile_result do
       {:ok, profile} ->
         today = Date.utc_today()
         {today, Date.add(today, profile.advance_booking_days)}

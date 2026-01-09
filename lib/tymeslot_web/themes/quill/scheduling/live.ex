@@ -504,6 +504,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Live do
       |> assign(:selected_date, nil)
       |> assign(:selected_time, nil)
       |> assign(:available_slots, [])
+      |> assign(:availability_status, :not_loaded)
 
     # Trigger availability refresh for new month
     fetch_month_availability_async(socket)
@@ -581,34 +582,61 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Live do
         socket.assigns[:current_year] &&
         socket.assigns[:current_month]
 
-    if has_required_data do
+    if has_required_data && socket.assigns[:availability_status] != :loading do
       # Kill old task if it exists to avoid race conditions and resource leaks
       if old_task = socket.assigns[:availability_task] do
         Task.shutdown(old_task, :brutal_kill)
       end
 
-      # Set loading state
-      socket =
+      if Application.get_env(:tymeslot, :environment) == :test do
+        # Synchronous for tests to avoid ownership issues with Task.async
+        # This ensures tests are stable while production remains async
+        ref = make_ref()
+
+        case Helpers.get_month_availability(
+               socket.assigns.organizer_user_id,
+               socket.assigns.current_year,
+               socket.assigns.current_month,
+               socket.assigns.user_timezone,
+               socket.assigns.organizer_profile,
+               socket
+             ) do
+          {:ok, availability} ->
+            send(self(), {ref, {:ok, availability}})
+
+          {:error, reason} ->
+            send(self(), {ref, {:error, reason}})
+        end
+
         socket
         |> assign(:month_availability_map, :loading)
         |> assign(:availability_status, :loading)
+        |> assign(:availability_task, nil)
+        |> assign(:availability_task_ref, ref)
+      else
+        # Set loading state
+        socket =
+          socket
+          |> assign(:month_availability_map, :loading)
+          |> assign(:availability_status, :loading)
 
-      # Spawn async task to fetch availability
-      task =
-        Task.async(fn ->
-          Helpers.get_month_availability(
-            socket.assigns.organizer_user_id,
-            socket.assigns.current_year,
-            socket.assigns.current_month,
-            socket.assigns.user_timezone,
-            socket.assigns.organizer_profile,
-            socket
-          )
-        end)
+        # Spawn async task to fetch availability
+        task =
+          Task.async(fn ->
+            Helpers.get_month_availability(
+              socket.assigns.organizer_user_id,
+              socket.assigns.current_year,
+              socket.assigns.current_month,
+              socket.assigns.user_timezone,
+              socket.assigns.organizer_profile,
+              socket
+            )
+          end)
 
-      socket
-      |> assign(:availability_task, task)
-      |> assign(:availability_task_ref, task.ref)
+        socket
+        |> assign(:availability_task, task)
+        |> assign(:availability_task_ref, task.ref)
+      end
     else
       socket
     end

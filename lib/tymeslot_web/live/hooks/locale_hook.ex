@@ -14,11 +14,14 @@ defmodule TymeslotWeb.Hooks.LocaleHook do
     # Priority: 1. URL parameter, 2. Session, 3. Default
     locale =
       params["locale"] ||
-      session["locale"] ||
-      LocaleHandler.default_locale()
+        session["locale"] ||
+        LocaleHandler.default_locale()
 
     # Validate locale is supported
-    locale = if locale in LocaleHandler.supported_locales(), do: locale, else: LocaleHandler.default_locale()
+    locale =
+      if locale in LocaleHandler.supported_locales(),
+        do: locale,
+        else: LocaleHandler.default_locale()
 
     # Set for Gettext process dictionary
     Gettext.put_locale(TymeslotWeb.Gettext, locale)

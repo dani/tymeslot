@@ -76,44 +76,10 @@ defmodule Tymeslot.Security.WebhookInputProcessor do
   defp sanitize_and_validate(params) do
     errors = %{}
 
-    {name, errors} =
-      case Map.get(params, "name") do
-        nil -> {nil, Map.put(errors, :name, "Name is required")}
-        name ->
-          case validate_name(name) do
-            {:ok, sanitized} -> {sanitized, errors}
-            {:error, msg} -> {nil, Map.put(errors, :name, msg)}
-          end
-      end
-
-    {url, errors} =
-      case Map.get(params, "url") do
-        nil -> {nil, Map.put(errors, :url, "URL is required")}
-        url ->
-          case validate_url(url) do
-            {:ok, sanitized} -> {sanitized, errors}
-            {:error, msg} -> {nil, Map.put(errors, :url, msg)}
-          end
-      end
-
-    {secret, errors} =
-      case Map.get(params, "secret") do
-        nil -> {nil, errors}
-        "" -> {nil, errors}
-        secret -> {String.trim(secret), errors}
-      end
-
-    {events, errors} =
-      case Map.get(params, "events") do
-        nil -> {[], Map.put(errors, :events, "At least one event must be selected")}
-        [] -> {[], Map.put(errors, :events, "At least one event must be selected")}
-        events when is_list(events) ->
-          case validate_events(events) do
-            {:ok, validated} -> {validated, errors}
-            {:error, msg} -> {[], Map.put(errors, :events, msg)}
-          end
-        _ -> {[], Map.put(errors, :events, "Invalid events format")}
-      end
+    {name, errors} = validate_required_field(params, "name", &validate_name/1, "Name is required", errors, :name)
+    {url, errors} = validate_required_field(params, "url", &validate_url/1, "URL is required", errors, :url)
+    {secret, errors} = validate_optional_secret(params, errors)
+    {events, errors} = validate_events_list(params, errors)
 
     if map_size(errors) > 0 do
       {:error, errors}
@@ -125,6 +91,44 @@ defmodule Tymeslot.Security.WebhookInputProcessor do
          secret: secret,
          events: events
        }}
+    end
+  end
+
+  defp validate_required_field(params, key, validator, missing_msg, errors, error_key) do
+    case Map.get(params, key) do
+      nil -> {nil, Map.put(errors, error_key, missing_msg)}
+      val ->
+        case validator.(val) do
+          {:ok, sanitized} -> {sanitized, errors}
+          {:error, msg} -> {nil, Map.put(errors, error_key, msg)}
+        end
+    end
+  end
+
+  defp validate_optional_secret(params, errors) do
+    case Map.get(params, "secret") do
+      nil -> {nil, errors}
+      "" -> {nil, errors}
+      secret -> {String.trim(secret), errors}
+    end
+  end
+
+  defp validate_events_list(params, errors) do
+    case Map.get(params, "events") do
+      nil ->
+        {[], Map.put(errors, :events, "At least one event must be selected")}
+
+      [] ->
+        {[], Map.put(errors, :events, "At least one event must be selected")}
+
+      events when is_list(events) ->
+        case validate_events(events) do
+          {:ok, validated} -> {validated, errors}
+          {:error, msg} -> {[], Map.put(errors, :events, msg)}
+        end
+
+      _ ->
+        {[], Map.put(errors, :events, "Invalid events format")}
     end
   end
 

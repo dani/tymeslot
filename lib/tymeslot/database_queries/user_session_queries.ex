@@ -70,7 +70,7 @@ defmodule Tymeslot.DatabaseQueries.UserSessionQueries do
   def cleanup_expired_sessions do
     query =
       from(s in UserSessionSchema,
-        where: s.expires_at < ^DateTime.utc_now()
+        where: s.expires_at <= ^DateTime.utc_now()
       )
 
     Repo.delete_all(query)

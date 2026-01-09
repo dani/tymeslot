@@ -51,7 +51,12 @@ defmodule Tymeslot.Workers.WebhookCleanupWorkerTest do
 
       # Create deliveries at various ages
       recent_delivery = insert(:webhook_delivery, webhook: webhook)
-      old_delivery = insert(:webhook_delivery, webhook: webhook, inserted_at: DateTime.add(DateTime.utc_now(), -100, :day))
+
+      old_delivery =
+        insert(:webhook_delivery,
+          webhook: webhook,
+          inserted_at: DateTime.add(DateTime.utc_now(), -100, :day)
+        )
 
       # Negative retention should not cause data loss
       # The query should handle this gracefully (likely by keeping all records)
@@ -66,6 +71,7 @@ defmodule Tymeslot.Workers.WebhookCleanupWorkerTest do
       webhook = insert(:webhook)
 
       _recent_delivery = insert(:webhook_delivery, webhook: webhook)
+
       old_delivery =
         insert(:webhook_delivery,
           webhook: webhook,
@@ -81,6 +87,7 @@ defmodule Tymeslot.Workers.WebhookCleanupWorkerTest do
 
     test "handles extremely large retention days (capped to reasonable limit)" do
       webhook = insert(:webhook)
+
       very_old_delivery =
         insert(:webhook_delivery,
           webhook: webhook,

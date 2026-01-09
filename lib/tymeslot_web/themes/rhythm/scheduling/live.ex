@@ -13,9 +13,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Live do
   alias TymeslotWeb.Helpers.ClientIP
   alias TymeslotWeb.Live.Scheduling.Handlers.BookingSubmissionHandlerComponent
 
-  alias TymeslotWeb.Live.Scheduling.Handlers.{
-    TimezoneHandlerComponent
-  }
+  alias TymeslotWeb.Live.Scheduling.Handlers.TimezoneHandlerComponent
 
   alias TymeslotWeb.Live.Scheduling.Helpers
   alias TymeslotWeb.Live.Scheduling.ThemeUtils
@@ -110,6 +108,24 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Live do
     InfoHandlers.handle_load_slots(socket, date)
   end
 
+  # Handle month availability fetch completion (success)
+  @impl true
+  def handle_info({ref, {:ok, availability_map}}, socket) when is_reference(ref) do
+    InfoHandlers.handle_availability_ok(socket, ref, availability_map)
+  end
+
+  # Handle month availability fetch completion (error)
+  @impl true
+  def handle_info({ref, {:error, reason}}, socket) when is_reference(ref) do
+    InfoHandlers.handle_availability_error(socket, ref, reason)
+  end
+
+  # Handle task crash or timeout
+  @impl true
+  def handle_info({:DOWN, ref, :process, _pid, reason}, socket) do
+    InfoHandlers.handle_availability_down(socket, ref, reason)
+  end
+
   # Event handlers
   @impl true
   def handle_event("toggle_language_dropdown", _params, socket) do
@@ -134,9 +150,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Live do
 
   # Handle overview slide events
   defp handle_overview_events(socket, event, data) do
-    Logger.debug(
-      "RhythmSchedulingLive handle_overview_events called with data: #{inspect(data)}"
-    )
+    Logger.debug("RhythmSchedulingLive handle_overview_events called with data: #{inspect(data)}")
 
     case event do
       :select_duration ->
@@ -385,6 +399,8 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Live do
     existing_custom_css = Map.get(socket.assigns, :custom_css, "")
     existing_has_custom = Map.get(socket.assigns, :has_custom_theme, false)
 
+    today = Date.utc_today()
+
     socket
     |> SchedulingInit.assign_base_state()
     |> assign(:duration, nil)
@@ -396,6 +412,13 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Live do
     |> assign(:has_custom_theme, existing_has_custom)
     |> assign(:theme_customization, existing_customization)
     |> assign(:custom_css, existing_custom_css)
+    |> assign(:current_year, today.year)
+    |> assign(:current_month, today.month)
+    |> assign(:month_availability_map, nil)
+    |> assign(:availability_status, :not_loaded)
+    |> assign(:availability_task, nil)
+    |> assign(:availability_task_ref, nil)
+    |> assign(:meeting_types, [])
   end
 
   defp maybe_assign_duration_from_params(socket, %{"duration" => duration_param})
@@ -441,11 +464,93 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Live do
   end
 
   defp setup_initial_state(socket, initial_state, _params) do
-    assign(socket, :current_state, initial_state)
+    socket = assign(socket, :current_state, initial_state)
+
+    if initial_state == :schedule do
+      fetch_month_availability_async(socket)
+    else
+      socket
+    end
   end
 
   defp transition_to(socket, new_state, _params) do
-    assign(socket, :current_state, new_state)
+    socket = assign(socket, :current_state, new_state)
+
+    if new_state == :schedule do
+      fetch_month_availability_async(socket)
+    else
+      socket
+    end
+  end
+
+  # ... existing handle_timezone_change ...
+
+  @doc false
+  defp fetch_month_availability_async(socket) do
+    # Only fetch if we have the required data
+    has_required_data =
+      socket.assigns[:organizer_user_id] &&
+        socket.assigns[:organizer_profile] &&
+        socket.assigns[:current_year] &&
+        socket.assigns[:current_month]
+
+    if has_required_data && socket.assigns[:availability_status] != :loading do
+      # Kill old task if it exists
+      if old_task = socket.assigns[:availability_task] do
+        Task.shutdown(old_task, :brutal_kill)
+      end
+
+      if Application.get_env(:tymeslot, :environment) == :test do
+        # Synchronous for tests
+        ref = make_ref()
+
+        case Helpers.get_month_availability(
+               socket.assigns.organizer_user_id,
+               socket.assigns.current_year,
+               socket.assigns.current_month,
+               socket.assigns.user_timezone,
+               socket.assigns.organizer_profile,
+               socket
+             ) do
+          {:ok, availability} ->
+            send(self(), {ref, {:ok, availability}})
+
+          {:error, reason} ->
+            send(self(), {ref, {:error, reason}})
+        end
+
+        socket
+        |> assign(:month_availability_map, :loading)
+        |> assign(:availability_status, :loading)
+        |> assign(:availability_task, nil)
+        |> assign(:availability_task_ref, ref)
+      else
+        # Set loading state
+        socket =
+          socket
+          |> assign(:month_availability_map, :loading)
+          |> assign(:availability_status, :loading)
+
+        # Spawn async task
+        task =
+          Task.async(fn ->
+            Helpers.get_month_availability(
+              socket.assigns.organizer_user_id,
+              socket.assigns.current_year,
+              socket.assigns.current_month,
+              socket.assigns.user_timezone,
+              socket.assigns.organizer_profile,
+              socket
+            )
+          end)
+
+        socket
+        |> assign(:availability_task, task)
+        |> assign(:availability_task_ref, task.ref)
+      end
+    else
+      socket
+    end
   end
 
   defp handle_timezone_change(socket, data) do

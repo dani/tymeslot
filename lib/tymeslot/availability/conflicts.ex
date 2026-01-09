@@ -101,6 +101,20 @@ defmodule Tymeslot.Availability.Conflicts do
     today = DateTime.to_date(current_time)
     is_today = date == today
 
+    # Pre-filter events to only those that could potentially overlap with the 3-day window.
+    # We use a +/- 2 day window to be safe with timezone shifts.
+    start_date_limit = Date.add(date, -2)
+    end_date_limit = Date.add(date, 2)
+
+    relevant_events =
+      Enum.filter(events_in_user_tz, fn event ->
+        event_start_date = DateTime.to_date(event.start_time)
+        event_end_date = DateTime.to_date(event.end_time)
+
+        not (Date.compare(event_end_date, start_date_limit) == :lt or
+               Date.compare(event_start_date, end_date_limit) == :gt)
+      end)
+
     params = %{
       target_date: date,
       profile_id: profile_id,
@@ -108,7 +122,7 @@ defmodule Tymeslot.Availability.Conflicts do
       user_tz: user_timezone,
       is_today: is_today,
       min_booking_time: minimum_booking_time,
-      events: events_in_user_tz,
+      events: relevant_events,
       buffer: buffer_minutes
     }
 
@@ -167,19 +181,17 @@ defmodule Tymeslot.Availability.Conflicts do
       false
     else
       # Check if any event blocks the entire business day window
+      # Pre-calculate bounds to avoid DateTime.add in the loop
+      start_bound = DateTime.add(user_start, buffer, :minute)
+      end_bound = DateTime.add(user_end, -buffer, :minute)
+
       not Enum.any?(events, fn event ->
-        event_covers_range?(event, user_start, user_end, buffer)
+        # Check if this event covers the entire business hours window
+        # Equivalent to: event.start - buffer <= user_start AND event.end + buffer >= user_end
+        DateTime.compare(event.start_time, start_bound) != :gt and
+          DateTime.compare(event.end_time, end_bound) != :lt
       end)
     end
-  end
-
-  defp event_covers_range?(event, user_start, user_end, buffer) do
-    buffered_start = DateTime.add(event.start_time, -buffer, :minute)
-    buffered_end = DateTime.add(event.end_time, buffer, :minute)
-
-    # Check if this event covers the entire business hours window
-    DateTime.compare(buffered_start, user_start) != :gt and
-      DateTime.compare(buffered_end, user_end) != :lt
   end
 
   # Private functions

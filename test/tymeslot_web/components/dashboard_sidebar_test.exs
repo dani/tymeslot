@@ -17,7 +17,7 @@ defmodule TymeslotWeb.Components.DashboardSidebarTest do
     assert html =~ "Overview"
     assert html =~ "Profile"
     assert html =~ "Availability"
-    assert html =~ "Meeting Settings"
+    assert html =~ "Meeting Types"
     assert html =~ "Calendar"
     assert html =~ "Video"
     assert html =~ "Theme"

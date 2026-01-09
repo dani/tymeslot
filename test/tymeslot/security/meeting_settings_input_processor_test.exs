@@ -48,7 +48,8 @@ defmodule Tymeslot.Security.MeetingSettingsInputProcessorTest do
     test "enforces duration limits" do
       params = %{
         "name" => "Coffee Chat",
-        "duration" => "485", # Over 480
+        # Over 480
+        "duration" => "485",
         "icon" => "none",
         "meeting_mode" => "personal"
       }

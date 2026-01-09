@@ -81,7 +81,7 @@ defmodule TymeslotWeb.Themes.Shared.PathHandlersTest do
       }
 
       path = PathHandlers.build_path_with_locale(socket, "en")
-      # Note: username in URL should be already encoded or handled by router, 
+      # Note: username in URL should be already encoded or handled by router,
       # but PathHandlers just joins them.
       assert path == "/john.doe@example.com?locale=en&theme=1"
     end

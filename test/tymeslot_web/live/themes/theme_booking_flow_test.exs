@@ -91,6 +91,20 @@ defmodule TymeslotWeb.Live.Themes.ThemeBookingFlowTest do
         target_date = next_business_day(Date.utc_today())
         date_str = Date.to_string(target_date)
 
+        # For Rhythm theme, we might need to navigate to the next week if the target date is not in the current view
+        if unquote(meta.name) == "rhythm" do
+          today = Date.utc_today()
+          week_start = Date.beginning_of_week(today, :monday)
+          week_end = Date.add(week_start, 6)
+
+          if Date.compare(target_date, week_end) == :gt do
+            # Click next week
+            view
+            |> element("button[phx-click='next_week']")
+            |> render_click()
+          end
+        end
+
         wait_until(fn ->
           has_element?(
             view,
@@ -274,6 +288,20 @@ defmodule TymeslotWeb.Live.Themes.ThemeBookingFlowTest do
 
         target_date = next_business_day(Date.utc_today())
         date_str = Date.to_string(target_date)
+
+        # For Rhythm theme, we might need to navigate to the next week if the target date is not in the current view
+        if unquote(meta.name) == "rhythm" do
+          today = Date.utc_today()
+          week_start = Date.beginning_of_week(today, :monday)
+          week_end = Date.add(week_start, 6)
+
+          if Date.compare(target_date, week_end) == :gt do
+            # Click next week
+            view
+            |> element("button[phx-click='next_week']")
+            |> render_click()
+          end
+        end
 
         wait_until(fn ->
           has_element?(

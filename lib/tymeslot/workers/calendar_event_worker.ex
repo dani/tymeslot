@@ -40,12 +40,19 @@ defmodule Tymeslot.Workers.CalendarEventWorker do
       ) do
     apply_backoff_if_retry(attempt, action, meeting_id)
 
-    task =
-      Task.async(fn ->
-        dispatch_action(action, meeting_id, attempt)
-      end)
+    if Application.get_env(:tymeslot, :test_mode, false) do
+      # In test mode, run synchronously to avoid SQL sandbox and Mox allowance issues
+      # with child processes created by Task.async
+      result = dispatch_action(action, meeting_id, attempt)
+      handle_result(result, job)
+    else
+      task =
+        Task.async(fn ->
+          dispatch_action(action, meeting_id, attempt)
+        end)
 
-    handle_task_result(task, action, meeting_id, job)
+      handle_task_result(task, action, meeting_id, job)
+    end
   end
 
   defp apply_backoff_if_retry(attempt, action, meeting_id) do

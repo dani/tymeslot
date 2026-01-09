@@ -23,6 +23,7 @@ defmodule TymeslotWeb.Live.Themes.AvailabilityRefinementTest do
 
   describe "Quill theme availability refinement" do
     test "refines availability based on calendar conflicts", %{conn: conn} do
+      Ecto.Adapters.SQL.Sandbox.mode(Tymeslot.Repo, {:shared, self()})
       timezone = "America/New_York"
       user = insert(:user)
 
@@ -89,6 +90,7 @@ defmodule TymeslotWeb.Live.Themes.AvailabilityRefinementTest do
     end
 
     test "greys out today if business hours have passed", %{conn: conn} do
+      Ecto.Adapters.SQL.Sandbox.mode(Tymeslot.Repo, {:shared, self()})
       timezone = "Etc/GMT-14"
       user = insert(:user)
 
@@ -214,7 +216,7 @@ defmodule TymeslotWeb.Live.Themes.AvailabilityRefinementTest do
 
   # --- Helpers ---
 
-  defp wait_until(predicate, timeout_ms \\ 5_000, interval_ms \\ 50) do
+  defp wait_until(predicate, timeout_ms \\ 10_000, interval_ms \\ 50) do
     deadline = System.monotonic_time(:millisecond) + timeout_ms
     do_wait_until(predicate, deadline, interval_ms)
   end

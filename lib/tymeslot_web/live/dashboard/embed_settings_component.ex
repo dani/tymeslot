@@ -597,7 +597,7 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsComponent do
 
     # Rate limit: 10 updates per hour per user
     case RateLimiter.check_rate(
-           {:embed_domain_update, user_id},
+           "embed_domain_update:#{user_id}",
            60_000 * 60,
            10
          ) do
@@ -631,23 +631,15 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsComponent do
                 end
               )
 
-            {:noreply,
-             socket
-             |> then(fn s ->
-               Flash.error("Failed to save: #{errors}")
-               s
-             end)}
+            Flash.error("Failed to save: #{errors}")
+            {:noreply, socket}
         end
 
       {:deny, _limit} ->
         Logger.warning("Embed domain update rate limit exceeded", user_id: user_id)
 
-        {:noreply,
-         socket
-         |> then(fn s ->
-           Flash.error("Too many updates. Please wait a moment before trying again.")
-           s
-         end)}
+        Flash.error("Too many updates. Please wait a moment before trying again.")
+        {:noreply, socket}
     end
   end
 
@@ -656,7 +648,7 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsComponent do
 
     # Rate limit: 10 updates per hour per user
     case RateLimiter.check_rate(
-           {:embed_domain_update, user_id},
+           "embed_domain_update:#{user_id}",
            60_000 * 60,
            10
          ) do
@@ -673,23 +665,15 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsComponent do
              end)}
 
           {:error, reason} ->
-            {:noreply,
-             socket
-             |> then(fn s ->
-               Flash.error("Failed to clear settings: #{inspect(reason)}")
-               s
-             end)}
+            Flash.error("Failed to clear settings: #{inspect(reason)}")
+            {:noreply, socket}
         end
 
       {:deny, _limit} ->
         Logger.warning("Embed domain clear rate limit exceeded", user_id: user_id)
 
-        {:noreply,
-         socket
-         |> then(fn s ->
-           Flash.error("Too many updates. Please wait a moment before trying again.")
-           s
-         end)}
+        Flash.error("Too many updates. Please wait a moment before trying again.")
+        {:noreply, socket}
     end
   end
 end

@@ -16,7 +16,8 @@ defmodule TymeslotWeb.Plugs.SecurityHeadersPlug do
   def call(conn, opts) do
     allow_embedding = Keyword.get(opts, :allow_embedding, false)
 
-    # Determine frame-ancestors based on the profile's allowed domains
+    # Determine frame-ancestors based on the profile's allowed domains.
+    # CSP frame-ancestors is the primary source of truth for modern browsers.
     {frame_ancestors, x_frame_options} =
       if allow_embedding do
         get_embed_security_headers(conn)
@@ -24,19 +25,27 @@ defmodule TymeslotWeb.Plugs.SecurityHeadersPlug do
         {"'none'", "DENY"}
       end
 
-    conn
-    |> put_resp_header("content-security-policy", csp_header(frame_ancestors))
-    |> put_resp_header("x-content-type-options", "nosniff")
-    |> put_resp_header("referrer-policy", "strict-origin-when-cross-origin")
-    |> put_resp_header("permissions-policy", permissions_policy())
-    |> put_resp_header("strict-transport-security", "max-age=31536000; includeSubDomains")
-    |> put_resp_header("x-xss-protection", "1; mode=block")
-    |> put_resp_header("expect-ct", "max-age=86400, enforce")
-    |> put_resp_header("x-frame-options", x_frame_options)
+    conn =
+      conn
+      |> put_resp_header("content-security-policy", csp_header(frame_ancestors))
+      |> put_resp_header("x-content-type-options", "nosniff")
+      |> put_resp_header("referrer-policy", "strict-origin-when-cross-origin")
+      |> put_resp_header("permissions-policy", permissions_policy())
+      |> put_resp_header("strict-transport-security", "max-age=31536000; includeSubDomains")
+      |> put_resp_header("x-xss-protection", "1; mode=block")
+      |> put_resp_header("expect-ct", "max-age=86400, enforce")
+
+    if x_frame_options do
+      put_resp_header(conn, "x-frame-options", x_frame_options)
+    else
+      # If X-Frame-Options is nil, we omit it to let CSP frame-ancestors 
+      # be the sole authority for modern browsers.
+      conn
+    end
   end
 
   # Extracts username from path and retrieves allowed embed domains
-  # Returns {frame_ancestors, x_frame_options}
+  # Returns {frame_ancestors, x_frame_options | nil}
   defp get_embed_security_headers(conn) do
     username = extract_username_from_path(conn.request_path)
 
@@ -44,7 +53,7 @@ defmodule TymeslotWeb.Plugs.SecurityHeadersPlug do
       nil ->
         # No username in path, allow all (e.g., for demo routes)
         Logger.debug("No username in path, allowing all embeds", path: conn.request_path)
-        {"'self' *", "ALLOWALL"}
+        {"'self' *", nil}
 
       username ->
         case ProfileQueries.get_by_username(username) do
@@ -55,6 +64,7 @@ defmodule TymeslotWeb.Plugs.SecurityHeadersPlug do
             # Log when embedding is restricted
             if profile.allowed_embed_domains != nil and length(profile.allowed_embed_domains) > 0 do
               referer = List.first(get_req_header(conn, "referer"))
+
               Logger.info("Embed security restrictions applied",
                 username: username,
                 profile_id: profile.id,
@@ -72,7 +82,7 @@ defmodule TymeslotWeb.Plugs.SecurityHeadersPlug do
               path: conn.request_path
             )
 
-            {"'self' *", "ALLOWALL"}
+            {"'self' *", nil}
         end
     end
   end
@@ -104,24 +114,27 @@ defmodule TymeslotWeb.Plugs.SecurityHeadersPlug do
     end
   end
 
-  # Builds the security headers based on allowed domains
-  # Returns {frame_ancestors, x_frame_options}
-  defp build_security_headers([]), do: {"'self' *", "ALLOWALL"}
+  # Builds the security headers based on allowed domains.
+  # CSP frame-ancestors is the primary security mechanism for modern browsers.
+  # X-Frame-Options is provided as a best-effort fallback for legacy browsers.
+  # Returns {frame_ancestors, x_frame_options | nil}
+  defp build_security_headers([]), do: {"'self' *", nil}
 
-  defp build_security_headers(nil), do: {"'self' *", "ALLOWALL"}
+  defp build_security_headers(nil), do: {"'self' *", nil}
 
   defp build_security_headers(allowed_domains) when is_list(allowed_domains) do
-    # Build CSP frame-ancestors with HTTPS URLs
+    # Build CSP frame-ancestors with HTTPS URLs.
+    # Modern browsers prioritize this over X-Frame-Options.
     domains = Enum.map_join(allowed_domains, " ", &"https://#{&1}")
-
     frame_ancestors = "'self' #{domains}"
 
-    # Build X-Frame-Options ALLOW-FROM for the first domain
-    # Note: ALLOW-FROM is deprecated but provides defense-in-depth for older browsers
+    # X-Frame-Options ALLOW-FROM is deprecated and only supports a single domain.
+    # It is provided only for defense-in-depth for legacy browsers (IE, old Firefox).
+    # Chrome, Safari, and modern Firefox ignore it.
     x_frame_options =
       case allowed_domains do
         [first_domain | _] -> "ALLOW-FROM https://#{first_domain}"
-        [] -> "ALLOWALL"
+        _ -> nil
       end
 
     {frame_ancestors, x_frame_options}

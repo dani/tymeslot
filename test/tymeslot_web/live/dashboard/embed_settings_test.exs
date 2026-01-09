@@ -186,8 +186,8 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsTest do
     end
 
     test "shows current domain count in UI", %{conn: conn, profile: profile} do
-    {:ok, _} =
-      Profiles.update_allowed_embed_domains(profile, [
+      {:ok, _} =
+        Profiles.update_allowed_embed_domains(profile, [
           "example.com",
           "test.org",
           "subdomain.example.com"
