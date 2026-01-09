@@ -276,29 +276,39 @@ defmodule Tymeslot.DatabaseSchemas.ProfileSchema do
       String.contains?(domain, ["://", "/", "?", "#", "@"]) ->
         false
 
-      # Reject wildcards
-      String.match?(domain, ~r/^\*/) ->
-        false
-
       # Reject domains with ports
       String.match?(domain, ~r/:\d+$/) ->
         false
 
-      # Allow localhost and localhost with port for development
-      domain == "localhost" or String.match?(domain, ~r/^localhost$/) ->
+      # Allow localhost for development
+      domain == "localhost" ->
         true
 
       # Standard domain validation (ASCII only after sanitization)
       # Each label must be 1-63 chars, can contain letters, numbers, hyphens (not at start/end)
       # Domain must have at least one dot (unless localhost)
+      # Supports wildcard prefix like *.example.com
       true ->
         labels = String.split(domain, ".")
 
         length(labels) >= 2 and
-          Enum.all?(labels, fn label ->
-            byte_size(label) > 0 and
-              byte_size(label) <= 63 and
-              String.match?(label, ~r/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/i)
+          labels
+          |> Enum.with_index()
+          |> Enum.all?(fn {label, index} ->
+            cond do
+              # Allow '*' as the very first label
+              label == "*" and index == 0 ->
+                true
+
+              # Standard label validation
+              byte_size(label) > 0 and
+                byte_size(label) <= 63 and
+                String.match?(label, ~r/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/i) ->
+                true
+
+              true ->
+                false
+            end
           end)
     end
   end

@@ -133,8 +133,17 @@ defmodule TymeslotWeb.Plugs.SecurityHeadersPlug do
     # Chrome, Safari, and modern Firefox ignore it.
     x_frame_options =
       case allowed_domains do
-        [first_domain | _] -> "ALLOW-FROM https://#{first_domain}"
-        _ -> nil
+        [first_domain | _] ->
+          # X-Frame-Options ALLOW-FROM does not support wildcards.
+          # Modern browsers use CSP frame-ancestors anyway.
+          if String.starts_with?(first_domain, "*") do
+            nil
+          else
+            "ALLOW-FROM https://#{first_domain}"
+          end
+
+        _ ->
+          nil
       end
 
     {frame_ancestors, x_frame_options}
