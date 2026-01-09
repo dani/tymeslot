@@ -1,0 +1,76 @@
+defmodule Tymeslot.Integrations.Video.Providers.ProviderAdapterTest do
+  use ExUnit.Case, async: true
+
+  import Mox
+  alias Tymeslot.Integrations.Video.Providers.ProviderAdapter
+  alias Tymeslot.Integrations.Video.Providers.MiroTalkProvider
+
+  setup :verify_on_exit!
+
+  describe "detect_provider_from_url/1 (private but tested via valid_meeting_url? and extract_room_id)" do
+    test "detects mirotalk" do
+      assert ProviderAdapter.valid_meeting_url?("https://mirotalk.com/room")
+      assert ProviderAdapter.valid_meeting_url?("https://talk.example.com/room")
+    end
+
+    test "detects google_meet" do
+      assert ProviderAdapter.valid_meeting_url?("https://meet.google.com/abc-defg-hij")
+    end
+
+    test "detects teams" do
+      assert ProviderAdapter.valid_meeting_url?("https://teams.microsoft.com/l/meetup-join/abc")
+    end
+
+    test "returns false for unknown provider" do
+      refute ProviderAdapter.valid_meeting_url?("https://unknown.com/room")
+    end
+  end
+
+  describe "extract_room_id/1" do
+    test "extracts from google meet" do
+      assert ProviderAdapter.extract_room_id("https://meet.google.com/abc-defg-hij") == "abc-defg-hij"
+    end
+
+    test "extracts from mirotalk" do
+      assert ProviderAdapter.extract_room_id("https://mirotalk.com/join/room123") == "room123"
+    end
+
+    test "returns nil for unknown provider" do
+      assert ProviderAdapter.extract_room_id("https://unknown.com/room") == nil
+    end
+  end
+
+  describe "create_meeting_room/2" do
+    test "successfully creates room and handles event" do
+      config = %{api_key: "key", base_url: "https://mirotalk.test"}
+
+      # Mock MiroTalk API call
+      expect(Tymeslot.HTTPClientMock, :post, 2, fn _url, _body, _headers, _opts ->
+        {:ok, %HTTPoison.Response{status_code: 200, body: Jason.encode!(%{"meeting" => "https://mirotalk.test/room123"})}}
+      end)
+
+      assert {:ok, context} = ProviderAdapter.create_meeting_room(:mirotalk, config)
+      assert context.provider_type == :mirotalk
+      assert context.provider_module == MiroTalkProvider
+    end
+
+    test "returns error for unknown provider" do
+      assert {:error, "Unknown video provider type: unknown"} = ProviderAdapter.create_meeting_room(:unknown, %{})
+    end
+  end
+
+  describe "generate_meeting_metadata/1" do
+    test "merges base metadata with provider info" do
+      meeting_context = %{
+        provider_type: :mirotalk,
+        provider_module: MiroTalkProvider,
+        room_data: %{room_id: "r1", meeting_url: "u1"}
+      }
+
+      metadata = ProviderAdapter.generate_meeting_metadata(meeting_context)
+      assert metadata.provider_type == :mirotalk
+      assert metadata.provider_name == "MiroTalk P2P"
+      assert metadata.meeting_id == "r1"
+    end
+  end
+end

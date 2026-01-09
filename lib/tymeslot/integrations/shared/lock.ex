@@ -1,16 +1,15 @@
-defmodule Tymeslot.Integrations.Calendar.Auth.TokenRefreshLock do
+defmodule Tymeslot.Integrations.Shared.Lock do
   @moduledoc """
-  Provides a simple locking mechanism to ensure only one token refresh operation
-  happens at a time for a given calendar integration.
-
+  Provides a simple locking mechanism for integration operations.
   Uses a supervised GenServer to own a :protected ETS table and monitor holders.
   """
 
   use GenServer
   require Logger
 
-  @table :token_refresh_locks
-  @lock_timeout_ms 90_000
+  @table :integration_operation_locks
+  @default_lock_timeout_ms 90_000
+  @retry_interval_ms 200
 
   # Client API
 
@@ -23,78 +22,101 @@ defmodule Tymeslot.Integrations.Calendar.Auth.TokenRefreshLock do
   end
 
   @doc """
-  Initializes the lock table. Should be called during application startup.
+  Executes the given function with a lock for the specified key.
+  
+  Options:
+    - :mode - :non_blocking (default) or :blocking
+    - :timeout - max time to wait in :blocking mode (default 30_000ms)
   """
-  @spec init() :: :ok
-  def init do
-    # For backward compatibility with the old init() API if needed,
-    # though it should now be started via supervisor.
-    case GenServer.whereis(__MODULE__) do
-      nil ->
-        # If not started, we can't really "init" just the table if we want :protected ownership.
-        # The application should start this in its supervisor.
-        Logger.warning("TokenRefreshLock.init() called but process not started via supervisor")
-        :ok
+  @spec with_lock(any(), function(), keyword()) :: any()
+  def with_lock(key, fun, opts \\ [])
 
-      _pid ->
-        :ok
+  # Backward compatibility for calendar integrations: with_lock(provider, integration_id, fun)
+  def with_lock(provider, integration_id, fun) when is_atom(provider) and is_integer(integration_id) and is_function(fun) do
+    do_with_lock({provider, integration_id}, fun, [])
+  end
+
+  def with_lock(key, fun, opts) when is_function(fun) and is_list(opts) do
+    do_with_lock(key, fun, opts)
+  end
+
+  defp do_with_lock(key, fun, opts) do
+    mode = Keyword.get(opts, :mode, :non_blocking)
+    timeout = Keyword.get(opts, :timeout, 30_000)
+
+    case mode do
+      :blocking ->
+        do_with_lock_blocking(key, fun, timeout)
+
+      :non_blocking ->
+        do_with_lock_non_blocking(key, fun)
     end
   end
 
-  @doc """
-  Executes the given function with a lock for the specified integration.
-  Returns the result of the function, or `{:error, :refresh_in_progress}` if the lock
-  could not be acquired.
-  """
-  @spec with_lock(atom(), integer(), function()) :: any()
-  def with_lock(provider, integration_id, fun) do
+  defp do_with_lock_non_blocking(key, fun) do
     case GenServer.whereis(__MODULE__) do
       nil ->
         {:error, :lock_manager_not_started}
 
       _pid ->
-        lock_key = {provider, integration_id}
-
-        case GenServer.call(__MODULE__, {:acquire, lock_key}) do
+        case GenServer.call(__MODULE__, {:acquire, key}) do
           :ok ->
             try do
               fun.()
             after
-              GenServer.cast(__MODULE__, {:release, lock_key, self()})
+              GenServer.cast(__MODULE__, {:release, key, self()})
             end
 
           {:error, :refresh_in_progress} ->
-            Logger.debug(
-              "Token refresh already in progress for #{provider} integration #{integration_id}"
-            )
-
             {:error, :refresh_in_progress}
         end
     end
   end
 
+  defp do_with_lock_blocking(key, fun, timeout, start_time \\ nil) do
+    start_time = start_time || System.monotonic_time(:millisecond)
+    now = System.monotonic_time(:millisecond)
+
+    if now - start_time > timeout do
+      {:error, :lock_timeout}
+    else
+      case do_with_lock_non_blocking(key, fun) do
+        {:error, :refresh_in_progress} ->
+          Process.sleep(@retry_interval_ms)
+          do_with_lock_blocking(key, fun, timeout, start_time)
+
+        result ->
+          result
+      end
+    end
+  end
+
   # Test-only helpers
   if Mix.env() == :test do
-    @spec put_lock(atom() | String.t(), integer(), integer(), pid()) :: :ok
-    def put_lock(provider, integration_id, timestamp, pid) do
-      provider_atom =
-        case provider do
-          p when is_binary(p) -> String.to_existing_atom(p)
-          p when is_atom(p) -> p
-        end
-
-      GenServer.call(
-        __MODULE__,
-        {:test_put_lock, {provider_atom, integration_id}, timestamp, pid}
-      )
+    @spec put_lock(any(), integer(), pid()) :: :ok
+    def put_lock(key, timestamp, pid) do
+      GenServer.call(__MODULE__, {:test_put_lock, key, timestamp, pid})
     end
+  end
+
+  defp get_lock_timeout(key) do
+    config = Application.get_env(:tymeslot, :integration_locks, [])
+    
+    # Check for specific provider timeout first
+    provider_timeout = 
+      case key do
+        {provider, _id} when is_atom(provider) -> Keyword.get(config, provider)
+        provider when is_atom(provider) -> Keyword.get(config, provider)
+        _ -> nil
+      end
+
+    provider_timeout || Keyword.get(config, :default_timeout, @default_lock_timeout_ms)
   end
 
   # Server Callbacks
 
   @impl true
   def init(_opts) do
-    # Create the table as :protected - only the GenServer can write to it.
     :ets.new(@table, [:set, :protected, :named_table, {:read_concurrency, true}])
     {:ok, %{monitors: %{}, refs: %{}}}
   end
@@ -103,15 +125,14 @@ defmodule Tymeslot.Integrations.Calendar.Auth.TokenRefreshLock do
   def handle_call({:acquire, key}, {from_pid, _tag}, state) do
     ensure_table_exists()
     now = System.monotonic_time(:millisecond)
+    lock_timeout_ms = get_lock_timeout(key)
 
     case :ets.lookup(@table, key) do
-      [{^key, timestamp, _holder_pid}] when now - timestamp <= @lock_timeout_ms ->
+      [{^key, timestamp, _holder_pid}] when now - timestamp <= lock_timeout_ms ->
         {:reply, {:error, :refresh_in_progress}, state}
 
       [{^key, _timestamp, old_pid}] ->
-        # Lock expired. Clean up old monitor before overwriting.
         state = cleanup_monitor(state, key, old_pid)
-
         ref = Process.monitor(from_pid)
         :ets.insert(@table, {key, now, from_pid})
 
@@ -123,7 +144,6 @@ defmodule Tymeslot.Integrations.Calendar.Auth.TokenRefreshLock do
         {:reply, :ok, new_state}
 
       _ ->
-        # No lock.
         ref = Process.monitor(from_pid)
         :ets.insert(@table, {key, now, from_pid})
 
@@ -139,7 +159,6 @@ defmodule Tymeslot.Integrations.Calendar.Auth.TokenRefreshLock do
   @impl true
   def handle_call({:test_put_lock, key, timestamp, pid}, _from, state) do
     ensure_table_exists()
-    # In tests, we might overwrite. Clean up monitor if we're simulating a real holder.
     state =
       case :ets.lookup(@table, key) do
         [{^key, _, old_pid}] -> cleanup_monitor(state, key, old_pid)
@@ -160,7 +179,6 @@ defmodule Tymeslot.Integrations.Calendar.Auth.TokenRefreshLock do
         {:noreply, cleanup_monitor(state, key, pid)}
 
       _ ->
-        # Not the holder or no lock
         {:noreply, state}
     end
   end
@@ -171,7 +189,6 @@ defmodule Tymeslot.Integrations.Calendar.Auth.TokenRefreshLock do
 
     case Map.pop(state.monitors, ref) do
       {{key, ^pid}, next_monitors} ->
-        # If the process that died was still holding the lock, release it.
         case :ets.lookup(@table, key) do
           [{^key, _timestamp, ^pid}] ->
             :ets.delete(@table, key)
@@ -189,8 +206,6 @@ defmodule Tymeslot.Integrations.Calendar.Auth.TokenRefreshLock do
     end
   end
 
-  # Private helper to ensure the ETS table exists.
-  # This is mainly for robustness and to support tests that explicitly delete the table.
   defp ensure_table_exists do
     if :ets.info(@table) == :undefined do
       :ets.new(@table, [:set, :protected, :named_table, {:read_concurrency, true}])

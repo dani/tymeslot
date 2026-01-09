@@ -161,6 +161,47 @@ defmodule Tymeslot.Infrastructure.Common.ErrorTranslator do
     }
   end
 
+  def translate_error({:http_error, 401}, provider, _context) do
+    %{
+      message: "Authentication failed",
+      details: "Your #{provider} credentials are invalid or have expired.",
+      category: :authentication,
+      severity: :permanent,
+      resolution_steps: [
+        "Go to your Dashboard > Integrations",
+        "Find the #{provider} integration",
+        "Click 'Reconnect' to re-authenticate",
+        "Follow the authorization flow to grant permissions"
+      ],
+      retry_after: nil,
+      support_reference: "AUTH401"
+    }
+  end
+
+  def translate_error({:http_error, 403}, provider, context) do
+    missing_scopes = Map.get(context, :missing_scopes, [])
+
+    scope_list =
+      if length(missing_scopes) > 0,
+        do: Enum.join(missing_scopes, ", "),
+        else: "required permissions"
+
+    %{
+      message: "Insufficient permissions",
+      details: "The #{provider} integration lacks permissions: #{scope_list}",
+      category: :permission,
+      severity: :permanent,
+      resolution_steps: [
+        "Reconnect the #{provider} integration",
+        "When prompted, grant all requested permissions",
+        "Ensure you don't uncheck any permission requests",
+        "Contact your #{provider} administrator if you can't grant permissions"
+      ],
+      retry_after: nil,
+      support_reference: "PERM403"
+    }
+  end
+
   def translate_error({:http_error, 404}, provider, context) do
     resource = Map.get(context, :resource, "resource")
 

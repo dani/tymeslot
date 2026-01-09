@@ -3,9 +3,11 @@ defmodule Tymeslot.Integrations.Video.Teams.TeamsOAuthHelper do
   Helper module for Microsoft Teams OAuth flow for video integrations.
 
   This module provides functions to generate OAuth URLs and handle
-  the OAuth callback for Microsoft Graph API integration specifically
+  the OAuth callback   for Microsoft Graph API integration specifically
   for Teams meeting creation.
   """
+
+  @behaviour Tymeslot.Integrations.Video.Teams.TeamsOAuthHelperBehaviour
 
   alias Tymeslot.Infrastructure.Logging.Redactor
   alias Tymeslot.Integrations.Common.OAuth.State
@@ -55,19 +57,21 @@ defmodule Tymeslot.Integrations.Video.Teams.TeamsOAuthHelper do
   @doc """
   Refreshes an access token using the refresh token.
   """
-  @spec refresh_access_token(String.t()) :: {:ok, map()} | {:error, String.t()}
-  def refresh_access_token(refresh_token) do
+  @spec refresh_access_token(String.t(), String.t() | nil) :: {:ok, map()} | {:error, String.t()}
+  def refresh_access_token(refresh_token, current_scope \\ nil) do
+    scope = current_scope || @teams_scope
+
     body = %{
       refresh_token: refresh_token,
       client_id: teams_client_id(),
       client_secret: teams_client_secret(),
       grant_type: "refresh_token",
-      scope: @teams_scope
+      scope: scope
     }
 
     case TokenExchange.refresh_access_token(@token_url, body,
            fallback_refresh_token: refresh_token,
-           fallback_scope: @teams_scope
+           fallback_scope: scope
          ) do
       {:ok, tokens} ->
         {:ok, tokens}

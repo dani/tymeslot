@@ -40,6 +40,21 @@ defmodule Tymeslot.Integrations.Video do
   def create_integration(user_id, provider, attrs) when is_integer(user_id) and is_map(attrs) do
     provider = normalize_provider(provider)
 
+    # Ensure all keys are atoms to avoid mixed keys error in Ecto.cast
+    # We use try/rescue to safely handle unknown atom strings
+    attrs =
+      Enum.reduce(attrs, %{}, fn
+        {k, v}, acc when is_binary(k) ->
+          try do
+            Map.put(acc, String.to_existing_atom(k), v)
+          rescue
+            ArgumentError -> acc
+          end
+
+        {k, v}, acc when is_atom(k) ->
+          Map.put(acc, k, v)
+      end)
+
     # Enforce provider in attrs consistently as string for DB layer
     attrs = Map.put(Map.put(attrs, :user_id, user_id), :provider, to_string(provider))
 
@@ -172,6 +187,14 @@ defmodule Tymeslot.Integrations.Video do
   # ---------------
   # Helpers
   # ---------------
+  defp google_oauth_helper do
+    Application.get_env(:tymeslot, :google_calendar_oauth_helper, GoogleOAuthHelper)
+  end
+
+  defp teams_oauth_helper do
+    Application.get_env(:tymeslot, :teams_oauth_helper, TeamsOAuthHelper)
+  end
+
   defp normalize_provider(p) when is_atom(p), do: p
 
   defp normalize_provider(p) when is_binary(p) do
@@ -214,7 +237,7 @@ defmodule Tymeslot.Integrations.Video do
 
   defp google_oauth_authorization_url(user_id) do
     redirect_uri = "#{Endpoint.url()}/auth/google/video/callback"
-    url = GoogleOAuthHelper.authorization_url(user_id, redirect_uri, [:calendar])
+    url = google_oauth_helper().authorization_url(user_id, redirect_uri, [:calendar])
     {:ok, url}
   rescue
     error -> {:error, format_google_oauth_error(error)}
@@ -222,7 +245,7 @@ defmodule Tymeslot.Integrations.Video do
 
   defp teams_oauth_authorization_url(user_id) do
     redirect_uri = "#{Endpoint.url()}/auth/teams/video/callback"
-    url = TeamsOAuthHelper.authorization_url(user_id, redirect_uri)
+    url = teams_oauth_helper().authorization_url(user_id, redirect_uri)
     {:ok, url}
   rescue
     error -> {:error, format_outlook_oauth_error(error)}

@@ -8,7 +8,7 @@ defmodule Tymeslot.Application do
 
   alias Phoenix.PubSub
   alias Tymeslot.Infrastructure.{ConnectionPool, Metrics}
-  alias Tymeslot.Integrations.Calendar.Auth.TokenRefreshLock
+  alias Tymeslot.Integrations.Shared.Lock
   alias Tymeslot.Integrations.Calendar.TokenRefreshJob
   alias Tymeslot.Integrations.{HealthCheck, Telemetry}
   alias Tymeslot.Workers.ObanMaintenanceWorker
@@ -37,7 +37,7 @@ defmodule Tymeslot.Application do
       # Start the Finch HTTP client for sending emails and external HTTP calls
       {Finch, name: Tymeslot.Finch},
       # Start token refresh lock manager
-      {TokenRefreshLock, []}
+      {Lock, []}
     ]
 
     # Additional children for non-test environments

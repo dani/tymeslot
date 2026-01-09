@@ -1,7 +1,10 @@
 defmodule Tymeslot.Integrations.Video.RoomsTest do
   use Tymeslot.DataCase, async: true
 
+  import Mox
   import Tymeslot.Factory
+
+  setup :verify_on_exit!
 
   alias Tymeslot.Integrations.Video.Providers.CustomProvider
   alias Tymeslot.Integrations.Video.Providers.GoogleMeetProvider
@@ -21,11 +24,130 @@ defmodule Tymeslot.Integrations.Video.RoomsTest do
       assert String.contains?(message, "No video integration configured")
     end
 
-    test "returns error message prompting user to add integration" do
+    test "successfully creates room using user's default integration" do
+      user = insert(:user)
+      {:ok, _integration} = Tymeslot.DatabaseQueries.VideoIntegrationQueries.create(%{
+        user_id: user.id,
+        name: "MiroTalk",
+        provider: "mirotalk",
+        is_default: true,
+        base_url: "https://mirotalk.test",
+        api_key: "test-key"
+      })
+
+      # Mock MiroTalk API call - called twice: once for validate_config and once for create_meeting_room
+      expect(Tymeslot.HTTPClientMock, :post, 2, fn _url, _body, _headers, _opts ->
+        {:ok, %HTTPoison.Response{status_code: 200, body: Jason.encode!(%{"meeting" => "https://mirotalk.test/room123"})}}
+      end)
+
+      assert {:ok, context} = Rooms.create_meeting_room(user.id)
+      assert context.provider_type == :mirotalk
+      assert context.room_data.room_id == "https://mirotalk.test/room123"
+    end
+
+    test "refreshes token for Google Meet if needed during room creation" do
+      user = insert(:user)
+      {:ok, integration} = Tymeslot.DatabaseQueries.VideoIntegrationQueries.create(%{
+        user_id: user.id,
+        name: "Google Meet",
+        provider: "google_meet",
+        is_default: true,
+        access_token: "expired",
+        refresh_token: "refresh",
+        token_expires_at: DateTime.add(DateTime.utc_now(), -3600)
+      })
+
+      # Mock token refresh
+      expect(Tymeslot.GoogleOAuthHelperMock, :refresh_access_token, fn "refresh", _scope ->
+        {:ok, %{access_token: "new_token", refresh_token: "new_refresh", expires_at: DateTime.add(DateTime.utc_now(), 3600), scope: "scope"}}
+      end)
+
+      # Mock Google API call
+      expect(Tymeslot.HTTPClientMock, :request, fn :post, _url, _body, _headers, _opts ->
+        {:ok, %HTTPoison.Response{status_code: 200, body: Jason.encode!(%{
+          "conferenceData" => %{"entryPoints" => [%{"entryPointType" => "video", "uri" => "https://meet.google.com/abc-defg-hij"}]}
+        })}}
+      end)
+
+      assert {:ok, context} = Rooms.create_meeting_room(user.id)
+      assert context.provider_type == :google_meet
+      assert context.room_data.room_id == "abc-defg-hij"
+
+      # Verify token was updated in DB
+      updated = Tymeslot.Repo.get(Tymeslot.DatabaseSchemas.VideoIntegrationSchema, integration.id)
+      decrypted = Tymeslot.DatabaseSchemas.VideoIntegrationSchema.decrypt_credentials(updated)
+      assert decrypted.access_token == "new_token"
+    end
+
+    test "handles concurrent room creation and token refresh gracefully" do
+      # Note: This is a complex test because Mox expectations are per-process by default.
+      # We need to use allow/2 to share expectations between processes if we want to test concurrency properly.
+      # For now, we simulate concurrent calls and ensure they both finish without crashing.
       user = insert(:user)
 
-      assert {:error, message} = Rooms.create_meeting_room(user.id)
-      assert String.contains?(message, "dashboard")
+      {:ok, integration} =
+        Tymeslot.DatabaseQueries.VideoIntegrationQueries.create(%{
+          user_id: user.id,
+          name: "Google Meet Concurrent",
+          provider: "google_meet",
+          is_default: true,
+          access_token: "expired",
+          refresh_token: "refresh",
+          token_expires_at: DateTime.add(DateTime.utc_now(), -3600)
+        })
+
+      # Allow the mock helper to be called from other processes
+      stub(Tymeslot.GoogleOAuthHelperMock, :refresh_access_token, fn _token, _scope ->
+        # Add a tiny delay to simulate a real network request and increase race condition likelihood
+        Process.sleep(50)
+
+        {:ok,
+         %{
+           access_token: "new_token_#{System.unique_integer()}",
+           refresh_token: "refresh",
+           expires_at: DateTime.add(DateTime.utc_now(), 3600),
+           scope: "scope"
+         }}
+      end)
+
+      stub(Tymeslot.HTTPClientMock, :request, fn _method, _url, _body, _headers, _opts ->
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 200,
+           body:
+             Jason.encode!(%{
+               "conferenceData" => %{
+                 "entryPoints" => [
+                   %{"entryPointType" => "video", "uri" => "https://meet.google.com/abc-defg-hij"}
+                 ]
+               }
+             })
+         }}
+      end)
+
+      # Start two concurrent requests
+      t1 =
+        Task.async(fn ->
+          Tymeslot.Integrations.Video.Rooms.create_meeting_room(user.id)
+        end)
+
+      t2 =
+        Task.async(fn ->
+          Tymeslot.Integrations.Video.Rooms.create_meeting_room(user.id)
+        end)
+
+      # Wait for both to finish
+      results = Task.yield_many([t1, t2])
+
+      for {_task, {:ok, res}} <- results do
+        assert {:ok, room} = res
+        assert room.provider_type == :google_meet
+      end
+
+      # Integration should have some version of the new tokens
+      updated = Tymeslot.Repo.get(Tymeslot.DatabaseSchemas.VideoIntegrationSchema, integration.id)
+      decrypted = Tymeslot.DatabaseSchemas.VideoIntegrationSchema.decrypt_credentials(updated)
+      assert decrypted.access_token =~ "new_token_"
     end
   end
 

@@ -14,7 +14,9 @@ defmodule Tymeslot.Integrations.Video.Providers.GoogleMeetProvider do
   alias Tymeslot.Infrastructure.HTTPClient
   alias Tymeslot.Infrastructure.Logging.Redactor
   alias Tymeslot.Integrations.Google.GoogleOAuthHelper
+  alias Tymeslot.Integrations.Shared.Lock
   alias Tymeslot.Integrations.Shared.ProviderConfigHelper
+  alias Tymeslot.DatabaseSchemas.VideoIntegrationSchema
 
   @impl true
   def provider_type, do: :google_meet
@@ -207,6 +209,14 @@ defmodule Tymeslot.Integrations.Video.Providers.GoogleMeetProvider do
   end
 
   # Private helper functions (token validation, API calls)
+  defp http_client do
+    Application.get_env(:tymeslot, :http_client_module, HTTPClient)
+  end
+
+  defp google_oauth_helper do
+    Application.get_env(:tymeslot, :google_calendar_oauth_helper, GoogleOAuthHelper)
+  end
+
   defp ensure_valid_token(config) do
     expires_at =
       case config do
@@ -229,6 +239,40 @@ defmodule Tymeslot.Integrations.Video.Providers.GoogleMeetProvider do
   end
 
   defp refresh_config(config) do
+    integration_id = Map.get(config, :integration_id)
+    user_id = Map.get(config, :user_id)
+
+    if is_nil(integration_id) or is_nil(user_id) do
+      # Fallback if we don't have enough info to lock/re-fetch
+      do_actual_refresh(config)
+    else
+      Lock.with_lock({:google_meet, integration_id}, fn ->
+        # Re-fetch from DB to see if another process refreshed it while we waited
+        case VideoIntegrationQueries.get_for_user(integration_id, user_id) do
+          {:ok, fresh_integration} ->
+            decrypted = VideoIntegrationSchema.decrypt_credentials(fresh_integration)
+
+            if expiring_later_than_buffer?(decrypted.token_expires_at) do
+              # Already refreshed by someone else
+              {:ok,
+               Map.merge(config, %{
+                 access_token: decrypted.access_token,
+                 refresh_token: decrypted.refresh_token,
+                 token_expires_at: decrypted.token_expires_at,
+                 oauth_scope: fresh_integration.oauth_scope
+               })}
+            else
+              do_actual_refresh(config)
+            end
+
+          _ ->
+            do_actual_refresh(config)
+        end
+      end, mode: :blocking)
+    end
+  end
+
+  defp do_actual_refresh(config) do
     refresh_token =
       case config do
         %{refresh_token: v} -> v
@@ -238,7 +282,7 @@ defmodule Tymeslot.Integrations.Video.Providers.GoogleMeetProvider do
     current_scope = Map.get(config, :oauth_scope)
 
     try do
-      case GoogleOAuthHelper.refresh_access_token(refresh_token, current_scope) do
+      case google_oauth_helper().refresh_access_token(refresh_token, current_scope) do
         {:ok, new_tokens} ->
           updated_config =
             Map.merge(config, %{
@@ -327,7 +371,7 @@ defmodule Tymeslot.Integrations.Video.Providers.GoogleMeetProvider do
 
     body = Jason.encode!(event_data)
 
-    case HTTPClient.request(:post, url, body, headers) do
+    case http_client().request(:post, url, body, headers, []) do
       {:ok, %HTTPoison.Response{status_code: 200, body: response_body}} ->
         event = Jason.decode!(response_body)
         {:ok, event}
@@ -355,7 +399,7 @@ defmodule Tymeslot.Integrations.Video.Providers.GoogleMeetProvider do
 
     url = "https://www.googleapis.com/calendar/v3/users/me/calendarList"
 
-    case HTTPClient.request(:get, url, "", headers) do
+    case http_client().request(:get, url, "", headers, []) do
       {:ok, %HTTPoison.Response{status_code: 200, body: response_body}} ->
         list = Jason.decode!(response_body)
         {:ok, list}

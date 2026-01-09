@@ -3,7 +3,7 @@ defmodule Tymeslot.Integrations.Calendar.TokensConcurrencyTest do
   use Tymeslot.DataCase, async: false
 
   import Mox
-  alias Tymeslot.Integrations.Calendar.Auth.TokenRefreshLock
+  alias Tymeslot.Integrations.Shared.Lock
   alias Tymeslot.Integrations.Calendar.Tokens
 
   setup :verify_on_exit!
@@ -54,7 +54,7 @@ defmodule Tymeslot.Integrations.Calendar.TokensConcurrencyTest do
 
       # Insert lock from far in the past using the new helper
       old_now = System.monotonic_time(:millisecond) - 3_600_000
-      TokenRefreshLock.put_lock(:google, integration_id, old_now, self())
+      Lock.put_lock({:google, integration_id}, old_now, self())
 
       integration = %{
         id: integration_id,

@@ -7,7 +7,7 @@ defmodule Tymeslot.Integrations.Calendar.Tokens do
 
   alias Tymeslot.DatabaseQueries.CalendarIntegrationQueries
   alias Tymeslot.DatabaseSchemas.CalendarIntegrationSchema
-  alias Tymeslot.Integrations.Calendar.Auth.TokenRefreshLock
+  alias Tymeslot.Integrations.Shared.Lock
   alias Tymeslot.Integrations.Calendar.Google.CalendarAPI, as: GoogleCalendarAPI
   alias Tymeslot.Integrations.Calendar.Outlook.CalendarAPI, as: OutlookCalendarAPI
   alias Tymeslot.Integrations.Calendar.TokenUtils
@@ -65,7 +65,7 @@ defmodule Tymeslot.Integrations.Calendar.Tokens do
       if integration_id == :unknown do
         perform_refresh(integration)
       else
-        TokenRefreshLock.with_lock(provider_atom, integration_id, fn ->
+        Lock.with_lock(provider_atom, integration_id, fn ->
           # Re-fetch from DB to ensure we have the most up-to-date tokens
           # (in case another process just refreshed them while we were waiting for the lock)
           integration =

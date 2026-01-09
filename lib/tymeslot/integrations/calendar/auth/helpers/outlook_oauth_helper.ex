@@ -23,13 +23,22 @@ defmodule Tymeslot.Integrations.Calendar.Outlook.OAuthHelper do
   """
   @spec authorization_url(pos_integer(), String.t()) :: String.t()
   def authorization_url(user_id, redirect_uri) do
+    authorization_url(user_id, redirect_uri, [@calendar_scope])
+  end
+
+  @doc """
+  Generates the OAuth authorization URL for Microsoft/Outlook Calendar with specific scopes.
+  """
+  @spec authorization_url(pos_integer(), String.t(), list(atom() | String.t())) :: String.t()
+  def authorization_url(user_id, redirect_uri, scopes) do
     state = State.generate(user_id, state_secret())
+    scope_string = Enum.join(scopes, " ")
 
     params = %{
       client_id: outlook_client_id(),
       redirect_uri: redirect_uri,
       response_type: "code",
-      scope: @calendar_scope,
+      scope: scope_string,
       state: state,
       response_mode: "query",
       prompt: "select_account"
@@ -66,6 +75,25 @@ defmodule Tymeslot.Integrations.Calendar.Outlook.OAuthHelper do
       outlook_client_id(),
       outlook_client_secret(),
       @calendar_scope
+    )
+  end
+
+  @doc """
+  Refreshes an access token using a refresh token.
+  """
+  @spec refresh_access_token(String.t(), String.t() | nil) :: {:ok, map()} | {:error, String.t()}
+  def refresh_access_token(refresh_token, current_scope \\ nil) do
+    TokenExchange.refresh_access_token(
+      @token_url,
+      %{
+        refresh_token: refresh_token,
+        client_id: outlook_client_id(),
+        client_secret: outlook_client_secret(),
+        grant_type: "refresh_token",
+        scope: current_scope || @calendar_scope
+      },
+      fallback_refresh_token: refresh_token,
+      fallback_scope: current_scope || @calendar_scope
     )
   end
 

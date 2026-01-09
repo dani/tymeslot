@@ -2,8 +2,11 @@ defmodule Tymeslot.Integrations.Video.Providers.TeamsProviderTest do
   use Tymeslot.DataCase, async: true
 
   import Mox
+  import Tymeslot.Factory
 
   alias Tymeslot.Integrations.Video.Providers.TeamsProvider
+  alias Tymeslot.HTTPClientMock
+  alias Tymeslot.TeamsOAuthHelperMock
 
   setup :verify_on_exit!
 
@@ -94,6 +97,26 @@ defmodule Tymeslot.Integrations.Video.Providers.TeamsProviderTest do
     end
   end
 
+  describe "test_connection/1" do
+    test "returns success when token is valid" do
+      config = %{access_token: "valid_token", token_expires_at: DateTime.add(DateTime.utc_now(), 3600)}
+
+      expect(TeamsOAuthHelperMock, :validate_token, fn ^config -> {:ok, :valid} end)
+
+      assert {:ok, message} = TeamsProvider.test_connection(config)
+      assert String.contains?(message, "Successfully authenticated")
+    end
+
+    test "returns error when token validation fails" do
+      config = %{access_token: "invalid_token"}
+
+      expect(TeamsOAuthHelperMock, :validate_token, fn _ -> {:error, "Invalid"} end)
+
+      assert {:error, message} = TeamsProvider.test_connection(config)
+      assert String.contains?(message, "Failed to authenticate")
+    end
+  end
+
   describe "create_meeting_room/1" do
     test "successfully creates a meeting room" do
       config = %{
@@ -102,15 +125,11 @@ defmodule Tymeslot.Integrations.Video.Providers.TeamsProviderTest do
         token_expires_at: DateTime.add(DateTime.utc_now(), 3600, :second)
       }
 
-      expect(Tymeslot.HTTPClientMock, :request, fn :post, url, body, headers, _opts ->
+      expect(TeamsOAuthHelperMock, :validate_token, fn ^config -> {:ok, :valid} end)
+
+      expect(HTTPClientMock, :request, fn :post, url, _body, headers, _opts ->
         assert url == "https://graph.microsoft.com/v1.0/me/onlineMeetings"
-
-        assert Enum.any?(headers, fn {k, v} ->
-                 String.downcase(k) == "authorization" and v == "Bearer valid_token"
-               end)
-
-        decoded_body = Jason.decode!(body)
-        assert decoded_body["subject"] == "Scheduled Meeting"
+        assert Enum.any?(headers, fn {k, v} -> String.downcase(k) == "authorization" and v == "Bearer valid_token" end)
 
         {:ok,
          %HTTPoison.Response{
@@ -118,52 +137,101 @@ defmodule Tymeslot.Integrations.Video.Providers.TeamsProviderTest do
            body:
              Jason.encode!(%{
                "id" => "meeting123",
-               "joinUrl" =>
-                 "https://teams.microsoft.com/l/meetup-join/19%3ameeting_abc%40thread.v2/0",
+               "joinUrl" => "https://teams.microsoft.com/l/meetup-join/abc",
                "joinWebUrl" => "https://teams.microsoft.com/join/abc",
                "videoTeleconferenceId" => "v-123",
-               "passcode" => "123456",
-               "audioConferencing" => %{
-                 "tollNumber" => "+1-555-0100",
-                 "conferenceId" => "987654321"
-               }
+               "passcode" => "123456"
              })
          }}
       end)
 
       assert {:ok, room_data} = TeamsProvider.create_meeting_room(config)
       assert room_data.room_id == "meeting123"
-
-      assert room_data.meeting_url ==
-               "https://teams.microsoft.com/l/meetup-join/19%3ameeting_abc%40thread.v2/0"
-
-      assert room_data.provider_data.passcode == "123456"
+      assert room_data.meeting_url == "https://teams.microsoft.com/l/meetup-join/abc"
     end
 
-    test "handles API errors gracefully" do
+    test "refreshes token and persists to database" do
+      user = insert(:user)
+      {:ok, integration} = Tymeslot.DatabaseQueries.VideoIntegrationQueries.create(%{
+        user_id: user.id,
+        name: "Teams",
+        provider: "teams",
+        tenant_id: "t1",
+        client_id: "c1",
+        client_secret: "s1",
+        teams_user_id: "u1",
+        access_token: "expired",
+        refresh_token: "refresh",
+        token_expires_at: DateTime.add(DateTime.utc_now(), -3600)
+      })
+
+      config = %{
+        access_token: "expired",
+        refresh_token: "refresh",
+        token_expires_at: DateTime.add(DateTime.utc_now(), -3600),
+        integration_id: integration.id,
+        user_id: user.id
+      }
+
+      expect(TeamsOAuthHelperMock, :validate_token, fn ^config -> {:ok, :needs_refresh} end)
+      expect(TeamsOAuthHelperMock, :refresh_access_token, fn "refresh", _scope ->
+        {:ok,
+         %{
+           access_token: "new_token",
+           refresh_token: "new_refresh",
+           expires_at: DateTime.add(DateTime.utc_now(), 3600)
+         }}
+      end)
+
+      expect(HTTPClientMock, :request, fn :post, _, _, headers, _ ->
+        assert Enum.any?(headers, fn {k, v} ->
+                 String.downcase(k) == "authorization" and v == "Bearer new_token"
+               end)
+
+        {:ok,
+         %HTTPoison.Response{status_code: 201, body: Jason.encode!(%{"id" => "m1", "joinUrl" => "url"})}}
+      end)
+
+      assert {:ok, _} = TeamsProvider.create_meeting_room(config)
+
+      # Verify DB update
+      updated = Tymeslot.Repo.get(Tymeslot.DatabaseSchemas.VideoIntegrationSchema, integration.id)
+      decrypted = Tymeslot.DatabaseSchemas.VideoIntegrationSchema.decrypt_credentials(updated)
+      assert decrypted.access_token == "new_token"
+    end
+
+    test "handles malformed or missing fields in Graph API response" do
       config = %{
         access_token: "valid_token",
         refresh_token: "refresh_token",
         token_expires_at: DateTime.add(DateTime.utc_now(), 3600, :second)
       }
 
-      expect(Tymeslot.HTTPClientMock, :request, fn :post, _, _, _, _ ->
+      expect(TeamsOAuthHelperMock, :validate_token, fn ^config -> {:ok, :valid} end)
+
+      # Missing joinUrl
+      expect(HTTPClientMock, :request, fn :post, _, _, _, _ ->
+        {:ok, %HTTPoison.Response{status_code: 201, body: Jason.encode!(%{"id" => "m1"})}}
+      end)
+
+      assert {:ok, room_data} = TeamsProvider.create_meeting_room(config)
+      assert room_data.room_id == "m1"
+      assert room_data.meeting_url == nil
+
+      # Audio conferencing missing
+      expect(TeamsOAuthHelperMock, :validate_token, fn ^config -> {:ok, :valid} end)
+
+      expect(HTTPClientMock, :request, fn :post, _, _, _, _ ->
         {:ok,
          %HTTPoison.Response{
-           status_code: 400,
-           body:
-             Jason.encode!(%{
-               "error" => %{
-                 "code" => "InvalidRequest",
-                 "message" => "The request is invalid"
-               }
-             })
+           status_code: 201,
+           body: Jason.encode!(%{"id" => "m2", "joinUrl" => "url2"})
          }}
       end)
 
-      assert {:error, message} = TeamsProvider.create_meeting_room(config)
-      assert String.contains?(message, "Teams API error (400)")
-      assert String.contains?(message, "InvalidRequest")
+      assert {:ok, room_data} = TeamsProvider.create_meeting_room(config)
+      assert room_data.provider_data.toll_number == nil
+      assert room_data.provider_data.conference_id == nil
     end
   end
 

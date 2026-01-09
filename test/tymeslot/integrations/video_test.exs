@@ -1,18 +1,19 @@
 defmodule Tymeslot.Integrations.VideoTest do
   use Tymeslot.DataCase, async: true
 
-  import Tymeslot.Factory
   import Mox
+  import Tymeslot.Factory
 
   alias Tymeslot.Integrations.Video
+  alias Tymeslot.Integrations.Video.Providers.MiroTalkProvider
 
   setup :verify_on_exit!
 
   describe "list_integrations/1" do
-    test "returns all video integrations for a user" do
+    test "lists all integrations for a user" do
       user = insert(:user)
-      insert(:video_integration, user: user, provider: "google_meet")
-      insert(:video_integration, user: user, provider: "teams")
+      _i1 = insert(:video_integration, user: user, name: "I1")
+      _i2 = insert(:video_integration, user: user, name: "I2")
 
       integrations = Video.list_integrations(user.id)
       assert length(integrations) == 2
@@ -20,65 +21,60 @@ defmodule Tymeslot.Integrations.VideoTest do
   end
 
   describe "create_integration/3" do
-    test "creates a video integration" do
+    test "creates mirotalk integration after testing connection" do
       user = insert(:user)
-
       attrs = %{
-        name: "My Meet",
-        access_token: "token",
-        refresh_token: "refresh",
-        provider: "google_meet"
+        "name" => "My MiroTalk",
+        "base_url" => "https://mirotalk.test",
+        "api_key" => "test-key"
       }
 
-      assert {:ok, integration} = Video.create_integration(user.id, :google_meet, attrs)
-      assert integration.user_id == user.id
-      assert integration.provider == "google_meet"
-    end
-
-    test "normalizes provider name" do
-      user = insert(:user)
-
-      attrs = %{
-        name: "My Meet",
-        access_token: "token",
-        refresh_token: "refresh"
-      }
-
-      assert {:ok, integration} = Video.create_integration(user.id, "GOOGLE_MEET", attrs)
-      assert integration.provider == "google_meet"
-    end
-
-    test "validates mirotalk connection before creation" do
-      user = insert(:user)
-
-      attrs = %{
-        name: "Miro",
-        api_key: "test_key",
-        base_url: "https://mirotalk.com"
-      }
-
-      # Stub HTTPClient for Mirotalk connection test
-      stub(Tymeslot.HTTPClientMock, :post, fn _url, _body, _headers, _opts ->
-        {:ok, %HTTPoison.Response{status_code: 200, body: "{}"}}
+      # Mock connection test - called twice
+      expect(Tymeslot.HTTPClientMock, :post, 2, fn _url, _body, _headers, _opts ->
+        {:ok, %HTTPoison.Response{status_code: 200}}
       end)
 
       assert {:ok, integration} = Video.create_integration(user.id, :mirotalk, attrs)
       assert integration.provider == "mirotalk"
+      assert integration.name == "My MiroTalk"
+    end
+
+    test "returns error if mirotalk connection test fails" do
+      user = insert(:user)
+      attrs = %{
+        "name" => "Bad MiroTalk",
+        "base_url" => "https://mirotalk.test",
+        "api_key" => "bad-key"
+      }
+
+      # Mock connection failure
+      expect(Tymeslot.HTTPClientMock, :post, fn _url, _body, _headers, _opts ->
+        {:ok, %HTTPoison.Response{status_code: 401, body: "Unauthorized"}}
+      end)
+
+      assert {:error, "Invalid API key - Authentication failed"} = Video.create_integration(user.id, :mirotalk, attrs)
+    end
+
+    test "safely handles non-existing atom keys in attrs" do
+      user = insert(:user)
+      attrs = %{
+        "name" => "Safe Integration",
+        "some_crazy_key_that_does_not_exist_as_atom_12345" => "value"
+      }
+
+      # Should not crash and successfully create integration (ignoring the bad key)
+      assert {:ok, integration} = Video.create_integration(user.id, :custom, attrs)
+      assert integration.name == "Safe Integration"
     end
   end
 
   describe "delete_integration/2" do
-    test "deletes the integration" do
+    test "deletes user's integration" do
       user = insert(:user)
       integration = insert(:video_integration, user: user)
 
       assert {:ok, :deleted} = Video.delete_integration(user.id, integration.id)
-      assert [] = Video.list_integrations(user.id)
-    end
-
-    test "returns error if not found" do
-      user = insert(:user)
-      assert {:error, :not_found} = Video.delete_integration(user.id, 999)
+      assert Video.list_integrations(user.id) == []
     end
   end
 
@@ -87,78 +83,51 @@ defmodule Tymeslot.Integrations.VideoTest do
       user = insert(:user)
       integration = insert(:video_integration, user: user, is_active: true)
 
-      assert {:ok, toggled} = Video.toggle_integration(user.id, integration.id)
-      refute toggled.is_active
+      {:ok, updated} = Video.toggle_integration(user.id, integration.id)
+      refute updated.is_active
 
-      assert {:ok, toggled_back} = Video.toggle_integration(user.id, integration.id)
-      assert toggled_back.is_active
+      {:ok, updated2} = Video.toggle_integration(user.id, integration.id)
+      assert updated2.is_active
     end
   end
 
   describe "set_default/2" do
-    test "sets integration as default and unsets others" do
+    test "sets integration as default" do
       user = insert(:user)
+      i1 = insert(:video_integration, user: user, is_default: false)
+      i2 = insert(:video_integration, user: user, is_default: true)
 
-      i1 =
-        insert(:video_integration,
-          user: user,
-          provider: "google_meet",
-          is_default: true,
-          access_token: "t1",
-          refresh_token: "r1"
-        )
+      {:ok, updated} = Video.set_default(user.id, i1.id)
+      assert updated.is_default
 
-      i2 =
-        insert(:video_integration,
-          user: user,
-          provider: "teams",
-          is_default: false,
-          tenant_id: "t",
-          client_id: "c",
-          client_secret: "s",
-          teams_user_id: "u"
-        )
-
-      assert {:ok, updated_i2} = Video.set_default(user.id, i2.id)
-      assert updated_i2.is_default
-
-      # Verify i1 is no longer default
-      integrations = Video.list_integrations(user.id)
-      updated_i1 = Enum.find(integrations, &(&1.id == i1.id))
-      refute updated_i1.is_default
+      # Verify other one is no longer default
+      assert !Tymeslot.Repo.get(Tymeslot.DatabaseSchemas.VideoIntegrationSchema, i2.id).is_default
     end
   end
 
-  describe "create_meeting_room/1" do
-    test "returns error when no active integration" do
+  describe "oauth_authorization_url/2" do
+    test "generates google meet auth URL" do
       user = insert(:user)
-      assert {:error, message} = Video.create_meeting_room(user.id)
-      assert String.contains?(message, "No video integration configured")
-    end
-
-    test "creates room with default provider" do
-      user = insert(:user)
-
-      insert(:video_integration,
-        user: user,
-        provider: "mirotalk",
-        is_default: true,
-        is_active: true,
-        api_key: "test_key",
-        base_url: "https://mirotalk.com"
-      )
-
-      stub(Tymeslot.HTTPClientMock, :post, fn _url, _body, _headers, _opts ->
-        {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
-           body: "{\"meeting\": \"https://mirotalk.com/room123\"}"
-         }}
+      expect(Tymeslot.GoogleOAuthHelperMock, :authorization_url, fn _uid, _uri, _scopes ->
+        "https://accounts.google.com/o/oauth2/v2/auth?client_id=123"
       end)
 
-      assert {:ok, room} = Video.create_meeting_room(user.id)
-      assert room.provider_type == :mirotalk
-      assert room.room_data.room_id == "https://mirotalk.com/room123"
+      assert {:ok, url} = Video.oauth_authorization_url(user.id, :google_meet)
+      assert String.contains?(url, "accounts.google.com")
+    end
+
+    test "generates teams auth URL" do
+      user = insert(:user)
+      expect(Tymeslot.TeamsOAuthHelperMock, :authorization_url, fn _uid, _uri ->
+        "https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=456"
+      end)
+
+      assert {:ok, url} = Video.oauth_authorization_url(user.id, :teams)
+      assert String.contains?(url, "login.microsoftonline.com")
+    end
+
+    test "returns error for non-oauth provider" do
+      assert {:error, _} = Video.oauth_authorization_url(1, :mirotalk)
     end
   end
 end

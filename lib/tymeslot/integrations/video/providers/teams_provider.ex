@@ -7,7 +7,9 @@ defmodule Tymeslot.Integrations.Video.Providers.TeamsProvider do
   """
 
   alias Tymeslot.DatabaseQueries.VideoIntegrationQueries
+  alias Tymeslot.DatabaseSchemas.VideoIntegrationSchema
   alias Tymeslot.Infrastructure.HTTPClient
+  alias Tymeslot.Integrations.Shared.Lock
   alias Tymeslot.Integrations.Shared.ProviderConfigHelper
   alias Tymeslot.Integrations.Video.Providers.ProviderBehaviour
   alias Tymeslot.Integrations.Video.Teams.TeamsOAuthHelper
@@ -156,7 +158,7 @@ defmodule Tymeslot.Integrations.Video.Providers.TeamsProvider do
   # Private functions
 
   defp get_access_token(config) do
-    case TeamsOAuthHelper.validate_token(config) do
+    case teams_oauth_helper().validate_token(config) do
       {:ok, :valid} ->
         {:ok, Map.get(config, :access_token)}
 
@@ -170,7 +172,44 @@ defmodule Tymeslot.Integrations.Video.Providers.TeamsProvider do
   end
 
   defp refresh_and_update_token(config) do
-    case TeamsOAuthHelper.refresh_access_token(Map.get(config, :refresh_token)) do
+    integration_id = Map.get(config, :integration_id)
+    user_id = Map.get(config, :user_id)
+
+    if is_nil(integration_id) or is_nil(user_id) do
+      do_actual_refresh(config)
+    else
+      Lock.with_lock({:teams, integration_id}, fn ->
+        # Re-fetch from DB to see if another process refreshed it
+        case VideoIntegrationQueries.get_for_user(integration_id, user_id) do
+          {:ok, fresh_integration} ->
+            decrypted = VideoIntegrationSchema.decrypt_credentials(fresh_integration)
+            now = DateTime.utc_now()
+
+            # Check if token is still expired (with a 5 min buffer)
+            if DateTime.compare(decrypted.token_expires_at, DateTime.add(now, 300, :second)) == :gt do
+              {:ok, decrypted.access_token}
+            else
+              case do_actual_refresh(config) do
+                {:ok, refreshed_tokens} -> {:ok, refreshed_tokens.access_token}
+                error -> error
+              end
+            end
+
+          _ ->
+            case do_actual_refresh(config) do
+              {:ok, refreshed_tokens} -> {:ok, refreshed_tokens.access_token}
+              error -> error
+            end
+        end
+      end, mode: :blocking)
+    end
+  end
+
+  defp do_actual_refresh(config) do
+    refresh_token = Map.get(config, :refresh_token)
+    current_scope = Map.get(config, :oauth_scope)
+
+    case teams_oauth_helper().refresh_access_token(refresh_token, current_scope) do
       {:ok, refreshed_tokens} ->
         Logger.info("Successfully refreshed Teams OAuth token")
 
@@ -178,7 +217,7 @@ defmodule Tymeslot.Integrations.Video.Providers.TeamsProvider do
           update_integration_tokens(integration_id, Map.get(config, :user_id), refreshed_tokens)
         end
 
-        {:ok, refreshed_tokens.access_token}
+        {:ok, refreshed_tokens}
 
       {:error, reason} ->
         Logger.error("Failed to refresh Teams OAuth token", reason: inspect(reason))
@@ -190,7 +229,8 @@ defmodule Tymeslot.Integrations.Video.Providers.TeamsProvider do
     attrs = %{
       access_token: refreshed_tokens.access_token,
       refresh_token: refreshed_tokens.refresh_token || refreshed_tokens.access_token,
-      token_expires_at: refreshed_tokens.expires_at
+      token_expires_at: refreshed_tokens.expires_at,
+      oauth_scope: refreshed_tokens[:scope]
     }
 
     case VideoIntegrationQueries.get_for_user(integration_id, user_id) do
@@ -265,6 +305,10 @@ defmodule Tymeslot.Integrations.Video.Providers.TeamsProvider do
 
   defp http_client do
     Application.get_env(:tymeslot, :http_client_module, HTTPClient)
+  end
+
+  defp teams_oauth_helper do
+    Application.get_env(:tymeslot, :teams_oauth_helper, TeamsOAuthHelper)
   end
 
   defp decode_and_format_error(status, body) do

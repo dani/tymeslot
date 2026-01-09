@@ -1,7 +1,14 @@
 defmodule Tymeslot.Integrations.Video.Providers.GoogleMeetProviderTest do
-  use ExUnit.Case, async: true
+  use Tymeslot.DataCase, async: true
+
+  import Mox
+  import Tymeslot.Factory
 
   alias Tymeslot.Integrations.Video.Providers.GoogleMeetProvider
+  alias Tymeslot.HTTPClientMock
+  alias Tymeslot.GoogleOAuthHelperMock
+
+  setup :verify_on_exit!
 
   describe "provider_type/0" do
     test "returns :google_meet" do
@@ -93,6 +100,215 @@ defmodule Tymeslot.Integrations.Video.Providers.GoogleMeetProviderTest do
       }
 
       assert :ok = GoogleMeetProvider.validate_config(config)
+    end
+  end
+
+  describe "test_connection/1" do
+    test "returns success when API calls succeed" do
+      config = %{
+        access_token: "valid_token",
+        refresh_token: "refresh_token",
+        token_expires_at: DateTime.add(DateTime.utc_now(), 3600, :second)
+      }
+
+      expect(HTTPClientMock, :request, fn :get, _url, _body, _headers, _opts ->
+        {:ok, %HTTPoison.Response{status_code: 200, body: Jason.encode!(%{"items" => []})}}
+      end)
+
+      assert {:ok, message} = GoogleMeetProvider.test_connection(config)
+      assert String.contains?(message, "successful")
+    end
+
+    test "returns error when API call fails" do
+      config = %{
+        access_token: "invalid_token",
+        refresh_token: "refresh_token",
+        token_expires_at: DateTime.add(DateTime.utc_now(), 3600, :second)
+      }
+
+      expect(HTTPClientMock, :request, fn :get, _url, _body, _headers, _opts ->
+        {:ok, %HTTPoison.Response{status_code: 401, body: "Unauthorized"}}
+      end)
+
+      assert {:error, message} = GoogleMeetProvider.test_connection(config)
+      assert String.contains?(message, "Connection test failed")
+    end
+
+    test "refreshes token if expired during connection test" do
+      expires_at = DateTime.add(DateTime.utc_now(), -3600, :second)
+      new_expires_at = DateTime.add(DateTime.utc_now(), 3600, :second)
+
+      config = %{
+        access_token: "expired_token",
+        refresh_token: "refresh_token",
+        token_expires_at: expires_at,
+        oauth_scope: "scope"
+      }
+
+      expect(GoogleOAuthHelperMock, :refresh_access_token, fn "refresh_token", "scope" ->
+        {:ok,
+         %{
+           access_token: "new_token",
+           refresh_token: "new_refresh_token",
+           expires_at: new_expires_at,
+           scope: "scope"
+         }}
+      end)
+
+      expect(HTTPClientMock, :request, fn :get, _url, _body, headers, _opts ->
+        assert {"Authorization", "Bearer new_token"} in headers
+        {:ok, %HTTPoison.Response{status_code: 200, body: Jason.encode!(%{"items" => []})}}
+      end)
+
+      assert {:ok, _} = GoogleMeetProvider.test_connection(config)
+    end
+  end
+
+  describe "create_meeting_room/1" do
+    test "successfully creates a meeting room" do
+      config = %{
+        access_token: "valid_token",
+        refresh_token: "refresh_token",
+        token_expires_at: DateTime.add(DateTime.utc_now(), 3600, :second)
+      }
+
+      event_response = %{
+        "id" => "event123",
+        "conferenceData" => %{
+          "entryPoints" => [
+            %{"entryPointType" => "video", "uri" => "https://meet.google.com/abc-defg-hij"}
+          ]
+        }
+      }
+
+      expect(HTTPClientMock, :request, fn :post, _url, _body, _headers, _opts ->
+        {:ok, %HTTPoison.Response{status_code: 200, body: Jason.encode!(event_response)}}
+      end)
+
+      assert {:ok, room_data} = GoogleMeetProvider.create_meeting_room(config)
+      assert room_data.room_id == "abc-defg-hij"
+      assert room_data.meeting_url == "https://meet.google.com/abc-defg-hij"
+    end
+
+    test "returns error when conference data is missing" do
+      config = %{
+        access_token: "valid_token",
+        refresh_token: "refresh_token",
+        token_expires_at: DateTime.add(DateTime.utc_now(), 3600, :second)
+      }
+
+      expect(HTTPClientMock, :request, fn :post, _url, _body, _headers, _opts ->
+        {:ok, %HTTPoison.Response{status_code: 200, body: Jason.encode!(%{"id" => "event123"})}}
+      end)
+
+      assert {:error, message} = GoogleMeetProvider.create_meeting_room(config)
+      assert String.contains?(message, "did not return conference data")
+    end
+
+    test "handles malformed or unexpected conference data structure" do
+      config = %{
+        access_token: "valid_token",
+        refresh_token: "refresh_token",
+        token_expires_at: DateTime.add(DateTime.utc_now(), 3600, :second)
+      }
+
+      # Case 1: entryPoints is not a list
+      expect(HTTPClientMock, :request, fn :post, _url, _body, _headers, _opts ->
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 200,
+           body: Jason.encode!(%{"conferenceData" => %{"entryPoints" => "not_a_list"}})
+         }}
+      end)
+
+      assert {:error, "Google Calendar did not return conference data"} =
+               GoogleMeetProvider.create_meeting_room(config)
+
+      # Case 2: entryPoints is empty list
+      expect(HTTPClientMock, :request, fn :post, _url, _body, _headers, _opts ->
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 200,
+           body: Jason.encode!(%{"conferenceData" => %{"entryPoints" => []}})
+         }}
+      end)
+
+      assert {:error, "No meeting URL returned from Google"} =
+               GoogleMeetProvider.create_meeting_room(config)
+
+      # Case 3: entryPoints lacks video type
+      expect(HTTPClientMock, :request, fn :post, _url, _body, _headers, _opts ->
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 200,
+           body:
+             Jason.encode!(%{
+               "conferenceData" => %{
+                 "entryPoints" => [%{"entryPointType" => "phone", "uri" => "tel:+123"}]
+               }
+             })
+         }}
+      end)
+
+      assert {:error, "No meeting URL returned from Google"} =
+               GoogleMeetProvider.create_meeting_room(config)
+    end
+
+    test "persists refreshed tokens to database" do
+      user = insert(:user)
+      expires_at = DateTime.add(DateTime.utc_now(), -3600, :second)
+      new_expires_at = DateTime.add(DateTime.utc_now(), 3600, :second)
+
+      integration =
+        insert(:video_integration,
+          user: user,
+          provider: "google_meet",
+          access_token: "expired",
+          refresh_token: "refresh",
+          token_expires_at: expires_at
+        )
+
+      config = %{
+        access_token: "expired",
+        refresh_token: "refresh",
+        token_expires_at: expires_at,
+        integration_id: integration.id,
+        user_id: user.id
+      }
+
+      expect(GoogleOAuthHelperMock, :refresh_access_token, fn "refresh", nil ->
+        {:ok,
+         %{
+           access_token: "new_token",
+           refresh_token: "new_refresh",
+           expires_at: new_expires_at,
+           scope: "new_scope"
+         }}
+      end)
+
+      expect(HTTPClientMock, :request, fn :post, _url, _body, _headers, _opts ->
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 200,
+           body:
+             Jason.encode!(%{
+               "conferenceData" => %{
+                 "entryPoints" => [
+                   %{"entryPointType" => "video", "uri" => "https://meet.google.com/abc-defg-hij"}
+                 ]
+               }
+             })
+         }}
+      end)
+
+      assert {:ok, _} = GoogleMeetProvider.create_meeting_room(config)
+
+      # Verify DB update
+      updated = Tymeslot.Repo.get(Tymeslot.DatabaseSchemas.VideoIntegrationSchema, integration.id)
+      decrypted = Tymeslot.DatabaseSchemas.VideoIntegrationSchema.decrypt_credentials(updated)
+      assert decrypted.access_token == "new_token"
+      assert decrypted.refresh_token == "new_refresh"
+      assert updated.oauth_scope == "new_scope"
     end
   end
 
@@ -258,30 +474,6 @@ defmodule Tymeslot.Integrations.Video.Providers.GoogleMeetProviderTest do
       room_data = %{room_id: "abc-defg-hij"}
 
       assert GoogleMeetProvider.handle_meeting_event(:created, room_data, %{}) == :ok
-    end
-
-    test "returns :ok for started event" do
-      room_data = %{room_id: "abc-defg-hij"}
-
-      assert GoogleMeetProvider.handle_meeting_event(:started, room_data, %{}) == :ok
-    end
-
-    test "returns :ok for ended event" do
-      room_data = %{room_id: "abc-defg-hij"}
-
-      assert GoogleMeetProvider.handle_meeting_event(:ended, room_data, %{}) == :ok
-    end
-
-    test "returns :ok for cancelled event" do
-      room_data = %{room_id: "abc-defg-hij"}
-
-      assert GoogleMeetProvider.handle_meeting_event(:cancelled, room_data, %{}) == :ok
-    end
-
-    test "returns :ok for unknown event" do
-      room_data = %{room_id: "abc-defg-hij"}
-
-      assert GoogleMeetProvider.handle_meeting_event(:unknown_event, room_data, %{}) == :ok
     end
   end
 

@@ -2,7 +2,7 @@ defmodule Tymeslot.Integrations.Calendar.Auth.TokensRobustnessTest do
   # async: false to control ETS table state
   use Tymeslot.DataCase, async: false
 
-  alias Tymeslot.Integrations.Calendar.Auth.TokenRefreshLock
+  alias Tymeslot.Integrations.Shared.Lock
   alias Tymeslot.Integrations.Calendar.Tokens
 
   import Mox
@@ -33,27 +33,27 @@ defmodule Tymeslot.Integrations.Calendar.Auth.TokensRobustnessTest do
     end
   end
 
-  describe "TokenRefreshLock lifecycle" do
+  describe "Lock lifecycle" do
     test "works even if init() wasn't called (table auto-created)" do
       # Ensure it's started if not already
-      if !Process.whereis(TokenRefreshLock) do
-        start_supervised!({TokenRefreshLock, []})
+      if !Process.whereis(Lock) do
+        start_supervised!({Lock, []})
       end
 
-      assert :ok = TokenRefreshLock.with_lock(:google, 999, fn -> :ok end)
+      assert :ok = Lock.with_lock(:google, 999, fn -> :ok end)
     end
 
     test "releases lock automatically if process crashes" do
       # Ensure it's started
-      if !Process.whereis(TokenRefreshLock) do
-        start_supervised!({TokenRefreshLock, []})
+      if !Process.whereis(Lock) do
+        start_supervised!({Lock, []})
       end
 
       parent = self()
 
       {pid, ref} =
         spawn_monitor(fn ->
-          TokenRefreshLock.with_lock(:google, 123, fn ->
+          Lock.with_lock(:google, 123, fn ->
             send(parent, :locked)
             # Wait to be killed
             Process.sleep(:infinity)
@@ -68,7 +68,7 @@ defmodule Tymeslot.Integrations.Calendar.Auth.TokensRobustnessTest do
 
       # Verify it's locked
       assert {:error, :refresh_in_progress} =
-               TokenRefreshLock.with_lock(:google, 123, fn -> :ok end)
+               Lock.with_lock(:google, 123, fn -> :ok end)
 
       # Kill the process
       Process.exit(pid, :kill)
@@ -81,7 +81,7 @@ defmodule Tymeslot.Integrations.Calendar.Auth.TokensRobustnessTest do
       Process.sleep(50)
 
       # Verify it's now unlocked
-      assert :ok = TokenRefreshLock.with_lock(:google, 123, fn -> :ok end)
+      assert :ok = Lock.with_lock(:google, 123, fn -> :ok end)
     end
   end
 end

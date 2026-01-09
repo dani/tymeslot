@@ -322,6 +322,87 @@ defmodule Tymeslot.Integrations.Video.Providers.MiroTalkProviderTest do
     end
   end
 
+  describe "create_meeting_room/1" do
+    test "successfully creates a meeting room" do
+      config = %{api_key: "test_key", base_url: "https://mirotalk.example.com"}
+
+      expect(Tymeslot.HTTPClientMock, :post, fn _url, _body, _headers, _opts ->
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 200,
+           body: Jason.encode!(%{"meeting" => "https://mirotalk.example.com/join/room123"})
+         }}
+      end)
+
+      assert {:ok, room_data} = MiroTalkProvider.create_meeting_room(config)
+      assert room_data.room_id == "https://mirotalk.example.com/join/room123"
+      assert room_data.meeting_url == "https://mirotalk.example.com/join/room123"
+    end
+
+    test "handles API errors gracefully" do
+      config = %{api_key: "test_key", base_url: "https://mirotalk.example.com"}
+
+      expect(Tymeslot.HTTPClientMock, :post, fn _url, _body, _headers, _opts ->
+        {:ok, %HTTPoison.Response{status_code: 401, body: "Unauthorized"}}
+      end)
+
+      assert {:error, {:http_error, 401, _}} = MiroTalkProvider.create_meeting_room(config)
+    end
+  end
+
+  describe "create_join_url/5" do
+    test "successfully creates a join URL via API" do
+      room_data = %{
+        room_id: "room123",
+        provider_config: %{base_url: "https://mirotalk.example.com", api_key: "test_key"}
+      }
+
+      expect(Tymeslot.HTTPClientMock, :post, fn _url, _body, _headers, _opts ->
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 200,
+           body: Jason.encode!(%{"join" => "https://mirotalk.example.com/join/room123?token=abc"})
+         }}
+      end)
+
+      assert {:ok, join_url} =
+               MiroTalkProvider.create_join_url(
+                 room_data,
+                 "John Doe",
+                 "john@example.com",
+                 "attendee",
+                 DateTime.utc_now()
+               )
+
+      assert join_url == "https://mirotalk.example.com/join/room123?token=abc"
+    end
+
+    test "falls back to manual URL generation if API fails" do
+      room_data = %{
+        room_id: "room123",
+        provider_config: %{base_url: "https://mirotalk.example.com", api_key: "test_key"}
+      }
+
+      # Mock API failure
+      expect(Tymeslot.HTTPClientMock, :post, fn _url, _body, _headers, _opts ->
+        {:ok, %HTTPoison.Response{status_code: 500, body: "Error"}}
+      end)
+
+      assert {:ok, join_url} =
+               MiroTalkProvider.create_join_url(
+                 room_data,
+                 "John Doe",
+                 "john@example.com",
+                 "attendee",
+                 DateTime.utc_now()
+               )
+
+      assert String.contains?(join_url, "/join?")
+      assert String.contains?(join_url, "room=room123")
+      assert String.contains?(join_url, "token=")
+    end
+  end
+
   describe "handle_meeting_event/3" do
     test "returns :ok for any event" do
       room_data = %{room_id: "room123", meeting_url: "https://mirotalk.example.com/room123"}
