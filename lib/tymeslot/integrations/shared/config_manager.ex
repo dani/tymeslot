@@ -157,21 +157,21 @@ defmodule Tymeslot.Integrations.Common.ConfigManager do
   Validates that sensitive configuration fields are properly encrypted.
 
   Checks that fields marked as `:encrypted` in the schema contain encrypted values.
+  An optional `:encryption_validator` can be provided in the field schema to
+  override the default encryption heuristic.
   """
   @spec validate_encryption(config(), schema()) :: validation_result()
   def validate_encryption(config, schema) do
-    encrypted_fields =
+    unencrypted_fields =
       schema
       |> Enum.filter(fn {_field, field_schema} ->
         Map.get(field_schema, :encrypted, false)
       end)
-      |> Enum.map(fn {field, _schema} -> field end)
-
-    unencrypted_fields =
-      Enum.filter(encrypted_fields, fn field ->
+      |> Enum.filter(fn {field, field_schema} ->
         value = Map.get(config, field)
-        value && is_binary(value) && not encrypted?(value)
+        value && is_binary(value) && not value_encrypted?(value, field_schema)
       end)
+      |> Enum.map(fn {field, _schema} -> field end)
 
     case unencrypted_fields do
       [] -> :ok
@@ -180,6 +180,16 @@ defmodule Tymeslot.Integrations.Common.ConfigManager do
   end
 
   # Private functions
+
+  defp value_encrypted?(value, field_schema) do
+    case Map.get(field_schema, :encryption_validator) do
+      validator_fn when is_function(validator_fn, 1) ->
+        validator_fn.(value)
+
+      _ ->
+        encrypted?(value)
+    end
+  end
 
   defp validate_required_fields(config, schema) do
     required_fields =
@@ -306,8 +316,12 @@ defmodule Tymeslot.Integrations.Common.ConfigManager do
   defp coerce_type(value, _type), do: value
 
   defp encrypted?(value) when is_binary(value) do
-    # Simple heuristic: encrypted values are typically base64 encoded and longer
-    String.length(value) > 20 and String.match?(value, ~r/^[A-Za-z0-9+\/=]+$/)
+    # Stricter heuristic:
+    # 1. Check for explicit encryption prefix (optional but recommended)
+    # 2. Otherwise require a longer string that matches base64 pattern
+    #    AES-256-GCM (28 bytes min) base64 encoded is at least 40 chars
+    String.starts_with?(value, "TYS.ENC:") or
+      (String.length(value) >= 40 and String.match?(value, ~r/^[A-Za-z0-9+\/=]+$/))
   end
 
   defp encrypted?(_value), do: false

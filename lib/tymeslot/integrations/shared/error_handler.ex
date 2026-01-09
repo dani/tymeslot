@@ -204,31 +204,38 @@ defmodule Tymeslot.Integrations.Common.ErrorHandler do
   Wraps HTTP client errors with consistent formatting.
 
   Handles common HTTP client error patterns and converts them to standardized formats.
+  Optional provider name can be used for provider-specific error parsing.
   """
-  @spec handle_http_error({:error, HTTPoison.Error.t()}) :: {:error, String.t()}
-  def handle_http_error({:error, %HTTPoison.Error{reason: reason}}) do
+  @spec handle_http_error({:error, HTTPoison.Error.t()}, String.t() | atom() | nil) ::
+          {:error, String.t()}
+  def handle_http_error({:error, %HTTPoison.Error{reason: reason}}, _provider) do
     {:error, "HTTP request failed: #{inspect(reason)}"}
   end
 
-  @spec handle_http_error({:error, Finch.Error.t()}) :: {:error, String.t()}
-  def handle_http_error({:error, %Finch.Error{reason: reason}}) do
+  @spec handle_http_error({:error, Finch.Error.t()}, String.t() | atom() | nil) ::
+          {:error, String.t()}
+  def handle_http_error({:error, %Finch.Error{reason: reason}}, _provider) do
     {:error, "HTTP request failed: #{inspect(reason)}"}
   end
 
-  @spec handle_http_error({:ok, map()}) :: {:ok, map()} | {:error, String.t()}
-  def handle_http_error({:ok, %{status: status} = response}) when status >= 400 do
-    error_message = extract_error_message(response)
+  @spec handle_http_error({:ok, map()}, String.t() | atom() | nil) ::
+          {:ok, map()} | {:error, String.t()}
+  def handle_http_error({:ok, %{status: status} = response}, provider) when status >= 400 do
+    error_message = extract_error_message(response, provider)
     {:error, "HTTP #{status}: #{error_message}"}
   end
 
-  def handle_http_error({:ok, response}) do
+  def handle_http_error({:ok, response}, _provider) do
     {:ok, response}
   end
 
-  @spec handle_http_error(any()) :: any()
-  def handle_http_error(other) do
+  @spec handle_http_error(any(), String.t() | atom() | nil) :: any()
+  def handle_http_error(other, _provider) do
     other
   end
+
+  # Default version for backward compatibility
+  def handle_http_error(result), do: handle_http_error(result, nil)
 
   # Private functions
 
@@ -243,8 +250,38 @@ defmodule Tymeslot.Integrations.Common.ErrorHandler do
     end
   end
 
-  defp extract_error_message(%{body: body}) when is_binary(body) do
-    case Jason.decode(body) do
+  defp extract_error_message(response, provider) do
+    case provider do
+      p when p in [:google, "google", :google_meet, "google_meet"] ->
+        parse_google_error(response)
+
+      p when p in [:outlook, "outlook", :teams, "teams", :microsoft, "microsoft"] ->
+        parse_microsoft_error(response)
+
+      _ ->
+        extract_generic_error_message(response)
+    end
+  end
+
+  defp parse_google_error(%{body: body}) do
+    case decode_json(body) do
+      {:ok, %{"error" => %{"message" => message}}} -> message
+      {:ok, %{"error_description" => desc}} -> desc
+      {:ok, %{"error" => message}} when is_binary(message) -> message
+      _ -> extract_generic_error_message(%{body: body})
+    end
+  end
+
+  defp parse_microsoft_error(%{body: body}) do
+    case decode_json(body) do
+      {:ok, %{"error" => %{"message" => message}}} -> message
+      {:ok, %{"error_description" => desc}} -> desc
+      _ -> extract_generic_error_message(%{body: body})
+    end
+  end
+
+  defp extract_generic_error_message(%{body: body}) when is_binary(body) do
+    case decode_json(body) do
       {:ok, %{"error" => %{"message" => message}}} -> message
       {:ok, %{"error" => message}} when is_binary(message) -> message
       {:ok, %{"message" => message}} -> message
@@ -252,7 +289,7 @@ defmodule Tymeslot.Integrations.Common.ErrorHandler do
     end
   end
 
-  defp extract_error_message(%{body: body}) when is_map(body) do
+  defp extract_generic_error_message(%{body: body}) when is_map(body) do
     error_part = Map.get(body, "error", %{})
 
     case error_part do
@@ -262,7 +299,16 @@ defmodule Tymeslot.Integrations.Common.ErrorHandler do
     end
   end
 
-  defp extract_error_message(_response) do
+  defp extract_generic_error_message(_response) do
     "Unknown error"
   end
+
+  defp decode_json(body) when is_binary(body) do
+    Jason.decode(body)
+  rescue
+    _ -> {:error, :invalid_json}
+  end
+
+  defp decode_json(body) when is_map(body), do: {:ok, body}
+  defp decode_json(_), do: {:error, :not_json}
 end

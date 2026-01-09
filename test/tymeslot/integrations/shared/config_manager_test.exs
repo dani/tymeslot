@@ -97,4 +97,126 @@ defmodule Tymeslot.Integrations.Common.ConfigManagerTest do
       assert merged[:field2]
     end
   end
+
+  describe "common schemas" do
+    test "oauth_schema/0 returns standard oauth fields" do
+      schema = ConfigManager.oauth_schema()
+      assert schema.access_token.required
+      assert schema.refresh_token.required
+      assert schema.token_expires_at.type == :datetime
+    end
+
+    test "http_client_schema/0 returns standard http fields" do
+      schema = ConfigManager.http_client_schema()
+      assert schema.timeout.default == 30_000
+      assert schema.base_url.required
+    end
+
+    test "provider_metadata_schema/0 returns standard metadata fields" do
+      schema = ConfigManager.provider_metadata_schema()
+      assert schema.name.required
+      assert schema.is_active.default == true
+    end
+  end
+
+  describe "extract_provider_config/3" do
+    test "extracts and processes provider-specific config" do
+      user_config = %{
+        integrations: %{
+          "google" => %{access_token: "abc", refresh_token: "def", token_expires_at: DateTime.utc_now(), oauth_scope: "scope"}
+        }
+      }
+
+      assert {:ok, config} =
+               ConfigManager.extract_provider_config(user_config, "google", ConfigManager.oauth_schema())
+
+      assert config.access_token == "abc"
+    end
+
+    test "returns error if extraction fails validation" do
+      user_config = %{integrations: %{"google" => %{}}}
+
+      assert {:error, message} =
+               ConfigManager.extract_provider_config(user_config, "google", ConfigManager.oauth_schema())
+
+      assert String.contains?(message, "Missing required fields")
+    end
+  end
+
+  describe "validate_encryption/2" do
+    test "validates that encrypted fields contain encrypted values" do
+      schema = %{
+        api_secret: %{type: :string, encrypted: true}
+      }
+
+      # Encrypted value (matches heuristic with prefix)
+      prefixed_val = "TYS.ENC:some-base64-data"
+      assert :ok = ConfigManager.validate_encryption(%{api_secret: prefixed_val}, schema)
+
+      # Encrypted value (matches heuristic with length)
+      long_val = "A" |> String.duplicate(45)
+      assert :ok = ConfigManager.validate_encryption(%{api_secret: long_val}, schema)
+
+      # Unencrypted value
+      assert {:error, message} = ConfigManager.validate_encryption(%{api_secret: "short-plain"}, schema)
+      assert String.contains?(message, "Unencrypted sensitive fields: api_secret")
+    end
+
+    test "fails for 32-character hex string (heuristic edge case)" do
+      schema = %{
+        api_key: %{type: :string, encrypted: true}
+      }
+
+      # A 32-character hex string
+      hex_key = "0123456789abcdef0123456789abcdef"
+
+      # This should FAIL because it doesn't meet the new stricter heuristic
+      assert {:error, message} = ConfigManager.validate_encryption(%{api_key: hex_key}, schema)
+      assert String.contains?(message, "Unencrypted sensitive fields: api_key")
+    end
+
+    test "uses custom encryption validator if provided" do
+      schema = %{
+        api_secret: %{
+          type: :string,
+          encrypted: true,
+          encryption_validator: fn val -> String.starts_with?(val, "TEST_ENC:") end
+        }
+      }
+
+      assert :ok = ConfigManager.validate_encryption(%{api_secret: "TEST_ENC:data"}, schema)
+      assert {:error, _} = ConfigManager.validate_encryption(%{api_secret: "TYS.ENC:data"}, schema)
+    end
+
+    test "ignores non-encrypted fields" do
+      schema = %{
+        public_key: %{type: :string, encrypted: false}
+      }
+
+      assert :ok = ConfigManager.validate_encryption(%{public_key: "plain"}, schema)
+    end
+  end
+
+  describe "type coercion edge cases" do
+    test "coerces integer strings to integers" do
+      schema = %{timeout: %{type: :integer}}
+      {:ok, normalized} = ConfigManager.normalize_config(%{timeout: "123"}, schema)
+      assert normalized.timeout == 123
+    end
+
+    test "returns original value if integer coercion fails" do
+      schema = %{timeout: %{type: :integer}}
+      {:ok, normalized} = ConfigManager.normalize_config(%{timeout: "abc"}, schema)
+      assert normalized.timeout == "abc"
+    end
+
+    test "coerces boolean strings" do
+      schema = %{enabled: %{type: :boolean}}
+      {:ok, n1} = ConfigManager.normalize_config(%{enabled: "true"}, schema)
+      assert n1.enabled == true
+
+      {:ok, n2} = ConfigManager.normalize_config(%{enabled: "false"}, schema)
+      assert n2.enabled == false
+    end
+  end
 end

@@ -34,13 +34,18 @@ defmodule Tymeslot.Integrations.Common.UserResolver do
   @spec resolve_user_integrations(integer() | nil, integration_type()) ::
           list(CalendarIntegrationSchema.t()) | list(VideoIntegrationSchema.t())
   def resolve_user_integrations(user_id, integration_type)
-      when integration_type in [:calendar, :video] do
+      when (is_integer(user_id) or is_nil(user_id)) and
+             integration_type in [:calendar, :video] do
     ErrorHandler.handle_with_logging(
-      fn -> get_integrations_from_database(user_id, integration_type) end,
+      fn -> {:ok, get_integrations_from_database(user_id, integration_type)} end,
       operation: "resolve user integrations",
       provider: to_string(integration_type),
       log_level: :warning
     )
+    |> case do
+      {:ok, result} -> result
+      _ -> []
+    end
   end
 
   @doc """
@@ -65,7 +70,8 @@ defmodule Tymeslot.Integrations.Common.UserResolver do
           integration_attrs()
         ) :: integration_result()
   def create_or_update_integration(user_id, integration_type, provider_name, attrs)
-      when integration_type in [:calendar, :video] and is_binary(provider_name) and is_map(attrs) do
+      when is_integer(user_id) and integration_type in [:calendar, :video] and
+             is_binary(provider_name) and is_map(attrs) do
     ErrorHandler.handle_with_logging(
       fn -> do_create_or_update_integration(user_id, integration_type, provider_name, attrs) end,
       operation: "create or update integration",
@@ -96,7 +102,8 @@ defmodule Tymeslot.Integrations.Common.UserResolver do
   @spec create_oauth_integration(integer(), integration_type(), String.t(), map(), map()) ::
           integration_result()
   def create_oauth_integration(user_id, integration_type, provider_name, provider_config, tokens)
-      when integration_type in [:calendar, :video] and is_binary(provider_name) and
+      when is_integer(user_id) and integration_type in [:calendar, :video] and
+             is_binary(provider_name) and
              is_map(provider_config) and is_map(tokens) do
     attrs =
       Map.merge(provider_config, %{
@@ -123,7 +130,8 @@ defmodule Tymeslot.Integrations.Common.UserResolver do
   @spec get_integration_by_user_and_provider(integer(), integration_type(), String.t()) ::
           integration_result()
   def get_integration_by_user_and_provider(user_id, integration_type, provider_name)
-      when integration_type in [:calendar, :video] and is_binary(provider_name) do
+      when is_integer(user_id) and integration_type in [:calendar, :video] and
+             is_binary(provider_name) do
     case integration_type do
       :calendar ->
         cal_result = CalendarIntegrationQueries.get_by_user_and_provider(user_id, provider_name)
@@ -159,7 +167,7 @@ defmodule Tymeslot.Integrations.Common.UserResolver do
           {:ok, list(CalendarIntegrationSchema.t() | VideoIntegrationSchema.t())}
           | {:error, String.t()}
   def list_user_integrations(user_id, integration_type)
-      when integration_type in [:calendar, :video] do
+      when is_integer(user_id) and integration_type in [:calendar, :video] do
     ErrorHandler.handle_with_logging(
       fn ->
         integrations = get_integrations_from_database(user_id, integration_type)

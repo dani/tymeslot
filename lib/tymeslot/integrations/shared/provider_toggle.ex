@@ -25,7 +25,9 @@ defmodule Tymeslot.Integrations.Shared.ProviderToggle do
   end
 
   defp provider_setting(settings, type) do
-    Map.get(settings, type) ||
-      Map.get(settings, Atom.to_string(type))
+    case Map.get(settings, type, :not_found) do
+      :not_found -> Map.get(settings, Atom.to_string(type))
+      value -> value
+    end
   end
 end

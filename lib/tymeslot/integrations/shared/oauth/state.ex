@@ -44,6 +44,7 @@ defmodule Tymeslot.Integrations.Common.OAuth.State do
              {:ok, user_id} <- extract_user_id(data, ttl_seconds) do
           {:ok, user_id}
         else
+          {:error, _} = error -> error
           _ -> {:error, "Invalid state parameter"}
         end
 
@@ -54,7 +55,8 @@ defmodule Tymeslot.Integrations.Common.OAuth.State do
 
   # Private helpers
 
-  defp secure_equals(a, b), do: :crypto.hash_equals(a, b)
+  defp secure_equals(a, b) when byte_size(a) == byte_size(b), do: :crypto.hash_equals(a, b)
+  defp secure_equals(_, _), do: false
 
   defp extract_user_id(data, ttl_seconds) do
     case String.split(data, ":", parts: 2) do
