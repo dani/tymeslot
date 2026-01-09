@@ -8,7 +8,8 @@ echo "==> Starting Tymeslot"
 
 # Create necessary directories for runtime
 mkdir -p /app/data/tzdata /app/data/uploads
-chmod -R 777 /app/data
+chown -R cloudron:cloudron /app/data
+chmod -R 700 /app/data
 echo "Created runtime directories:"
 ls -la /app/data/
 
@@ -20,8 +21,8 @@ echo "  Note: Calendar and video integrations are managed through the dashboard"
 
 # Run database migrations
 echo "Running database migrations..."
-mix ecto.migrate
+/app/bin/tymeslot eval 'Ecto.Migrator.with_repo(Tymeslot.Repo, &Ecto.Migrator.run(&1, :up, all: true))'
 
 # Start the Phoenix server
 echo "Starting Phoenix server..."
-PHX_SERVER=true /app/_build/prod/rel/tymeslot/bin/tymeslot start
+PHX_SERVER=true /app/bin/tymeslot start
