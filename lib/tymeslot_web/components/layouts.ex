@@ -84,4 +84,43 @@ defmodule TymeslotWeb.Layouts do
       _ -> "quill-theme"
     end
   end
+
+  @doc """
+  Renders generic theme extensions configured in the application environment.
+  Allows external layers (like SaaS) to inject UI without Core awareness.
+  """
+  def render_theme_extensions(assigns) do
+    extensions = Application.get_env(:tymeslot, :theme_extensions, [])
+    assigns = assign(assigns, :extensions, filter_valid_extensions(extensions))
+
+    ~H"""
+    <%= for {mod, func} <- @extensions do %>
+      {apply(mod, func, [assigns])}
+    <% end %>
+    """
+  end
+
+  defp filter_valid_extensions(extensions) when is_list(extensions) do
+    Enum.filter(extensions, fn
+      {mod, func} when is_atom(mod) and is_atom(func) ->
+        if Code.ensure_loaded?(mod) and function_exported?(mod, func, 1) do
+          true
+        else
+          require Logger
+
+          Logger.warning(
+            "Theme extension {#{inspect(mod)}, :#{func}} is configured but not available."
+          )
+
+          false
+        end
+
+      other ->
+        require Logger
+        Logger.error("Invalid theme extension configuration: #{inspect(other)}")
+        false
+    end)
+  end
+
+  defp filter_valid_extensions(_), do: []
 end
