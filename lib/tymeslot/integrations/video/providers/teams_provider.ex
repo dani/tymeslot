@@ -178,30 +178,39 @@ defmodule Tymeslot.Integrations.Video.Providers.TeamsProvider do
     if is_nil(integration_id) or is_nil(user_id) do
       do_actual_refresh(config)
     else
-      Lock.with_lock({:teams, integration_id}, fn ->
-        # Re-fetch from DB to see if another process refreshed it
-        case VideoIntegrationQueries.get_for_user(integration_id, user_id) do
-          {:ok, fresh_integration} ->
-            decrypted = VideoIntegrationSchema.decrypt_credentials(fresh_integration)
-            now = DateTime.utc_now()
+      Lock.with_lock(
+        {:teams, integration_id},
+        fn -> check_and_refresh_token(integration_id, user_id, config) end,
+        mode: :blocking
+      )
+    end
+  end
 
-            # Check if token is still expired (with a 5 min buffer)
-            if DateTime.compare(decrypted.token_expires_at, DateTime.add(now, 300, :second)) == :gt do
-              {:ok, decrypted.access_token}
-            else
-              case do_actual_refresh(config) do
-                {:ok, refreshed_tokens} -> {:ok, refreshed_tokens.access_token}
-                error -> error
-              end
-            end
+  defp check_and_refresh_token(integration_id, user_id, config) do
+    case VideoIntegrationQueries.get_for_user(integration_id, user_id) do
+      {:ok, fresh_integration} ->
+        decrypted = VideoIntegrationSchema.decrypt_credentials(fresh_integration)
 
-          _ ->
-            case do_actual_refresh(config) do
-              {:ok, refreshed_tokens} -> {:ok, refreshed_tokens.access_token}
-              error -> error
-            end
+        if token_still_valid?(decrypted.token_expires_at) do
+          {:ok, decrypted.access_token}
+        else
+          perform_refresh(config)
         end
-      end, mode: :blocking)
+
+      _ ->
+        perform_refresh(config)
+    end
+  end
+
+  defp token_still_valid?(expires_at) do
+    now = DateTime.utc_now()
+    DateTime.compare(expires_at, DateTime.add(now, 300, :second)) == :gt
+  end
+
+  defp perform_refresh(config) do
+    case do_actual_refresh(config) do
+      {:ok, refreshed_tokens} -> {:ok, refreshed_tokens.access_token}
+      error -> error
     end
   end
 

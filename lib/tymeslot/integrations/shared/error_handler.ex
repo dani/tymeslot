@@ -235,6 +235,7 @@ defmodule Tymeslot.Integrations.Common.ErrorHandler do
   end
 
   # Default version for backward compatibility
+  @spec handle_http_error(any()) :: any()
   def handle_http_error(result), do: handle_http_error(result, nil)
 
   # Private functions

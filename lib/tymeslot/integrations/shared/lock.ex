@@ -23,7 +23,7 @@ defmodule Tymeslot.Integrations.Shared.Lock do
 
   @doc """
   Executes the given function with a lock for the specified key.
-  
+
   Options:
     - :mode - :non_blocking (default) or :blocking
     - :timeout - max time to wait in :blocking mode (default 30_000ms)
@@ -32,7 +32,8 @@ defmodule Tymeslot.Integrations.Shared.Lock do
   def with_lock(key, fun, opts \\ [])
 
   # Backward compatibility for calendar integrations: with_lock(provider, integration_id, fun)
-  def with_lock(provider, integration_id, fun) when is_atom(provider) and is_integer(integration_id) and is_function(fun) do
+  def with_lock(provider, integration_id, fun)
+      when is_atom(provider) and is_integer(integration_id) and is_function(fun) do
     do_with_lock({provider, integration_id}, fun, [])
   end
 
@@ -101,9 +102,9 @@ defmodule Tymeslot.Integrations.Shared.Lock do
 
   defp get_lock_timeout(key) do
     config = Application.get_env(:tymeslot, :integration_locks, [])
-    
+
     # Check for specific provider timeout first
-    provider_timeout = 
+    provider_timeout =
       case key do
         {provider, _id} when is_atom(provider) -> Keyword.get(config, provider)
         provider when is_atom(provider) -> Keyword.get(config, provider)
@@ -129,6 +130,11 @@ defmodule Tymeslot.Integrations.Shared.Lock do
 
     case :ets.lookup(@table, key) do
       [{^key, timestamp, _holder_pid}] when now - timestamp <= lock_timeout_ms ->
+        :telemetry.execute([:tymeslot, :lock, :acquire, :timeout], %{duration: 0}, %{
+          key: key,
+          reason: :refresh_in_progress
+        })
+
         {:reply, {:error, :refresh_in_progress}, state}
 
       [{^key, _timestamp, old_pid}] ->
@@ -141,6 +147,11 @@ defmodule Tymeslot.Integrations.Shared.Lock do
           |> put_in([:monitors, ref], {key, from_pid})
           |> put_in([:refs, {key, from_pid}], ref)
 
+        :telemetry.execute([:tymeslot, :lock, :acquire, :success], %{duration: 0}, %{
+          key: key,
+          preempted: true
+        })
+
         {:reply, :ok, new_state}
 
       _ ->
@@ -152,6 +163,11 @@ defmodule Tymeslot.Integrations.Shared.Lock do
           |> put_in([:monitors, ref], {key, from_pid})
           |> put_in([:refs, {key, from_pid}], ref)
 
+        :telemetry.execute([:tymeslot, :lock, :acquire, :success], %{duration: 0}, %{
+          key: key,
+          preempted: false
+        })
+
         {:reply, :ok, new_state}
     end
   end
@@ -159,6 +175,7 @@ defmodule Tymeslot.Integrations.Shared.Lock do
   @impl true
   def handle_call({:test_put_lock, key, timestamp, pid}, _from, state) do
     ensure_table_exists()
+
     state =
       case :ets.lookup(@table, key) do
         [{^key, _, old_pid}] -> cleanup_monitor(state, key, old_pid)
@@ -176,6 +193,7 @@ defmodule Tymeslot.Integrations.Shared.Lock do
     case :ets.lookup(@table, key) do
       [{^key, _timestamp, ^pid}] ->
         :ets.delete(@table, key)
+        :telemetry.execute([:tymeslot, :lock, :release], %{}, %{key: key})
         {:noreply, cleanup_monitor(state, key, pid)}
 
       _ ->

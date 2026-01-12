@@ -167,6 +167,25 @@ defmodule Tymeslot.ThemeCustomizations.Validation do
   def sanitize_customization_input(_attrs), do: {:error, "Attributes must be a map"}
 
   @doc """
+  Sanitizes a file path to prevent directory traversal and other injection attacks.
+  Only allows alphanumeric, dots, dashes, and underscores in each segment.
+  """
+  @spec sanitize_path(String.t() | nil) :: String.t()
+  def sanitize_path(path) when is_binary(path) do
+    path
+    |> String.split("/")
+    |> Enum.map(fn segment ->
+      segment
+      |> String.replace(~r/[^a-zA-Z0-9\._-]/, "")
+      |> String.replace("..", "")
+    end)
+    |> Enum.filter(&(&1 != "" and &1 != "." and &1 != ".."))
+    |> Enum.join("/")
+  end
+
+  def sanitize_path(nil), do: ""
+
+  @doc """
   Validates a hex color value.
   """
   @spec validate_hex_color(term()) :: validation_result()

@@ -6,6 +6,7 @@ defmodule Tymeslot.Integrations.Video.Teams.TeamsOAuthHelperBehaviour do
   @callback authorization_url(term(), String.t()) :: String.t()
   @callback exchange_code_for_tokens(String.t(), String.t(), String.t()) ::
               {:ok, map()} | {:error, String.t()}
-  @callback refresh_access_token(String.t(), String.t() | nil) :: {:ok, map()} | {:error, String.t()}
+  @callback refresh_access_token(String.t(), String.t() | nil) ::
+              {:ok, map()} | {:error, String.t()}
   @callback validate_token(map()) :: {:ok, :valid | :needs_refresh} | {:error, String.t()}
 end

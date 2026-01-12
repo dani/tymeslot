@@ -8,9 +8,9 @@ defmodule Tymeslot.Application do
 
   alias Phoenix.PubSub
   alias Tymeslot.Infrastructure.{ConnectionPool, Metrics}
-  alias Tymeslot.Integrations.Shared.Lock
   alias Tymeslot.Integrations.Calendar.TokenRefreshJob
   alias Tymeslot.Integrations.{HealthCheck, Telemetry}
+  alias Tymeslot.Integrations.Shared.Lock
   alias Tymeslot.Workers.ObanMaintenanceWorker
   alias TymeslotWeb.Endpoint
 

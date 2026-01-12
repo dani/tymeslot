@@ -8,7 +8,7 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
   alias Tymeslot.Demo
   alias Tymeslot.Integrations.Calendar
   alias Tymeslot.Security.FormValidation
-  alias Tymeslot.Utils.{DateTimeUtils, TimezoneUtils}
+  alias Tymeslot.Utils.{ContextUtils, DateTimeUtils, TimezoneUtils}
   alias TymeslotWeb.Components.FormSystem
   alias TymeslotWeb.Helpers.ClientIP
 
@@ -116,7 +116,7 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
       with {:ok, date} <- Date.from_iso8601(date_string),
            {:ok, owner_timezone} <- get_owner_timezone(organizer_profile) do
         # Check if this is a demo user
-        if demo_user?(organizer_profile) || get_from_context(context, :demo_mode) do
+        if demo_user?(organizer_profile) || ContextUtils.get_from_context(context, :demo_mode) do
           # Use demo provider for availability generation
           Demo.get_available_slots(
             date_string,
@@ -195,7 +195,7 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
       organizer_profile && user_id != organizer_profile.user_id ->
         {:error, :unauthorized}
 
-      demo_user?(organizer_profile) || get_from_context(context, :demo_mode) ->
+      demo_user?(organizer_profile) || ContextUtils.get_from_context(context, :demo_mode) ->
         # Delegate to demo provider
         Demo.get_month_availability(
           user_id,
@@ -232,6 +232,88 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
           )
         end
     end
+  end
+
+  @doc """
+  Orchestrates fetching availability for a month, either synchronously (in tests) or asynchronously.
+  Updates the socket with loading states and task references.
+  """
+  @spec perform_availability_fetch(Phoenix.LiveView.Socket.t()) :: Phoenix.LiveView.Socket.t()
+  def perform_availability_fetch(socket) do
+    context = %{
+      demo_mode: Demo.demo_mode?(socket),
+      organizer_profile: socket.assigns.organizer_profile,
+      debug_calendar_module: socket.private[:debug_calendar_module]
+    }
+
+    start_time = System.monotonic_time()
+
+    socket =
+      socket
+      |> assign(:month_availability_map, :loading)
+      |> assign(:availability_status, :loading)
+      |> assign(:availability_fetch_start_time, start_time)
+
+    if Application.get_env(:tymeslot, :environment) == :test do
+      perform_sync_availability_fetch(socket, context)
+    else
+      perform_async_availability_fetch(socket, context)
+    end
+  end
+
+  @doc """
+  Performs a synchronous availability fetch. Used primarily in test environments.
+  """
+  @spec perform_sync_availability_fetch(Phoenix.LiveView.Socket.t(), map()) ::
+          Phoenix.LiveView.Socket.t()
+  def perform_sync_availability_fetch(socket, context) do
+    ref = make_ref()
+
+    case get_month_availability(
+           socket.assigns.organizer_user_id,
+           socket.assigns.current_year,
+           socket.assigns.current_month,
+           socket.assigns.user_timezone,
+           socket.assigns.organizer_profile,
+           context
+         ) do
+      {:ok, availability} -> send(self(), {ref, {:ok, availability}})
+      {:error, reason} -> send(self(), {ref, {:error, reason}})
+    end
+
+    socket
+    |> assign(:availability_task, nil)
+    |> assign(:availability_task_ref, ref)
+  end
+
+  @doc """
+  Performs an asynchronous availability fetch using Task.async.
+  """
+  @spec perform_async_availability_fetch(Phoenix.LiveView.Socket.t(), map()) ::
+          Phoenix.LiveView.Socket.t()
+  def perform_async_availability_fetch(socket, context) do
+    # Extract values needed for closure to avoid capturing socket
+    organizer_user_id = socket.assigns.organizer_user_id
+    current_year = socket.assigns.current_year
+    current_month = socket.assigns.current_month
+    user_timezone = socket.assigns.user_timezone
+    organizer_profile = socket.assigns.organizer_profile
+
+    task =
+      Task.async(fn ->
+        get_month_availability(
+          organizer_user_id,
+          current_year,
+          current_month,
+          user_timezone,
+          organizer_profile,
+          context
+        )
+      end)
+
+    socket
+    |> assign(:availability_task, task)
+    |> assign(:availability_task_ref, task.ref)
   end
 
   @doc """
@@ -419,22 +501,4 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
     assign(socket, :calendar_days, calendar_days)
   end
 
-  defp get_from_context(nil, _key), do: nil
-
-  defp get_from_context(context, key) do
-    case context do
-      %{assigns: assigns} = socket ->
-        # Handle Phoenix.LiveView.Socket (check assigns then private)
-        case Map.get(assigns, key) do
-          nil -> if Map.has_key?(socket, :private), do: Map.get(socket.private, key), else: nil
-          val -> val
-        end
-
-      %{} = map ->
-        Map.get(map, key)
-
-      _ ->
-        nil
-    end
-  end
 end

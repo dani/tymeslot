@@ -4,8 +4,11 @@ defmodule Tymeslot.Integrations.Video.Providers.TeamsProviderTest do
   import Mox
   import Tymeslot.Factory
 
-  alias Tymeslot.Integrations.Video.Providers.TeamsProvider
+  alias Tymeslot.DatabaseQueries.VideoIntegrationQueries
+  alias Tymeslot.DatabaseSchemas.VideoIntegrationSchema
   alias Tymeslot.HTTPClientMock
+  alias Tymeslot.Integrations.Video.Providers.TeamsProvider
+  alias Tymeslot.Repo
   alias Tymeslot.TeamsOAuthHelperMock
 
   setup :verify_on_exit!
@@ -99,7 +102,10 @@ defmodule Tymeslot.Integrations.Video.Providers.TeamsProviderTest do
 
   describe "test_connection/1" do
     test "returns success when token is valid" do
-      config = %{access_token: "valid_token", token_expires_at: DateTime.add(DateTime.utc_now(), 3600)}
+      config = %{
+        access_token: "valid_token",
+        token_expires_at: DateTime.add(DateTime.utc_now(), 3600)
+      }
 
       expect(TeamsOAuthHelperMock, :validate_token, fn ^config -> {:ok, :valid} end)
 
@@ -129,7 +135,10 @@ defmodule Tymeslot.Integrations.Video.Providers.TeamsProviderTest do
 
       expect(HTTPClientMock, :request, fn :post, url, _body, headers, _opts ->
         assert url == "https://graph.microsoft.com/v1.0/me/onlineMeetings"
-        assert Enum.any?(headers, fn {k, v} -> String.downcase(k) == "authorization" and v == "Bearer valid_token" end)
+
+        assert Enum.any?(headers, fn {k, v} ->
+                 String.downcase(k) == "authorization" and v == "Bearer valid_token"
+               end)
 
         {:ok,
          %HTTPoison.Response{
@@ -152,18 +161,20 @@ defmodule Tymeslot.Integrations.Video.Providers.TeamsProviderTest do
 
     test "refreshes token and persists to database" do
       user = insert(:user)
-      {:ok, integration} = Tymeslot.DatabaseQueries.VideoIntegrationQueries.create(%{
-        user_id: user.id,
-        name: "Teams",
-        provider: "teams",
-        tenant_id: "t1",
-        client_id: "c1",
-        client_secret: "s1",
-        teams_user_id: "u1",
-        access_token: "expired",
-        refresh_token: "refresh",
-        token_expires_at: DateTime.add(DateTime.utc_now(), -3600)
-      })
+
+      {:ok, integration} =
+        VideoIntegrationQueries.create(%{
+          user_id: user.id,
+          name: "Teams",
+          provider: "teams",
+          tenant_id: "t1",
+          client_id: "c1",
+          client_secret: "s1",
+          teams_user_id: "u1",
+          access_token: "expired",
+          refresh_token: "refresh",
+          token_expires_at: DateTime.add(DateTime.utc_now(), -3600)
+        })
 
       config = %{
         access_token: "expired",
@@ -174,6 +185,7 @@ defmodule Tymeslot.Integrations.Video.Providers.TeamsProviderTest do
       }
 
       expect(TeamsOAuthHelperMock, :validate_token, fn ^config -> {:ok, :needs_refresh} end)
+
       expect(TeamsOAuthHelperMock, :refresh_access_token, fn "refresh", _scope ->
         {:ok,
          %{
@@ -189,14 +201,17 @@ defmodule Tymeslot.Integrations.Video.Providers.TeamsProviderTest do
                end)
 
         {:ok,
-         %HTTPoison.Response{status_code: 201, body: Jason.encode!(%{"id" => "m1", "joinUrl" => "url"})}}
+         %HTTPoison.Response{
+           status_code: 201,
+           body: Jason.encode!(%{"id" => "m1", "joinUrl" => "url"})
+         }}
       end)
 
       assert {:ok, _} = TeamsProvider.create_meeting_room(config)
 
       # Verify DB update
-      updated = Tymeslot.Repo.get(Tymeslot.DatabaseSchemas.VideoIntegrationSchema, integration.id)
-      decrypted = Tymeslot.DatabaseSchemas.VideoIntegrationSchema.decrypt_credentials(updated)
+      updated = Repo.get(VideoIntegrationSchema, integration.id)
+      decrypted = VideoIntegrationSchema.decrypt_credentials(updated)
       assert decrypted.access_token == "new_token"
     end
 

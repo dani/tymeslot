@@ -15,7 +15,15 @@ defmodule Tymeslot.Availability.ConflictsTest do
     # calculation (available_slots).
 
     check all(
-            timezone <- member_of(["UTC", "America/New_York", "Europe/London", "Asia/Tokyo", "Australia/Sydney", "Pacific/Auckland"]),
+            timezone <-
+              member_of([
+                "UTC",
+                "America/New_York",
+                "Europe/London",
+                "Asia/Tokyo",
+                "Australia/Sydney",
+                "Pacific/Auckland"
+              ]),
             # Use a date in the future to avoid past-date filtering
             days_ahead <- integer(5..60),
             # Meeting duration between 15 and 120 minutes
@@ -23,19 +31,20 @@ defmodule Tymeslot.Availability.ConflictsTest do
             # Buffer between 0 and 60 minutes
             buffer <- integer(0..60),
             # Generate some random events around the target date
-            events <- list_of(
-              tuple({
-                # Event start: +/- 3 days from target date
-                integer(-3..3),
-                # Hour
-                integer(0..23),
-                # Minute
-                integer(0..59),
-                # Duration
-                integer(15..480)
-              }),
-              max_length: 10
-            )
+            events <-
+              list_of(
+                tuple({
+                  # Event start: +/- 3 days from target date
+                  integer(-3..3),
+                  # Hour
+                  integer(0..23),
+                  # Minute
+                  integer(0..59),
+                  # Duration
+                  integer(15..480)
+                }),
+                max_length: 10
+              )
           ) do
       date = Date.add(Date.utc_today(), days_ahead)
       config = %{buffer_minutes: buffer, min_advance_hours: 0}
@@ -45,6 +54,7 @@ defmodule Tymeslot.Availability.ConflictsTest do
         Enum.map(events, fn {day_offset, hour, min, dur} ->
           event_date = Date.add(date, day_offset)
           start_time = DateTime.new!(event_date, Time.new!(hour, min, 0), timezone)
+
           %{
             start_time: start_time,
             end_time: DateTime.add(start_time, dur, :minute)
@@ -552,7 +562,17 @@ defmodule Tymeslot.Availability.ConflictsTest do
     # target date window (+/- 1 day) across all possible timezone shifts.
 
     check all(
-            timezone <- member_of(["UTC", "America/New_York", "Europe/London", "Asia/Tokyo", "Australia/Sydney", "Pacific/Auckland", "Pacific/Kiritimati", "Pacific/Niue"]),
+            timezone <-
+              member_of([
+                "UTC",
+                "America/New_York",
+                "Europe/London",
+                "Asia/Tokyo",
+                "Australia/Sydney",
+                "Pacific/Auckland",
+                "Pacific/Kiritimati",
+                "Pacific/Niue"
+              ]),
             target_days_ahead <- integer(5..60),
             # Event date can be anywhere
             event_days_ahead <- integer(0..70),
@@ -583,8 +603,9 @@ defmodule Tymeslot.Availability.ConflictsTest do
       event_start_date = DateTime.to_date(event_in_user_tz.start_time)
       event_end_date = DateTime.to_date(event_in_user_tz.end_time)
 
-      is_excluded = Date.compare(event_end_date, start_date_limit) == :lt or
-                    Date.compare(event_start_date, end_date_limit) == :gt
+      is_excluded =
+        Date.compare(event_end_date, start_date_limit) == :lt or
+          Date.compare(event_start_date, end_date_limit) == :gt
 
       if is_excluded do
         # If the event was excluded, it MUST NOT overlap with ANY of the checked days
@@ -594,8 +615,9 @@ defmodule Tymeslot.Availability.ConflictsTest do
         window_end = DateTime.new!(Date.add(target_date, 1), ~T[23:59:59], timezone)
 
         # Check for overlap
-        overlaps = not (DateTime.compare(event_in_user_tz.end_time, window_start) == :lt or
-                        DateTime.compare(event_in_user_tz.start_time, window_end) == :gt)
+        overlaps =
+          not (DateTime.compare(event_in_user_tz.end_time, window_start) == :lt or
+                 DateTime.compare(event_in_user_tz.start_time, window_end) == :gt)
 
         assert not overlaps, """
         Pre-filter excluded a relevant event!

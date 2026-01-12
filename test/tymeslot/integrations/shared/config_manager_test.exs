@@ -123,12 +123,21 @@ defmodule Tymeslot.Integrations.Common.ConfigManagerTest do
     test "extracts and processes provider-specific config" do
       user_config = %{
         integrations: %{
-          "google" => %{access_token: "abc", refresh_token: "def", token_expires_at: DateTime.utc_now(), oauth_scope: "scope"}
+          "google" => %{
+            access_token: "abc",
+            refresh_token: "def",
+            token_expires_at: DateTime.utc_now(),
+            oauth_scope: "scope"
+          }
         }
       }
 
       assert {:ok, config} =
-               ConfigManager.extract_provider_config(user_config, "google", ConfigManager.oauth_schema())
+               ConfigManager.extract_provider_config(
+                 user_config,
+                 "google",
+                 ConfigManager.oauth_schema()
+               )
 
       assert config.access_token == "abc"
     end
@@ -137,7 +146,11 @@ defmodule Tymeslot.Integrations.Common.ConfigManagerTest do
       user_config = %{integrations: %{"google" => %{}}}
 
       assert {:error, message} =
-               ConfigManager.extract_provider_config(user_config, "google", ConfigManager.oauth_schema())
+               ConfigManager.extract_provider_config(
+                 user_config,
+                 "google",
+                 ConfigManager.oauth_schema()
+               )
 
       assert String.contains?(message, "Missing required fields")
     end
@@ -154,11 +167,13 @@ defmodule Tymeslot.Integrations.Common.ConfigManagerTest do
       assert :ok = ConfigManager.validate_encryption(%{api_secret: prefixed_val}, schema)
 
       # Encrypted value (matches heuristic with length)
-      long_val = "A" |> String.duplicate(45)
+      long_val = String.duplicate("A", 45)
       assert :ok = ConfigManager.validate_encryption(%{api_secret: long_val}, schema)
 
       # Unencrypted value
-      assert {:error, message} = ConfigManager.validate_encryption(%{api_secret: "short-plain"}, schema)
+      assert {:error, message} =
+               ConfigManager.validate_encryption(%{api_secret: "short-plain"}, schema)
+
       assert String.contains?(message, "Unencrypted sensitive fields: api_secret")
     end
 
@@ -185,7 +200,9 @@ defmodule Tymeslot.Integrations.Common.ConfigManagerTest do
       }
 
       assert :ok = ConfigManager.validate_encryption(%{api_secret: "TEST_ENC:data"}, schema)
-      assert {:error, _} = ConfigManager.validate_encryption(%{api_secret: "TYS.ENC:data"}, schema)
+
+      assert {:error, _} =
+               ConfigManager.validate_encryption(%{api_secret: "TYS.ENC:data"}, schema)
     end
 
     test "ignores non-encrypted fields" do

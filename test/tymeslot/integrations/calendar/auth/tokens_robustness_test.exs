@@ -2,8 +2,8 @@ defmodule Tymeslot.Integrations.Calendar.Auth.TokensRobustnessTest do
   # async: false to control ETS table state
   use Tymeslot.DataCase, async: false
 
-  alias Tymeslot.Integrations.Shared.Lock
   alias Tymeslot.Integrations.Calendar.Tokens
+  alias Tymeslot.Integrations.Shared.Lock
 
   import Mox
   setup :verify_on_exit!

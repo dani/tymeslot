@@ -4,6 +4,8 @@ defmodule Tymeslot.ThemeCustomizations.Backgrounds do
   Handles background type changes, cleanup logic, and CSS generation.
   """
 
+  alias Tymeslot.ThemeCustomizations.Validation
+
   @doc """
   Applies a background selection to a customization, updating type and value.
   """
@@ -160,7 +162,7 @@ defmodule Tymeslot.ThemeCustomizations.Backgrounds do
   defp get_image_css(customization, presets) do
     cond do
       custom_image?(customization) ->
-        path = sanitize_path(customization.background_image_path)
+        path = Validation.sanitize_path(customization.background_image_path)
         "/uploads/#{path}"
 
       preset_image?(customization) ->
@@ -174,7 +176,7 @@ defmodule Tymeslot.ThemeCustomizations.Backgrounds do
   defp get_video_css(customization, presets) do
     cond do
       custom_video?(customization) ->
-        path = sanitize_path(customization.background_video_path)
+        path = Validation.sanitize_path(customization.background_video_path)
         "/uploads/#{path}"
 
       preset_video?(customization) ->
@@ -221,7 +223,7 @@ defmodule Tymeslot.ThemeCustomizations.Backgrounds do
   defp resolve_image(customization, presets) do
     cond do
       custom_image?(customization) ->
-        path = sanitize_path(customization.background_image_path)
+        path = Validation.sanitize_path(customization.background_image_path)
         {:image, %{url: "/uploads/#{path}", kind: :custom, name: nil}}
 
       preset_image?(customization) ->
@@ -242,7 +244,7 @@ defmodule Tymeslot.ThemeCustomizations.Backgrounds do
   defp resolve_video(customization, presets) do
     cond do
       custom_video?(customization) ->
-        path = sanitize_path(customization.background_video_path)
+        path = Validation.sanitize_path(customization.background_video_path)
 
         {:video,
          %{
@@ -314,22 +316,6 @@ defmodule Tymeslot.ThemeCustomizations.Backgrounds do
     preset = Map.get(presets.videos || %{}, customization.background_value)
     preset && preset.file
   end
-
-  defp sanitize_path(path) when is_binary(path) do
-    # Only allow alphanumeric, dots, dashes, and underscores in each segment
-    # This prevents directory traversal and other injection attacks
-    path
-    |> String.split("/")
-    |> Enum.map(fn segment ->
-      segment
-      |> String.replace(~r/[^a-zA-Z0-9\._-]/, "")
-      |> String.replace("..", "")
-    end)
-    |> Enum.filter(&(&1 != "" and &1 != "." and &1 != ".."))
-    |> Enum.join("/")
-  end
-
-  defp sanitize_path(nil), do: ""
 
   # Private helper functions
 

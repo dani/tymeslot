@@ -8,6 +8,7 @@ defmodule TymeslotWeb.Themes.Shared.Customization.Helpers do
   alias Tymeslot.Demo
   alias Tymeslot.ThemeCustomizations
   alias Tymeslot.ThemeCustomizations.Defaults
+  alias Tymeslot.ThemeCustomizations.Validation
   alias TymeslotWeb.Themes.Shared.Customization.Capability
 
   @doc """
@@ -234,21 +235,7 @@ defmodule TymeslotWeb.Themes.Shared.Customization.Helpers do
   This prevents directory traversal and other injection attacks.
   """
   @spec sanitize_path(String.t() | nil) :: String.t()
-  def sanitize_path(nil), do: ""
-
-  def sanitize_path(path) when is_binary(path) do
-    # Only allow alphanumeric, dots, dashes, and underscores in each segment
-    # This prevents directory traversal and other injection attacks
-    path
-    |> String.split("/")
-    |> Enum.map(fn segment ->
-      segment
-      |> String.replace(~r/[^a-zA-Z0-9\._-]/, "")
-      |> String.replace("..", "")
-    end)
-    |> Enum.filter(&(&1 != "" and &1 != "." and &1 != ".."))
-    |> Enum.join("/")
-  end
+  def sanitize_path(path), do: Validation.sanitize_path(path)
 
   defp get_preset_image_style(background_value) do
     preset = ThemeCustomizationSchema.image_presets()[background_value]

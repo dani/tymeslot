@@ -7,10 +7,10 @@ defmodule Tymeslot.Integrations.Calendar.Tokens do
 
   alias Tymeslot.DatabaseQueries.CalendarIntegrationQueries
   alias Tymeslot.DatabaseSchemas.CalendarIntegrationSchema
-  alias Tymeslot.Integrations.Shared.Lock
   alias Tymeslot.Integrations.Calendar.Google.CalendarAPI, as: GoogleCalendarAPI
   alias Tymeslot.Integrations.Calendar.Outlook.CalendarAPI, as: OutlookCalendarAPI
   alias Tymeslot.Integrations.Calendar.TokenUtils
+  alias Tymeslot.Integrations.Shared.Lock
 
   @type integration :: map()
   @type user_id :: pos_integer()

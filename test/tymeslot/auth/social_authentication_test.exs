@@ -6,6 +6,7 @@ defmodule Tymeslot.Auth.SocialAuthenticationTest do
   use Tymeslot.DataCase, async: true
 
   alias Plug.Conn
+  alias Plug.Test, as: PlugTest
   alias Tymeslot.Auth.SocialAuthentication
 
   describe "validate_provider_response/1" do
@@ -256,7 +257,9 @@ defmodule Tymeslot.Auth.SocialAuthenticationTest do
         "verified_email" => true,
         "google_user_id" => "g123"
       }
+
       profile_params = %{full_name: "Google User"}
+
       temp_user = %{
         provider: "google",
         email: "google@example.com",
@@ -283,7 +286,9 @@ defmodule Tymeslot.Auth.SocialAuthenticationTest do
         "verified_email" => true,
         "github_user_id" => "gh456"
       }
+
       profile_params = %{full_name: "Github User"}
+
       temp_user = %{
         provider: "github",
         email: "github@example.com",
@@ -306,54 +311,63 @@ defmodule Tymeslot.Auth.SocialAuthenticationTest do
 
   describe "validate_oauth_state/2" do
     test "returns :ok for matching state" do
-      conn = Plug.Test.conn(:get, "/") |> Plug.Test.init_test_session(%{})
+      conn = PlugTest.init_test_session(PlugTest.conn(:get, "/"), %{})
       expires_at = DateTime.add(DateTime.utc_now(), 600, :second)
-      conn = conn
+
+      conn =
+        conn
         |> Conn.put_session(:oauth_state, "matching")
         |> Conn.put_session(:oauth_state_expires, expires_at)
-      
+
       assert SocialAuthentication.validate_oauth_state(conn, "matching") == :ok
     end
 
     test "returns error for mismatching state" do
-      conn = Plug.Test.conn(:get, "/") |> Plug.Test.init_test_session(%{})
+      conn = PlugTest.init_test_session(PlugTest.conn(:get, "/"), %{})
       expires_at = DateTime.add(DateTime.utc_now(), 600, :second)
-      conn = conn
+
+      conn =
+        conn
         |> Conn.put_session(:oauth_state, "original")
         |> Conn.put_session(:oauth_state_expires, expires_at)
-      
-      assert SocialAuthentication.validate_oauth_state(conn, "mismatch") == {:error, :invalid_oauth_state}
+
+      assert SocialAuthentication.validate_oauth_state(conn, "mismatch") ==
+               {:error, :invalid_oauth_state}
     end
 
     test "returns error for expired state" do
-      conn = Plug.Test.conn(:get, "/") |> Plug.Test.init_test_session(%{})
+      conn = PlugTest.init_test_session(PlugTest.conn(:get, "/"), %{})
       expires_at = DateTime.add(DateTime.utc_now(), -600, :second)
-      conn = conn
+
+      conn =
+        conn
         |> Conn.put_session(:oauth_state, "original")
         |> Conn.put_session(:oauth_state_expires, expires_at)
-      
-      assert SocialAuthentication.validate_oauth_state(conn, "original") == {:error, :oauth_state_expired}
+
+      assert SocialAuthentication.validate_oauth_state(conn, "original") ==
+               {:error, :oauth_state_expired}
     end
 
     test "returns error for missing state in session" do
-      conn = Plug.Test.conn(:get, "/") |> Plug.Test.init_test_session(%{})
-      
-      assert SocialAuthentication.validate_oauth_state(conn, "any") == {:error, :missing_oauth_state}
+      conn = PlugTest.init_test_session(PlugTest.conn(:get, "/"), %{})
+
+      assert SocialAuthentication.validate_oauth_state(conn, "any") ==
+               {:error, :missing_oauth_state}
     end
   end
 
   describe "generate_oauth_state/1" do
     test "generates base64 encoded state and stores it in session" do
-      conn = Plug.Test.conn(:get, "/") |> Plug.Test.init_test_session(%{})
+      conn = PlugTest.init_test_session(PlugTest.conn(:get, "/"), %{})
 
       state = SocialAuthentication.generate_oauth_state(conn)
 
       assert is_binary(state)
       assert String.match?(state, ~r/^[A-Za-z0-9_-]+$/)
       assert String.length(state) >= 40
-      
+
       # Since generate_oauth_state returns the state but we want to check the updated conn,
-      # and it's a side-effecting function on the conn (which is passed by value in Elixir, 
+      # and it's a side-effecting function on the conn (which is passed by value in Elixir,
       # but Plug.Conn.put_session returns a new conn).
       # Wait, SocialAuthentication.generate_oauth_state(conn) returns ONLY the state.
       # This means the conn it updates is LOST unless it's used elsewhere.

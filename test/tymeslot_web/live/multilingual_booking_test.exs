@@ -43,7 +43,7 @@ defmodule TymeslotWeb.Live.MultilingualBookingTest do
 
       # Navigate again WITHOUT the locale param - should still be German from session
       # We use recycle(conn) to maintain the session/cookies
-      conn = recycle(conn) |> get("/#{username}")
+      conn = get(recycle(conn), "/#{username}")
       {:ok, _view, html} = live(conn)
       assert html =~ "data-locale=\"de\""
     end
@@ -58,10 +58,10 @@ defmodule TymeslotWeb.Live.MultilingualBookingTest do
 
       # Switch to German via dropdown
       view |> element("button[phx-click='toggle_language_dropdown']") |> render_click()
-      
+
       # follow_redirect can take just the conn if we don't want to assert on the path
-      {:ok, new_view, _html} = 
-        view 
+      {:ok, new_view, _html} =
+        view
         |> element("button[phx-click='change_locale'][phx-value-locale='de']")
         |> render_click()
         |> follow_redirect(conn)
@@ -71,10 +71,10 @@ defmodule TymeslotWeb.Live.MultilingualBookingTest do
       # Navigate to a different page - locale should persist
       # We use recycle(conn) from the follow_redirect but we don't have it easily.
       # Actually, follow_redirect uses the conn and returns the view.
-      
+
       # Let's try to just use the new_view's session if it was carried over.
       # But live(conn, ...) needs a conn.
-      
+
       # Alternatively, just use the query param which is what push_navigate does.
       {:ok, final_view, _html} = live(conn, "/#{username}?locale=de")
       assert render(final_view) =~ "data-locale=\"de\""
@@ -94,7 +94,7 @@ defmodule TymeslotWeb.Live.MultilingualBookingTest do
       assert render(view) =~ "role=\"menu\""
 
       # Switch to German (don't use change_locale helper as it toggles again)
-      {:ok, view, _html} = 
+      {:ok, view, _html} =
         view
         |> element("button[phx-click='change_locale'][phx-value-locale='de']")
         |> render_click()

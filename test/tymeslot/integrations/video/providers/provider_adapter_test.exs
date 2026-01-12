@@ -2,8 +2,8 @@ defmodule Tymeslot.Integrations.Video.Providers.ProviderAdapterTest do
   use ExUnit.Case, async: true
 
   import Mox
-  alias Tymeslot.Integrations.Video.Providers.ProviderAdapter
   alias Tymeslot.Integrations.Video.Providers.MiroTalkProvider
+  alias Tymeslot.Integrations.Video.Providers.ProviderAdapter
 
   setup :verify_on_exit!
 
@@ -28,7 +28,8 @@ defmodule Tymeslot.Integrations.Video.Providers.ProviderAdapterTest do
 
   describe "extract_room_id/1" do
     test "extracts from google meet" do
-      assert ProviderAdapter.extract_room_id("https://meet.google.com/abc-defg-hij") == "abc-defg-hij"
+      assert ProviderAdapter.extract_room_id("https://meet.google.com/abc-defg-hij") ==
+               "abc-defg-hij"
     end
 
     test "extracts from mirotalk" do
@@ -46,7 +47,11 @@ defmodule Tymeslot.Integrations.Video.Providers.ProviderAdapterTest do
 
       # Mock MiroTalk API call
       expect(Tymeslot.HTTPClientMock, :post, 2, fn _url, _body, _headers, _opts ->
-        {:ok, %HTTPoison.Response{status_code: 200, body: Jason.encode!(%{"meeting" => "https://mirotalk.test/room123"})}}
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 200,
+           body: Jason.encode!(%{"meeting" => "https://mirotalk.test/room123"})
+         }}
       end)
 
       assert {:ok, context} = ProviderAdapter.create_meeting_room(:mirotalk, config)
@@ -55,7 +60,8 @@ defmodule Tymeslot.Integrations.Video.Providers.ProviderAdapterTest do
     end
 
     test "returns error for unknown provider" do
-      assert {:error, "Unknown video provider type: unknown"} = ProviderAdapter.create_meeting_room(:unknown, %{})
+      assert {:error, "Unknown video provider type: unknown"} =
+               ProviderAdapter.create_meeting_room(:unknown, %{})
     end
   end
 

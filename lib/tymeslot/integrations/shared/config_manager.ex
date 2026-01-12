@@ -163,15 +163,12 @@ defmodule Tymeslot.Integrations.Common.ConfigManager do
   @spec validate_encryption(config(), schema()) :: validation_result()
   def validate_encryption(config, schema) do
     unencrypted_fields =
-      schema
-      |> Enum.filter(fn {_field, field_schema} ->
-        Map.get(field_schema, :encrypted, false)
-      end)
-      |> Enum.filter(fn {field, field_schema} ->
-        value = Map.get(config, field)
-        value && is_binary(value) && not value_encrypted?(value, field_schema)
-      end)
-      |> Enum.map(fn {field, _schema} -> field end)
+      for {field, field_schema} <- schema,
+          Map.get(field_schema, :encrypted, false),
+          value = Map.get(config, field),
+          value && is_binary(value) && not value_encrypted?(value, field_schema) do
+        field
+      end
 
     case unencrypted_fields do
       [] -> :ok

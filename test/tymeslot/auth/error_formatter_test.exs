@@ -1,8 +1,8 @@
 defmodule Tymeslot.Auth.ErrorFormatterTest do
   use Tymeslot.DataCase, async: true
 
-  alias Tymeslot.Auth.ErrorFormatter
   alias Ecto.Changeset
+  alias Tymeslot.Auth.ErrorFormatter
 
   describe "format_auth_error/1" do
     test "returns string as is" do
@@ -10,9 +10,12 @@ defmodule Tymeslot.Auth.ErrorFormatterTest do
     end
 
     test "formats generic auth errors" do
-      Enum.each([:invalid_input, :not_found, :invalid_password, :invalid_credentials], fn reason ->
-        assert ErrorFormatter.format_auth_error(reason) == "Invalid email or password."
-      end)
+      Enum.each(
+        [:invalid_input, :not_found, :invalid_password, :invalid_credentials],
+        fn reason ->
+          assert ErrorFormatter.format_auth_error(reason) == "Invalid email or password."
+        end
+      )
     end
 
     test "formats account status errors" do
@@ -43,18 +46,21 @@ defmodule Tymeslot.Auth.ErrorFormatterTest do
     end
 
     test "formats password reset errors" do
-      assert ErrorFormatter.format_auth_error(:password_reset_failed) =~ "Unable to reset password"
+      assert ErrorFormatter.format_auth_error(:password_reset_failed) =~
+               "Unable to reset password"
     end
 
     test "returns default message for unknown atom" do
-      assert ErrorFormatter.format_auth_error(:unknown_reason) == "An error occurred. Please try again."
+      assert ErrorFormatter.format_auth_error(:unknown_reason) ==
+               "An error occurred. Please try again."
     end
   end
 
   describe "format_validation_errors/1" do
     test "formats changeset errors" do
-      data  = %{}
+      data = %{}
       types = %{email: :string, name: :string}
+
       changeset =
         {data, types}
         |> Changeset.cast(%{email: "invalid"}, [:email, :name])
@@ -76,9 +82,15 @@ defmodule Tymeslot.Auth.ErrorFormatterTest do
 
   describe "format_oauth_error/2" do
     test "formats specific oauth errors" do
-      assert ErrorFormatter.format_oauth_error(:github, "access_denied") =~ "Github authorization was denied"
-      assert ErrorFormatter.format_oauth_error(:google, :invalid_response) =~ "Invalid response from Google"
-      assert ErrorFormatter.format_oauth_error(:github, :token_exchange_failed) =~ "Failed to authenticate with Github"
+      assert ErrorFormatter.format_oauth_error(:github, "access_denied") =~
+               "Github authorization was denied"
+
+      assert ErrorFormatter.format_oauth_error(:google, :invalid_response) =~
+               "Invalid response from Google"
+
+      assert ErrorFormatter.format_oauth_error(:github, :token_exchange_failed) =~
+               "Failed to authenticate with Github"
+
       assert ErrorFormatter.format_oauth_error(:google, :other) =~ "Google authentication failed"
     end
   end

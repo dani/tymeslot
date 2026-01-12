@@ -5,6 +5,8 @@ defmodule TymeslotWeb.Live.Themes.AvailabilityRefinementTest do
   import Phoenix.LiveViewTest
   import Tymeslot.Factory
 
+  alias Ecto.Adapters.SQL.Sandbox
+  alias Tymeslot.Repo
   alias Tymeslot.Security.RateLimiter
   alias Tymeslot.TestMocks
 
@@ -12,7 +14,7 @@ defmodule TymeslotWeb.Live.Themes.AvailabilityRefinementTest do
 
   setup do
     Mox.set_mox_global()
-    Ecto.Adapters.SQL.Sandbox.mode(Tymeslot.Repo, {:shared, self()})
+    Sandbox.mode(Repo, {:shared, self()})
     ensure_rate_limiter_started()
     RateLimiter.clear_all()
 
@@ -58,7 +60,9 @@ defmodule TymeslotWeb.Live.Themes.AvailabilityRefinementTest do
 
       insert(:calendar_integration, user: user, is_active: true)
 
-      target_date = Date.add(Date.utc_today(), 2)
+      today = Date.utc_today()
+      # Pick a date 2 days from today
+      target_date = Date.add(today, 2)
       date_str = Date.to_string(target_date)
 
       stub(Tymeslot.CalendarMock, :get_events_for_range_fresh, fn _user_id, _start, _end ->
@@ -75,8 +79,15 @@ defmodule TymeslotWeb.Live.Themes.AvailabilityRefinementTest do
       {:ok, view, _html} =
         live(conn, ~p"/#{profile.username}/schedule/30min?timezone=#{timezone}")
 
+      # If target_date is in the next month, we might need to navigate
+      if target_date.month != today.month do
+        view |> element("button[phx-click='next_month']") |> render_click()
+      end
+
       wait_until(fn ->
-        render(view) =~ "data-date=\"#{date_str}\"" and
+        html = render(view)
+
+        html =~ "data-date=\"#{date_str}\"" and
           has_element?(
             view,
             "button[data-testid='calendar-day'][phx-value-date='#{date_str}'][disabled]"
@@ -90,6 +101,7 @@ defmodule TymeslotWeb.Live.Themes.AvailabilityRefinementTest do
     end
 
     test "greys out today if business hours have passed", %{conn: conn} do
+      # 14 hours ahead of UTC
       timezone = "Etc/GMT-14"
       user = insert(:user)
 
@@ -101,6 +113,18 @@ defmodule TymeslotWeb.Live.Themes.AvailabilityRefinementTest do
           username: "today-grey-test"
         )
 
+      # Set business hours that have definitely passed for today in this timezone
+      # by picking a very early window (00:00 - 01:00)
+      Enum.each(1..7, fn day_of_week ->
+        insert(:weekly_availability,
+          profile: profile,
+          day_of_week: day_of_week,
+          is_available: true,
+          start_time: ~T[00:00:00],
+          end_time: ~T[01:00:00]
+        )
+      end)
+
       _meeting_type = insert(:meeting_type, user: user, duration_minutes: 30, is_active: true)
       insert(:calendar_integration, user: user, is_active: true)
 
@@ -111,7 +135,11 @@ defmodule TymeslotWeb.Live.Themes.AvailabilityRefinementTest do
       {:ok, view, _html} =
         live(conn, ~p"/#{profile.username}/schedule/30min?timezone=#{timezone}")
 
-      if now_in_tz.hour >= 17 do
+      # Since business hours are 00:00-01:00 and we are in GMT-14,
+      # today should be disabled as long as it's past 01:00 in that timezone.
+      # 01:00 GMT-14 is 11:00 previous day UTC.
+      # This test is now much more likely to run and pass.
+      if now_in_tz.hour >= 1 do
         wait_until(fn ->
           has_element?(
             view,
@@ -135,7 +163,11 @@ defmodule TymeslotWeb.Live.Themes.AvailabilityRefinementTest do
 
       wait_until(fn ->
         html = render(view)
-        html =~ "Calendar is loading slowly" || html =~ "Calendar service is slow"
+        # Check for the expected warning message in the flash/UI
+        # Some themes might render flash in different ways
+        html =~ "Calendar is loading slowly" or
+          html =~ "Calendar service is slow" or
+          has_element?(view, ".alert-info", "Calendar is loading slowly")
       end)
     end
   end
@@ -176,9 +208,15 @@ defmodule TymeslotWeb.Live.Themes.AvailabilityRefinementTest do
 
       insert(:calendar_integration, user: user, is_active: true)
 
-      # Target tomorrow to ensure it's definitely in the current week view
-      target_date = Date.add(Date.utc_today(), 1)
+      today = Date.utc_today()
+      # Target tomorrow
+      target_date = Date.add(today, 1)
       date_str = Date.to_string(target_date)
+
+      # Rhythm theme displays a single week starting from the Monday of the current week.
+      # If today is Sunday, tomorrow (Monday) will be in the next week view.
+      week_start = Date.beginning_of_week(today, :monday)
+      needs_navigation = Date.diff(target_date, week_start) >= 7
 
       stub(Tymeslot.CalendarMock, :get_events_for_range_fresh, fn _user_id, _start, _end ->
         {:ok,
@@ -201,6 +239,11 @@ defmodule TymeslotWeb.Live.Themes.AvailabilityRefinementTest do
       |> element("button[data-testid='next-step']")
       |> render_click()
 
+      # Navigate to next week if target_date is not in the current week
+      if needs_navigation do
+        view |> element("button[phx-click='next_week']") |> render_click()
+      end
+
       wait_until(fn ->
         html = render(view)
 
@@ -221,21 +264,29 @@ defmodule TymeslotWeb.Live.Themes.AvailabilityRefinementTest do
   end
 
   defp do_wait_until(predicate, deadline, interval_ms) do
-    if predicate.() do
-      :ok
-    else
-      if System.monotonic_time(:millisecond) >= deadline do
-        flunk("Timed out waiting for UI condition")
-      end
+    case predicate.() do
+      true ->
+        :ok
 
-      Process.sleep(interval_ms)
-      do_wait_until(predicate, deadline, interval_ms)
+      {:ok, _} ->
+        :ok
+
+      _ ->
+        if System.monotonic_time(:millisecond) >= deadline do
+          # Try to provide some context on failure
+          flunk(
+            "Timed out waiting for UI condition. Current time: #{System.monotonic_time(:millisecond)}"
+          )
+        end
+
+        Process.sleep(interval_ms)
+        do_wait_until(predicate, deadline, interval_ms)
     end
   end
 
   defp ensure_rate_limiter_started do
-    case Process.whereis(Tymeslot.Security.RateLimiter) do
-      nil -> start_supervised!(Tymeslot.Security.RateLimiter)
+    case Process.whereis(RateLimiter) do
+      nil -> start_supervised!(RateLimiter)
       _pid -> :ok
     end
   end

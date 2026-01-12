@@ -75,7 +75,13 @@ defmodule TymeslotWeb.Plugs.SecurityHeadersPlugTest do
 
     test "handles wildcard domains in CSP", %{conn: conn} do
       user = insert(:user)
-      profile = insert(:profile, user: user, username: "wildcarduser", allowed_embed_domains: ["*.example.com", "other-site.net"])
+
+      profile =
+        insert(:profile,
+          user: user,
+          username: "wildcarduser",
+          allowed_embed_domains: ["*.example.com", "other-site.net"]
+        )
 
       conn =
         conn
@@ -100,6 +106,7 @@ defmodule TymeslotWeb.Plugs.SecurityHeadersPlugTest do
 
     test "omits X-Frame-Options when first domain is a wildcard", %{conn: conn} do
       user = insert(:user)
+
       profile =
         insert(:profile,
           user: user,

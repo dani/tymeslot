@@ -5,17 +5,33 @@ defmodule Tymeslot.Integrations.Common.ProviderRegistryTest do
 
   # Mock provider modules for testing the macro
   defmodule MockGoogleProvider do
+    @spec provider_type() :: :google
     def provider_type, do: :google
+
+    @spec display_name() :: String.t()
     def display_name, do: "Google"
+
+    @spec config_schema() :: map()
     def config_schema, do: %{key: :string}
+
+    @spec validate_config(map()) :: :ok | {:error, String.t()}
     def validate_config(_), do: :ok
+
+    @spec capabilities() :: [atom()]
     def capabilities, do: [:events]
   end
 
   defmodule MockOutlookProvider do
+    @spec provider_type() :: :outlook
     def provider_type, do: :outlook
+
+    @spec display_name() :: String.t()
     def display_name, do: "Outlook"
+
+    @spec config_schema() :: map()
     def config_schema, do: %{key: :string}
+
+    @spec validate_config(map()) :: :ok | {:error, String.t()}
     def validate_config(_), do: :ok
   end
 
@@ -52,10 +68,10 @@ defmodule Tymeslot.Integrations.Common.ProviderRegistryTest do
     test "list_providers_with_metadata/0 returns full info" do
       metadata = TestRegistry.list_providers_with_metadata()
       google = Enum.find(metadata, &(&1.type == :google))
-      
+
       assert google.display_name == "Google"
       assert google.capabilities == [:events]
-      
+
       outlook = Enum.find(metadata, &(&1.type == :outlook))
       assert outlook.capabilities == []
     end
@@ -84,14 +100,17 @@ defmodule Tymeslot.Integrations.Common.ProviderRegistryTest do
   describe "validate_provider_implementations/2" do
     test "returns :ok when all functions exist" do
       providers = %{google: MockGoogleProvider}
-      assert :ok = ProviderRegistry.validate_provider_implementations(providers, [
-        {:display_name, 0},
-        {:config_schema, 0}
-      ])
+
+      assert :ok =
+               ProviderRegistry.validate_provider_implementations(providers, [
+                 {:display_name, 0},
+                 {:config_schema, 0}
+               ])
     end
 
     test "returns error when functions are missing" do
       providers = %{google: MockGoogleProvider}
+
       assert {:error, {:missing_functions, [{:google, MockGoogleProvider, [missing: 0]}]}} =
                ProviderRegistry.validate_provider_implementations(providers, [
                  {:missing, 0}

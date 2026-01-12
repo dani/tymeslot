@@ -1,6 +1,7 @@
 defmodule TymeslotWeb.AuthLiveTest do
   use TymeslotWeb.LiveCase, async: true
 
+  alias Phoenix.Flash
   alias Tymeslot.Auth
   alias Tymeslot.Security.Password
   import Tymeslot.Factory
@@ -20,10 +21,12 @@ defmodule TymeslotWeb.AuthLiveTest do
 
       {:ok, view, _html} = live(conn, ~p"/auth/login")
 
-      form = form(view, "#login-form", %{
-        "email" => user.email, "password" => password
-      })
-      
+      form =
+        form(view, "#login-form", %{
+          "email" => user.email,
+          "password" => password
+        })
+
       conn = submit_form(form, conn)
       assert redirected_to(conn) == "/dashboard"
     end
@@ -31,11 +34,13 @@ defmodule TymeslotWeb.AuthLiveTest do
     test "fails login with invalid password", %{conn: conn} do
       user = insert(:user, password_hash: Password.hash_password("ValidPassword123!"))
 
-      conn = post(conn, ~p"/auth/session", %{
-        "email" => user.email, "password" => "WrongPassword"
-      })
+      conn =
+        post(conn, ~p"/auth/session", %{
+          "email" => user.email,
+          "password" => "WrongPassword"
+        })
 
-      assert Phoenix.Flash.get(conn.assigns.flash, :error) == "Invalid email or password."
+      assert Flash.get(conn.assigns.flash, :error) == "Invalid email or password."
       assert redirected_to(conn) == ~p"/auth/login"
     end
   end
@@ -51,21 +56,22 @@ defmodule TymeslotWeb.AuthLiveTest do
       {:ok, view, _html} = live(conn, ~p"/auth/signup")
 
       email = "newuser@example.com"
-      
+
       view
       |> form("#signup-form", %{
         "user" => %{
           "email" => email,
           "password" => "ValidPassword123!",
           "terms_accepted" => "true",
-          "website" => "" # honeypot
+          # honeypot
+          "website" => ""
         }
       })
       |> render_submit()
 
       assert render(view) =~ "Account created successfully"
       assert render(view) =~ "check your email"
-      
+
       assert Auth.get_user_by_email(email)
     end
 
@@ -73,28 +79,30 @@ defmodule TymeslotWeb.AuthLiveTest do
       {:ok, view, _html} = live(conn, ~p"/auth/signup")
 
       # Try to submit with invalid data to see errors
-      result = view
-      |> form("#signup-form", %{
-        "user" => %{
-          "email" => "invalid-email",
-          "password" => "short"
-        }
-      })
-      |> render_submit()
+      result =
+        view
+        |> form("#signup-form", %{
+          "user" => %{
+            "email" => "invalid-email",
+            "password" => "short"
+          }
+        })
+        |> render_submit()
 
       assert result =~ "is invalid"
       assert result =~ "must be at least 8 characters"
-      
+
       # Now test terms error with otherwise valid data
-      result = view
-      |> form("#signup-form", %{
-        "user" => %{
-          "email" => "valid@example.com",
-          "password" => "ValidPassword123!"
-        }
-      })
-      |> render_submit()
-      
+      result =
+        view
+        |> form("#signup-form", %{
+          "user" => %{
+            "email" => "valid@example.com",
+            "password" => "ValidPassword123!"
+          }
+        })
+        |> render_submit()
+
       assert result =~ "must be accepted"
     end
   end
@@ -114,19 +122,19 @@ defmodule TymeslotWeb.AuthLiveTest do
 
     test "navigation between states", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/auth/login")
-      
+
       # Go to signup
       view
       |> element("button", "Sign up")
       |> render_click()
-      
+
       assert render(view) =~ "Join Tymeslot"
-      
+
       # Go back to login
       view
       |> element("button", "Log in")
       |> render_click()
-      
+
       assert render(view) =~ "Welcome Back!"
     end
   end
@@ -140,9 +148,9 @@ defmodule TymeslotWeb.AuthLiveTest do
         "oauth_github_id" => "12345",
         "oauth_email_from_provider" => "true"
       }
-      
+
       {:ok, _view, html} = live(conn, ~p"/auth/complete-registration?#{params}")
-      
+
       assert html =~ "Complete Your Registration"
       assert html =~ "oauth@example.com"
     end
@@ -155,17 +163,18 @@ defmodule TymeslotWeb.AuthLiveTest do
         "oauth_github_id" => "gh_new_123",
         "oauth_email_from_provider" => "true"
       }
-      
+
       {:ok, view, _html} = live(conn, ~p"/auth/complete-registration?#{params}")
-      
-      form = form(view, "#complete-registration-form", %{
-        "profile" => %{"full_name" => "OAuth New User"},
-        "auth" => %{"terms_accepted" => "true"}
-      })
-      
+
+      form =
+        form(view, "#complete-registration-form", %{
+          "profile" => %{"full_name" => "OAuth New User"},
+          "auth" => %{"terms_accepted" => "true"}
+        })
+
       conn = submit_form(form, conn)
       assert redirected_to(conn) == "/dashboard"
-      
+
       # Verify user was created
       user = Auth.get_user_by_email("oauth_new@example.com")
       assert user

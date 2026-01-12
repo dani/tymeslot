@@ -1,8 +1,8 @@
 defmodule Tymeslot.Integrations.Providers.DirectoryTest do
   use ExUnit.Case, async: true
 
-  alias Tymeslot.Integrations.Providers.Directory
   alias Tymeslot.Integrations.Providers.Descriptor
+  alias Tymeslot.Integrations.Providers.Directory
 
   describe "list/1" do
     test "lists calendar providers" do

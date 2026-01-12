@@ -1,6 +1,7 @@
 defmodule TymeslotWeb.OAuthControllerTest do
   use TymeslotWeb.ConnCase, async: false
 
+  alias Ecto.Changeset
   alias Phoenix.Controller
   alias Phoenix.Flash
   alias Tymeslot.Auth.OAuth.Helper, as: OAuthHelper
@@ -155,7 +156,13 @@ defmodule TymeslotWeb.OAuthControllerTest do
       }
 
       :meck.expect(OAuthHelper, :create_oauth_user, fn :github, _data, _profile ->
-        user = Factory.insert(:user, email: "unverified@example.com", provider: "github", verified_at: nil)
+        user =
+          Factory.insert(:user,
+            email: "unverified@example.com",
+            provider: "github",
+            verified_at: nil
+          )
+
         # Add the virtual field that the controller checks
         user = Map.put(user, :needs_email_verification, true)
         {:ok, user}
@@ -175,7 +182,7 @@ defmodule TymeslotWeb.OAuthControllerTest do
       }
 
       :meck.expect(OAuthHelper, :create_oauth_user, fn :github, _data, _profile ->
-        changeset = Ecto.Changeset.add_error(%Ecto.Changeset{}, :email, "can't be blank")
+        changeset = Changeset.add_error(%Changeset{}, :email, "can't be blank")
         {:error, changeset}
       end)
 

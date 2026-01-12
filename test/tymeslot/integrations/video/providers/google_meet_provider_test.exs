@@ -4,9 +4,11 @@ defmodule Tymeslot.Integrations.Video.Providers.GoogleMeetProviderTest do
   import Mox
   import Tymeslot.Factory
 
-  alias Tymeslot.Integrations.Video.Providers.GoogleMeetProvider
-  alias Tymeslot.HTTPClientMock
+  alias Tymeslot.DatabaseSchemas.VideoIntegrationSchema
   alias Tymeslot.GoogleOAuthHelperMock
+  alias Tymeslot.HTTPClientMock
+  alias Tymeslot.Integrations.Video.Providers.GoogleMeetProvider
+  alias Tymeslot.Repo
 
   setup :verify_on_exit!
 
@@ -191,11 +193,7 @@ defmodule Tymeslot.Integrations.Video.Providers.GoogleMeetProviderTest do
     end
 
     test "returns error when conference data is missing" do
-      config = %{
-        access_token: "valid_token",
-        refresh_token: "refresh_token",
-        token_expires_at: DateTime.add(DateTime.utc_now(), 3600, :second)
-      }
+      config = valid_token_config()
 
       expect(HTTPClientMock, :request, fn :post, _url, _body, _headers, _opts ->
         {:ok, %HTTPoison.Response{status_code: 200, body: Jason.encode!(%{"id" => "event123"})}}
@@ -206,11 +204,7 @@ defmodule Tymeslot.Integrations.Video.Providers.GoogleMeetProviderTest do
     end
 
     test "handles malformed or unexpected conference data structure" do
-      config = %{
-        access_token: "valid_token",
-        refresh_token: "refresh_token",
-        token_expires_at: DateTime.add(DateTime.utc_now(), 3600, :second)
-      }
+      config = valid_token_config()
 
       # Case 1: entryPoints is not a list
       expect(HTTPClientMock, :request, fn :post, _url, _body, _headers, _opts ->
@@ -304,8 +298,8 @@ defmodule Tymeslot.Integrations.Video.Providers.GoogleMeetProviderTest do
       assert {:ok, _} = GoogleMeetProvider.create_meeting_room(config)
 
       # Verify DB update
-      updated = Tymeslot.Repo.get(Tymeslot.DatabaseSchemas.VideoIntegrationSchema, integration.id)
-      decrypted = Tymeslot.DatabaseSchemas.VideoIntegrationSchema.decrypt_credentials(updated)
+      updated = Repo.get(VideoIntegrationSchema, integration.id)
+      decrypted = VideoIntegrationSchema.decrypt_credentials(updated)
       assert decrypted.access_token == "new_token"
       assert decrypted.refresh_token == "new_refresh"
       assert updated.oauth_scope == "new_scope"
@@ -513,5 +507,13 @@ defmodule Tymeslot.Integrations.Video.Providers.GoogleMeetProviderTest do
       assert metadata[:meeting_url] == "https://meet.google.com/xyz-abcd-efg"
       assert metadata[:provider_name] == "Google Meet"
     end
+  end
+
+  defp valid_token_config do
+    %{
+      access_token: "valid_token",
+      refresh_token: "refresh_token",
+      token_expires_at: DateTime.add(DateTime.utc_now(), 3600, :second)
+    }
   end
 end

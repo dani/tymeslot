@@ -576,91 +576,42 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Live do
 
   @doc false
   defp fetch_month_availability_async(socket) do
-    # Only fetch if we have the required data and not already loading for this month/year
-    has_required_data =
-      socket.assigns[:organizer_user_id] &&
-        socket.assigns[:organizer_profile] &&
-        socket.assigns[:current_year] &&
-        socket.assigns[:current_month]
-
-    if has_required_data && socket.assigns[:availability_status] != :loading do
-      # Kill old task if it exists to avoid race conditions and resource leaks
-      if old_task = socket.assigns[:availability_task] do
-        # Log cancellation before shutdown
-        Logger.debug("Cancelling previous availability fetch task due to user navigation",
-          user_id: socket.assigns.organizer_user_id,
-          month: socket.assigns.current_month,
-          year: socket.assigns.current_year
-        )
-
-        Task.shutdown(old_task, :brutal_kill)
-      end
-
-      # Prepare a minimal context map for the task to avoid passing the full socket
-      context = %{
-        demo_mode: Demo.demo_mode?(socket),
-        organizer_profile: socket.assigns.organizer_profile,
-        debug_calendar_module: socket.private[:debug_calendar_module]
-      }
-
-      if Application.get_env(:tymeslot, :environment) == :test do
-        # Synchronous for tests to avoid ownership issues with Task.async
-        # This ensures tests are stable while production remains async
-        ref = make_ref()
-
-        case Helpers.get_month_availability(
-               socket.assigns.organizer_user_id,
-               socket.assigns.current_year,
-               socket.assigns.current_month,
-               socket.assigns.user_timezone,
-               socket.assigns.organizer_profile,
-               context
-             ) do
-          {:ok, availability} ->
-            send(self(), {ref, {:ok, availability}})
-
-          {:error, reason} ->
-            send(self(), {ref, {:error, reason}})
-        end
-
-        socket
-        |> assign(:month_availability_map, :loading)
-        |> assign(:availability_status, :loading)
-        |> assign(:availability_task, nil)
-        |> assign(:availability_task_ref, ref)
-      else
-        # Set loading state
-        socket =
-          socket
-          |> assign(:month_availability_map, :loading)
-          |> assign(:availability_status, :loading)
-
-        # Extract values needed for closure to avoid capturing socket
-        organizer_user_id = socket.assigns.organizer_user_id
-        current_year = socket.assigns.current_year
-        current_month = socket.assigns.current_month
-        user_timezone = socket.assigns.user_timezone
-        organizer_profile = socket.assigns.organizer_profile
-
-        # Spawn async task to fetch availability
-        task =
-          Task.async(fn ->
-            Helpers.get_month_availability(
-              organizer_user_id,
-              current_year,
-              current_month,
-              user_timezone,
-              organizer_profile,
-              context
-            )
-          end)
-
-        socket
-        |> assign(:availability_task, task)
-        |> assign(:availability_task_ref, task.ref)
-      end
+    if can_fetch_availability?(socket) do
+      maybe_cancel_existing_task(socket)
+      perform_availability_fetch(socket)
     else
       socket
     end
+  end
+
+  defp can_fetch_availability?(socket) do
+    socket.assigns[:organizer_user_id] &&
+      socket.assigns[:organizer_profile] &&
+      socket.assigns[:current_year] &&
+      socket.assigns[:current_month] &&
+      socket.assigns[:availability_status] != :loading
+  end
+
+  defp maybe_cancel_existing_task(socket) do
+    if old_task = socket.assigns[:availability_task] do
+      duration =
+        case socket.assigns[:availability_fetch_start_time] do
+          nil -> "unknown"
+          start -> "#{System.monotonic_time() - start}ns"
+        end
+
+      Logger.debug(
+        "Cancelling previous availability fetch task due to user navigation (task was running for #{duration})",
+        user_id: socket.assigns.organizer_user_id,
+        month: socket.assigns.current_month,
+        year: socket.assigns.current_year
+      )
+
+      Task.shutdown(old_task, :brutal_kill)
+    end
+  end
+
+  defp perform_availability_fetch(socket) do
+    Helpers.perform_availability_fetch(socket)
   end
 end

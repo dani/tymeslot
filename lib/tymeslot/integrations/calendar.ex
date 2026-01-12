@@ -20,6 +20,7 @@ defmodule Tymeslot.Integrations.Calendar do
   alias Tymeslot.Integrations.Calendar.TokenUtils
   alias Tymeslot.Integrations.{CalendarManagement, CalendarPrimary}
   alias Tymeslot.Integrations.Providers.Directory
+  alias Tymeslot.Utils.ContextUtils
   alias TymeslotWeb.Helpers.IntegrationProviders
 
   require Logger
@@ -344,18 +345,16 @@ defmodule Tymeslot.Integrations.Calendar do
           {:ok, list()} | {:error, term()}
   def get_calendar_events_from_context(date, organizer_user_id, context) do
     debug_module =
-      cond do
-        val = get_from_context(context, :debug_calendar_module) ->
-          val
-
+      if val = ContextUtils.get_from_context(context, :debug_calendar_module) do
+        val
+      else
         # Try to get from config for tests
-        true ->
-          Application.get_env(:tymeslot, :calendar_module)
+        Application.get_env(:tymeslot, :calendar_module)
       end
 
     opts = [
       debug_calendar_module: debug_module,
-      organizer_profile: get_from_context(context, :organizer_profile)
+      organizer_profile: ContextUtils.get_from_context(context, :organizer_profile)
     ]
 
     get_calendar_events(date, organizer_user_id, opts)
@@ -433,25 +432,6 @@ defmodule Tymeslot.Integrations.Calendar do
   end
 
   # --- private helpers ---
-
-  defp get_from_context(nil, _key), do: nil
-
-  defp get_from_context(context, key) do
-    case context do
-      %{assigns: assigns} = socket ->
-        # Handle Phoenix.LiveView.Socket (check assigns then private)
-        case Map.get(assigns, key) do
-          nil -> if Map.has_key?(socket, :private), do: Map.get(socket.private, key), else: nil
-          val -> val
-        end
-
-      %{} = map ->
-        Map.get(map, key)
-
-      _ ->
-        nil
-    end
-  end
 
   defp calendar_module do
     mod = Application.get_env(:tymeslot, :calendar_module, Operations)

@@ -36,13 +36,15 @@ defmodule Tymeslot.Integrations.Common.UserResolver do
   def resolve_user_integrations(user_id, integration_type)
       when (is_integer(user_id) or is_nil(user_id)) and
              integration_type in [:calendar, :video] do
-    ErrorHandler.handle_with_logging(
-      fn -> {:ok, get_integrations_from_database(user_id, integration_type)} end,
-      operation: "resolve user integrations",
-      provider: to_string(integration_type),
-      log_level: :warning
-    )
-    |> case do
+    result =
+      ErrorHandler.handle_with_logging(
+        fn -> {:ok, get_integrations_from_database(user_id, integration_type)} end,
+        operation: "resolve user integrations",
+        provider: to_string(integration_type),
+        log_level: :warning
+      )
+
+    case result do
       {:ok, result} -> result
       _ -> []
     end

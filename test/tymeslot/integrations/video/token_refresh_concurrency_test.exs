@@ -1,13 +1,15 @@
 defmodule Tymeslot.Integrations.Video.TokenRefreshConcurrencyTest do
-  use Tymeslot.DataCase, async: false # async: false because we use set_mox_global()
+  # async: false because we use set_mox_global()
+  use Tymeslot.DataCase, async: false
 
   import Mox
   import Tymeslot.Factory
 
+  alias Tymeslot.DatabaseQueries.VideoIntegrationQueries
   alias Tymeslot.Integrations.Video.Rooms
 
   setup :verify_on_exit!
-  
+
   setup do
     set_mox_global()
     :ok
@@ -18,7 +20,7 @@ defmodule Tymeslot.Integrations.Video.TokenRefreshConcurrencyTest do
       user = insert(:user)
 
       {:ok, _integration} =
-        Tymeslot.DatabaseQueries.VideoIntegrationQueries.create(%{
+        VideoIntegrationQueries.create(%{
           user_id: user.id,
           name: "Google Meet Concurrent",
           provider: "google_meet",
@@ -80,7 +82,7 @@ defmodule Tymeslot.Integrations.Video.TokenRefreshConcurrencyTest do
       user = insert(:user)
 
       {:ok, _integration} =
-        Tymeslot.DatabaseQueries.VideoIntegrationQueries.create(%{
+        VideoIntegrationQueries.create(%{
           user_id: user.id,
           name: "Teams Concurrent",
           provider: "teams",

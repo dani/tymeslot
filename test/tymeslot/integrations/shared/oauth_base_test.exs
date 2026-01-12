@@ -1,6 +1,7 @@
 defmodule Tymeslot.Integrations.Common.OAuthBaseTest do
   use Tymeslot.DataCase, async: true
 
+  alias Tymeslot.DatabaseSchemas.CalendarIntegrationSchema
   alias Tymeslot.Integrations.Common.OAuthBase
 
   describe "validate_config/2" do
@@ -64,7 +65,9 @@ defmodule Tymeslot.Integrations.Common.OAuthBaseTest do
 
   describe "handle_api_call/2" do
     test "handles ok results" do
-      assert {:ok, "RESULT"} = OAuthBase.handle_api_call(fn -> {:ok, "result"} end, &String.upcase/1)
+      assert {:ok, "RESULT"} =
+               OAuthBase.handle_api_call(fn -> {:ok, "result"} end, &String.upcase/1)
+
       assert :ok = OAuthBase.handle_api_call(fn -> :ok end)
     end
 
@@ -78,6 +81,7 @@ defmodule Tymeslot.Integrations.Common.OAuthBaseTest do
     test "creates a new integration if none exists" do
       user = insert(:user)
       insert(:profile, user: user)
+
       tokens = %{
         access_token: "at",
         refresh_token: "rt",
@@ -86,20 +90,34 @@ defmodule Tymeslot.Integrations.Common.OAuthBaseTest do
       }
 
       assert {:ok, integration} =
-               OAuthBase.create_or_update_integration(user.id, "google", %{name: "My Cal", base_url: "https://google.com"}, tokens)
+               OAuthBase.create_or_update_integration(
+                 user.id,
+                 "google",
+                 %{name: "My Cal", base_url: "https://google.com"},
+                 tokens
+               )
 
       assert integration.user_id == user.id
       assert integration.provider == "google"
-      
+
       # Decrypt to check virtual fields
-      integration = Tymeslot.DatabaseSchemas.CalendarIntegrationSchema.decrypt_oauth_tokens(integration)
+      integration =
+        CalendarIntegrationSchema.decrypt_oauth_tokens(integration)
+
       assert integration.access_token == "at"
     end
 
     test "updates existing integration" do
       user = insert(:user)
       insert(:profile, user: user)
-      existing = insert(:calendar_integration, user: user, provider: "google", access_token: "old", base_url: "https://google.com")
+
+      existing =
+        insert(:calendar_integration,
+          user: user,
+          provider: "google",
+          access_token: "old",
+          base_url: "https://google.com"
+        )
 
       tokens = %{
         access_token: "new",
@@ -112,9 +130,9 @@ defmodule Tymeslot.Integrations.Common.OAuthBaseTest do
                OAuthBase.create_or_update_integration(user.id, "google", %{}, tokens)
 
       assert updated.id == existing.id
-      
+
       # Decrypt to check virtual fields
-      updated = Tymeslot.DatabaseSchemas.CalendarIntegrationSchema.decrypt_oauth_tokens(updated)
+      updated = CalendarIntegrationSchema.decrypt_oauth_tokens(updated)
       assert updated.access_token == "new"
     end
   end

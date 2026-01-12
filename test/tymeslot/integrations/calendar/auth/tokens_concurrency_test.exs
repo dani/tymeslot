@@ -3,8 +3,8 @@ defmodule Tymeslot.Integrations.Calendar.TokensConcurrencyTest do
   use Tymeslot.DataCase, async: false
 
   import Mox
-  alias Tymeslot.Integrations.Shared.Lock
   alias Tymeslot.Integrations.Calendar.Tokens
+  alias Tymeslot.Integrations.Shared.Lock
 
   setup :verify_on_exit!
 

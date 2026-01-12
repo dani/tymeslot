@@ -7,7 +7,7 @@ defmodule Tymeslot.Integrations.Shared.ProviderConfigHelperTest do
     test "filters by enabled status" do
       providers = [:google, :outlook]
       dev_only = [:local]
-      
+
       enabled_fun = fn
         :google -> true
         :outlook -> false
@@ -15,10 +15,14 @@ defmodule Tymeslot.Integrations.Shared.ProviderConfigHelperTest do
       end
 
       # No dev
-      assert ProviderConfigHelper.effective_providers(providers, dev_only, false, enabled_fun) == [:google]
-      
+      assert ProviderConfigHelper.effective_providers(providers, dev_only, false, enabled_fun) ==
+               [:google]
+
       # With dev
-      assert ProviderConfigHelper.effective_providers(providers, dev_only, true, enabled_fun) == [:google, :local]
+      assert ProviderConfigHelper.effective_providers(providers, dev_only, true, enabled_fun) == [
+               :google,
+               :local
+             ]
     end
   end
 

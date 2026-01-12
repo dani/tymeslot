@@ -16,10 +16,14 @@ defmodule Tymeslot.Auth.OAuth.TransactionalUserCreationTest do
         "is_verified" => true,
         "terms_accepted" => "true"
       }
+
       profile_params = %{full_name: "OAuth User"}
 
       assert {:ok, %{user: user, profile: profile}} =
-               TransactionalUserCreation.create_oauth_user_transactionally(auth_params, profile_params)
+               TransactionalUserCreation.create_oauth_user_transactionally(
+                 auth_params,
+                 profile_params
+               )
 
       assert user.email == "new_oauth_user@example.com"
       assert user.provider == "github"
@@ -30,16 +34,20 @@ defmodule Tymeslot.Auth.OAuth.TransactionalUserCreationTest do
 
     test "fails if user with email already exists" do
       existing_user = insert(:user, email: "existing@example.com")
-      
+
       auth_params = %{
         "email" => existing_user.email,
         "provider" => "google",
         "google_user_id" => "67890"
       }
+
       profile_params = %{full_name: "Another Name"}
 
       assert {:error, :user_already_exists, _reason} =
-               TransactionalUserCreation.create_oauth_user_transactionally(auth_params, profile_params)
+               TransactionalUserCreation.create_oauth_user_transactionally(
+                 auth_params,
+                 profile_params
+               )
     end
   end
 
@@ -61,7 +69,7 @@ defmodule Tymeslot.Auth.OAuth.TransactionalUserCreationTest do
 
     test "finds existing user by provider id" do
       existing_user = insert(:user, github_user_id: "222", provider: "github")
-      
+
       auth_params = %{
         "email" => "different@example.com",
         "github_user_id" => "222",
@@ -76,7 +84,7 @@ defmodule Tymeslot.Auth.OAuth.TransactionalUserCreationTest do
 
     test "links provider to existing user by email" do
       existing_user = insert(:user, email: "link@example.com", provider: "local")
-      
+
       auth_params = %{
         "email" => "link@example.com",
         "google_user_id" => "333",
@@ -99,6 +107,7 @@ defmodule Tymeslot.Auth.OAuth.TransactionalUserCreationTest do
               provider <- StreamData.member_of([:github, :google])
             ) do
         email = "#{email}@test.com"
+
         auth_params = %{
           "email" => email,
           "provider" => to_string(provider),
@@ -128,7 +137,10 @@ defmodule Tymeslot.Auth.OAuth.TransactionalUserCreationTest do
         }
 
         assert {:ok, %{user: user3, created: false}} =
-                 TransactionalUserCreation.find_or_create_oauth_user(other_provider, other_auth_params)
+                 TransactionalUserCreation.find_or_create_oauth_user(
+                   other_provider,
+                   other_auth_params
+                 )
 
         assert user1.id == user3.id
 

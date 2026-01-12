@@ -4,7 +4,9 @@ defmodule Tymeslot.Integrations.VideoTest do
   import Mox
   import Tymeslot.Factory
 
+  alias Tymeslot.DatabaseSchemas.VideoIntegrationSchema
   alias Tymeslot.Integrations.Video
+  alias Tymeslot.Repo
 
   setup :verify_on_exit!
 
@@ -22,6 +24,7 @@ defmodule Tymeslot.Integrations.VideoTest do
   describe "create_integration/3" do
     test "creates mirotalk integration after testing connection" do
       user = insert(:user)
+
       attrs = %{
         "name" => "My MiroTalk",
         "base_url" => "https://mirotalk.test",
@@ -40,6 +43,7 @@ defmodule Tymeslot.Integrations.VideoTest do
 
     test "returns error if mirotalk connection test fails" do
       user = insert(:user)
+
       attrs = %{
         "name" => "Bad MiroTalk",
         "base_url" => "https://mirotalk.test",
@@ -51,11 +55,13 @@ defmodule Tymeslot.Integrations.VideoTest do
         {:ok, %HTTPoison.Response{status_code: 401, body: "Unauthorized"}}
       end)
 
-      assert {:error, "Invalid API key - Authentication failed"} = Video.create_integration(user.id, :mirotalk, attrs)
+      assert {:error, "Invalid API key - Authentication failed"} =
+               Video.create_integration(user.id, :mirotalk, attrs)
     end
 
     test "safely handles non-existing atom keys in attrs" do
       user = insert(:user)
+
       attrs = %{
         "name" => "Safe Integration",
         "custom_meeting_url" => "https://meet.jit.si/my-room",
@@ -101,13 +107,14 @@ defmodule Tymeslot.Integrations.VideoTest do
       assert updated.is_default
 
       # Verify other one is no longer default
-      assert !Tymeslot.Repo.get(Tymeslot.DatabaseSchemas.VideoIntegrationSchema, i2.id).is_default
+      assert !Repo.get(VideoIntegrationSchema, i2.id).is_default
     end
   end
 
   describe "oauth_authorization_url/2" do
     test "generates google meet auth URL" do
       user = insert(:user)
+
       expect(Tymeslot.GoogleOAuthHelperMock, :authorization_url, fn _uid, _uri, _scopes ->
         "https://accounts.google.com/o/oauth2/v2/auth?client_id=123"
       end)
@@ -118,6 +125,7 @@ defmodule Tymeslot.Integrations.VideoTest do
 
     test "generates teams auth URL" do
       user = insert(:user)
+
       expect(Tymeslot.TeamsOAuthHelperMock, :authorization_url, fn _uid, _uri ->
         "https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=456"
       end)

@@ -38,7 +38,7 @@ defmodule TymeslotWeb.Plugs.SecurityHeadersPlug do
     if x_frame_options do
       put_resp_header(conn, "x-frame-options", x_frame_options)
     else
-      # If X-Frame-Options is nil, we omit it to let CSP frame-ancestors 
+      # If X-Frame-Options is nil, we omit it to let CSP frame-ancestors
       # be the sole authority for modern browsers.
       conn
     end

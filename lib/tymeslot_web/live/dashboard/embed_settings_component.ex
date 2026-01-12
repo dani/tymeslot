@@ -593,6 +593,14 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsComponent do
   end
 
   def handle_event("save_embed_domains", %{"allowed_domains" => domains_str}, socket) do
+    perform_domain_update(socket, domains_str, "Security settings saved successfully!")
+  end
+
+  def handle_event("clear_embed_domains", _params, socket) do
+    perform_domain_update(socket, [], "Embedding is now allowed on all domains")
+  end
+
+  defp perform_domain_update(socket, domains_payload, success_message) do
     user_id = socket.assigns.current_user.id
 
     # Rate limit: 10 updates per hour per user
@@ -602,7 +610,7 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsComponent do
            10
          ) do
       {:allow, _count} ->
-        case Profiles.update_allowed_embed_domains(socket.assigns.profile, domains_str) do
+        case Profiles.update_allowed_embed_domains(socket.assigns.profile, domains_payload) do
           {:ok, updated_profile} ->
             # Format the domains for display
             allowed_domains_str =
@@ -617,7 +625,7 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsComponent do
              |> assign(:profile, updated_profile)
              |> assign(:allowed_domains_str, allowed_domains_str)
              |> then(fn s ->
-               Flash.info("Security settings saved successfully!")
+               Flash.info(success_message)
                s
              end)}
 
@@ -633,44 +641,14 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsComponent do
 
             Flash.error("Failed to save: #{errors}")
             {:noreply, socket}
-        end
-
-      {:deny, _limit} ->
-        Logger.warning("Embed domain update rate limit exceeded", user_id: user_id)
-
-        Flash.error("Too many updates. Please wait a moment before trying again.")
-        {:noreply, socket}
-    end
-  end
-
-  def handle_event("clear_embed_domains", _params, socket) do
-    user_id = socket.assigns.current_user.id
-
-    # Rate limit: 10 updates per hour per user
-    case RateLimiter.check_rate(
-           "embed_domain_update:#{user_id}",
-           60_000 * 60,
-           10
-         ) do
-      {:allow, _count} ->
-        case Profiles.update_allowed_embed_domains(socket.assigns.profile, []) do
-          {:ok, updated_profile} ->
-            {:noreply,
-             socket
-             |> assign(:profile, updated_profile)
-             |> assign(:allowed_domains_str, "")
-             |> then(fn s ->
-               Flash.info("Embedding is now allowed on all domains")
-               s
-             end)}
 
           {:error, reason} ->
-            Flash.error("Failed to clear settings: #{inspect(reason)}")
+            Flash.error("Failed to update settings: #{inspect(reason)}")
             {:noreply, socket}
         end
 
       {:deny, _limit} ->
-        Logger.warning("Embed domain clear rate limit exceeded", user_id: user_id)
+        Logger.warning("Embed domain update rate limit exceeded", user_id: user_id)
 
         Flash.error("Too many updates. Please wait a moment before trying again.")
         {:noreply, socket}

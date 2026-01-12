@@ -11,12 +11,12 @@ defmodule Tymeslot.Integrations.Video.Providers.GoogleMeetProvider do
   require Logger
 
   alias Tymeslot.DatabaseQueries.VideoIntegrationQueries
+  alias Tymeslot.DatabaseSchemas.VideoIntegrationSchema
   alias Tymeslot.Infrastructure.HTTPClient
   alias Tymeslot.Infrastructure.Logging.Redactor
   alias Tymeslot.Integrations.Google.GoogleOAuthHelper
   alias Tymeslot.Integrations.Shared.Lock
   alias Tymeslot.Integrations.Shared.ProviderConfigHelper
-  alias Tymeslot.DatabaseSchemas.VideoIntegrationSchema
 
   @impl true
   def provider_type, do: :google_meet
@@ -246,29 +246,31 @@ defmodule Tymeslot.Integrations.Video.Providers.GoogleMeetProvider do
       # Fallback if we don't have enough info to lock/re-fetch
       do_actual_refresh(config)
     else
-      Lock.with_lock({:google_meet, integration_id}, fn ->
-        # Re-fetch from DB to see if another process refreshed it while we waited
-        case VideoIntegrationQueries.get_for_user(integration_id, user_id) do
-          {:ok, fresh_integration} ->
-            decrypted = VideoIntegrationSchema.decrypt_credentials(fresh_integration)
+      Lock.with_lock(
+        {:google_meet, integration_id},
+        fn ->
+          # Re-fetch from DB to see if another process refreshed it while we waited
+          case VideoIntegrationQueries.get_for_user(integration_id, user_id) do
+            {:ok, fresh_integration} ->
+              decrypted = VideoIntegrationSchema.decrypt_credentials(fresh_integration)
 
-            if expiring_later_than_buffer?(decrypted.token_expires_at) do
-              # Already refreshed by someone else
-              {:ok,
-               Map.merge(config, %{
-                 access_token: decrypted.access_token,
-                 refresh_token: decrypted.refresh_token,
-                 token_expires_at: decrypted.token_expires_at,
-                 oauth_scope: fresh_integration.oauth_scope
-               })}
-            else
+              if expiring_later_than_buffer?(decrypted.token_expires_at) do
+                # Already refreshed by someone else
+                {:ok,
+                 Map.merge(config, %{
+                   access_token: decrypted.access_token,
+                   refresh_token: decrypted.refresh_token,
+                   token_expires_at: decrypted.token_expires_at,
+                   oauth_scope: fresh_integration.oauth_scope
+                 })}
+              else
+                do_actual_refresh(config)
+              end
+
+            _ ->
               do_actual_refresh(config)
-            end
-
-          _ ->
-            do_actual_refresh(config)
-        end
-      end, mode: :blocking)
+          end
+        end, mode: :blocking)
     end
   end
 

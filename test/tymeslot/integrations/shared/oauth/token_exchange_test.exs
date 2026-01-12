@@ -15,26 +15,33 @@ defmodule Tymeslot.Integrations.Common.OAuth.TokenExchangeTest do
 
   describe "exchange_code_for_tokens/6" do
     test "returns tokens on success" do
-      resp_body = Jason.encode!(%{
-        "access_token" => "at-123",
-        "refresh_token" => "rt-123",
-        "expires_in" => 3600,
-        "scope" => @scope
-      })
+      resp_body =
+        Jason.encode!(%{
+          "access_token" => "at-123",
+          "refresh_token" => "rt-123",
+          "expires_in" => 3600,
+          "scope" => @scope
+        })
 
       expect(Tymeslot.HTTPClientMock, :request, fn :post, @token_url, body, _headers, _opts ->
         # Verify body contains expected params
         decoded_body = URI.decode_query(body)
         assert decoded_body["code"] == @code
         assert decoded_body["grant_type"] == "authorization_code"
-        
+
         {:ok, %{status_code: 200, body: resp_body}}
       end)
 
-      assert {:ok, tokens} = TokenExchange.exchange_code_for_tokens(
-               @code, @redirect_uri, @token_url, @client_id, @client_secret, @scope
-             )
-      
+      assert {:ok, tokens} =
+               TokenExchange.exchange_code_for_tokens(
+                 @code,
+                 @redirect_uri,
+                 @token_url,
+                 @client_id,
+                 @client_secret,
+                 @scope
+               )
+
       assert tokens.access_token == "at-123"
       assert tokens.refresh_token == "rt-123"
       assert tokens.scope == @scope
@@ -46,9 +53,16 @@ defmodule Tymeslot.Integrations.Common.OAuth.TokenExchangeTest do
         {:ok, %{status_code: 400, body: "{\"error\": \"invalid_grant\"}"}}
       end)
 
-      assert {:error, message} = TokenExchange.exchange_code_for_tokens(
-               @code, @redirect_uri, @token_url, @client_id, @client_secret, @scope
-             )
+      assert {:error, message} =
+               TokenExchange.exchange_code_for_tokens(
+                 @code,
+                 @redirect_uri,
+                 @token_url,
+                 @client_id,
+                 @client_secret,
+                 @scope
+               )
+
       assert message =~ "OAuth token exchange failed: HTTP 400"
     end
 
@@ -57,30 +71,39 @@ defmodule Tymeslot.Integrations.Common.OAuth.TokenExchangeTest do
         {:error, :timeout}
       end)
 
-      assert {:error, message} = TokenExchange.exchange_code_for_tokens(
-               @code, @redirect_uri, @token_url, @client_id, @client_secret, @scope
-             )
+      assert {:error, message} =
+               TokenExchange.exchange_code_for_tokens(
+                 @code,
+                 @redirect_uri,
+                 @token_url,
+                 @client_id,
+                 @client_secret,
+                 @scope
+               )
+
       assert message =~ "Network error"
     end
   end
 
   describe "refresh_access_token/3" do
     test "refreshes token successfully" do
-      resp_body = Jason.encode!(%{
-        "access_token" => "new-at",
-        "expires_in" => 3600
-      })
+      resp_body =
+        Jason.encode!(%{
+          "access_token" => "new-at",
+          "expires_in" => 3600
+        })
 
       expect(Tymeslot.HTTPClientMock, :request, fn :post, @token_url, _body, _headers, _opts ->
         {:ok, %{status_code: 200, body: resp_body}}
       end)
 
-      assert {:ok, tokens} = TokenExchange.refresh_access_token(
-               @token_url, 
-               %{refresh_token: "old-rt"}, 
-               fallback_refresh_token: "old-rt"
-             )
-      
+      assert {:ok, tokens} =
+               TokenExchange.refresh_access_token(
+                 @token_url,
+                 %{refresh_token: "old-rt"},
+                 fallback_refresh_token: "old-rt"
+               )
+
       assert tokens.access_token == "new-at"
       assert tokens.refresh_token == "old-rt"
     end

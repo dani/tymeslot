@@ -96,38 +96,40 @@ defmodule Tymeslot.Integrations.Shared.LockTest do
 
     test "supports backward compatibility for calendar integrations" do
       assert :ok = Lock.with_lock(:google, 999, fn -> :ok end)
-      
+
       # Should also block the tuple key
       test_pid = self()
+
       spawn_link(fn ->
         Lock.with_lock({:google, 999}, fn ->
           send(test_pid, :locked)
           Process.sleep(100)
         end)
       end)
-      
+
       assert_receive :locked
       assert {:error, :refresh_in_progress} = Lock.with_lock(:google, 999, fn -> :ok end)
     end
 
     test "uses configured timeout" do
       # Set a very short timeout for :test_provider
-      Application.put_env(:tymeslot, :integration_locks, [test_provider: 50])
-      
+      Application.put_env(:tymeslot, :integration_locks, test_provider: 50)
+
       key = :test_provider
-      
+
       # Acquire lock
-      assert :ok = Lock.with_lock(key, fn -> 
-        # Wait until just after timeout
-        Process.sleep(100)
-        :ok
-      end)
-      
+      assert :ok =
+               Lock.with_lock(key, fn ->
+                 # Wait until just after timeout
+                 Process.sleep(100)
+                 :ok
+               end)
+
       # Now it should be acquirable because it's expired (even if process still runs)
       # Wait a bit for the old lock to be considered expired
       Process.sleep(10)
       assert :ok = Lock.with_lock(key, fn -> :ok end)
-      
+
       # Clean up config
       Application.delete_env(:tymeslot, :integration_locks)
     end

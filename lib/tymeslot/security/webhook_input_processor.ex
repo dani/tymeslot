@@ -5,9 +5,19 @@ defmodule Tymeslot.Security.WebhookInputProcessor do
   Ensures webhook configuration is safe and valid before
   saving to the database.
   """
+  use Ecto.Schema
+  import Ecto.Changeset
 
   alias Tymeslot.DatabaseSchemas.WebhookSchema
   alias Tymeslot.Security.RateLimiter
+
+  @primary_key false
+  embedded_schema do
+    field(:name, :string)
+    field(:url, :string)
+    field(:secret, :string)
+    field(:events, {:array, :string}, default: [])
+  end
 
   @doc """
   Validates webhook form input.
@@ -19,15 +29,25 @@ defmodule Tymeslot.Security.WebhookInputProcessor do
   def validate_webhook_form(params, opts \\ []) do
     metadata = Keyword.get(opts, :metadata, %{})
 
-    with :ok <- check_rate_limit("webhook_form", metadata),
-         {:ok, sanitized} <- sanitize_and_validate(params) do
-      {:ok, sanitized}
+    with :ok <- check_rate_limit("webhook_form", metadata) do
+      %__MODULE__{}
+      |> cast(params, [:name, :url, :secret, :events])
+      |> validate_required([:name, :url])
+      |> validate_length(:name, min: 1, max: 255)
+      |> validate_length(:url, min: 1, max: 2048)
+      |> validate_url_format()
+      |> validate_events_list()
+      |> apply_action(:validate)
+      |> case do
+        {:ok, validated} ->
+          {:ok, Map.from_struct(validated)}
+
+        {:error, changeset} ->
+          {:error, translate_errors(changeset)}
+      end
     else
       {:error, :rate_limited} ->
         {:error, %{form: "Too many requests. Please slow down."}}
-
-      {:error, errors} when is_map(errors) ->
-        {:error, errors}
     end
   end
 
@@ -39,15 +59,19 @@ defmodule Tymeslot.Security.WebhookInputProcessor do
   def validate_name_update(name, opts \\ []) do
     metadata = Keyword.get(opts, :metadata, %{})
 
-    with :ok <- check_rate_limit("webhook_name", metadata),
-         {:ok, sanitized} <- validate_name(name) do
-      {:ok, sanitized}
+    with :ok <- check_rate_limit("webhook_name", metadata) do
+      %__MODULE__{}
+      |> cast(%{"name" => name}, [:name])
+      |> validate_required([:name])
+      |> validate_length(:name, min: 1, max: 255)
+      |> apply_action(:validate)
+      |> case do
+        {:ok, validated} -> {:ok, validated.name}
+        {:error, changeset} -> {:error, get_first_error(changeset, :name)}
+      end
     else
       {:error, :rate_limited} ->
         {:error, "Too many requests. Please slow down."}
-
-      error ->
-        error
     end
   end
 
@@ -59,133 +83,80 @@ defmodule Tymeslot.Security.WebhookInputProcessor do
   def validate_url_update(url, opts \\ []) do
     metadata = Keyword.get(opts, :metadata, %{})
 
-    with :ok <- check_rate_limit("webhook_url", metadata),
-         {:ok, sanitized} <- validate_url(url) do
-      {:ok, sanitized}
+    with :ok <- check_rate_limit("webhook_url", metadata) do
+      %__MODULE__{}
+      |> cast(%{"url" => url}, [:url])
+      |> validate_required([:url])
+      |> validate_length(:url, min: 1, max: 2048)
+      |> validate_url_format()
+      |> apply_action(:validate)
+      |> case do
+        {:ok, validated} -> {:ok, validated.url}
+        {:error, changeset} -> {:error, get_first_error(changeset, :url)}
+      end
     else
       {:error, :rate_limited} ->
         {:error, "Too many requests. Please slow down."}
-
-      error ->
-        error
     end
   end
 
   # Private functions
 
-  defp sanitize_and_validate(params) do
-    errors = %{}
-
-    {name, errors} = validate_required_field(params, "name", &validate_name/1, "Name is required", errors, :name)
-    {url, errors} = validate_required_field(params, "url", &validate_url/1, "URL is required", errors, :url)
-    {secret, errors} = validate_optional_secret(params, errors)
-    {events, errors} = validate_events_list(params, errors)
-
-    if map_size(errors) > 0 do
-      {:error, errors}
-    else
-      {:ok,
-       %{
-         name: name,
-         url: url,
-         secret: secret,
-         events: events
-       }}
-    end
+  defp validate_url_format(changeset) do
+    validate_change(changeset, :url, fn :url, url ->
+      case WebhookSchema.validate_url_format(url) do
+        :ok -> []
+        {:error, msg} -> [{:url, String.capitalize(msg)}]
+      end
+    end)
   end
 
-  defp validate_required_field(params, key, validator, missing_msg, errors, error_key) do
-    case Map.get(params, key) do
-      nil -> {nil, Map.put(errors, error_key, missing_msg)}
-      val ->
-        case validator.(val) do
-          {:ok, sanitized} -> {sanitized, errors}
-          {:error, msg} -> {nil, Map.put(errors, error_key, msg)}
-        end
-    end
+  defp validate_events_list(changeset) do
+    validate_change(changeset, :events, fn :events, events ->
+      valid_events = WebhookSchema.valid_events()
+
+      cond do
+        Enum.empty?(events) ->
+          [{:events, "At least one event must be selected"}]
+
+        true ->
+          invalid_events = Enum.reject(events, &(&1 in valid_events))
+
+          if Enum.empty?(invalid_events) do
+            []
+          else
+            [{:events, "Invalid events: #{Enum.join(invalid_events, ", ")}"}]
+          end
+      end
+    end)
   end
-
-  defp validate_optional_secret(params, errors) do
-    case Map.get(params, "secret") do
-      nil -> {nil, errors}
-      "" -> {nil, errors}
-      secret -> {String.trim(secret), errors}
-    end
-  end
-
-  defp validate_events_list(params, errors) do
-    case Map.get(params, "events") do
-      nil ->
-        {[], Map.put(errors, :events, "At least one event must be selected")}
-
-      [] ->
-        {[], Map.put(errors, :events, "At least one event must be selected")}
-
-      events when is_list(events) ->
-        case validate_events(events) do
-          {:ok, validated} -> {validated, errors}
-          {:error, msg} -> {[], Map.put(errors, :events, msg)}
-        end
-
-      _ ->
-        {[], Map.put(errors, :events, "Invalid events format")}
-    end
-  end
-
-  defp validate_name(name) when is_binary(name) do
-    sanitized = String.trim(name)
-
-    cond do
-      String.length(sanitized) < 1 ->
-        {:error, "Name cannot be empty"}
-
-      String.length(sanitized) > 255 ->
-        {:error, "Name is too long (maximum 255 characters)"}
-
-      true ->
-        {:ok, sanitized}
-    end
-  end
-
-  defp validate_name(_), do: {:error, "Invalid name format"}
-
-  defp validate_url(url) when is_binary(url) do
-    sanitized = String.trim(url)
-
-    cond do
-      String.length(sanitized) < 1 ->
-        {:error, "URL cannot be empty"}
-
-      String.length(sanitized) > 2048 ->
-        {:error, "URL is too long (maximum 2048 characters)"}
-
-      true ->
-        case WebhookSchema.validate_url_format(sanitized) do
-          :ok -> {:ok, sanitized}
-          {:error, msg} -> {:error, String.capitalize(msg)}
-        end
-    end
-  end
-
-  defp validate_url(_), do: {:error, "Invalid URL format"}
-
-  defp validate_events(events) when is_list(events) do
-    valid_events = WebhookSchema.valid_events()
-    invalid_events = Enum.reject(events, &(&1 in valid_events))
-
-    if Enum.empty?(invalid_events) do
-      {:ok, events}
-    else
-      {:error, "Invalid events: #{Enum.join(invalid_events, ", ")}"}
-    end
-  end
-
-  defp validate_events(_), do: {:error, "Events must be a list"}
 
   defp check_rate_limit(bucket_key, _metadata) do
     case RateLimiter.check_rate_limit(bucket_key, 60, 60_000) do
       :ok -> :ok
       {:error, _} -> {:error, :rate_limited}
+    end
+  end
+
+  defp translate_errors(changeset) do
+    Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
+      Regex.replace(~r/%{(\w+)}/, msg, fn _, key ->
+        opts |> Keyword.get(String.to_existing_atom(key), key) |> to_string()
+      end)
+    end)
+    |> Enum.map(fn {k, v} -> {k, List.first(v)} end)
+    |> Map.new()
+  end
+
+  defp get_first_error(changeset, field) do
+    case changeset.errors[field] do
+      {msg, opts} ->
+        Regex.replace(~r/%{(\w+)}/, msg, fn _, key ->
+          opts |> Keyword.get(String.to_existing_atom(key), key) |> to_string()
+        end)
+
+      _ ->
+        "Invalid input"
     end
   end
 end

@@ -22,7 +22,14 @@ defmodule Tymeslot.Integrations.Common.UserResolverTest do
 
   describe "validate_integration_attrs/2" do
     test "validates required fields for calendar" do
-      valid_attrs = %{user_id: 1, name: "Cal", provider: "caldav", is_active: true, base_url: "http://test"}
+      valid_attrs = %{
+        user_id: 1,
+        name: "Cal",
+        provider: "caldav",
+        is_active: true,
+        base_url: "http://test"
+      }
+
       assert :ok = UserResolver.validate_integration_attrs(valid_attrs, :calendar)
 
       invalid_attrs = %{user_id: 1}
@@ -33,17 +40,22 @@ defmodule Tymeslot.Integrations.Common.UserResolverTest do
     test "calendar-specific validation" do
       # Google requires access_token
       attrs = %{user_id: 1, name: "G", provider: "google", is_active: true}
-      assert {:error, "OAuth providers require access_token"} = UserResolver.validate_integration_attrs(attrs, :calendar)
+
+      assert {:error, "OAuth providers require access_token"} =
+               UserResolver.validate_integration_attrs(attrs, :calendar)
 
       # CalDAV requires base_url
       attrs = %{user_id: 1, name: "C", provider: "caldav", is_active: true}
-      assert {:error, "CalDAV providers require base_url"} = UserResolver.validate_integration_attrs(attrs, :calendar)
+
+      assert {:error, "CalDAV providers require base_url"} =
+               UserResolver.validate_integration_attrs(attrs, :calendar)
     end
   end
 
   describe "create_or_update_integration/4" do
     test "creates new calendar integration" do
       user = insert(:user)
+
       attrs = %{
         user_id: user.id,
         name: "My Google",
@@ -53,16 +65,28 @@ defmodule Tymeslot.Integrations.Common.UserResolverTest do
         base_url: "https://google.com"
       }
 
-      assert {:ok, integration} = UserResolver.create_or_update_integration(user.id, :calendar, "google", attrs)
+      assert {:ok, integration} =
+               UserResolver.create_or_update_integration(user.id, :calendar, "google", attrs)
+
       assert integration.name == "My Google"
     end
 
     test "updates existing calendar integration" do
       user = insert(:user)
-      existing = insert(:calendar_integration, user: user, provider: "google", name: "Old Name", base_url: "https://google.com")
-      
+
+      existing =
+        insert(:calendar_integration,
+          user: user,
+          provider: "google",
+          name: "Old Name",
+          base_url: "https://google.com"
+        )
+
       attrs = %{name: "New Name"}
-      assert {:ok, updated} = UserResolver.create_or_update_integration(user.id, :calendar, "google", attrs)
+
+      assert {:ok, updated} =
+               UserResolver.create_or_update_integration(user.id, :calendar, "google", attrs)
+
       assert updated.id == existing.id
       assert updated.name == "New Name"
     end
