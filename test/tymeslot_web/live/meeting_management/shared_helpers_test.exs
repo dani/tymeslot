@@ -63,7 +63,7 @@ defmodule TymeslotWeb.MeetingManagement.SharedHelpersTest do
       profile: profile
     } do
       assert {:ok, validated_meeting, validated_profile, theme_info} =
-        SharedHelpers.validate_meeting_access_with_theme(meeting.uid, :view)
+               SharedHelpers.validate_meeting_access_with_theme(meeting.uid, :view)
 
       assert validated_meeting.id == meeting.id
       assert validated_profile.id == profile.id
@@ -72,14 +72,17 @@ defmodule TymeslotWeb.MeetingManagement.SharedHelpersTest do
 
     test "returns error when meeting not found" do
       assert {:error, "Meeting not found", "/"} =
-        SharedHelpers.validate_meeting_access_with_theme("non-existent", :view)
+               SharedHelpers.validate_meeting_access_with_theme("non-existent", :view)
     end
 
     test "returns error when policy check fails", %{meeting: meeting} do
       cancelled_meeting = meeting |> Changeset.change(status: "cancelled") |> Repo.update!()
 
       assert {:error, "Cannot reschedule a cancelled meeting", "/"} =
-        SharedHelpers.validate_meeting_access_with_theme(cancelled_meeting.uid, :reschedule)
+               SharedHelpers.validate_meeting_access_with_theme(
+                 cancelled_meeting.uid,
+                 :reschedule
+               )
     end
 
     test "returns default theme info when organizer has no profile", %{meeting: _meeting} do

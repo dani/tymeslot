@@ -467,7 +467,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Live do
     socket = assign(socket, :current_state, initial_state)
 
     if initial_state == :schedule do
-      fetch_month_availability_async(socket)
+      Helpers.fetch_month_availability_async(socket)
     else
       socket
     end
@@ -477,54 +477,13 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Live do
     socket = assign(socket, :current_state, new_state)
 
     if new_state == :schedule do
-      fetch_month_availability_async(socket)
+      Helpers.fetch_month_availability_async(socket)
     else
       socket
     end
   end
 
   # ... existing handle_timezone_change ...
-
-  @doc false
-  defp fetch_month_availability_async(socket) do
-    if can_fetch_availability?(socket) do
-      maybe_cancel_existing_task(socket)
-      perform_availability_fetch(socket)
-    else
-      socket
-    end
-  end
-
-  defp can_fetch_availability?(socket) do
-    socket.assigns[:organizer_user_id] &&
-      socket.assigns[:organizer_profile] &&
-      socket.assigns[:current_year] &&
-      socket.assigns[:current_month] &&
-      socket.assigns[:availability_status] != :loading
-  end
-
-  defp maybe_cancel_existing_task(socket) do
-    if old_task = socket.assigns[:availability_task] do
-      duration =
-        case socket.assigns[:availability_fetch_start_time] do
-          nil -> "unknown"
-          start -> "#{System.monotonic_time() - start}ns"
-        end
-
-      Logger.debug(
-        "Cancelling previous availability fetch task due to user navigation (task was running for #{duration})",
-        user_id: socket.assigns.organizer_user_id,
-        month: socket.assigns.current_month,
-        year: socket.assigns.current_year
-      )
-
-      Task.shutdown(old_task, :brutal_kill)
-    end
-  end
-
-  defp perform_availability_fetch(socket) do
-    Helpers.perform_availability_fetch(socket)
-  end
 
   defp handle_timezone_change(socket, data) do
     EventHandlers.handle_timezone_change(socket, data, TimezoneHandlerComponent)

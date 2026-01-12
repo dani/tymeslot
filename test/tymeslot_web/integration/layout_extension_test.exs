@@ -22,6 +22,7 @@ defmodule TymeslotWeb.Integration.LayoutExtensionTest do
       user = create_user_fixture(%{username: "coreuser"})
 
       {:ok, profile} = ProfileQueries.get_by_user_id(user.id)
+
       ProfileQueries.update_profile(profile, %{
         username: "coreuser",
         full_name: "Core User"
@@ -43,6 +44,7 @@ defmodule TymeslotWeb.Integration.LayoutExtensionTest do
       # Setup: Inject a dummy extension
       defmodule DummyExtension do
         use Phoenix.Component
+        @spec test_overlay(map()) :: Phoenix.LiveView.Rendered.t()
         def test_overlay(assigns) do
           ~H"<div id='test-extension'>Core Extension Hook Working</div>"
         end
@@ -73,10 +75,12 @@ defmodule TymeslotWeb.Integration.LayoutExtensionTest do
 
       user = create_user_fixture(%{username: "safetytest"})
       {:ok, profile} = ProfileQueries.get_by_user_id(user.id)
+
       ProfileQueries.update_profile(profile, %{
         username: "safetytest",
         full_name: "Safety Test User"
       })
+
       insert(:calendar_integration, user: user)
 
       # Action & Assert: Should not crash
@@ -87,11 +91,13 @@ defmodule TymeslotWeb.Integration.LayoutExtensionTest do
     test "renders multiple extensions in order", %{conn: conn} do
       defmodule MultiExt1 do
         use Phoenix.Component
+        @spec r1(map()) :: Phoenix.LiveView.Rendered.t()
         def r1(assigns), do: ~H"<div id='ext1'>First Extension</div>"
       end
 
       defmodule MultiExt2 do
         use Phoenix.Component
+        @spec r2(map()) :: Phoenix.LiveView.Rendered.t()
         def r2(assigns), do: ~H"<div id='ext2'>Second Extension</div>"
       end
 
@@ -130,10 +136,12 @@ defmodule TymeslotWeb.Integration.LayoutExtensionTest do
 
       user = create_user_fixture(%{username: "garbagetest"})
       {:ok, profile} = ProfileQueries.get_by_user_id(user.id)
+
       ProfileQueries.update_profile(profile, %{
         username: "garbagetest",
         full_name: "Garbage Test User"
       })
+
       insert(:calendar_integration, user: user)
 
       # Action & Assert: Should not crash and should render page

@@ -270,7 +270,9 @@ defmodule Tymeslot.Integrations.Video.Providers.GoogleMeetProvider do
             _ ->
               do_actual_refresh(config)
           end
-        end, mode: :blocking)
+        end,
+        mode: :blocking
+      )
     end
   end
 

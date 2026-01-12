@@ -703,12 +703,15 @@ defmodule Tymeslot.Profiles do
   defp valid_host?(host) do
     # Regex for a valid hostname or IP address
     # (Matches alpha-numeric, hyphens, dots)
-    Regex.match?(~r/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$|^localhost$|^\d{1,3}(\.\d{1,3}){3}$/, host)
+    Regex.match?(
+      ~r/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$|^localhost$|^\d{1,3}(\.\d{1,3}){3}$/,
+      host
+    )
   end
 
   defp valid_port?(port) do
     case Integer.parse(port) do
-      {p, ""} when p > 0 and p <= 65535 -> true
+      {p, ""} when p > 0 and p <= 65_535 -> true
       _ -> false
     end
   end

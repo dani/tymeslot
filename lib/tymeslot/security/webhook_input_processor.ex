@@ -8,6 +8,7 @@ defmodule Tymeslot.Security.WebhookInputProcessor do
   use Ecto.Schema
   import Ecto.Changeset
 
+  alias Ecto.Changeset
   alias Tymeslot.DatabaseSchemas.WebhookSchema
   alias Tymeslot.Security.RateLimiter
 
@@ -29,26 +30,34 @@ defmodule Tymeslot.Security.WebhookInputProcessor do
   def validate_webhook_form(params, opts \\ []) do
     metadata = Keyword.get(opts, :metadata, %{})
 
-    with :ok <- check_rate_limit("webhook_form", metadata) do
-      %__MODULE__{}
-      |> cast(params, [:name, :url, :secret, :events])
-      |> validate_required([:name, :url])
-      |> validate_length(:name, min: 1, max: 255)
-      |> validate_length(:url, min: 1, max: 2048)
-      |> validate_url_format()
-      |> validate_events_list()
-      |> apply_action(:validate)
-      |> case do
-        {:ok, validated} ->
-          {:ok, Map.from_struct(validated)}
+    case check_rate_limit("webhook_form", metadata) do
+      :ok ->
+        params
+        |> perform_webhook_validation()
+        |> handle_webhook_validation_result()
 
-        {:error, changeset} ->
-          {:error, translate_errors(changeset)}
-      end
-    else
       {:error, :rate_limited} ->
         {:error, %{form: "Too many requests. Please slow down."}}
     end
+  end
+
+  defp handle_webhook_validation_result({:ok, validated}) do
+    {:ok, Map.from_struct(validated)}
+  end
+
+  defp handle_webhook_validation_result({:error, changeset}) do
+    {:error, translate_errors(changeset)}
+  end
+
+  defp perform_webhook_validation(params) do
+    %__MODULE__{}
+    |> cast(params, [:name, :url, :secret, :events])
+    |> validate_required([:name, :url])
+    |> validate_length(:name, min: 1, max: 255)
+    |> validate_length(:url, min: 1, max: 2048)
+    |> validate_url_format()
+    |> validate_events_list()
+    |> apply_action(:validate)
   end
 
   @doc """
@@ -59,20 +68,28 @@ defmodule Tymeslot.Security.WebhookInputProcessor do
   def validate_name_update(name, opts \\ []) do
     metadata = Keyword.get(opts, :metadata, %{})
 
-    with :ok <- check_rate_limit("webhook_name", metadata) do
-      %__MODULE__{}
-      |> cast(%{"name" => name}, [:name])
-      |> validate_required([:name])
-      |> validate_length(:name, min: 1, max: 255)
-      |> apply_action(:validate)
-      |> case do
-        {:ok, validated} -> {:ok, validated.name}
-        {:error, changeset} -> {:error, get_first_error(changeset, :name)}
-      end
-    else
+    case check_rate_limit("webhook_name", metadata) do
+      :ok ->
+        %{"name" => name}
+        |> perform_name_update_validation()
+        |> handle_name_update_result()
+
       {:error, :rate_limited} ->
         {:error, "Too many requests. Please slow down."}
     end
+  end
+
+  defp handle_name_update_result({:ok, validated}), do: {:ok, validated.name}
+
+  defp handle_name_update_result({:error, changeset}),
+    do: {:error, get_first_error(changeset, :name)}
+
+  defp perform_name_update_validation(params) do
+    %__MODULE__{}
+    |> cast(params, [:name])
+    |> validate_required([:name])
+    |> validate_length(:name, min: 1, max: 255)
+    |> apply_action(:validate)
   end
 
   @doc """
@@ -83,21 +100,29 @@ defmodule Tymeslot.Security.WebhookInputProcessor do
   def validate_url_update(url, opts \\ []) do
     metadata = Keyword.get(opts, :metadata, %{})
 
-    with :ok <- check_rate_limit("webhook_url", metadata) do
-      %__MODULE__{}
-      |> cast(%{"url" => url}, [:url])
-      |> validate_required([:url])
-      |> validate_length(:url, min: 1, max: 2048)
-      |> validate_url_format()
-      |> apply_action(:validate)
-      |> case do
-        {:ok, validated} -> {:ok, validated.url}
-        {:error, changeset} -> {:error, get_first_error(changeset, :url)}
-      end
-    else
+    case check_rate_limit("webhook_url", metadata) do
+      :ok ->
+        %{"url" => url}
+        |> perform_url_update_validation()
+        |> handle_url_update_result()
+
       {:error, :rate_limited} ->
         {:error, "Too many requests. Please slow down."}
     end
+  end
+
+  defp handle_url_update_result({:ok, validated}), do: {:ok, validated.url}
+
+  defp handle_url_update_result({:error, changeset}),
+    do: {:error, get_first_error(changeset, :url)}
+
+  defp perform_url_update_validation(params) do
+    %__MODULE__{}
+    |> cast(params, [:url])
+    |> validate_required([:url])
+    |> validate_length(:url, min: 1, max: 2048)
+    |> validate_url_format()
+    |> apply_action(:validate)
   end
 
   # Private functions
@@ -115,18 +140,16 @@ defmodule Tymeslot.Security.WebhookInputProcessor do
     validate_change(changeset, :events, fn :events, events ->
       valid_events = WebhookSchema.valid_events()
 
-      cond do
-        Enum.empty?(events) ->
-          [{:events, "At least one event must be selected"}]
+      if Enum.empty?(events) do
+        [{:events, "At least one event must be selected"}]
+      else
+        invalid_events = Enum.reject(events, &(&1 in valid_events))
 
-        true ->
-          invalid_events = Enum.reject(events, &(&1 in valid_events))
-
-          if Enum.empty?(invalid_events) do
-            []
-          else
-            [{:events, "Invalid events: #{Enum.join(invalid_events, ", ")}"}]
-          end
+        if Enum.empty?(invalid_events) do
+          []
+        else
+          [{:events, "Invalid events: #{Enum.join(invalid_events, ", ")}"}]
+        end
       end
     end)
   end
@@ -139,7 +162,7 @@ defmodule Tymeslot.Security.WebhookInputProcessor do
   end
 
   defp translate_errors(changeset) do
-    Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
+    Changeset.traverse_errors(changeset, fn {msg, opts} ->
       Regex.replace(~r/%{(\w+)}/, msg, fn _, key ->
         opts |> Keyword.get(String.to_existing_atom(key), key) |> to_string()
       end)

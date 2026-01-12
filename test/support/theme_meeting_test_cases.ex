@@ -51,7 +51,9 @@ defmodule TymeslotWeb.ThemeMeetingTestCases do
   """
   @spec setup_cancel_confirmed_view(Plug.Conn.t(), term(), term()) :: map()
   def setup_cancel_confirmed_view(conn, profile, meeting) do
-    {:ok, view, _html} = live(conn, ~p"/#{profile.username}/meeting/#{meeting.uid}/cancel-confirmed")
+    {:ok, view, _html} =
+      live(conn, ~p"/#{profile.username}/meeting/#{meeting.uid}/cancel-confirmed")
+
     %{view: view}
   end
 

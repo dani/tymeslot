@@ -89,6 +89,7 @@ defmodule TymeslotWeb.Layouts do
   Renders generic theme extensions configured in the application environment.
   Allows external layers (like SaaS) to inject UI without Core awareness.
   """
+  @spec render_theme_extensions(map()) :: Phoenix.LiveView.Rendered.t()
   def render_theme_extensions(assigns) do
     extensions = Application.get_env(:tymeslot, :theme_extensions, [])
     assigns = assign(assigns, :extensions, filter_valid_extensions(extensions))

@@ -12,6 +12,8 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
   alias TymeslotWeb.Components.FormSystem
   alias TymeslotWeb.Helpers.ClientIP
 
+  require Logger
+
   import Phoenix.Component, only: [assign: 3]
 
   @doc """
@@ -262,6 +264,58 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
   end
 
   @doc """
+  Safely initiates an asynchronous month availability fetch if all requirements are met.
+  Cancels any existing fetch task before starting a new one.
+  """
+  @spec fetch_month_availability_async(Phoenix.LiveView.Socket.t()) :: Phoenix.LiveView.Socket.t()
+  def fetch_month_availability_async(socket) do
+    if can_fetch_availability?(socket) do
+      socket
+      |> maybe_cancel_existing_task()
+      |> perform_availability_fetch()
+    else
+      socket
+    end
+  end
+
+  @doc """
+  Checks if all conditions for fetching availability are met.
+  """
+  @spec can_fetch_availability?(Phoenix.LiveView.Socket.t()) :: boolean()
+  def can_fetch_availability?(socket) do
+    socket.assigns[:organizer_user_id] &&
+      socket.assigns[:organizer_profile] &&
+      socket.assigns[:current_year] &&
+      socket.assigns[:current_month] &&
+      socket.assigns[:availability_status] != :loading
+  end
+
+  @doc """
+  Cancels any existing availability fetch task.
+  """
+  @spec maybe_cancel_existing_task(Phoenix.LiveView.Socket.t()) :: Phoenix.LiveView.Socket.t()
+  def maybe_cancel_existing_task(socket) do
+    if old_task = socket.assigns[:availability_task] do
+      duration =
+        case socket.assigns[:availability_fetch_start_time] do
+          nil -> "unknown"
+          start -> "#{System.monotonic_time() - start}ns"
+        end
+
+      Logger.debug(
+        "Cancelling previous availability fetch task due to user navigation (task was running for #{duration})",
+        user_id: socket.assigns.organizer_user_id,
+        month: socket.assigns.current_month,
+        year: socket.assigns.current_year
+      )
+
+      Task.shutdown(old_task, :brutal_kill)
+    end
+
+    socket
+  end
+
+  @doc """
   Performs a synchronous availability fetch. Used primarily in test environments.
   """
   @spec perform_sync_availability_fetch(Phoenix.LiveView.Socket.t(), map()) ::
@@ -500,5 +554,4 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
 
     assign(socket, :calendar_days, calendar_days)
   end
-
 end
