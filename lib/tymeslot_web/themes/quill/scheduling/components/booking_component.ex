@@ -60,7 +60,11 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.BookingComponent do
             <div class="w-full max-w-3xl">
               <.glass_morphism_card class="booking-form-card">
                 <div class="p-4 md:p-6 lg:p-8">
-                  <.section_header level={2} class="text-2xl md:text-3xl lg:text-4xl mb-4">
+                  <.section_header
+                    level={2}
+                    class="mb-4"
+                    title_class="section-header text-2xl md:text-3xl lg:text-4xl"
+                  >
                     {gettext("Enter Your Details")}
                   </.section_header>
 

@@ -48,6 +48,10 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Live do
       {:ok, socket} ->
         # Finally setup initial state - override with correct state
         socket = setup_initial_state(socket, initial_state || :overview, params)
+
+        # Pre-fetch month availability regardless of initial state so it's ready for the schedule step
+        socket = Helpers.fetch_month_availability_async(socket)
+
         {:ok, socket}
     end
   end
@@ -159,7 +163,11 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Live do
         # Data is a map with duration key
         duration = Map.get(data, :duration)
 
-        socket = update_socket_for_duration(socket, duration)
+        socket =
+          socket
+          |> update_socket_for_duration(duration)
+          # Trigger availability refresh when duration changes
+          |> Helpers.fetch_month_availability_async()
 
         {:noreply, socket}
 

@@ -54,6 +54,9 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Live do
     # Finally setup initial state
     socket = setup_initial_state(socket, initial_state, params)
 
+    # Pre-fetch month availability regardless of initial state so it's ready for the schedule step
+    socket = Helpers.fetch_month_availability_async(socket)
+
     {:ok, socket}
   end
 
@@ -172,6 +175,8 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Live do
           |> assign(:selected_duration, data)
           |> assign(:duration, data)
           |> maybe_assign_meeting_type(data)
+          # Trigger availability refresh when duration changes
+          |> Helpers.fetch_month_availability_async()
 
         {:noreply, socket}
 
@@ -239,10 +244,10 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Live do
   defp handle_month_navigation_events(socket, event) do
     case event do
       :prev_month ->
-        handle_month_navigation(socket, :prev)
+        {:noreply, handle_month_navigation(socket, :prev)}
 
       :next_month ->
-        handle_month_navigation(socket, :next)
+        {:noreply, handle_month_navigation(socket, :next)}
     end
   end
 

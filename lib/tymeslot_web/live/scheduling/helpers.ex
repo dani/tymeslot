@@ -4,8 +4,9 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
   Contains common logic used across multiple scheduling components.
   """
 
-  alias Tymeslot.Availability.Calculate
+  alias Tymeslot.Availability.{BusinessHours, Calculate}
   alias Tymeslot.Demo
+  alias Tymeslot.Infrastructure.AvailabilityCache
   alias Tymeslot.Integrations.Calendar
   alias Tymeslot.Security.FormValidation
   alias Tymeslot.Utils.{ContextUtils, DateTimeUtils, TimezoneUtils}
@@ -182,7 +183,8 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
           integer(),
           String.t(),
           map(),
-          map() | nil
+          map() | nil,
+          integer() | nil
         ) :: {:ok, map()} | {:error, any()}
   def get_month_availability(
         user_id,
@@ -190,7 +192,8 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
         month,
         user_timezone,
         organizer_profile,
-        context \\ nil
+        context \\ nil,
+        duration_minutes \\ nil
       ) do
     # Security: Ensure user_id matches the profile owner to prevent IDOR
     cond do
@@ -205,33 +208,47 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
           month,
           user_timezone,
           organizer_profile,
-          context
+          context,
+          duration_minutes
         )
 
       true ->
         with {:ok, owner_timezone} <- get_owner_timezone(organizer_profile),
-             start_date <- Date.new!(year, month, 1),
-             {:ok, events} <-
-               Calendar.get_calendar_events_from_context(
-                 start_date,
-                 user_id,
-                 context
-               ) do
-          config = %{
-            profile_id: organizer_profile.id,
-            max_advance_booking_days: organizer_profile.advance_booking_days,
-            min_advance_hours: organizer_profile.min_advance_hours,
-            buffer_minutes: organizer_profile.buffer_minutes
-          }
+             start_date <- Date.new!(year, month, 1) do
+          cache_key =
+            AvailabilityCache.month_availability_key(
+              user_id,
+              year,
+              month,
+              user_timezone,
+              duration_minutes
+            )
 
-          Calculate.month_availability(
-            year,
-            month,
-            owner_timezone,
-            user_timezone,
-            events,
-            config
-          )
+          AvailabilityCache.get_or_compute(cache_key, fn ->
+            with {:ok, events} <-
+                   Calendar.get_calendar_events_from_context(
+                     start_date,
+                     user_id,
+                     context
+                   ) do
+              config = %{
+                profile_id: organizer_profile.id,
+                max_advance_booking_days: organizer_profile.advance_booking_days,
+                min_advance_hours: organizer_profile.min_advance_hours,
+                buffer_minutes: organizer_profile.buffer_minutes,
+                duration_minutes: duration_minutes
+              }
+
+              Calculate.month_availability(
+                year,
+                month,
+                owner_timezone,
+                user_timezone,
+                events,
+                config
+              )
+            end
+          end)
         end
     end
   end
@@ -323,13 +340,21 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
   def perform_sync_availability_fetch(socket, context) do
     ref = make_ref()
 
+    duration_minutes =
+      case socket.assigns[:duration] do
+        duration when is_integer(duration) -> duration
+        duration when is_binary(duration) -> parse_duration_minutes(duration)
+        _ -> 30
+      end
+
     case get_month_availability(
            socket.assigns.organizer_user_id,
            socket.assigns.current_year,
            socket.assigns.current_month,
            socket.assigns.user_timezone,
            socket.assigns.organizer_profile,
-           context
+           context,
+           duration_minutes
          ) do
       {:ok, availability} -> send(self(), {ref, {:ok, availability}})
       {:error, reason} -> send(self(), {ref, {:error, reason}})
@@ -353,6 +378,13 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
     user_timezone = socket.assigns.user_timezone
     organizer_profile = socket.assigns.organizer_profile
 
+    duration_minutes =
+      case socket.assigns[:duration] do
+        duration when is_integer(duration) -> duration
+        duration when is_binary(duration) -> parse_duration_minutes(duration)
+        _ -> 30
+      end
+
     task =
       Task.async(fn ->
         get_month_availability(
@@ -361,7 +393,8 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
           current_month,
           user_timezone,
           organizer_profile,
-          context
+          context,
+          duration_minutes
         )
       end)
 
@@ -406,16 +439,83 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
     end
   end
 
-  defp parse_duration_minutes(duration) do
-    case duration do
-      "15min" -> 15
-      "30min" -> 30
-      _ -> 30
+  defp parse_duration_minutes(duration) when is_binary(duration) do
+    case Regex.run(~r/^(\d+)min$/, duration) do
+      [_, minutes] ->
+        mins = String.to_integer(minutes)
+        # Limit to 24 hours (1440 minutes)
+        cond do
+          mins <= 0 -> 30
+          mins > 1440 -> 1440
+          true -> mins
+        end
+
+      _ ->
+        30
     end
   end
 
+  defp parse_duration_minutes(_), do: 30
+
   defp get_owner_timezone(organizer_profile) do
     {:ok, organizer_profile.timezone || "Europe/Kyiv"}
+  end
+
+  @doc """
+  Gets calendar days for a week view.
+  """
+  @spec get_week_days(Date.t(), map(), map() | atom() | nil) :: [map()]
+  def get_week_days(week_start, organizer_profile, availability_map \\ nil) do
+    if organizer_profile do
+      Enum.map(0..6, fn day_offset ->
+        date = Date.add(week_start, day_offset)
+        date_string = Date.to_string(date)
+
+        {is_available, is_loading} =
+          cond do
+            availability_map == :loading ->
+              {false, true}
+
+            is_map(availability_map) ->
+              {Map.get(availability_map, date_string, false), false}
+
+            true ->
+              {day_available?(date, organizer_profile), false}
+          end
+
+        %{
+          date: date_string,
+          day_name: day_name_short(Date.day_of_week(date)),
+          day_number: date.day,
+          available: is_available,
+          loading: is_loading,
+          today: date == Date.utc_today()
+        }
+      end)
+    else
+      []
+    end
+  end
+
+  defp day_name_short(day_of_week) do
+    case day_of_week do
+      1 -> "MON"
+      2 -> "TUE"
+      3 -> "WED"
+      4 -> "THU"
+      5 -> "FRI"
+      6 -> "SAT"
+      7 -> "SUN"
+    end
+  end
+
+  defp day_available?(date, organizer_profile) do
+    today = Date.utc_today()
+    is_weekday = BusinessHours.business_day?(date, organizer_profile.id)
+    is_future = Date.compare(date, today) != :lt
+    is_within_limit = Date.diff(date, today) <= organizer_profile.advance_booking_days
+
+    is_weekday && is_future && is_within_limit
   end
 
   defp demo_user?(profile) do

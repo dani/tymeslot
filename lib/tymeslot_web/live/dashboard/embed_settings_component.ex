@@ -641,10 +641,6 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsComponent do
 
             Flash.error("Failed to save: #{errors}")
             {:noreply, socket}
-
-          {:error, reason} ->
-            Flash.error("Failed to update settings: #{inspect(reason)}")
-            {:noreply, socket}
         end
 
       {:deny, _limit} ->

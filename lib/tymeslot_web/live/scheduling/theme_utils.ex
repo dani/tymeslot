@@ -83,6 +83,22 @@ defmodule TymeslotWeb.Live.Scheduling.ThemeUtils do
 
     # Normalize timezone to ensure consistency
     normalized_timezone = TimezoneUtils.normalize_timezone(timezone)
-    assign(socket, :user_timezone, normalized_timezone)
+
+    # Validate timezone and fallback if invalid
+    validated_timezone =
+      if TimezoneUtils.valid_timezone?(normalized_timezone) do
+        normalized_timezone
+      else
+        # Fallback to profile default or UTC if even that is broken
+        default_tz = Profiles.get_default_timezone()
+
+        if TimezoneUtils.valid_timezone?(default_tz) do
+          default_tz
+        else
+          "UTC"
+        end
+      end
+
+    assign(socket, :user_timezone, validated_timezone)
   end
 end

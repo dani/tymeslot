@@ -13,9 +13,10 @@ defmodule TymeslotWeb.Themes.Core.Dispatcher do
   alias Tymeslot.Bookings.Policy
   alias Tymeslot.DatabaseQueries.MeetingQueries
   alias Tymeslot.Meetings
+  alias Tymeslot.Profiles
   alias Tymeslot.Scheduling.LinkAccessPolicy
   alias Tymeslot.Themes.{Registry, Theme}
-  alias Tymeslot.Utils.DateTimeUtils
+  alias Tymeslot.Utils.{DateTimeUtils, TimezoneUtils}
   alias TymeslotWeb.Live.Scheduling.Helpers
   alias TymeslotWeb.Themes.Core.{Context, ErrorBoundary, EventBus}
   alias TymeslotWeb.Themes.Shared.Customization.Helpers, as: ThemeCustomizationHelpers
@@ -469,8 +470,21 @@ defmodule TymeslotWeb.Themes.Core.Dispatcher do
   end
 
   defp assign_user_timezone(socket, params) do
-    timezone = params["timezone"] || socket.assigns[:user_timezone] || "Europe/Kyiv"
-    assign(socket, :user_timezone, timezone)
+    timezone =
+      params["timezone"] || socket.assigns[:user_timezone] ||
+        Profiles.get_default_timezone()
+
+    # Normalize and validate
+    normalized_timezone = TimezoneUtils.normalize_timezone(timezone)
+
+    validated_timezone =
+      if TimezoneUtils.valid_timezone?(normalized_timezone) do
+        normalized_timezone
+      else
+        Profiles.get_default_timezone()
+      end
+
+    assign(socket, :user_timezone, validated_timezone)
   end
 
   # Handle events for meeting management

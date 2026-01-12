@@ -148,7 +148,7 @@ defmodule TymeslotWeb.Components.CoreComponents.Containers do
       <% end %>
     </div>
 
-    <h1 :if={!@icon} class={["font-black tracking-tight mb-4 text-slate-900", @size_class, @class]}>
+    <h1 :if={!@icon} class={[@computed_title_class, "mb-4", @class]}>
       <%= if @title do %>
         {@title}
       <% else %>

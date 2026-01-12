@@ -28,7 +28,8 @@ defmodule Tymeslot.Integrations.Shared.Lock do
     - :mode - :non_blocking (default) or :blocking
     - :timeout - max time to wait in :blocking mode (default 30_000ms)
   """
-  @spec with_lock(any(), function(), keyword()) :: any()
+  @spec with_lock(atom(), integer(), (-> any())) :: any()
+  @spec with_lock(any(), (-> any()), keyword()) :: any()
   def with_lock(key, fun, opts \\ [])
 
   # Backward compatibility for calendar integrations: with_lock(provider, integration_id, fun)

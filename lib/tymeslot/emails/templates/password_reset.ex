@@ -4,7 +4,7 @@ defmodule Tymeslot.Emails.Templates.PasswordReset do
   """
   alias Tymeslot.Emails.Shared.{Components, SharedHelpers, Styles, TemplateHelper}
 
-  @spec render(%{name: String.t() | nil, email: String.t()}, String.t()) :: String.t()
+  @spec render(map(), String.t()) :: String.t()
   def render(user, reset_url) do
     mjml_content = """
     #{Components.title_section("Securely reset your password")}

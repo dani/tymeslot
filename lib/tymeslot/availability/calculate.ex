@@ -30,6 +30,8 @@ defmodule Tymeslot.Availability.Calculate do
         events,
         config \\ %{}
       ) do
+    # Enforce 24-hour limit on duration
+    duration_minutes = min(duration_minutes, 1440)
     profile_id = Map.get(config, :profile_id)
 
     # To handle extreme timezone differences (up to 24 hours), we check the selected date
@@ -140,7 +142,14 @@ defmodule Tymeslot.Availability.Calculate do
   """
   @spec month_availability(integer(), integer(), String.t(), String.t(), [map()], map()) ::
           {:ok, map()}
-  def month_availability(year, month, owner_timezone, user_timezone, events, config \\ %{}) do
+  def month_availability(
+        year,
+        month,
+        owner_timezone,
+        user_timezone,
+        events,
+        config \\ %{}
+      ) do
     # Get the date range for the month
     start_date = Date.new!(year, month, 1)
     end_date = Date.end_of_month(start_date)
@@ -159,8 +168,9 @@ defmodule Tymeslot.Availability.Calculate do
     # Convert events to user timezone once
     events_in_user_tz = Conflicts.convert_events_to_timezone(events, user_timezone)
 
-    # Read profile_id once (if present)
+    # Read profile_id and duration once (if present)
     profile_id = Map.get(config, :profile_id)
+    duration_minutes = Map.get(config, :duration_minutes, 30)
 
     # Check each date in the month
     availability_map =
@@ -178,7 +188,7 @@ defmodule Tymeslot.Availability.Calculate do
               owner_timezone,
               user_timezone,
               events_in_user_tz,
-              config
+              Map.put(config, :duration_minutes, duration_minutes)
             )
 
         Map.put(acc, date_string, has_slots)

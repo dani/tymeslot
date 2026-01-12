@@ -48,6 +48,8 @@ defmodule Tymeslot.Application do
           HealthCheck,
           # Start dashboard cache GenServer
           Tymeslot.Infrastructure.DashboardCache,
+          # Start availability cache GenServer
+          Tymeslot.Infrastructure.AvailabilityCache,
           # Start calendar request coalescer
           Tymeslot.Integrations.Calendar.RequestCoalescer,
           # Start Oban for background job processing
@@ -64,6 +66,8 @@ defmodule Tymeslot.Application do
         [
           # Start dashboard cache GenServer
           Tymeslot.Infrastructure.DashboardCache,
+          # Start availability cache GenServer
+          Tymeslot.Infrastructure.AvailabilityCache,
           # Start custom rate limiter
           Tymeslot.Security.RateLimiter,
           # Start account lockout tracker

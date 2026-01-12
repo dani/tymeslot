@@ -120,7 +120,8 @@ defmodule Tymeslot.Demo.Behaviour do
               month :: integer(),
               user_timezone :: String.t(),
               organizer_profile :: map(),
-              context :: map() | nil
+              context :: map() | nil,
+              duration_minutes :: integer() | nil
             ) :: {:ok, map()} | {:error, any()}
 
   @doc """

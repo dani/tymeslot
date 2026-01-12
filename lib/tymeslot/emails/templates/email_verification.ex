@@ -4,7 +4,7 @@ defmodule Tymeslot.Emails.Templates.EmailVerification do
   """
   alias Tymeslot.Emails.Shared.{Components, SharedHelpers, Styles, TemplateHelper}
 
-  @spec render(%{name: String.t() | nil, email: String.t()}, String.t()) :: String.t()
+  @spec render(map(), String.t()) :: String.t()
   def render(user, verification_url) do
     mjml_content = """
     #{Components.title_section("Welcome to Tymeslot!")}

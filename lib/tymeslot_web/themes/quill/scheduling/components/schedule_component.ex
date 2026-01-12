@@ -129,12 +129,16 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ScheduleComponent do
                 <div class="p-2 md:p-3 lg:p-4 min-h-0">
                   <div class="flex flex-col md:flex-row md:items-start md:justify-between mb-3">
                     <div class="flex-1">
-                      <.section_header level={2} class="text-base md:text-lg lg:text-xl mb-1">
+                      <.section_header
+                        level={2}
+                        class="mb-1"
+                        title_class="section-header text-base md:text-lg lg:text-xl"
+                      >
                         {gettext("Select a Date & Time")}
                       </.section_header>
 
                       <%= if @organizer_profile do %>
-                        <p class="text-sm md:text-base mb-2" style="color: rgba(255,255,255,0.8);">
+                        <p class="text-sm md:text-base mb-2 text-glass-primary">
                           {gettext("Bookings available up to %{advance}", advance: format_advance_booking_days(
                             @organizer_profile.advance_booking_days
                           ))}
@@ -142,8 +146,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ScheduleComponent do
                       <% end %>
 
                       <p
-                        class="text-base md:text-lg font-medium"
-                        style="color: rgba(255,255,255,0.9);"
+                        class="text-base md:text-lg font-medium text-glass-primary"
                       >
                         {gettext("Duration: %{duration}", duration: TimezoneUtils.format_duration(@duration))}
                       </p>
@@ -163,7 +166,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ScheduleComponent do
                   <div class="flex flex-col lg:flex-row lg:gap-4 xl:gap-6 calendar-slots-container">
                     <div class="flex-1 calendar-section">
                       <div class="flex items-center justify-between mb-1 md:mb-2">
-                        <h2 class="text-sm md:text-base lg:text-lg font-bold flex items-center gap-2" style="color: white;">
+                        <h2 class="text-sm md:text-base lg:text-lg font-bold flex items-center gap-2 text-glass-primary">
                           {gettext("Select a Date")}
                           <%= if @availability_status == :loading do %>
                             <svg
@@ -482,7 +485,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ScheduleComponent do
   defp time_slots_panel(assigns) do
     ~H"""
     <div class="time-slots-panel flex flex-col" id="slots-container" phx-hook="AutoScrollToSlots">
-      <h2 class="text-sm md:text-base lg:text-lg font-bold mb-1" style="color: white;">
+      <h2 class="text-sm md:text-base lg:text-lg font-bold mb-1 text-glass-primary">
         {gettext("Available Times")}
       </h2>
       <div class="slots-box flex-1">

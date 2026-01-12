@@ -64,14 +64,12 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.OverviewComponent do
 
                   <div>
                     <h1
-                      class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-2 md:mb-4 text-center md:text-left"
-                      style="color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.1);"
+                      class="section-header text-xl sm:text-2xl md:text-3xl lg:text-4xl text-center md:text-left"
                     >
                       {gettext("Let's Connect!")}
                     </h1>
                     <p
-                      class="text-sm sm:text-base md:text-lg lg:text-xl mb-3 sm:mb-4 md:mb-6 text-center md:text-left"
-                      style="color: rgba(255,255,255,0.9);"
+                      class="text-sm sm:text-base md:text-lg lg:text-xl mb-3 sm:mb-4 md:mb-6 text-center md:text-left text-glass-primary"
                     >
                       <%= if display_name = Profiles.display_name(@organizer_profile) do %>
                         {gettext("Hi, I'm %{name}. Select how much time you need for our conversation.", name: display_name)}

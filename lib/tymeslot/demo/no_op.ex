@@ -125,7 +125,8 @@ defmodule Tymeslot.Demo.NoOp do
         _month,
         _user_timezone,
         _organizer_profile,
-        _context
+        _context,
+        _duration_minutes \\ nil
       ) do
     # NoOp implementation returns empty map; caller should fall back to real logic
     {:ok, %{}}

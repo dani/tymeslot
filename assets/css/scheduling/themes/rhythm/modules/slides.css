@@ -437,6 +437,12 @@
   cursor: not-allowed;
 }
 
+.calendar-day--loading {
+  opacity: 0.5;
+  cursor: wait;
+  background: rgba(255, 255, 255, 0.05);
+}
+
 /* Time Slots */
 .time-slots-section {
   flex: 1 1 auto;

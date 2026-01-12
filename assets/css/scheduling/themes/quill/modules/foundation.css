@@ -45,6 +45,7 @@ body.quill-theme {
   font-size: var(--theme-font-size-base);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: var(--theme-background-color);
 }
 
 .quill-theme-wrapper {

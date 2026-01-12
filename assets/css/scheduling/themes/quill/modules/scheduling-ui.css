@@ -97,8 +97,22 @@
 }
 
 .calendar-day--unavailable {
-  color: rgba(255,255,255,0.3);
+  color: rgba(255,255,255,0.2);
   cursor: not-allowed;
+  background: rgba(255, 255, 255, 0.02);
+  opacity: 0.5;
+}
+
+.calendar-day--loading {
+  cursor: wait;
+  opacity: 0.6;
+  background: rgba(255, 255, 255, 0.05);
+  animation: quill-pulse 2s ease-in-out infinite;
+}
+
+@keyframes quill-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.7; }
 }
 
 .calendar-day--other-month {

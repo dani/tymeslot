@@ -101,7 +101,8 @@ defmodule Tymeslot.Demo do
           integer(),
           String.t(),
           map(),
-          map() | nil
+          map() | nil,
+          integer() | nil
         ) :: {:ok, map()} | {:error, any()}
   def get_month_availability(
         user_id,
@@ -109,7 +110,8 @@ defmodule Tymeslot.Demo do
         month,
         user_timezone,
         organizer_profile,
-        context \\ nil
+        context \\ nil,
+        duration_minutes \\ nil
       ),
       do:
         provider().get_month_availability(
@@ -118,7 +120,8 @@ defmodule Tymeslot.Demo do
           month,
           user_timezone,
           organizer_profile,
-          context
+          context,
+          duration_minutes
         )
 
   @spec get_calendar_days(String.t(), integer(), integer(), map(), map() | atom() | nil) ::

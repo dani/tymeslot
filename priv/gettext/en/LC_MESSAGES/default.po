@@ -22,6 +22,9 @@ msgstr "Confirmation"
 msgid "next"
 msgstr "Next"
 
+msgid "next_step"
+msgstr "Next Step"
+
 #: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:140
 #, elixir-autogen
 msgid "back"

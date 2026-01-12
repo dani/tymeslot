@@ -23,6 +23,21 @@ defmodule Tymeslot.Utils.TimezoneUtils do
   def normalize_timezone(other), do: other
 
   @doc """
+  Validates if a timezone string is recognized by the system.
+  """
+  @spec valid_timezone?(term()) :: boolean()
+  def valid_timezone?(timezone) when is_binary(timezone) do
+    case DateTime.now(timezone) do
+      {:ok, _} -> true
+      {:error, _} -> false
+    end
+  rescue
+    _ -> false
+  end
+
+  def valid_timezone?(_), do: false
+
+  @doc """
   Formats a timezone string for display with current UTC offset.
   """
   @spec format_timezone(term()) :: String.t()

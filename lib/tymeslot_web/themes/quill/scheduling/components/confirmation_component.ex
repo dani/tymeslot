@@ -73,7 +73,10 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ConfirmationComponent d
     <!-- Content on right side -->
                     <div class="flex-1 text-center lg:text-left">
                       <div data-testid="confirmation-heading">
-                        <.section_header class="text-xl sm:text-2xl md:text-3xl lg:text-4xl">
+                        <.section_header
+                          class="mb-4"
+                          title_class="section-header text-xl sm:text-2xl md:text-3xl lg:text-4xl"
+                        >
                           <%= if @is_rescheduling do %>
                             {gettext("Meeting Rescheduled!")}
                           <% else %>

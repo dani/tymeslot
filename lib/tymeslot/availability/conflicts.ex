@@ -123,7 +123,8 @@ defmodule Tymeslot.Availability.Conflicts do
       is_today: is_today,
       min_booking_time: minimum_booking_time,
       events: relevant_events,
-      buffer: buffer_minutes
+      buffer: buffer_minutes,
+      duration_minutes: Map.get(config, :duration_minutes, 30)
     }
 
     # Check the selected date and adjacent days in owner's timezone
@@ -161,7 +162,8 @@ defmodule Tymeslot.Availability.Conflicts do
               params.min_booking_time,
               params.events,
               user_start,
-              params.buffer
+              params.buffer,
+              params.duration_minutes
             )
           else
             false
@@ -173,25 +175,104 @@ defmodule Tymeslot.Availability.Conflicts do
     end
   end
 
-  defp check_window_availability(user_end, is_today, min_booking_time, events, user_start, buffer) do
+  defp check_window_availability(
+         user_end,
+         is_today,
+         min_booking_time,
+         events,
+         user_start,
+         buffer,
+         duration_minutes
+       ) do
     # For today, check if the business hours end is still in the future
     # (accounting for minimum advance booking time)
     if is_today and DateTime.compare(user_end, min_booking_time) != :gt do
       # All slots for today have passed (end of business hours < minimum booking time)
       false
     else
-      # Check if any event blocks the entire business day window
-      # Pre-calculate bounds to avoid DateTime.add in the loop
-      start_bound = DateTime.add(user_start, buffer, :minute)
-      end_bound = DateTime.add(user_end, -buffer, :minute)
+      start_bound = get_effective_start_bound(user_start, is_today, min_booking_time)
+      required_seconds = duration_minutes * 60
 
-      not Enum.any?(events, fn event ->
-        # Check if this event covers the entire business hours window
-        # Equivalent to: event.start - buffer <= user_start AND event.end + buffer >= user_end
-        DateTime.compare(event.start_time, start_bound) != :gt and
-          DateTime.compare(event.end_time, end_bound) != :lt
-      end)
+      if DateTime.diff(user_end, start_bound) < required_seconds do
+        false
+      else
+        check_gaps_with_events(start_bound, user_end, events, buffer, duration_minutes)
+      end
     end
+  end
+
+  defp get_effective_start_bound(user_start, false, _min_booking_time), do: user_start
+
+  defp get_effective_start_bound(user_start, true, min_booking_time) do
+    # For today, start from whichever is later: business start or minimum booking time
+    case DateTime.compare(user_start, min_booking_time) do
+      :gt -> user_start
+      _ -> min_booking_time
+    end
+  end
+
+  defp check_gaps_with_events(_start_bound, _user_end, [], _buffer, _duration_minutes), do: true
+
+  defp check_gaps_with_events(start_bound, user_end, events, buffer, duration_minutes) do
+    # 1. Filter and sort events that overlap with our effective window
+    relevant_events =
+      events
+      |> Enum.filter(fn event ->
+        # Event overlaps window if it ends after window start AND starts before window end
+        DateTime.compare(event.end_time, start_bound) == :gt and
+          DateTime.compare(event.start_time, user_end) == :lt
+      end)
+      |> Enum.sort_by(& &1.start_time, DateTime)
+
+    if Enum.empty?(relevant_events) do
+      true
+    else
+      check_relevant_event_gaps(relevant_events, start_bound, user_end, buffer, duration_minutes)
+    end
+  end
+
+  defp check_relevant_event_gaps(relevant_events, start_bound, user_end, buffer, duration_minutes) do
+    # 2. Check gaps
+    # Check gap before first event
+    first_event = List.first(relevant_events)
+
+    can_fit_before? =
+      DateTime.diff(first_event.start_time, start_bound) >=
+        (duration_minutes + buffer) * 60
+
+    if can_fit_before? do
+      true
+    else
+      # Check gaps between events
+      {last_end, found_gap} = find_gap_between_events(relevant_events, start_bound, buffer, duration_minutes)
+
+      if found_gap do
+        true
+      else
+        # Check gap after last event
+        DateTime.diff(user_end, last_end) >= (duration_minutes + buffer) * 60
+      end
+    end
+  end
+
+  defp find_gap_between_events(relevant_events, start_bound, buffer, duration_minutes) do
+    Enum.reduce_while(relevant_events, {start_bound, false}, fn event, {prev_end, _} ->
+      current_gap_start = DateTime.add(prev_end, buffer, :minute)
+      current_gap_end = DateTime.add(event.start_time, -buffer, :minute)
+
+      if DateTime.diff(current_gap_end, current_gap_start) >= duration_minutes * 60 do
+        {:halt, {event.end_time, true}}
+      else
+        # Use the later of previous end or current event end to handle overlapping events
+        new_end =
+          case DateTime.compare(prev_end, event.end_time) do
+            :gt -> prev_end
+            _ -> event.end_time
+          end
+
+        {:cont, {new_end, false}}
+      end
+    end)
   end
 
   # Private functions

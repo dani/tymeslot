@@ -141,9 +141,6 @@ defmodule TymeslotWeb.Plugs.SecurityHeadersPlug do
           else
             "ALLOW-FROM https://#{first_domain}"
           end
-
-        _ ->
-          nil
       end
 
     {frame_ancestors, x_frame_options}

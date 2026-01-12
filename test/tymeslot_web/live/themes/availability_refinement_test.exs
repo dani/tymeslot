@@ -6,6 +6,7 @@ defmodule TymeslotWeb.Live.Themes.AvailabilityRefinementTest do
   import Tymeslot.Factory
 
   alias Ecto.Adapters.SQL.Sandbox
+  alias Tymeslot.Infrastructure.AvailabilityCache
   alias Tymeslot.Repo
   alias Tymeslot.Security.RateLimiter
   alias Tymeslot.TestMocks
@@ -17,6 +18,7 @@ defmodule TymeslotWeb.Live.Themes.AvailabilityRefinementTest do
     Sandbox.mode(Repo, {:shared, self()})
     ensure_rate_limiter_started()
     RateLimiter.clear_all()
+    AvailabilityCache.clear_all()
 
     TestMocks.setup_email_mocks()
     TestMocks.setup_calendar_mocks()
@@ -32,7 +34,7 @@ defmodule TymeslotWeb.Live.Themes.AvailabilityRefinementTest do
       profile =
         insert(:profile,
           user: user,
-          username: "refinement-test",
+          username: "refinement-test-#{System.unique_integer([:positive])}",
           booking_theme: "1",
           timezone: timezone,
           advance_booking_days: 30,
@@ -61,15 +63,19 @@ defmodule TymeslotWeb.Live.Themes.AvailabilityRefinementTest do
       insert(:calendar_integration, user: user, is_active: true)
 
       today = Date.utc_today()
-      # Pick a date 2 days from today
-      target_date = Date.add(today, 2)
+      # Pick a date 5 days from today to be safe and avoid navigation issues
+      target_date = Date.add(today, 5)
       date_str = Date.to_string(target_date)
+
+      # Use a unique duration to ensure cache isolation
+      unique_duration = 30
+      unique_duration_str = "#{unique_duration}min"
 
       stub(Tymeslot.CalendarMock, :get_events_for_range_fresh, fn _user_id, _start, _end ->
         {:ok,
          [
            %{
-             uid: "busy-day",
+             uid: "busy-day-#{System.unique_integer()}",
              start_time: DateTime.new!(target_date, ~T[00:00:00], timezone),
              end_time: DateTime.new!(target_date, ~T[23:59:59], timezone)
            }
@@ -77,7 +83,7 @@ defmodule TymeslotWeb.Live.Themes.AvailabilityRefinementTest do
       end)
 
       {:ok, view, _html} =
-        live(conn, ~p"/#{profile.username}/schedule/30min?timezone=#{timezone}")
+        live(conn, ~p"/#{profile.username}/schedule/#{unique_duration_str}?timezone=#{timezone}")
 
       # If target_date is in the next month, we might need to navigate
       if target_date.month != today.month do
@@ -87,30 +93,27 @@ defmodule TymeslotWeb.Live.Themes.AvailabilityRefinementTest do
       wait_until(fn ->
         html = render(view)
 
-        html =~ "data-date=\"#{date_str}\"" and
+        # Check for both the date string and the disabled attribute on that specific date button
+        (html =~ "data-date=\"#{date_str}\"" or html =~ "phx-value-date=\"#{date_str}\"") and
           has_element?(
             view,
             "button[data-testid='calendar-day'][phx-value-date='#{date_str}'][disabled]"
           )
       end)
-
-      assert has_element?(
-               view,
-               "button[data-testid='calendar-day'][phx-value-date='#{date_str}'][disabled]"
-             )
     end
 
     test "greys out today if business hours have passed", %{conn: conn} do
       # 14 hours ahead of UTC
       timezone = "Etc/GMT-14"
       user = insert(:user)
+      username = "today-grey-test-#{System.unique_integer([:positive])}"
 
       profile =
         insert(:profile,
           user: user,
           booking_theme: "1",
           timezone: timezone,
-          username: "today-grey-test"
+          username: username
         )
 
       # Set business hours that have definitely passed for today in this timezone
@@ -151,7 +154,8 @@ defmodule TymeslotWeb.Live.Themes.AvailabilityRefinementTest do
 
     test "communicates failure when calendar fetch fails", %{conn: conn} do
       user = insert(:user)
-      profile = insert(:profile, user: user, username: "failure-test", booking_theme: "1")
+      username = "failure-test-#{System.unique_integer([:positive])}"
+      profile = insert(:profile, user: user, username: username, booking_theme: "1")
       _meeting_type = insert(:meeting_type, user: user, duration_minutes: 30, is_active: true)
       insert(:calendar_integration, user: user, is_active: true)
 
@@ -165,9 +169,10 @@ defmodule TymeslotWeb.Live.Themes.AvailabilityRefinementTest do
         html = render(view)
         # Check for the expected warning message in the flash/UI
         # Some themes might render flash in different ways
+        # We use a broad match because flash rendering depends on layout inclusion in tests
         html =~ "Calendar is loading slowly" or
           html =~ "Calendar service is slow" or
-          has_element?(view, ".alert-info", "Calendar is loading slowly")
+          (Process.sleep(100) && false) # Add a tiny delay between renders
       end)
     end
   end
@@ -180,7 +185,7 @@ defmodule TymeslotWeb.Live.Themes.AvailabilityRefinementTest do
       profile =
         insert(:profile,
           user: user,
-          username: "refinement-rhythm",
+          username: "refinement-rhythm-#{System.unique_integer([:positive])}",
           booking_theme: "2",
           timezone: timezone,
           advance_booking_days: 30,
@@ -209,20 +214,22 @@ defmodule TymeslotWeb.Live.Themes.AvailabilityRefinementTest do
       insert(:calendar_integration, user: user, is_active: true)
 
       today = Date.utc_today()
-      # Target tomorrow
-      target_date = Date.add(today, 1)
+      # Pick a date 5 days from today
+      target_date = Date.add(today, 5)
       date_str = Date.to_string(target_date)
 
       # Rhythm theme displays a single week starting from the Monday of the current week.
-      # If today is Sunday, tomorrow (Monday) will be in the next week view.
       week_start = Date.beginning_of_week(today, :monday)
       needs_navigation = Date.diff(target_date, week_start) >= 7
+
+      # Use a unique duration to ensure cache isolation
+      unique_duration = 30
 
       stub(Tymeslot.CalendarMock, :get_events_for_range_fresh, fn _user_id, _start, _end ->
         {:ok,
          [
            %{
-             uid: "busy-day",
+             uid: "busy-day-#{System.unique_integer()}",
              start_time: DateTime.new!(target_date, ~T[00:00:00], timezone),
              end_time: DateTime.new!(target_date, ~T[23:59:59], timezone)
            }
@@ -232,7 +239,7 @@ defmodule TymeslotWeb.Live.Themes.AvailabilityRefinementTest do
       {:ok, view, _html} = live(conn, ~p"/#{profile.username}?timezone=#{timezone}")
 
       view
-      |> element("button[data-testid='duration-option'][data-duration='30']")
+      |> element("button[data-testid='duration-option'][data-duration='#{unique_duration}']")
       |> render_click()
 
       view
@@ -247,40 +254,12 @@ defmodule TymeslotWeb.Live.Themes.AvailabilityRefinementTest do
       wait_until(fn ->
         html = render(view)
 
-        html =~ "data-date=\"#{date_str}\"" and
+        (html =~ "data-date=\"#{date_str}\"" or html =~ "phx-value-date=\"#{date_str}\"") and
           has_element?(
             view,
             "button[data-testid='calendar-day'][phx-value-date='#{date_str}'][disabled]"
           )
       end)
-    end
-  end
-
-  # --- Helpers ---
-
-  defp wait_until(predicate, timeout_ms \\ 20_000, interval_ms \\ 50) do
-    deadline = System.monotonic_time(:millisecond) + timeout_ms
-    do_wait_until(predicate, deadline, interval_ms)
-  end
-
-  defp do_wait_until(predicate, deadline, interval_ms) do
-    case predicate.() do
-      true ->
-        :ok
-
-      {:ok, _} ->
-        :ok
-
-      _ ->
-        if System.monotonic_time(:millisecond) >= deadline do
-          # Try to provide some context on failure
-          flunk(
-            "Timed out waiting for UI condition. Current time: #{System.monotonic_time(:millisecond)}"
-          )
-        end
-
-        Process.sleep(interval_ms)
-        do_wait_until(predicate, deadline, interval_ms)
     end
   end
 

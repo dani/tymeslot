@@ -599,13 +599,12 @@ defmodule Tymeslot.Profiles do
   def update_allowed_embed_domains(%ProfileSchema{} = profile, domains) when is_list(domains) do
     require Logger
 
-    # Normalize domains (trim, lowercase, sanitize)
+    # Normalize domains (trim, lowercase)
     normalized_domains =
       domains
       |> Enum.map(&String.trim/1)
       |> Enum.map(&String.downcase/1)
       |> Enum.reject(&(&1 == ""))
-      |> Enum.filter(&valid_domain_format?/1)
       |> Enum.uniq()
 
     Logger.info("Updating allowed embed domains",
@@ -690,29 +689,4 @@ defmodule Tymeslot.Profiles do
     end
   end
 
-  defp valid_domain_format?(domain) do
-    # Basic validation for host[:port]
-    # Allows localhost, IP addresses, and standard domain formats
-    case String.split(domain, ":") do
-      [host] -> valid_host?(host)
-      [host, port] -> valid_host?(host) and valid_port?(port)
-      _ -> false
-    end
-  end
-
-  defp valid_host?(host) do
-    # Regex for a valid hostname or IP address
-    # (Matches alpha-numeric, hyphens, dots)
-    Regex.match?(
-      ~r/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$|^localhost$|^\d{1,3}(\.\d{1,3}){3}$/,
-      host
-    )
-  end
-
-  defp valid_port?(port) do
-    case Integer.parse(port) do
-      {p, ""} when p > 0 and p <= 65_535 -> true
-      _ -> false
-    end
-  end
 end

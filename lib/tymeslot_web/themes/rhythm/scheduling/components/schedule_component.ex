@@ -6,7 +6,6 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ScheduleComponent do
   use TymeslotWeb, :live_component
   use Gettext, backend: TymeslotWeb.Gettext
 
-  alias Tymeslot.Availability.BusinessHours
   alias Tymeslot.Demo
   alias Tymeslot.Profiles
   alias Tymeslot.Utils.TimezoneUtils
@@ -219,7 +218,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ScheduleComponent do
                 </div>
 
                 <div class="calendar-grid">
-                  <%= for day <- get_week_days(@current_week_start, assigns) do %>
+                  <%= for day <- Helpers.get_week_days(@current_week_start, @organizer_profile, @month_availability_map) do %>
                     <button
                       class={[
                         "calendar-day",
@@ -233,7 +232,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ScheduleComponent do
                       phx-target={@myself}
                       disabled={not day.available || day.loading}
                     >
-                      <div class="day-name">{day.day_name}</div>
+                      <div class="day-name">{get_localized_day_name(day.day_name)}</div>
                       <div class="day-number">{day.day_number}</div>
                     </button>
                   <% end %>
@@ -341,6 +340,19 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ScheduleComponent do
     """
   end
 
+  defp get_localized_day_name(day_name) do
+    case day_name do
+      "MON" -> gettext("MON")
+      "TUE" -> gettext("TUE")
+      "WED" -> gettext("WED")
+      "THU" -> gettext("THU")
+      "FRI" -> gettext("FRI")
+      "SAT" -> gettext("SAT")
+      "SUN" -> gettext("SUN")
+      _ -> day_name
+    end
+  end
+
   # Helpers
   defp get_week_display(week_start) do
     week_end = Date.add(week_start, 6)
@@ -371,62 +383,6 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ScheduleComponent do
       11 -> gettext("November")
       12 -> gettext("December")
     end
-  end
-
-  defp get_week_days(week_start, assigns) do
-    availability_map = Map.get(assigns, :month_availability_map)
-
-    Enum.map(0..6, fn day_offset ->
-      date = Date.add(week_start, day_offset)
-      date_string = Date.to_string(date)
-
-      # Check availability based on availability_map state
-      {is_available, is_loading} =
-        cond do
-          # Loading state
-          availability_map == :loading ->
-            {false, true}
-
-          # Real availability data provided
-          is_map(availability_map) ->
-            real_available = Map.get(availability_map, date_string, false)
-            {real_available, false}
-
-          # No availability map: use business hours logic
-          true ->
-            business_hours_available = day_available?(date, assigns.organizer_profile)
-            {business_hours_available, false}
-        end
-
-      %{
-        date: date_string,
-        day_name: day_name_short(Date.day_of_week(date)),
-        day_number: date.day,
-        available: is_available,
-        loading: is_loading
-      }
-    end)
-  end
-
-  defp day_name_short(day_of_week) do
-    case day_of_week do
-      1 -> gettext("MON")
-      2 -> gettext("TUE")
-      3 -> gettext("WED")
-      4 -> gettext("THU")
-      5 -> gettext("FRI")
-      6 -> gettext("SAT")
-      7 -> gettext("SUN")
-    end
-  end
-
-  defp day_available?(date, organizer_profile) do
-    today = Date.utc_today()
-    is_weekday = BusinessHours.business_day?(date, organizer_profile.id)
-    is_future = Date.compare(date, today) != :lt
-    is_within_limit = Date.diff(date, today) <= organizer_profile.advance_booking_days
-
-    is_weekday && is_future && is_within_limit
   end
 
   defp get_slots_container_style(_available_slots), do: ""

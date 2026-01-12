@@ -52,7 +52,8 @@ defmodule Tymeslot.Security.WebhookInputProcessor do
   defp perform_webhook_validation(params) do
     %__MODULE__{}
     |> cast(params, [:name, :url, :secret, :events])
-    |> validate_required([:name, :url])
+    |> validate_required([:name], message: "Name cannot be empty")
+    |> validate_required([:url])
     |> validate_length(:name, min: 1, max: 255)
     |> validate_length(:url, min: 1, max: 2048)
     |> validate_url_format()

@@ -6,15 +6,7 @@ defmodule Tymeslot.Emails.Templates.CalendarSyncError do
   alias Tymeslot.Emails.Shared.{Components, TemplateHelper, TimezoneHelper}
   alias Tymeslot.Profiles
 
-  @spec render(
-          %{
-            start_time: DateTime.t(),
-            duration: integer(),
-            location: String.t() | nil,
-            organizer_user_id: any()
-          },
-          any()
-        ) :: String.t()
+  @spec render(map(), any()) :: String.t()
   def render(meeting, error_reason) do
     error_details = TemplateHelper.format_error_reason(error_reason)
 

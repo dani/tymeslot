@@ -25,6 +25,33 @@ defmodule TymeslotWeb.LiveCase do
       import Phoenix.ConnTest
       import Phoenix.LiveViewTest
       import TymeslotWeb.LiveCase
+
+      def wait_until(predicate, timeout_ms \\ 30_000, interval_ms \\ 100) do
+        deadline = System.monotonic_time(:millisecond) + timeout_ms
+        do_wait_until(predicate, deadline, interval_ms)
+      end
+
+      defp do_wait_until(predicate, deadline, interval_ms) do
+        case predicate.() do
+          true ->
+            :ok
+
+          {:ok, _} ->
+            :ok
+
+          _ ->
+            now = System.monotonic_time(:millisecond)
+
+            if now >= deadline do
+              flunk(
+                "Timed out waiting for UI condition. Current monotonic time: #{now}, deadline: #{deadline}"
+              )
+            end
+
+            Process.sleep(interval_ms)
+            do_wait_until(predicate, deadline, interval_ms)
+        end
+      end
     end
   end
 
