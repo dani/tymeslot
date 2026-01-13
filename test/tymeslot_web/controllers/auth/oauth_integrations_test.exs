@@ -98,6 +98,39 @@ defmodule TymeslotWeb.OAuthIntegrationsControllerTest do
       assert redirected_to(conn) == "/dashboard/calendar"
       assert Flash.get(conn.assigns.flash, :info) =~ "Outlook Calendar connected successfully"
     end
+
+    test "google_callback handles error from provider", %{conn: conn} do
+      conn = get(conn, ~p"/auth/google/calendar/callback", %{"error" => "access_denied"})
+
+      assert redirected_to(conn) == "/dashboard/calendar"
+      assert Flash.get(conn.assigns.flash, :error) =~ "Authorization was denied"
+    end
+
+    test "google_callback handles invalid params", %{conn: conn} do
+      conn = get(conn, ~p"/auth/google/calendar/callback", %{"invalid" => "params"})
+
+      assert redirected_to(conn) == "/dashboard/calendar"
+      assert Flash.get(conn.assigns.flash, :error) =~ "Invalid authentication response"
+    end
+
+    test "outlook_callback handles error from provider", %{conn: conn} do
+      conn = get(conn, ~p"/auth/outlook/calendar/callback", %{"error" => "access_denied"})
+
+      assert redirected_to(conn) == "/dashboard/calendar"
+      assert Flash.get(conn.assigns.flash, :error) =~ "Authorization was denied"
+    end
+
+    test "outlook_callback handles exchange failure", %{conn: conn} do
+      :meck.expect(OutlookCalendarOAuthHelper, :handle_callback, fn _, _, _ ->
+        {:error, :invalid_code}
+      end)
+
+      conn =
+        get(conn, ~p"/auth/outlook/calendar/callback", %{"code" => "code", "state" => "state"})
+
+      assert redirected_to(conn) == "/dashboard/calendar"
+      assert Flash.get(conn.assigns.flash, :error) =~ "Failed to connect Outlook Calendar"
+    end
   end
 
   describe "VideoOAuthController" do
@@ -188,6 +221,39 @@ defmodule TymeslotWeb.OAuthIntegrationsControllerTest do
 
       assert redirected_to(conn) == "/dashboard/video"
       assert Flash.get(conn.assigns.flash, :info) =~ "Microsoft Teams connected successfully"
+    end
+
+    test "google_callback handles invalid state", %{conn: conn} do
+      :meck.expect(State, :validate, fn _, _ -> {:error, :expired} end)
+
+      conn = get(conn, ~p"/auth/google/video/callback", %{"code" => "code", "state" => "invalid"})
+
+      assert redirected_to(conn) == "/dashboard/video"
+      assert Flash.get(conn.assigns.flash, :error) =~ "Invalid authentication state"
+    end
+
+    test "google_callback handles provider error", %{conn: conn} do
+      conn = get(conn, ~p"/auth/google/video/callback", %{"error" => "access_denied"})
+
+      assert redirected_to(conn) == "/dashboard/video"
+      assert Flash.get(conn.assigns.flash, :error) =~ "Authorization was denied"
+    end
+
+    test "teams_callback handles creation failure", %{conn: conn} do
+      user_id = 789
+
+      :meck.expect(TeamsOAuthHelper, :exchange_code_for_tokens, fn _, _, _ ->
+        {:ok, %{user_id: user_id, access_token: "at", refresh_token: "rt", expires_at: DateTime.utc_now(), scope: "scope"}}
+      end)
+
+      :meck.expect(VideoIntegrationQueries, :create, fn _ -> {:error, :db_error} end)
+
+      Factory.insert(:user, id: user_id)
+
+      conn = get(conn, ~p"/auth/teams/video/callback", %{"code" => "code", "state" => "state"})
+
+      assert redirected_to(conn) == "/dashboard/video"
+      assert Flash.get(conn.assigns.flash, :error) =~ "Failed to connect Microsoft Teams"
     end
   end
 end

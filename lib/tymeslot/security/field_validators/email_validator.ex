@@ -76,14 +76,14 @@ defmodule Tymeslot.Security.FieldValidators.EmailValidator do
 
   defp validate_advanced_format(email) do
     cond do
-      not Regex.match?(@email_regex, email) ->
-        {:error, "Email format is invalid"}
-
       multiple_at_symbols?(email) ->
         {:error, "Email format is invalid (multiple @ symbols)"}
 
       invalid_domain_format?(email) ->
         {:error, "Email domain format is invalid"}
+
+      not Regex.match?(@email_regex, email) ->
+        {:error, "Email format is invalid"}
 
       true ->
         :ok

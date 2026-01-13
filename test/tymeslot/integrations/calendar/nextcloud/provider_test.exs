@@ -1,7 +1,13 @@
 defmodule Tymeslot.Integrations.Calendar.Nextcloud.ProviderTest do
   use ExUnit.Case, async: true
 
+  alias Tymeslot.Infrastructure.CalendarCircuitBreaker
   alias Tymeslot.Integrations.Calendar.Nextcloud.Provider
+
+  setup do
+    CalendarCircuitBreaker.reset(:nextcloud)
+    :ok
+  end
 
   describe "provider_type/0" do
     test "returns :nextcloud" do

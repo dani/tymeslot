@@ -18,6 +18,8 @@ defmodule Tymeslot.DataCase do
 
   alias Ecto.Adapters.SQL.Sandbox
   alias Ecto.Changeset
+  alias Tymeslot.Infrastructure.CalendarCircuitBreaker
+  alias Tymeslot.Infrastructure.CircuitBreaker
   alias Tymeslot.Repo
 
   using do
@@ -47,17 +49,19 @@ defmodule Tymeslot.DataCase do
   """
   @spec reset_stateful_components() :: :ok
   def reset_stateful_components do
-    # Reset all circuit breakers
-    :ets.match_delete(:circuit_breaker_state, :_)
+    # Reset calendar circuit breakers
+    providers = [:caldav, :radicale, :nextcloud, :google, :outlook]
 
-    # Clear rate limiter buckets if needed
-    # :ets.match_delete(:hammer_ets_buckets, :_)
+    Enum.each(providers, fn p ->
+      CalendarCircuitBreaker.reset(p)
+    end)
+
+    # Reset other circuit breakers
+    Enum.each([:email_service_breaker, :oauth_github_breaker, :oauth_google_breaker], fn name ->
+      if Process.whereis(name), do: CircuitBreaker.reset(name)
+    end)
 
     :ok
-  rescue
-    ArgumentError ->
-      # ETS table might not exist in some tests
-      :ok
   end
 
   @doc """

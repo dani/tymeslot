@@ -37,6 +37,24 @@ defmodule Tymeslot.Security.FieldValidators.PasswordValidatorTest do
                PasswordValidator.validate("Sh0rt!")
     end
 
+    test "returns error for long password" do
+      long_password = String.duplicate("a", 81)
+      assert {:error, "Password must be at most 80 characters long"} =
+               PasswordValidator.validate(long_password)
+    end
+
+    test "supports custom min_length and max_length options" do
+      assert :ok = PasswordValidator.validate("Sh0rt!", min_length: 5)
+      assert {:error, "Password must be at least 15 characters long"} =
+               PasswordValidator.validate("Sh0rt!", min_length: 15)
+      assert {:error, "Password must be at most 5 characters long"} =
+               PasswordValidator.validate("Long1!", max_length: 5, min_length: 1)
+    end
+
+    test "returns error for non-binary values" do
+      assert {:error, "Password must be a text value"} = PasswordValidator.validate(123)
+    end
+
     test "returns error for empty or nil password" do
       assert {:error, "Password is required"} = PasswordValidator.validate("")
       assert {:error, "Password is required"} = PasswordValidator.validate(nil)

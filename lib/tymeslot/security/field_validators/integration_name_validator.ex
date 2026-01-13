@@ -8,6 +8,7 @@ defmodule Tymeslot.Security.FieldValidators.IntegrationNameValidator do
   @max_length 100
 
   @spec validate(any(), keyword()) :: :ok | {:error, String.t()}
+  def validate(name, opts \\ [])
   def validate(nil, _opts), do: {:error, "Integration name is required"}
   def validate("", _opts), do: {:error, "Integration name is required"}
 

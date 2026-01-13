@@ -7,6 +7,7 @@ defmodule TymeslotWeb.OAuthControllerTest do
   alias Tymeslot.Auth.OAuth.Helper, as: OAuthHelper
   alias Tymeslot.Factory
   alias Tymeslot.Infrastructure.DashboardCache
+  alias Tymeslot.Security.RateLimiter
 
   setup do
     original_social_auth = Application.get_env(:tymeslot, :social_auth)
@@ -17,7 +18,14 @@ defmodule TymeslotWeb.OAuthControllerTest do
       _ -> :ok
     end
 
+    try do
+      :meck.unload(RateLimiter)
+    rescue
+      _ -> :ok
+    end
+
     :meck.new(OAuthHelper, [:passthrough])
+    :meck.new(RateLimiter, [:passthrough])
 
     # Ensure dashboard cache is running for invalidate_integration_status
     case Process.whereis(DashboardCache) do
@@ -28,6 +36,12 @@ defmodule TymeslotWeb.OAuthControllerTest do
     on_exit(fn ->
       try do
         :meck.unload(OAuthHelper)
+      rescue
+        _ -> :ok
+      end
+
+      try do
+        :meck.unload(RateLimiter)
       rescue
         _ -> :ok
       end
@@ -68,6 +82,24 @@ defmodule TymeslotWeb.OAuthControllerTest do
 
       assert redirected_to(conn) == "/auth/login"
       assert Flash.get(conn.assigns.flash, :error) =~ "GitHub authentication is not available"
+    end
+
+    test "handles unsupported provider", %{conn: conn} do
+      conn = get(conn, ~p"/auth/unsupported")
+      assert redirected_to(conn) == "/auth/login"
+      assert Flash.get(conn.assigns.flash, :error) =~ "Unsupported OAuth provider"
+    end
+
+    test "handles rate limited initiation", %{conn: conn} do
+      Application.put_env(:tymeslot, :social_auth, github_enabled: true)
+
+      :meck.expect(RateLimiter, :check_oauth_initiation_rate_limit, fn _ip ->
+        {:error, :rate_limited, "Too many attempts"}
+      end)
+
+      conn = get(conn, ~p"/auth/github")
+      assert redirected_to(conn) == "/auth/login"
+      assert Flash.get(conn.assigns.flash, :error) =~ "Too many OAuth attempts"
     end
   end
 
@@ -112,6 +144,26 @@ defmodule TymeslotWeb.OAuthControllerTest do
 
       assert Flash.get(conn.assigns.flash, :error) =~
                "Google authentication failed - missing authorization code"
+    end
+
+    test "handles rate limited callback", %{conn: conn} do
+      :meck.expect(RateLimiter, :check_oauth_callback_rate_limit, fn _ip ->
+        {:error, :rate_limited, "Too many attempts"}
+      end)
+
+      conn = get(conn, ~p"/auth/github/callback", %{"code" => "code", "state" => "state"})
+      assert redirected_to(conn) == "/auth/login"
+      assert Flash.get(conn.assigns.flash, :error) =~ "Too many authentication attempts"
+    end
+
+    test "handles callback without state (legacy)", %{conn: conn} do
+      :meck.expect(OAuthHelper, :handle_oauth_callback, fn conn, "code", :github, _paths ->
+        conn = Controller.fetch_flash(conn, [])
+        Controller.redirect(conn, to: "/dashboard")
+      end)
+
+      conn = get(conn, ~p"/auth/github/callback", %{"code" => "code"})
+      assert redirected_to(conn) == "/dashboard"
     end
   end
 
@@ -219,6 +271,16 @@ defmodule TymeslotWeb.OAuthControllerTest do
 
       assert redirected_to(conn) == "/auth/login"
       assert Flash.get(conn.assigns.flash, :error) =~ "Unsupported OAuth provider"
+    end
+
+    test "handles rate limited completion", %{conn: conn} do
+      :meck.expect(RateLimiter, :check_oauth_completion_rate_limit, fn _ip ->
+        {:error, :rate_limited, "Too many attempts"}
+      end)
+
+      conn = post(conn, ~p"/auth/complete", %{"oauth_provider" => "github"})
+      assert redirected_to(conn) == "/auth/login"
+      assert Flash.get(conn.assigns.flash, :error) =~ "Too many registration attempts"
     end
   end
 end
