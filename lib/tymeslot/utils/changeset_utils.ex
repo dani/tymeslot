@@ -41,8 +41,10 @@ defmodule Tymeslot.Utils.ChangesetUtils do
   def get_first_error(changeset) do
     case Changeset.traverse_errors(changeset, &translate_error/1) do
       errors when map_size(errors) > 0 ->
-        {field, [message | _]} = Enum.at(errors, 0)
-        "#{humanize(field)} #{message}"
+        # Sort keys to ensure deterministic "first" error message
+        first_field = errors |> Map.keys() |> Enum.sort() |> List.first()
+        message = errors[first_field] |> List.first()
+        "#{humanize(first_field)} #{message}"
 
       _ ->
         nil

@@ -44,7 +44,9 @@ defmodule Tymeslot.Security.SecurityTest do
 
     test "rejects time outside business hours" do
       {:ok, time} = Time.new(22, 0, 0)
-      assert {:error, "Time outside business hours"} = Security.validate_business_hours(time, "UTC")
+
+      assert {:error, "Time outside business hours"} =
+               Security.validate_business_hours(time, "UTC")
     end
   end
 
@@ -59,12 +61,16 @@ defmodule Tymeslot.Security.SecurityTest do
 
     test "denies access to past dates" do
       yesterday = Date.add(Date.utc_today(), -1)
-      assert {:error, "Cannot query past dates"} = Security.validate_calendar_access(yesterday, "user_1")
+
+      assert {:error, "Cannot query past dates"} =
+               Security.validate_calendar_access(yesterday, "user_1")
     end
 
     test "denies access to dates too far in future" do
       way_future = Date.add(Date.utc_today(), 367)
-      assert {:error, "Cannot query dates more than a year in advance"} = Security.validate_calendar_access(way_future, "user_1")
+
+      assert {:error, "Cannot query dates more than a year in advance"} =
+               Security.validate_calendar_access(way_future, "user_1")
     end
   end
 

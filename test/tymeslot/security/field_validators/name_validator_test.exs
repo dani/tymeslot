@@ -25,7 +25,9 @@ defmodule Tymeslot.Security.FieldValidators.NameValidatorTest do
 
     test "returns error for long names" do
       long_name = String.duplicate("a", 101)
-      assert {:error, "Name is too long (maximum 100 characters)"} = NameValidator.validate(long_name)
+
+      assert {:error, "Name is too long (maximum 100 characters)"} =
+               NameValidator.validate(long_name)
     end
 
     test "returns error for invalid characters" do
@@ -40,13 +42,18 @@ defmodule Tymeslot.Security.FieldValidators.NameValidatorTest do
     end
 
     test "returns error for excessive whitespace" do
-      assert {:error, "Name contains excessive whitespace"} = NameValidator.validate("John   Smith")
+      assert {:error, "Name contains excessive whitespace"} =
+               NameValidator.validate("John   Smith")
     end
 
     test "supports custom min_length and max_length options" do
       assert :ok = NameValidator.validate("A", min_length: 1)
-      assert {:error, "Name is too short (minimum 5 characters)"} = NameValidator.validate("John", min_length: 5)
-      assert {:error, "Name is too long (maximum 5 characters)"} = NameValidator.validate("Too long", max_length: 5)
+
+      assert {:error, "Name is too short (minimum 5 characters)"} =
+               NameValidator.validate("John", min_length: 5)
+
+      assert {:error, "Name is too long (maximum 5 characters)"} =
+               NameValidator.validate("Too long", max_length: 5)
     end
 
     test "returns error for non-binary values" do

@@ -26,18 +26,25 @@ defmodule Tymeslot.Security.FieldValidators.TextValidatorTest do
       # Default min_length is 1, so empty string after trim would be blank
       assert {:error, "Text cannot be blank"} = TextValidator.validate(" ")
 
-      assert {:error, "Text is too short (minimum 5 characters)"} = TextValidator.validate("ABC", min_length: 5)
+      assert {:error, "Text is too short (minimum 5 characters)"} =
+               TextValidator.validate("ABC", min_length: 5)
     end
 
     test "returns error for long text" do
       long_text = String.duplicate("a", 501)
-      assert {:error, "Text is too long (maximum 500 characters)"} = TextValidator.validate(long_text)
+
+      assert {:error, "Text is too long (maximum 500 characters)"} =
+               TextValidator.validate(long_text)
     end
 
     test "supports custom min_length and max_length options" do
       assert :ok = TextValidator.validate("A", min_length: 1)
-      assert {:error, "Text is too short (minimum 10 characters)"} = TextValidator.validate("Short", min_length: 10)
-      assert {:error, "Text is too long (maximum 5 characters)"} = TextValidator.validate("Too long", max_length: 5)
+
+      assert {:error, "Text is too short (minimum 10 characters)"} =
+               TextValidator.validate("Short", min_length: 10)
+
+      assert {:error, "Text is too long (maximum 5 characters)"} =
+               TextValidator.validate("Too long", max_length: 5)
     end
 
     test "returns error for non-binary values" do

@@ -18,9 +18,11 @@ defmodule Tymeslot.DataCase do
 
   alias Ecto.Adapters.SQL.Sandbox
   alias Ecto.Changeset
+  alias Tymeslot.Infrastructure.AvailabilityCache
   alias Tymeslot.Infrastructure.CalendarCircuitBreaker
   alias Tymeslot.Infrastructure.CircuitBreaker
   alias Tymeslot.Repo
+  alias Tymeslot.Security.RateLimiter
 
   using do
     quote do
@@ -60,6 +62,12 @@ defmodule Tymeslot.DataCase do
     Enum.each([:email_service_breaker, :oauth_github_breaker, :oauth_google_breaker], fn name ->
       if Process.whereis(name), do: CircuitBreaker.reset(name)
     end)
+
+    # Clear rate limiter
+    if Process.whereis(RateLimiter), do: RateLimiter.clear_all()
+
+    # Clear availability cache
+    AvailabilityCache.clear_all()
 
     :ok
   end

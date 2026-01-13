@@ -173,11 +173,11 @@ defmodule Tymeslot.Security.UniversalSanitizer do
     sanitized =
       input
       |> decode_url_recursive(3)
+      |> remove_null_bytes()
       |> sanitize_html(allow_html)
       |> remove_sql_injection_patterns(log_events, metadata)
       |> prevent_path_traversal(log_events, metadata)
       |> remove_dangerous_protocols(log_events, metadata)
-      |> remove_null_bytes()
 
     # Log if malicious content was removed
     if log_events and sanitized != original_input do
@@ -214,18 +214,18 @@ defmodule Tymeslot.Security.UniversalSanitizer do
     sanitized =
       input
       # Remove SQL comments
-      |> String.replace(~r/--.*$/m, "")
-      |> String.replace(~r/\/\*.*?\*\//m, "")
+      |> recursive_replace(~r/--.*$/m, "")
+      |> recursive_replace(~r/\/\*.*?\*\//m, "")
       # Remove obvious stacked queries
-      |> String.replace(~r/;\s*(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER)\s/i, "; ")
+      |> recursive_replace(~r/;\s*(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER)\s/i, "; ")
       # Remove classic injection patterns
-      |> String.replace(~r/'\s*(OR|AND)\s*'\d+'\s*=\s*'\d+/i, "'")
-      |> String.replace(~r/"\s*(OR|AND)\s*"\d+"\s*=\s*"\d+/i, "\"")
-      |> String.replace(~r/'\s*(OR|AND)\s*\d+\s*=\s*\d+/i, "'")
+      |> recursive_replace(~r/'\s*(OR|AND)\s*'\d+'\s*=\s*'\d+/i, "'")
+      |> recursive_replace(~r/"\s*(OR|AND)\s*"\d+"\s*=\s*"\d+/i, "\"")
+      |> recursive_replace(~r/'\s*(OR|AND)\s*\d+\s*=\s*\d+/i, "'")
       # Remove UNION-based attacks
-      |> String.replace(~r/\bUNION\s+(ALL\s+)?SELECT\s/i, "")
+      |> recursive_replace(~r/\bUNION\s+(ALL\s+)?SELECT\s/i, "")
       # Remove dangerous SQL functions in injection context
-      |> String.replace(~r/(0x[0-9a-fA-F]+|CHAR\s*\(\s*\d+)/i, "")
+      |> recursive_replace(~r/(0x[0-9a-fA-F]+|CHAR\s*\(\s*\d+)/i, "")
 
     if log_events and sanitized != original do
       SecurityLogger.log_blocked_input(:sql_injection, "pattern_removed", metadata)
@@ -240,13 +240,13 @@ defmodule Tymeslot.Security.UniversalSanitizer do
     sanitized =
       input
       # Remove directory traversal patterns
-      |> String.replace(~r/\.\.\/|\.\.\\/, "")
+      |> recursive_replace(~r/\.\.\/|\.\.\\/, "")
       # Remove dangerous absolute paths that could access system files
       |> remove_dangerous_absolute_paths()
-      |> String.replace(~r/^[A-Za-z]:[\\\/]/, "")
+      |> recursive_replace(~r/^[A-Za-z]:[\\\/]/, "")
       # Remove encoded traversal attempts
-      |> String.replace(~r/%2e%2e|%252e%252e/i, "")
-      |> String.replace(~r/%00|\\x00/, "")
+      |> recursive_replace(~r/%2e%2e|%252e%252e/i, "")
+      |> recursive_replace(~r/%00|\\x00/, "")
 
     if log_events and sanitized != original do
       SecurityLogger.log_blocked_input(:path_traversal, "pattern_removed", metadata)
@@ -305,10 +305,10 @@ defmodule Tymeslot.Security.UniversalSanitizer do
     sanitized =
       input
       # Remove dangerous protocols with whitespace handling
-      |> String.replace(~r/\b(javascript|data|vbscript)\s*:/i, "")
-      |> String.replace(~r/(javascript|data|vbscript)\s*:/i, "")
+      |> recursive_replace(~r/\b(javascript|data|vbscript)\s*:/i, "")
+      |> recursive_replace(~r/(javascript|data|vbscript)\s*:/i, "")
       # Remove base64 data URIs
-      |> String.replace(~r/base64[^,]*,/i, "")
+      |> recursive_replace(~r/base64[^,]*,/i, "")
 
     if log_events and sanitized != original do
       SecurityLogger.log_blocked_input(:dangerous_protocol, "protocol_removed", metadata)
@@ -319,8 +319,20 @@ defmodule Tymeslot.Security.UniversalSanitizer do
 
   defp remove_null_bytes(input) do
     input
-    |> String.replace(~r/\x00/, "")
+    |> recursive_replace(~r/\x00/, "")
     |> String.normalize(:nfc)
+  end
+
+  defp recursive_replace(input, pattern, replacement, depth \\ 0) do
+    # Limit recursion depth to prevent potential infinite loops
+    if depth > 10 do
+      input
+    else
+      case String.replace(input, pattern, replacement) do
+        ^input -> input
+        next -> recursive_replace(next, pattern, replacement, depth + 1)
+      end
+    end
   end
 
   defp validate_length(input, max_length, on_too_long, log_events, metadata) do

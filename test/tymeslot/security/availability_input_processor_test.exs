@@ -77,15 +77,18 @@ defmodule Tymeslot.Security.AvailabilityInputProcessorTest do
     end
 
     test "rejects empty selections" do
-      assert {:error, "Invalid day selection format"} = AvailabilityInputProcessor.validate_day_selections("")
+      assert {:error, "No valid days selected"} =
+               AvailabilityInputProcessor.validate_day_selections("")
     end
 
     test "rejects out of range days" do
-      assert {:error, "No valid days selected"} = AvailabilityInputProcessor.validate_day_selections("8,9")
+      assert {:error, "No valid days selected"} =
+               AvailabilityInputProcessor.validate_day_selections("8,9")
     end
 
     test "rejects invalid format" do
-      assert {:error, "Invalid day selection format"} = AvailabilityInputProcessor.validate_day_selections("one,two")
+      assert {:error, "Invalid day selection format"} =
+               AvailabilityInputProcessor.validate_day_selections("one,two")
     end
   end
 end

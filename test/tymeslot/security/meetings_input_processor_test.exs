@@ -5,9 +5,14 @@ defmodule Tymeslot.Security.MeetingsInputProcessorTest do
 
   describe "validate_filter_input/2" do
     test "accepts valid filter options" do
-      assert {:ok, %{"filter" => "upcoming"}} = MeetingsInputProcessor.validate_filter_input(%{"filter" => "upcoming"})
-      assert {:ok, %{"filter" => "past"}} = MeetingsInputProcessor.validate_filter_input(%{"filter" => "past"})
-      assert {:ok, %{"filter" => "cancelled"}} = MeetingsInputProcessor.validate_filter_input(%{"filter" => "cancelled"})
+      assert {:ok, %{"filter" => "upcoming"}} =
+               MeetingsInputProcessor.validate_filter_input(%{"filter" => "upcoming"})
+
+      assert {:ok, %{"filter" => "past"}} =
+               MeetingsInputProcessor.validate_filter_input(%{"filter" => "past"})
+
+      assert {:ok, %{"filter" => "cancelled"}} =
+               MeetingsInputProcessor.validate_filter_input(%{"filter" => "cancelled"})
     end
 
     test "rejects missing filter" do
@@ -16,12 +21,16 @@ defmodule Tymeslot.Security.MeetingsInputProcessorTest do
     end
 
     test "rejects invalid filter option" do
-      assert {:error, errors} = MeetingsInputProcessor.validate_filter_input(%{"filter" => "invalid"})
+      assert {:error, errors} =
+               MeetingsInputProcessor.validate_filter_input(%{"filter" => "invalid"})
+
       assert errors[:filter] == ["Invalid filter option"]
     end
 
     test "rejects input with sanitization changes" do
-      assert {:error, errors} = MeetingsInputProcessor.validate_filter_input(%{"filter" => "upcoming<script>"})
+      assert {:error, errors} =
+               MeetingsInputProcessor.validate_filter_input(%{"filter" => "upcoming<script>"})
+
       assert errors[:filter] == ["Invalid characters in filter"]
     end
   end
@@ -29,7 +38,9 @@ defmodule Tymeslot.Security.MeetingsInputProcessorTest do
   describe "validate_meeting_id_input/2" do
     test "accepts valid UUID" do
       uuid = UUID.generate()
-      assert {:ok, %{"id" => ^uuid}} = MeetingsInputProcessor.validate_meeting_id_input(%{"id" => uuid})
+
+      assert {:ok, %{"id" => ^uuid}} =
+               MeetingsInputProcessor.validate_meeting_id_input(%{"id" => uuid})
     end
 
     test "rejects missing meeting id" do
@@ -38,7 +49,9 @@ defmodule Tymeslot.Security.MeetingsInputProcessorTest do
     end
 
     test "rejects invalid UUID format" do
-      assert {:error, errors} = MeetingsInputProcessor.validate_meeting_id_input(%{"id" => "not-a-uuid"})
+      assert {:error, errors} =
+               MeetingsInputProcessor.validate_meeting_id_input(%{"id" => "not-a-uuid"})
+
       assert errors[:id] == ["Invalid meeting ID format"]
     end
 

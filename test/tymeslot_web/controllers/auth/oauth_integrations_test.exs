@@ -243,7 +243,14 @@ defmodule TymeslotWeb.OAuthIntegrationsControllerTest do
       user_id = 789
 
       :meck.expect(TeamsOAuthHelper, :exchange_code_for_tokens, fn _, _, _ ->
-        {:ok, %{user_id: user_id, access_token: "at", refresh_token: "rt", expires_at: DateTime.utc_now(), scope: "scope"}}
+        {:ok,
+         %{
+           user_id: user_id,
+           access_token: "at",
+           refresh_token: "rt",
+           expires_at: DateTime.utc_now(),
+           scope: "scope"
+         }}
       end)
 
       :meck.expect(VideoIntegrationQueries, :create, fn _ -> {:error, :db_error} end)

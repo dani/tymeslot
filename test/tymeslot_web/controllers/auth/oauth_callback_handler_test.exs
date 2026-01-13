@@ -103,6 +103,7 @@ defmodule TymeslotWeb.OAuthCallbackHandlerTest do
       conn = OAuthCallbackHandler.initiate_oauth(conn, opts)
 
       assert redirected_to(conn) == "/error-page"
+
       assert Flash.get(conn.assigns.flash, :error) =~
                "Failed to initiate TestService authentication"
     end

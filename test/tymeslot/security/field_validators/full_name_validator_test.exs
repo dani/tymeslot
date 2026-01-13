@@ -18,12 +18,17 @@ defmodule Tymeslot.Security.FieldValidators.FullNameValidatorTest do
 
     test "returns error for long names" do
       long_name = String.duplicate("a", 101)
-      assert {:error, "Full name is too long (maximum 100 characters)"} = FullNameValidator.validate(long_name)
+
+      assert {:error, "Full name is too long (maximum 100 characters)"} =
+               FullNameValidator.validate(long_name)
     end
 
     test "returns error for invalid characters" do
-      assert {:error, "Full name contains invalid characters"} = FullNameValidator.validate("John<script>")
-      assert {:error, "Full name contains invalid characters"} = FullNameValidator.validate("Name;")
+      assert {:error, "Full name contains invalid characters"} =
+               FullNameValidator.validate("John<script>")
+
+      assert {:error, "Full name contains invalid characters"} =
+               FullNameValidator.validate("Name;")
     end
 
     test "returns error for only numbers" do
@@ -32,16 +37,20 @@ defmodule Tymeslot.Security.FieldValidators.FullNameValidatorTest do
     end
 
     test "returns error for excessive whitespace" do
-      assert {:error, "Full name contains excessive whitespace"} = FullNameValidator.validate("John   Smith")
+      assert {:error, "Full name contains excessive whitespace"} =
+               FullNameValidator.validate("John   Smith")
     end
 
     test "supports custom max_length option" do
-      assert {:error, "Full name is too long (maximum 5 characters)"} = FullNameValidator.validate("Too long", max_length: 5)
+      assert {:error, "Full name is too long (maximum 5 characters)"} =
+               FullNameValidator.validate("Too long", max_length: 5)
     end
 
     test "returns error for non-binary values" do
       assert {:error, "Full name must be a text value"} = FullNameValidator.validate(123)
-      assert {:error, "Full name must be a text value"} = FullNameValidator.validate(%{key: "value"})
+
+      assert {:error, "Full name must be a text value"} =
+               FullNameValidator.validate(%{key: "value"})
     end
   end
 end

@@ -8,7 +8,9 @@ defmodule Tymeslot.Security.ThemeInputProcessorTest do
       # Get a valid theme ID from the registry
       case Theme.theme_options() do
         [{_name, id} | _] ->
-          assert {:ok, %{"theme" => ^id}} = ThemeInputProcessor.validate_theme_selection(%{"theme" => id})
+          assert {:ok, %{"theme" => ^id}} =
+                   ThemeInputProcessor.validate_theme_selection(%{"theme" => id})
+
         [] ->
           # If no themes are registered, this test might need adjustment
           :ok
@@ -21,7 +23,9 @@ defmodule Tymeslot.Security.ThemeInputProcessorTest do
     end
 
     test "rejects invalid theme id" do
-      assert {:error, errors} = ThemeInputProcessor.validate_theme_selection(%{"theme" => "non-existent-theme"})
+      assert {:error, errors} =
+               ThemeInputProcessor.validate_theme_selection(%{"theme" => "non-existent-theme"})
+
       assert errors[:theme] == ["Invalid theme selection"]
     end
 
@@ -31,7 +35,9 @@ defmodule Tymeslot.Security.ThemeInputProcessorTest do
     end
 
     test "rejects input with sanitization changes" do
-      assert {:error, errors} = ThemeInputProcessor.validate_theme_selection(%{"theme" => "1<script>"})
+      assert {:error, errors} =
+               ThemeInputProcessor.validate_theme_selection(%{"theme" => "1<script>"})
+
       assert errors[:theme] == ["Invalid characters in theme selection"]
     end
   end

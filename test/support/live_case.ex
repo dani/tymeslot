@@ -57,6 +57,7 @@ defmodule TymeslotWeb.LiveCase do
 
   setup tags do
     DataCase.setup_sandbox(tags)
+    DataCase.reset_stateful_components()
     {:ok, conn: ConnTest.build_conn()}
   end
 end

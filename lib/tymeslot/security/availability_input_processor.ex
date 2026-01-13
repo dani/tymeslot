@@ -295,6 +295,7 @@ defmodule Tymeslot.Security.AvailabilityInputProcessor do
       day_selections
       |> String.split(",")
       |> Enum.map(&String.trim/1)
+      |> Enum.reject(&(&1 == ""))
       |> Enum.map(&String.to_integer/1)
       |> Enum.filter(&(&1 >= 1 and &1 <= 7))
       |> Enum.uniq()

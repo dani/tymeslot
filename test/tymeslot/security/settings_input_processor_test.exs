@@ -9,7 +9,8 @@ defmodule Tymeslot.Security.SettingsInputProcessorTest do
 
     test "rejects invalid full name" do
       # Note: FullNameValidator doesn't have min length, but rejects invalid chars
-      assert {:error, "Full name contains invalid characters"} = SettingsInputProcessor.validate_full_name_update("John<script>")
+      assert {:error, "Full name contains invalid characters"} =
+               SettingsInputProcessor.validate_full_name_update("John<script>")
     end
   end
 
@@ -27,12 +28,15 @@ defmodule Tymeslot.Security.SettingsInputProcessorTest do
 
   describe "validate_timezone_update/2" do
     test "accepts valid timezone" do
-      assert {:ok, "Europe/London"} = SettingsInputProcessor.validate_timezone_update("Europe/London")
+      assert {:ok, "Europe/London"} =
+               SettingsInputProcessor.validate_timezone_update("Europe/London")
+
       assert {:ok, "UTC"} = SettingsInputProcessor.validate_timezone_update("UTC")
     end
 
     test "rejects invalid timezone format" do
-      assert {:error, "Invalid timezone format"} = SettingsInputProcessor.validate_timezone_update("InvalidTimezone")
+      assert {:error, "Invalid timezone format"} =
+               SettingsInputProcessor.validate_timezone_update("InvalidTimezone")
     end
   end
 
@@ -44,12 +48,16 @@ defmodule Tymeslot.Security.SettingsInputProcessorTest do
 
     test "rejects invalid file type" do
       params = %{"client_name" => "malicious.exe", "size" => 1024}
-      assert {:error, "Invalid file type. Only JPG, PNG, GIF, and WebP files are allowed"} = SettingsInputProcessor.validate_avatar_upload(params)
+
+      assert {:error, "Invalid file type. Only JPG, PNG, GIF, and WebP files are allowed"} =
+               SettingsInputProcessor.validate_avatar_upload(params)
     end
 
     test "rejects large file" do
       params = %{"client_name" => "huge.jpg", "size" => 11_000_000}
-      assert {:error, "File too large. Maximum size is 10MB"} = SettingsInputProcessor.validate_avatar_upload(params)
+
+      assert {:error, "File too large. Maximum size is 10MB"} =
+               SettingsInputProcessor.validate_avatar_upload(params)
     end
 
     test "rejects dangerous file names" do

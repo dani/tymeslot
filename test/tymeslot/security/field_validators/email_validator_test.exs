@@ -16,11 +16,14 @@ defmodule Tymeslot.Security.FieldValidators.EmailValidatorTest do
 
     test "returns error for long emails" do
       long_email = String.duplicate("a", 244) <> "@example.com"
-      assert {:error, "Email exceeds maximum length (254 characters)"} = EmailValidator.validate(long_email)
+
+      assert {:error, "Email exceeds maximum length (254 characters)"} =
+               EmailValidator.validate(long_email)
     end
 
     test "returns error for missing @ symbol" do
-      assert {:error, "Email format is invalid (missing @ symbol)"} = EmailValidator.validate("userexample.com")
+      assert {:error, "Email format is invalid (missing @ symbol)"} =
+               EmailValidator.validate("userexample.com")
     end
 
     test "returns error for missing domain" do
@@ -32,15 +35,18 @@ defmodule Tymeslot.Security.FieldValidators.EmailValidatorTest do
     end
 
     test "returns error for consecutive dots" do
-      assert {:error, "Email format is invalid (consecutive dots not allowed)"} = EmailValidator.validate("user..name@example.com")
+      assert {:error, "Email format is invalid (consecutive dots not allowed)"} =
+               EmailValidator.validate("user..name@example.com")
     end
 
     test "returns error for spaces" do
-      assert {:error, "Email format is invalid (spaces not allowed)"} = EmailValidator.validate("user name@example.com")
+      assert {:error, "Email format is invalid (spaces not allowed)"} =
+               EmailValidator.validate("user name@example.com")
     end
 
     test "returns error for multiple @ symbols" do
-      assert {:error, "Email format is invalid (multiple @ symbols)"} = EmailValidator.validate("user@name@example.com")
+      assert {:error, "Email format is invalid (multiple @ symbols)"} =
+               EmailValidator.validate("user@name@example.com")
     end
 
     test "returns error for invalid domain format" do
@@ -52,7 +58,8 @@ defmodule Tymeslot.Security.FieldValidators.EmailValidatorTest do
 
     test "returns error for general invalid format" do
       # This triggers the consecutive dots check in validate_basic_format
-      assert {:error, "Email format is invalid (consecutive dots not allowed)"} = EmailValidator.validate("user@domain..com")
+      assert {:error, "Email format is invalid (consecutive dots not allowed)"} =
+               EmailValidator.validate("user@domain..com")
 
       # This should trigger the general regex check (newline is whitespace)
       assert {:error, "Email format is invalid"} = EmailValidator.validate("user@domain\n.com")

@@ -10,6 +10,7 @@ defmodule Tymeslot.Security.VideoInputProcessorTest do
         "api_key" => "a-very-long-api-key-12345",
         "base_url" => "https://meet.jit.si"
       }
+
       assert {:ok, sanitized} = VideoInputProcessor.validate_video_integration_form(params)
       assert sanitized["name"] == "Team Meeting"
       assert sanitized["api_key"] == "a-very-long-api-key-12345"
@@ -22,6 +23,7 @@ defmodule Tymeslot.Security.VideoInputProcessorTest do
         "name" => "Team Meeting",
         "base_url" => "https://meet.jit.si"
       }
+
       assert {:error, errors} = VideoInputProcessor.validate_video_integration_form(params)
       assert errors[:api_key] == "API key is required"
     end
@@ -33,6 +35,7 @@ defmodule Tymeslot.Security.VideoInputProcessorTest do
         "api_key" => "short",
         "base_url" => "https://meet.jit.si"
       }
+
       assert {:error, errors} = VideoInputProcessor.validate_video_integration_form(params)
       assert errors[:api_key] == "API key must be at least 8 characters"
     end
@@ -45,6 +48,7 @@ defmodule Tymeslot.Security.VideoInputProcessorTest do
         "name" => "Personal Zoom",
         "custom_meeting_url" => "https://zoom.us/j/123456789"
       }
+
       assert {:ok, sanitized} = VideoInputProcessor.validate_video_integration_form(params)
       assert sanitized["name"] == "Personal Zoom"
       assert sanitized["custom_meeting_url"] == "https://zoom.us/j/123456789"
@@ -56,6 +60,7 @@ defmodule Tymeslot.Security.VideoInputProcessorTest do
         "name" => "Personal Zoom",
         "custom_meeting_url" => "not-a-url"
       }
+
       assert {:error, errors} = VideoInputProcessor.validate_video_integration_form(params)
       assert errors[:custom_meeting_url] == "Only HTTP and HTTPS URLs are allowed"
     end
@@ -64,7 +69,9 @@ defmodule Tymeslot.Security.VideoInputProcessorTest do
   describe "validate_video_integration_form/2 with unknown provider" do
     test "rejects unknown provider" do
       params = %{"provider" => "zoom"}
-      assert {:error, %{provider: "Unknown video provider"}} = VideoInputProcessor.validate_video_integration_form(params)
+
+      assert {:error, %{provider: "Unknown video provider"}} =
+               VideoInputProcessor.validate_video_integration_form(params)
     end
   end
 end
