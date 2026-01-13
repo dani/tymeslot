@@ -133,14 +133,14 @@ defmodule Tymeslot.Integrations.Calendar.CalDAV.ProviderTest do
   describe "get_events/1" do
     test "delegates to CaldavCommon" do
       client = %{
-        base_url: "https://caldav.example.com",
+        base_url: "http://localhost:1",
         username: "user",
         password: "pass",
         calendar_paths: ["/calendars/user/personal/"],
         provider: :caldav
       }
 
-      # May return error or empty list depending on circuit breaker state
+      # Should fail immediately with econnrefused or similar, not time out
       result = Provider.get_events(client)
       assert match?({:error, _}, result) or match?({:ok, []}, result)
     end
@@ -149,7 +149,7 @@ defmodule Tymeslot.Integrations.Calendar.CalDAV.ProviderTest do
   describe "get_events/3" do
     test "accepts start and end time parameters" do
       client = %{
-        base_url: "https://caldav.example.com",
+        base_url: "http://localhost:1",
         username: "user",
         password: "pass",
         calendar_paths: ["/calendars/user/personal/"],
@@ -160,7 +160,7 @@ defmodule Tymeslot.Integrations.Calendar.CalDAV.ProviderTest do
       end_time = DateTime.add(start_time, 3600, :second)
 
       result = Provider.get_events(client, start_time, end_time)
-      # May return error or empty list depending on circuit breaker state
+      # Should fail immediately
       assert match?({:error, _}, result) or match?({:ok, []}, result)
     end
   end
@@ -168,7 +168,7 @@ defmodule Tymeslot.Integrations.Calendar.CalDAV.ProviderTest do
   describe "create_event/2" do
     test "accepts event data for creation" do
       client = %{
-        base_url: "https://caldav.example.com",
+        base_url: "http://localhost:1",
         username: "user",
         password: "pass",
         calendar_paths: ["/calendars/user/personal/"],
@@ -189,7 +189,7 @@ defmodule Tymeslot.Integrations.Calendar.CalDAV.ProviderTest do
   describe "update_event/3" do
     test "accepts uid and event data for update" do
       client = %{
-        base_url: "https://caldav.example.com",
+        base_url: "http://localhost:1",
         username: "user",
         password: "pass",
         calendar_paths: ["/calendars/user/personal/"],
@@ -212,7 +212,7 @@ defmodule Tymeslot.Integrations.Calendar.CalDAV.ProviderTest do
   describe "delete_event/2" do
     test "accepts uid for deletion" do
       client = %{
-        base_url: "https://caldav.example.com",
+        base_url: "http://localhost:1",
         username: "user",
         password: "pass",
         calendar_paths: ["/calendars/user/personal/"],
@@ -229,7 +229,7 @@ defmodule Tymeslot.Integrations.Calendar.CalDAV.ProviderTest do
   describe "test_connection/2" do
     test "returns error for invalid credentials" do
       integration = %{
-        base_url: "https://caldav.example.com",
+        base_url: "http://localhost:1",
         username: "invalid",
         password: "wrong",
         calendar_paths: []
@@ -241,7 +241,7 @@ defmodule Tymeslot.Integrations.Calendar.CalDAV.ProviderTest do
 
     test "accepts options with metadata" do
       integration = %{
-        base_url: "https://caldav.example.com",
+        base_url: "http://localhost:1",
         username: "user",
         password: "pass",
         calendar_paths: []
@@ -257,7 +257,7 @@ defmodule Tymeslot.Integrations.Calendar.CalDAV.ProviderTest do
   describe "discover_calendars/2" do
     test "returns error without valid server" do
       client = %{
-        base_url: "https://caldav.example.com",
+        base_url: "http://localhost:1",
         username: "user",
         password: "pass",
         calendar_paths: [],
@@ -270,7 +270,7 @@ defmodule Tymeslot.Integrations.Calendar.CalDAV.ProviderTest do
 
     test "accepts options with IP address for rate limiting" do
       client = %{
-        base_url: "https://caldav.example.com",
+        base_url: "http://localhost:1",
         username: "user",
         password: "pass",
         calendar_paths: [],

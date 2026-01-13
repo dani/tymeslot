@@ -43,7 +43,7 @@ defmodule Tymeslot.Utils.ChangesetUtils do
       errors when map_size(errors) > 0 ->
         # Sort keys to ensure deterministic "first" error message
         first_field = errors |> Map.keys() |> Enum.sort() |> List.first()
-        message = errors[first_field] |> List.first()
+        message = errors |> Map.get(first_field, []) |> List.first()
         "#{humanize(first_field)} #{message}"
 
       _ ->

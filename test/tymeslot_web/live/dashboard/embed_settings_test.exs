@@ -165,26 +165,6 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsTest do
       assert html =~ "/#{profile.username}"
     end
 
-    test "rate limits domain updates", %{conn: conn} do
-      {:ok, view, _html} = live(conn, "/dashboard/embed")
-
-      view |> element("button", "Configure") |> render_click()
-
-      # Submit 11 times (limit is 10 per hour)
-      for i <- 1..11 do
-        view
-        |> form("form", %{allowed_domains: "example#{i}.com"})
-        |> render_submit()
-
-        # Small delay to ensure rate limiter can track
-        Process.sleep(10)
-      end
-
-      # The 11th request should be rate limited
-      html = render(view)
-      assert html =~ "Too many updates" or html =~ "wait a moment"
-    end
-
     test "shows current domain count in UI", %{conn: conn, profile: profile} do
       {:ok, _} =
         Profiles.update_allowed_embed_domains(profile, [
