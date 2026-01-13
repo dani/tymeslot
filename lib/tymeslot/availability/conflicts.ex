@@ -248,7 +248,8 @@ defmodule Tymeslot.Availability.Conflicts do
       true
     else
       # Check gaps between events
-      {last_end, found_gap} = find_gap_between_events(relevant_events, start_bound, buffer, duration_minutes)
+      {last_end, found_gap} =
+        find_gap_between_events(relevant_events, start_bound, buffer, duration_minutes)
 
       if found_gap do
         true

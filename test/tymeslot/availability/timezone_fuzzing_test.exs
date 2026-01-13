@@ -38,12 +38,12 @@ defmodule Tymeslot.Availability.TimezoneFuzzingTest do
 
   property "month_availability is consistent regardless of user timezone", %{profile: profile} do
     check all(
-      _year <- integer(2025..2026),
-      _month <- integer(1..12),
-      _owner_tz <- member_of(@timezones),
-      _user_tz <- member_of(@timezones),
-      duration <- member_of([30, 60])
-    ) do
+            _year <- integer(2025..2026),
+            _month <- integer(1..12),
+            _owner_tz <- member_of(@timezones),
+            _user_tz <- member_of(@timezones),
+            duration <- member_of([30, 60])
+          ) do
       # ...
       _config = %{
         duration_minutes: duration,
@@ -58,10 +58,10 @@ defmodule Tymeslot.Availability.TimezoneFuzzingTest do
 
   property "available_slots returns consistent results across timezones", %{profile: profile} do
     check all(
-      _owner_tz <- member_of(@timezones),
-      _user_tz <- member_of(@timezones),
-      duration <- member_of([30, 60])
-    ) do
+            _owner_tz <- member_of(@timezones),
+            _user_tz <- member_of(@timezones),
+            duration <- member_of([30, 60])
+          ) do
       # ...
       _config = %{
         duration_minutes: duration,
@@ -88,9 +88,9 @@ defmodule Tymeslot.Availability.TimezoneFuzzingTest do
 
   property "today's availability correctly respects min_advance_hours", %{profile: profile} do
     check all(
-      advance_hours <- integer(0..72),
-      user_tz <- member_of(@timezones)
-    ) do
+            advance_hours <- integer(0..72),
+            user_tz <- member_of(@timezones)
+          ) do
       # ...
       today = Date.utc_today()
 

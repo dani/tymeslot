@@ -168,9 +168,10 @@ defmodule Tymeslot.Integrations.Google.GoogleOAuthHelper do
   @spec validate_token_scope(String.t(), list(atom() | String.t())) ::
           {:ok, list(String.t())} | {:error, String.t()}
   def validate_token_scope(access_token, expected_scopes \\ []) do
-    url = "https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=#{access_token}"
+    url = "https://www.googleapis.com/oauth2/v1/tokeninfo"
+    headers = [{"Authorization", "Bearer #{access_token}"}]
 
-    case HTTPClient.request(:get, url, "", []) do
+    case http_client().request(:get, url, "", headers, []) do
       {:ok, %{status_code: 200, body: response_body}} ->
         response = Jason.decode!(response_body)
         actual_scope = response["scope"] || ""
@@ -264,5 +265,9 @@ defmodule Tymeslot.Integrations.Google.GoogleOAuthHelper do
     Application.get_env(:tymeslot, :google_oauth)[:state_secret] ||
       System.get_env("GOOGLE_STATE_SECRET") ||
       raise "Google State Secret not configured"
+  end
+
+  defp http_client do
+    Application.get_env(:tymeslot, :http_client_module, HTTPClient)
   end
 end

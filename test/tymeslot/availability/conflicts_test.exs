@@ -51,8 +51,7 @@ defmodule Tymeslot.Availability.ConflictsTest do
 
       # Convert generated event data into actual event maps
       events_in_tz =
-        events
-        |> Enum.map(fn {day_offset, hour, min, dur} ->
+        Enum.map(events, fn {day_offset, hour, min, dur} ->
           event_date = Date.add(date, day_offset)
           time = Time.new!(hour, min, 0)
 

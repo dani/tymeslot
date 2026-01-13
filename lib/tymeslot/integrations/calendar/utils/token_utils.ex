@@ -16,12 +16,10 @@ defmodule Tymeslot.Integrations.Calendar.TokenUtils do
         {:no_expiry, "No expiry"}
 
       %{token_expires_at: expires_at} ->
-        case DateTime.compare(expires_at, DateTime.utc_now()) do
-          :lt ->
-            {:expired, "Expired #{relative_time(expires_at)}"}
-
-          _ ->
-            {:valid, "Expires #{relative_time(expires_at)}"}
+        if token_expired?(integration) do
+          {:expired, "Expired #{relative_time(expires_at)}"}
+        else
+          {:valid, "Expires #{relative_time(expires_at)}"}
         end
 
       _ ->
@@ -31,13 +29,16 @@ defmodule Tymeslot.Integrations.Calendar.TokenUtils do
 
   @doc """
   Checks if a token is expired.
+  Includes a 60-second grace period for clock skew.
   """
   @spec token_expired?(map() | nil) :: boolean()
   def token_expired?(nil), do: true
   def token_expired?(%{token_expires_at: nil}), do: false
 
   def token_expired?(%{token_expires_at: expires_at}) do
-    DateTime.compare(expires_at, DateTime.utc_now()) == :lt
+    # Treat as expired if it expires within the next 60 seconds
+    threshold = DateTime.add(DateTime.utc_now(), 60, :second)
+    DateTime.compare(expires_at, threshold) == :lt
   end
 
   @doc """

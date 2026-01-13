@@ -170,9 +170,10 @@ defmodule TymeslotWeb.Live.Themes.AvailabilityRefinementTest do
         # Check for the expected warning message in the flash/UI
         # Some themes might render flash in different ways
         # We use a broad match because flash rendering depends on layout inclusion in tests
+        # Add a tiny delay between renders
         html =~ "Calendar is loading slowly" or
           html =~ "Calendar service is slow" or
-          (Process.sleep(100) && false) # Add a tiny delay between renders
+          (Process.sleep(100) && false)
       end)
     end
   end

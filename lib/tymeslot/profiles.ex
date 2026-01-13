@@ -688,5 +688,4 @@ defmodule Tymeslot.Profiles do
         raise "Failed to create upload directory: #{dir_path} (#{reason})"
     end
   end
-
 end
