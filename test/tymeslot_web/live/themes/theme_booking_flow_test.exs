@@ -530,24 +530,6 @@ defmodule TymeslotWeb.Live.Themes.ThemeBookingFlowTest do
     end) || Date.add(start_date, 1)
   end
 
-  defp wait_until(predicate, timeout_ms \\ 5_000, interval_ms \\ 50) do
-    deadline = System.monotonic_time(:millisecond) + timeout_ms
-    do_wait_until(predicate, deadline, interval_ms)
-  end
-
-  defp do_wait_until(predicate, deadline, interval_ms) do
-    if predicate.() do
-      :ok
-    else
-      if System.monotonic_time(:millisecond) >= deadline do
-        flunk("Timed out waiting for UI condition")
-      end
-
-      Process.sleep(interval_ms)
-      do_wait_until(predicate, deadline, interval_ms)
-    end
-  end
-
   defp ensure_rate_limiter_started do
     case Process.whereis(Tymeslot.Security.RateLimiter) do
       nil -> start_supervised!(Tymeslot.Security.RateLimiter)

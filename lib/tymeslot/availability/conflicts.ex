@@ -139,7 +139,11 @@ defmodule Tymeslot.Availability.Conflicts do
       if params.profile_id do
         BusinessHours.business_hours_range(params.profile_id, Date.day_of_week(d))
       else
-        BusinessHours.business_hours_range()
+        if BusinessHours.business_day?(d) do
+          BusinessHours.business_hours_range()
+        else
+          {nil, nil}
+        end
       end
 
     if is_nil(start_time) or is_nil(end_time) do

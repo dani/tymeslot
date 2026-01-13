@@ -47,13 +47,21 @@ defmodule Tymeslot.Availability.ConflictsTest do
               )
           ) do
       date = Date.add(Date.utc_today(), days_ahead)
-      config = %{buffer_minutes: buffer, min_advance_hours: 0}
+      config = %{buffer_minutes: buffer, min_advance_hours: 0, duration_minutes: duration}
 
       # Convert generated event data into actual event maps
       events_in_tz =
-        Enum.map(events, fn {day_offset, hour, min, dur} ->
+        events
+        |> Enum.map(fn {day_offset, hour, min, dur} ->
           event_date = Date.add(date, day_offset)
-          start_time = DateTime.new!(event_date, Time.new!(hour, min, 0), timezone)
+          time = Time.new!(hour, min, 0)
+
+          start_time =
+            case DateTime.new(event_date, time, timezone) do
+              {:ok, dt} -> dt
+              {:ambiguous, first, _second} -> first
+              {:error, _reason} -> DateTime.new!(event_date, time, "Etc/UTC")
+            end
 
           %{
             start_time: start_time,
