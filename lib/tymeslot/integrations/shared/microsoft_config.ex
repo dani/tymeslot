@@ -51,4 +51,10 @@ defmodule Tymeslot.Integrations.Shared.MicrosoftConfig do
       _ -> {:error, "Microsoft Client Secret not configured"}
     end
   end
+
+  @doc """
+  The static Tenant ID used by Microsoft to identify all personal/consumer accounts.
+  """
+  @spec consumer_tenant_id() :: String.t()
+  def consumer_tenant_id, do: "9188040d-6c67-4c5b-b112-36a304b66dad"
 end

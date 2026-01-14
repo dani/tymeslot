@@ -361,13 +361,10 @@ defmodule Tymeslot.Integrations.Calendar.CalDAV.Base do
   @spec discover_calendars(client(), keyword()) :: {:ok, list(map())} | {:error, error_reason()}
   def discover_calendars(client, opts \\ []) do
     ip_address = Keyword.get(opts, :ip_address, "127.0.0.1")
-    provider = Map.get(client, :provider, :caldav)
-    host = extract_host_from_url(client.base_url)
-    opts = Keyword.put(opts, :host, host)
 
     with :ok <- check_rate_limit(:discovery, ip_address),
          :ok <- validate_client_url(client.base_url) do
-      CalendarCircuitBreaker.with_breaker(provider, opts, fn ->
+      with_caldav_breaker(client, opts, fn ->
         discovery_url = build_discovery_url(client)
 
         case propfind(discovery_url, client.username, client.password) do
@@ -387,11 +384,7 @@ defmodule Tymeslot.Integrations.Calendar.CalDAV.Base do
   @spec fetch_events(client(), String.t(), DateTime.t(), DateTime.t(), keyword()) ::
           {:ok, list(map())} | {:error, error_reason()}
   def fetch_events(client, calendar_path, start_time, end_time, opts \\ []) do
-    provider = Map.get(client, :provider, :caldav)
-    host = extract_host_from_url(client.base_url)
-    opts = Keyword.put(opts, :host, host)
-
-    CalendarCircuitBreaker.with_breaker(provider, opts, fn ->
+    with_caldav_breaker(client, opts, fn ->
       url = build_calendar_url(client.base_url, calendar_path)
 
       # Build calendar-query XML
@@ -414,7 +407,7 @@ defmodule Tymeslot.Integrations.Calendar.CalDAV.Base do
           # Some servers may return 200 OK - accept it but log for debugging
           Logger.warning("CalDAV REPORT returned #{status} instead of 207 Multi-Status",
             url: url,
-            provider: provider
+            provider: Map.get(client, :provider, :caldav)
           )
 
           parse_events_response(body)
@@ -431,11 +424,7 @@ defmodule Tymeslot.Integrations.Calendar.CalDAV.Base do
   @spec create_calendar_event(client(), String.t(), map(), keyword()) ::
           {:ok, String.t()} | {:error, error_reason()}
   def create_calendar_event(client, calendar_path, event_data, opts \\ []) do
-    provider = Map.get(client, :provider, :caldav)
-    host = extract_host_from_url(client.base_url)
-    opts = Keyword.put(opts, :host, host)
-
-    CalendarCircuitBreaker.with_breaker(provider, opts, fn ->
+    with_caldav_breaker(client, opts, fn ->
       uid = event_data[:uid] || generate_uid()
       url = build_event_url(client.base_url, calendar_path, uid)
 

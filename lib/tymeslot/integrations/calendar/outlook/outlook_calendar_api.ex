@@ -176,6 +176,7 @@ defmodule Tymeslot.Integrations.Calendar.Outlook.CalendarAPI do
           {:ok, {String.t(), String.t(), DateTime.t()}} | api_error()
   def refresh_token(%CalendarIntegrationSchema{} = integration) do
     integration = CalendarIntegrationSchema.decrypt_oauth_tokens(integration)
+
     current_scope =
       integration.oauth_scope ||
         "https://graph.microsoft.com/Calendars.ReadWrite https://graph.microsoft.com/User.Read offline_access openid profile"

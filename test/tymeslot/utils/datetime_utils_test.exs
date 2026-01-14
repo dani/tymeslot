@@ -13,9 +13,9 @@ defmodule Tymeslot.Utils.DateTimeUtilsTest do
     end
 
     test "parses day and week durations (P)" do
-      assert {:ok, 86400} == DateTimeUtils.parse_duration("P1D")
-      assert {:ok, 604800} == DateTimeUtils.parse_duration("P1W")
-      assert {:ok, 691200} == DateTimeUtils.parse_duration("P1W1D")
+      assert {:ok, 86_400} == DateTimeUtils.parse_duration("P1D")
+      assert {:ok, 604_800} == DateTimeUtils.parse_duration("P1W")
+      assert {:ok, 691_200} == DateTimeUtils.parse_duration("P1W1D")
     end
 
     test "returns error for invalid formats" do
@@ -48,11 +48,11 @@ defmodule Tymeslot.Utils.DateTimeUtilsTest do
               d <- integer(0..31)
             ) do
         duration_str = "P#{w}W#{d}D"
-        expected_seconds = w * 604800 + d * 86400
+        expected_seconds = w * 604_800 + d * 86_400
         assert {:ok, ^expected_seconds} = DateTimeUtils.parse_duration(duration_str)
       end
     end
-    
+
     test "handles unsupported P components gracefully (e.g. months)" do
       # Now returns error for unsupported components because of regex anchors
       assert {:error, _} = DateTimeUtils.parse_duration("P1M")

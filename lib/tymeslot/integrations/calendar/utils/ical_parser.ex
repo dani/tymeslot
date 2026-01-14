@@ -262,7 +262,9 @@ defmodule Tymeslot.Integrations.Calendar.ICalParser do
   defp calculate_end_time(nil, _), do: nil
 
   # Default 1 hour for DateTime, 1 day for Date
-  defp calculate_end_time(%DateTime{} = start_time, nil), do: DateTime.add(start_time, 3600, :second)
+  defp calculate_end_time(%DateTime{} = start_time, nil),
+    do: DateTime.add(start_time, 3600, :second)
+
   defp calculate_end_time(%Date{} = start_time, nil), do: Date.add(start_time, 1)
 
   defp calculate_end_time(%DateTime{} = start_time, duration_str) do

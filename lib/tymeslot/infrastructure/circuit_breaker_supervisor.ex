@@ -22,7 +22,9 @@ defmodule Tymeslot.Infrastructure.CircuitBreakerSupervisor do
 
     # Dynamic supervisor for per-host circuit breakers
     dynamic_breakers = [
-      {DynamicSupervisor, name: Tymeslot.Infrastructure.DynamicCircuitBreakerSupervisor, strategy: :one_for_one}
+      {Registry, keys: :unique, name: Tymeslot.Infrastructure.CircuitBreakerRegistry},
+      {DynamicSupervisor,
+       name: Tymeslot.Infrastructure.DynamicCircuitBreakerSupervisor, strategy: :one_for_one}
     ]
 
     # Other circuit breakers

@@ -72,7 +72,7 @@ defmodule Tymeslot.Infrastructure.Metrics do
   @doc """
   Tracks circuit breaker state changes.
   """
-  @spec track_circuit_breaker_state(atom(), atom(), atom()) :: :ok
+  @spec track_circuit_breaker_state(any(), atom(), atom()) :: :ok
   def track_circuit_breaker_state(breaker_name, old_state, new_state) do
     :telemetry.execute(
       [:tymeslot, :circuit_breaker, :state_change],

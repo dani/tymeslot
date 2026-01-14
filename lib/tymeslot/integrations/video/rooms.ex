@@ -198,6 +198,8 @@ defmodule Tymeslot.Integrations.Video.Rooms do
                 access_token: decrypted.access_token,
                 refresh_token: decrypted.refresh_token,
                 token_expires_at: integration.token_expires_at,
+                oauth_scope: integration.oauth_scope,
+                tenant_id: decrypted.tenant_id,
                 integration_id: integration.id,
                 user_id: integration.user_id
               }

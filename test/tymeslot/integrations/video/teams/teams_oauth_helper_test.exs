@@ -23,7 +23,7 @@ defmodule Tymeslot.Integrations.Video.Teams.TeamsOAuthHelperTest do
       url = TeamsOAuthHelper.authorization_url(1, "http://uri")
       assert url =~ "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
       assert url =~ "client_id=teams-id"
-      assert url =~ "scope=https%3A%2F%2Fgraph.microsoft.com%2FOnlineMeetings.ReadWrite"
+      assert url =~ "scope=https%3A%2F%2Fgraph.microsoft.com%2FCalendars.ReadWrite"
     end
   end
 
@@ -70,7 +70,7 @@ defmodule Tymeslot.Integrations.Video.Teams.TeamsOAuthHelperTest do
           "access_token" => "at-123",
           "id_token" => id_token,
           "expires_in" => 3600,
-          "scope" => "OnlineMeetings.ReadWrite"
+          "scope" => "Calendars.ReadWrite"
         })
 
       profile_body =
@@ -184,7 +184,7 @@ defmodule Tymeslot.Integrations.Video.Teams.TeamsOAuthHelperTest do
         "access_token" => "at-123",
         "refresh_token" => "rt-123",
         "expires_in" => 3600,
-        "scope" => "OnlineMeetings.ReadWrite"
+        "scope" => "Calendars.ReadWrite"
       })
 
     %{user_id: user_id, state: state, resp_body: resp_body}

@@ -10,6 +10,7 @@ defmodule Tymeslot.Integrations.Video.Providers.TeamsProvider do
   alias Tymeslot.DatabaseSchemas.VideoIntegrationSchema
   alias Tymeslot.Infrastructure.HTTPClient
   alias Tymeslot.Integrations.Shared.Lock
+  alias Tymeslot.Integrations.Shared.MicrosoftConfig
   alias Tymeslot.Integrations.Shared.ProviderConfigHelper
   alias Tymeslot.Integrations.Video.Providers.ProviderBehaviour
   alias Tymeslot.Integrations.Video.Teams.TeamsOAuthHelper
@@ -25,7 +26,8 @@ defmodule Tymeslot.Integrations.Video.Providers.TeamsProvider do
   def create_meeting_room(config) do
     Logger.info("Creating Microsoft Teams meeting room")
 
-    with {:ok, token} <- get_access_token(config),
+    with {:ok, :valid} <- validate_teams_scope(config),
+         {:ok, token} <- get_access_token(config),
          {:ok, meeting} <- create_scheduled_meeting(token, config) do
       room_data = %{
         room_id: meeting["id"],
@@ -63,12 +65,18 @@ defmodule Tymeslot.Integrations.Video.Providers.TeamsProvider do
   end
 
   @impl true
-  def extract_room_id(meeting_url) do
+  def extract_room_id(meeting_url) when is_binary(meeting_url) do
     case Regex.run(~r/meetup-join\/([^\/\?]+)/, meeting_url) do
       [_, encoded_id] -> String.slice(encoded_id, 0, 20)
-      _ -> nil
+      _ -> meeting_url
     end
   end
+
+  def extract_room_id(%{room_data: room_data}) do
+    room_data[:room_id] || room_data["room_id"]
+  end
+
+  def extract_room_id(_), do: nil
 
   @impl true
   def valid_meeting_url?(meeting_url) do
@@ -157,6 +165,32 @@ defmodule Tymeslot.Integrations.Video.Providers.TeamsProvider do
 
   # Private functions
 
+  defp validate_teams_scope(config) do
+    stored_scope = Map.get(config, :oauth_scope, "")
+    # Calendars.ReadWrite is a valid scope for creating Teams meetings via calendar events
+    required_scopes = ["Calendars.ReadWrite"]
+    downcased_scope = String.downcase(stored_scope)
+
+    has_required_scope =
+      Enum.any?(required_scopes, fn scope ->
+        String.contains?(downcased_scope, String.downcase(scope))
+      end)
+
+    if has_required_scope do
+      {:ok, :valid}
+    else
+      Logger.error(
+        "Teams integration missing required scope. Stored scope: #{stored_scope}. " <>
+          "Required one of: #{inspect(required_scopes)}. User needs to re-authenticate."
+      )
+
+      {:error,
+       "Teams integration is missing required permissions. " <>
+         "Please disconnect and reconnect your Microsoft Teams integration in the dashboard " <>
+         "to grant the necessary permissions for creating meetings."}
+    end
+  end
+
   defp get_access_token(config) do
     case teams_oauth_helper().validate_token(config) do
       {:ok, :valid} ->
@@ -216,9 +250,12 @@ defmodule Tymeslot.Integrations.Video.Providers.TeamsProvider do
 
   defp do_actual_refresh(config) do
     refresh_token = Map.get(config, :refresh_token)
-    current_scope = Map.get(config, :oauth_scope)
+    # Always use Teams-specific scope when refreshing, not the stored scope
+    # The stored scope might be from calendar integration and won't work for Teams meetings
+    # Pass nil to use default Teams scope from TeamsOAuthHelper
+    teams_scope = nil
 
-    case teams_oauth_helper().refresh_access_token(refresh_token, current_scope) do
+    case teams_oauth_helper().refresh_access_token(refresh_token, teams_scope) do
       {:ok, refreshed_tokens} ->
         Logger.info("Successfully refreshed Teams OAuth token")
 
@@ -235,12 +272,18 @@ defmodule Tymeslot.Integrations.Video.Providers.TeamsProvider do
   end
 
   defp update_integration_tokens(integration_id, user_id, refreshed_tokens) do
+    # Use the scope from refreshed tokens if present, otherwise keep existing scope
+    # Microsoft may not return scope in refresh responses, so we preserve what we have
+    scope = refreshed_tokens[:scope] || refreshed_tokens.scope
+
     attrs = %{
       access_token: refreshed_tokens.access_token,
       refresh_token: refreshed_tokens.refresh_token || refreshed_tokens.access_token,
-      token_expires_at: refreshed_tokens.expires_at,
-      oauth_scope: refreshed_tokens[:scope]
+      token_expires_at: refreshed_tokens.expires_at
     }
+
+    # Only update scope if we got a new one from the refresh
+    attrs = if scope && scope != "", do: Map.put(attrs, :oauth_scope, scope), else: attrs
 
     case VideoIntegrationQueries.get_for_user(integration_id, user_id) do
       {:error, :not_found} ->
@@ -265,44 +308,19 @@ defmodule Tymeslot.Integrations.Video.Providers.TeamsProvider do
   end
 
   defp create_scheduled_meeting(token, config) do
-    start_time =
-      Map.get(config, :meeting_start_time) ||
-        DateTime.utc_now()
-        |> DateTime.add(3600, :second)
-        |> DateTime.to_iso8601()
-
-    end_time =
-      Map.get(config, :meeting_end_time) ||
-        DateTime.utc_now()
-        |> DateTime.add(5400, :second)
-        |> DateTime.to_iso8601()
-
-    meeting_data = %{
-      startDateTime: start_time,
-      endDateTime: end_time,
-      subject: Map.get(config, :meeting_topic, "Scheduled Meeting")
-    }
-
-    meeting_data =
-      if Map.get(config, :enable_lobby, true) do
-        Map.put(meeting_data, :lobbyBypassSettings, %{
-          scope: "organization",
-          isDialInBypassEnabled: false
-        })
-      else
-        meeting_data
-      end
+    {start_time, end_time} = get_meeting_times(config)
+    meeting_payload = build_meeting_payload(start_time, end_time, config)
 
     headers = [
       {"Authorization", "Bearer #{token}"},
       {"Content-Type", "application/json"}
     ]
 
-    url = "#{@graph_api_base_url}/me/onlineMeetings"
+    url = "#{@graph_api_base_url}/me/events"
 
-    case http_client().request(:post, url, Jason.encode!(meeting_data), headers, []) do
+    case http_client().request(:post, url, Jason.encode!(meeting_payload), headers, []) do
       {:ok, %HTTPoison.Response{status_code: 201, body: body}} ->
-        Jason.decode(body)
+        parse_meeting_response(body)
 
       {:ok, %HTTPoison.Response{status_code: status, body: body}} ->
         decode_and_format_error(status, body)
@@ -310,6 +328,76 @@ defmodule Tymeslot.Integrations.Video.Providers.TeamsProvider do
       {:error, reason} ->
         {:error, "Network error: #{inspect(reason)}"}
     end
+  end
+
+  defp get_meeting_times(config) do
+    start_time =
+      case Map.get(config, :meeting_start_time) do
+        nil -> DateTime.add(DateTime.utc_now(), 3600, :second)
+        dt when is_binary(dt) -> parse_iso8601!(dt)
+        dt -> dt
+      end
+
+    end_time =
+      case Map.get(config, :meeting_end_time) do
+        nil -> DateTime.add(start_time, 1800, :second)
+        dt when is_binary(dt) -> parse_iso8601!(dt)
+        dt -> dt
+      end
+
+    {start_time, end_time}
+  end
+
+  defp parse_iso8601!(dt) do
+    {:ok, parsed, _} = DateTime.from_iso8601(dt)
+    parsed
+  end
+
+  defp build_meeting_payload(start_time, end_time, config) do
+    payload = %{
+      subject: Map.get(config, :meeting_topic, "Scheduled Meeting"),
+      start: %{dateTime: DateTime.to_iso8601(start_time), timeZone: "UTC"},
+      end: %{dateTime: DateTime.to_iso8601(end_time), timeZone: "UTC"},
+      isOnlineMeeting: true
+    }
+
+    if personal_account?(config) do
+      payload
+    else
+      Map.put(payload, :onlineMeetingProvider, "teamsForBusiness")
+    end
+  end
+
+  defp parse_meeting_response(body) do
+    case Jason.decode(body) do
+      {:ok, event} -> extract_join_info(event)
+      error -> error
+    end
+  end
+
+  defp extract_join_info(event) do
+    join_url = get_in(event, ["onlineMeeting", "joinUrl"]) || event["onlineMeetingUrl"]
+
+    if join_url do
+      {:ok,
+       %{
+         "id" => event["id"],
+         "joinUrl" => join_url,
+         "joinWebUrl" => join_url,
+         "videoTeleconferenceId" => nil,
+         "passcode" => nil
+       }}
+    else
+      {:error,
+       "Teams meeting link was not generated for this event. Please ensure your account has Teams enabled."}
+    end
+  end
+
+  defp personal_account?(config) do
+    tenant_id = Map.get(config, :tenant_id)
+    # Check if it is the consumer tenant or we don't know yet (common)
+    tenant_id == MicrosoftConfig.consumer_tenant_id() or tenant_id == "common" or
+      is_nil(tenant_id)
   end
 
   defp http_client do
@@ -325,7 +413,18 @@ defmodule Tymeslot.Integrations.Video.Providers.TeamsProvider do
       {:ok, %{"error" => error}} ->
         message = error["message"] || "Unknown error"
         code = error["code"] || "Unknown"
-        {:error, "Teams API error (#{status}): #{code} - #{message}"}
+
+        # Check if this is an authentication error that might be due to missing scopes
+        error_message =
+          if code == "AuthenticationError" do
+            "Teams API error (#{status}): #{code} - #{message}. " <>
+              "This usually means the integration needs to be re-authenticated with Teams-specific permissions. " <>
+              "Please disconnect and reconnect your Microsoft Teams integration in the dashboard."
+          else
+            "Teams API error (#{status}): #{code} - #{message}"
+          end
+
+        {:error, error_message}
 
       _ ->
         {:error, "Failed to create meeting with status #{status}: #{body}"}

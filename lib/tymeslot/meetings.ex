@@ -318,17 +318,27 @@ defmodule Tymeslot.Meetings do
          {:ok, attendee_url} <- create_secure_join_url(meeting, meeting_context, "participant") do
       expiry_time = DateTime.add(meeting.end_time, 1800, :second)
 
-      {:ok,
-       %{
-         meeting_url: meeting_url,
-         location: meeting_url,
-         video_room_id: room_id,
-         organizer_video_url: organizer_url,
-         attendee_video_url: attendee_url,
-         video_room_enabled: true,
-         video_room_created_at: DateTime.utc_now(),
-         video_room_expires_at: expiry_time
-       }}
+      attrs = %{
+        meeting_url: meeting_url,
+        location: meeting_url,
+        video_room_id: room_id,
+        organizer_video_url: organizer_url,
+        attendee_video_url: attendee_url,
+        video_room_enabled: true,
+        video_room_created_at: DateTime.utc_now(),
+        video_room_expires_at: expiry_time
+      }
+
+      # If the video provider is Teams and we got a room_id (which is the Microsoft Event ID),
+      # update the meeting UID so subsequent calendar syncs target this same event.
+      attrs =
+        if meeting_context.provider_type == :teams and room_id do
+          Map.put(attrs, :uid, room_id)
+        else
+          attrs
+        end
+
+      {:ok, attrs}
     end
   end
 

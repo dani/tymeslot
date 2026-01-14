@@ -98,7 +98,7 @@ defmodule Tymeslot.Availability.Conflicts do
   defp ensure_datetime(nil, _timezone), do: nil
   defp ensure_datetime(_, _timezone), do: nil
 
-  defp shift_safe(nil, _timezone), do: {:error, :nil}
+  defp shift_safe(nil, _timezone), do: {:error, nil}
 
   defp shift_safe(%DateTime{} = dt, timezone) do
     if dt.time_zone == timezone do

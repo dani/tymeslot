@@ -53,7 +53,7 @@ defmodule Tymeslot.Integrations.Common.OAuth.TokenExchange do
 
         case status do
           200 ->
-            parse_token_response(resp_body)
+            parse_token_response(resp_body, nil, scope)
 
           _ ->
             redacted_body = Redactor.redact_and_truncate(resp_body)
@@ -113,7 +113,7 @@ defmodule Tymeslot.Integrations.Common.OAuth.TokenExchange do
     Application.get_env(:tymeslot, :http_client_module, HTTPClient)
   end
 
-  defp parse_token_response(response_body, fallback_refresh_token \\ nil, fallback_scope \\ nil) do
+  defp parse_token_response(response_body, fallback_refresh_token, fallback_scope) do
     response = Jason.decode!(response_body)
     expires_at = DateTime.add(DateTime.utc_now(), response["expires_in"], :second)
 

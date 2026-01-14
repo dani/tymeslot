@@ -41,7 +41,7 @@ defmodule Tymeslot.Integrations.Calendar.Outlook.OAuthHelper do
       scope: scope_string,
       state: state,
       response_mode: "query",
-      prompt: "select_account"
+      prompt: "consent"
     }
 
     query_string = URI.encode_query(params)

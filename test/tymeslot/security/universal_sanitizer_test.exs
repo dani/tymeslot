@@ -79,11 +79,15 @@ defmodule Tymeslot.Security.UniversalSanitizerTest do
 
     test "removes malicious patterns recursively" do
       # Recursive path traversal
-      assert {:ok, "etc/passwd"} = UniversalSanitizer.sanitize_and_validate("....//etc/passwd", log_events: false)
+      assert {:ok, "etc/passwd"} =
+               UniversalSanitizer.sanitize_and_validate("....//etc/passwd", log_events: false)
 
       # Nested SQL injection patterns
       # "UNION UNION SELECT SELECT" should be fully removed
-      assert {:ok, "normal text"} = UniversalSanitizer.sanitize_and_validate("UNION UNION SELECT SELECT normal text", log_events: false)
+      assert {:ok, "normal text"} =
+               UniversalSanitizer.sanitize_and_validate("UNION UNION SELECT SELECT normal text",
+                 log_events: false
+               )
     end
 
     test "removes null bytes before other sanitization to prevent keyword breaking" do

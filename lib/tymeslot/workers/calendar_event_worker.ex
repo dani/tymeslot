@@ -21,25 +21,21 @@ defmodule Tymeslot.Workers.CalendarEventWorker do
     # High priority for calendar sync
     priority: 1
 
+  alias Ecto.UUID
   alias Tymeslot.DatabaseQueries.MeetingQueries
   require Logger
 
   # Configuration
   # 90 seconds for CalDAV operations (increased for background retries)
   @calendar_timeout_ms 90_000
-  # 30 second base for exponential backoff
-  @backoff_base_ms 30_000
 
   @doc """
   Performs the calendar event operation based on the action specified.
-  Implements exponential backoff for retries.
   """
   @impl Oban.Worker
   def perform(
         %Oban.Job{args: %{"action" => action, "meeting_id" => meeting_id}, attempt: attempt} = job
       ) do
-    apply_backoff_if_retry(attempt, action, meeting_id)
-
     if Application.get_env(:tymeslot, :test_mode, false) do
       # In test mode, run synchronously to avoid SQL sandbox and Mox allowance issues
       # with child processes created by Task.async
@@ -55,18 +51,15 @@ defmodule Tymeslot.Workers.CalendarEventWorker do
     end
   end
 
-  defp apply_backoff_if_retry(attempt, action, meeting_id) do
-    if attempt > 1 and not Application.get_env(:tymeslot, :test_mode, false) do
-      backoff_ms = calculate_backoff(attempt)
-
-      Logger.info("Retrying calendar job after backoff",
-        action: action,
-        meeting_id: meeting_id,
-        attempt: attempt,
-        backoff_ms: backoff_ms
-      )
-
-      Process.sleep(backoff_ms)
+  @impl Oban.Worker
+  def backoff(%Oban.Job{attempt: attempt}) do
+    # Progressive backoff: 30s, 60s, 120s, 180s
+    case attempt do
+      1 -> 30
+      2 -> 60
+      3 -> 120
+      4 -> 180
+      _ -> 30
     end
   end
 
@@ -292,26 +285,22 @@ defmodule Tymeslot.Workers.CalendarEventWorker do
     {:error, "Unexpected result"}
   end
 
-  defp calculate_backoff(attempt) do
-    # Progressive backoff: 30s, 60s, 120s, 180s
-    # This gives us approximately 12 minutes total with 5 attempts
-    case attempt do
-      # 30 seconds
-      2 -> 30_000
-      # 60 seconds
-      3 -> 60_000
-      # 120 seconds (2 minutes)
-      4 -> 120_000
-      # 180 seconds (3 minutes)
-      5 -> 180_000
-      _ -> @backoff_base_ms
-    end
-  end
-
   defp handle_calendar_creation(meeting_id, attempt) do
     case MeetingQueries.get_meeting(meeting_id) do
       {:ok, meeting} ->
-        create_event_for_meeting(meeting, meeting_id, attempt)
+        # If the meeting already has an external UID (not a UUID), it means
+        # another worker (like VideoRoomWorker for Teams) already created the event.
+        # In this case, we switch to an update operation to ensure all fields are synced.
+        if external_id?(meeting.uid) do
+          Logger.info("Meeting already has external UID, switching to update",
+            meeting_id: meeting_id,
+            uid: meeting.uid
+          )
+
+          handle_calendar_update(meeting_id, attempt)
+        else
+          create_event_for_meeting(meeting, meeting_id, attempt)
+        end
 
       {:error, :not_found} ->
         Logger.warning("Attempted to create calendar event for non-existent meeting",
@@ -319,6 +308,15 @@ defmodule Tymeslot.Workers.CalendarEventWorker do
         )
 
         {:error, :meeting_not_found}
+    end
+  end
+
+  defp external_id?(nil), do: false
+
+  defp external_id?(uid) do
+    case UUID.cast(uid) do
+      {:ok, _} -> false
+      :error -> true
     end
   end
 
@@ -432,9 +430,10 @@ defmodule Tymeslot.Workers.CalendarEventWorker do
 
     # Use the organizer_user_id from the meeting to create in the correct calendar
     case calendar_module().create_event(event_data, meeting.organizer_user_id) do
-      {:ok, _returned_uid} ->
+      {:ok, returned_uid} ->
         Logger.info("Calendar event created successfully", meeting_id: meeting_id)
-        persist_calendar_mapping(meeting)
+        # Pass the returned UID to persist it
+        persist_calendar_mapping(meeting, returned_uid)
         :ok
 
       {:error, error_type} ->
@@ -486,15 +485,20 @@ defmodule Tymeslot.Workers.CalendarEventWorker do
       Tymeslot.Emails.EmailService
   end
 
-  defp persist_calendar_mapping(meeting) do
+  defp persist_calendar_mapping(meeting, returned_uid) do
     # Persist which integration and calendar path were used for creation
     case calendar_module().get_booking_integration_info(meeting.organizer_user_id) do
       {:ok, %{integration_id: integration_id, calendar_path: calendar_path}} ->
-        _ =
-          MeetingQueries.update_meeting(meeting, %{
-            calendar_integration_id: integration_id,
-            calendar_path: calendar_path
-          })
+        attrs = %{
+          calendar_integration_id: integration_id,
+          calendar_path: calendar_path
+        }
+
+        # If the provider returned a specific UID, save it to the meeting
+        # so subsequent updates can use it.
+        attrs = if returned_uid, do: Map.put(attrs, :uid, returned_uid), else: attrs
+
+        _ = MeetingQueries.update_meeting(meeting, attrs)
 
       _ ->
         :ok

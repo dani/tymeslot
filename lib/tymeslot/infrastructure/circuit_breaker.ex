@@ -19,6 +19,8 @@ defmodule Tymeslot.Infrastructure.CircuitBreaker do
     half_open_requests: 3
   }
 
+  @idle_timeout :timer.hours(24)
+
   defmodule State do
     @moduledoc false
     defstruct [
@@ -54,7 +56,7 @@ defmodule Tymeslot.Infrastructure.CircuitBreaker do
   - `{:error, :circuit_open}` if the circuit is open
   - `{:error, reason}` if the function fails
   """
-  @spec call(atom(), (-> any())) :: {:ok, any()} | {:error, any()}
+  @spec call(GenServer.server(), (-> any())) :: {:ok, any()} | {:error, any()}
   def call(breaker_name, fun) when is_function(fun, 0) do
     # Use a longer timeout to accommodate HTTP requests (max is 60s for REPORT + some buffer)
     GenServer.call(breaker_name, {:call, fun}, 70_000)
@@ -63,7 +65,7 @@ defmodule Tymeslot.Infrastructure.CircuitBreaker do
   @doc """
   Gets the current status of the circuit breaker.
   """
-  @spec status(atom()) :: map()
+  @spec status(GenServer.server()) :: map()
   def status(breaker_name) do
     GenServer.call(breaker_name, :status, 5_000)
   end
@@ -71,7 +73,7 @@ defmodule Tymeslot.Infrastructure.CircuitBreaker do
   @doc """
   Resets the circuit breaker to closed state.
   """
-  @spec reset(atom()) :: :ok
+  @spec reset(GenServer.server()) :: :ok
   def reset(breaker_name) do
     GenServer.cast(breaker_name, :reset)
   end
@@ -93,20 +95,25 @@ defmodule Tymeslot.Infrastructure.CircuitBreaker do
       half_open_attempts: 0
     }
 
-    {:ok, state}
+    {:ok, state, @idle_timeout}
   end
 
   @impl true
   def handle_call({:call, fun}, _from, state) do
-    case state.status do
-      :open ->
-        handle_open_circuit(fun, state)
+    result =
+      case state.status do
+        :open ->
+          handle_open_circuit(fun, state)
 
-      :half_open ->
-        handle_half_open_circuit(fun, state)
+        :half_open ->
+          handle_half_open_circuit(fun, state)
 
-      :closed ->
-        handle_closed_circuit(fun, state)
+        :closed ->
+          handle_closed_circuit(fun, state)
+      end
+
+    case result do
+      {:reply, response, new_state} -> {:reply, response, new_state, @idle_timeout}
     end
   end
 
@@ -119,7 +126,7 @@ defmodule Tymeslot.Infrastructure.CircuitBreaker do
       config: state.config
     }
 
-    {:reply, status_info, state}
+    {:reply, status_info, state, @idle_timeout}
   end
 
   @impl true
@@ -136,7 +143,7 @@ defmodule Tymeslot.Infrastructure.CircuitBreaker do
         half_open_attempts: 0
     }
 
-    {:noreply, new_state}
+    {:noreply, new_state, @idle_timeout}
   end
 
   # Private Functions
@@ -274,11 +281,20 @@ defmodule Tymeslot.Infrastructure.CircuitBreaker do
   end
 
   @impl true
+  def handle_info(:timeout, state) do
+    Logger.info("Circuit breaker #{inspect(state.name)} stopping due to inactivity",
+      name: state.name
+    )
+
+    {:stop, :normal, state}
+  end
+
+  @impl true
   def handle_info(msg, state) do
     # In tests, Swoosh's TestAdapter sends {:email, email} messages to the process that calls deliver.
     # When deliver is wrapped in a circuit breaker, this GenServer receives those messages.
     Logger.debug("Circuit breaker #{state.name} received message: #{inspect(msg)}")
-    {:noreply, state}
+    {:noreply, state, @idle_timeout}
   end
 
   @impl true

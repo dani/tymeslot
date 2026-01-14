@@ -20,7 +20,8 @@ defmodule Tymeslot.Database.ProfileQueriesUsernameTest do
     end
 
     test "get_by_username/1 returns nil for non-existent username" do
-      assert {:error, :not_found} == ProfileQueries.get_by_username("nonexistent_#{System.unique_integer([:positive])}")
+      assert {:error, :not_found} ==
+               ProfileQueries.get_by_username("nonexistent_#{System.unique_integer([:positive])}")
     end
 
     test "username_available?/1 returns true for available username" do

@@ -17,7 +17,8 @@ defmodule Tymeslot.Integrations.Video.Teams.TeamsOAuthHelper do
 
   require Logger
 
-  @teams_scope "https://graph.microsoft.com/OnlineMeetings.ReadWrite https://graph.microsoft.com/User.Read offline_access openid profile"
+  @teams_scope "https://graph.microsoft.com/Calendars.ReadWrite https://graph.microsoft.com/User.Read offline_access openid profile"
+
   @oauth_base_url "https://login.microsoftonline.com/common/oauth2/v2.0"
   @token_url "#{@oauth_base_url}/token"
 
@@ -35,11 +36,14 @@ defmodule Tymeslot.Integrations.Video.Teams.TeamsOAuthHelper do
       scope: @teams_scope,
       state: state,
       response_mode: "query",
-      prompt: "select_account"
+      # Force consent to ensure Calendars.ReadWrite scope is granted
+      prompt: "consent"
     }
 
     query_string = URI.encode_query(params)
-    "#{@oauth_base_url}/authorize?" <> query_string
+    url = "#{@oauth_base_url}/authorize?" <> query_string
+    Logger.info("Generated Teams OAuth URL with scope: #{@teams_scope}")
+    url
   end
 
   @doc """
@@ -51,14 +55,30 @@ defmodule Tymeslot.Integrations.Video.Teams.TeamsOAuthHelper do
   def exchange_code_for_tokens(code, redirect_uri, state) do
     with {:ok, user_id} <- verify_state(state),
          {:ok, tokens} <- fetch_tokens(code, redirect_uri),
+         :ok <- verify_required_scopes(tokens),
          {:ok, profile} <- fetch_user_profile(tokens.access_token) do
-      tenant_id = extract_tenant_id_from_id_token(tokens[:id_token]) || profile["tenant_id"] || "common"
+      tenant_id =
+        extract_tenant_id_from_id_token(tokens[:id_token]) || profile["tenant_id"] || "common"
+
+      # Ensure scope is set - for Teams we must have the calendar scopes.
+      # If Microsoft returned a scope string, ensure our required scopes are in it.
+      returned_scope = tokens[:scope] || tokens.scope || ""
+
+      scope =
+        if String.contains?(returned_scope, "Calendars.ReadWrite") do
+          returned_scope
+        else
+          # Force inclusion of Teams scopes if Microsoft was "lazy" in the response
+          # but only if we don't already have them.
+          @teams_scope
+        end
 
       {:ok,
        Map.merge(tokens, %{
          user_id: user_id,
          teams_user_id: profile["id"],
-         tenant_id: tenant_id
+         tenant_id: tenant_id,
+         scope: scope
        })}
     else
       {:error, reason} -> {:error, reason}
@@ -195,4 +215,18 @@ defmodule Tymeslot.Integrations.Video.Teams.TeamsOAuthHelper do
   end
 
   defp verify_state(_), do: {:error, "Invalid state parameter"}
+
+  defp verify_required_scopes(tokens) do
+    returned_scope = tokens[:scope] || tokens.scope || ""
+
+    if String.contains?(returned_scope, "Calendars.ReadWrite") do
+      :ok
+    else
+      Logger.error("Microsoft OAuth response missing required scope: Calendars.ReadWrite",
+        returned_scope: returned_scope
+      )
+
+      {:error, :missing_required_scope}
+    end
+  end
 end

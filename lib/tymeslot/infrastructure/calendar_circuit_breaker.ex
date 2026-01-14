@@ -115,9 +115,10 @@ defmodule Tymeslot.Infrastructure.CalendarCircuitBreaker do
   @spec call_with_host(atom(), String.t(), (-> any())) :: {:ok, any()} | {:error, atom()}
   def call_with_host(provider, host, fun)
       when provider in @calendar_providers and is_binary(host) and is_function(fun, 0) do
-    # Clean host name to use as part of atom
+    # Clean host name to use as part of the registry key
     safe_host = String.replace(host, ~r/[^a-zA-Z0-9]/, "_")
-    breaker_name = :"calendar_breaker_#{provider}_#{safe_host}"
+    breaker_id = "calendar_breaker_#{provider}_#{safe_host}"
+    breaker_name = {:via, Registry, {Tymeslot.Infrastructure.CircuitBreakerRegistry, breaker_id}}
 
     # Ensure breaker exists
     ensure_breaker_exists(breaker_name, provider)
@@ -243,7 +244,14 @@ defmodule Tymeslot.Infrastructure.CalendarCircuitBreaker do
     end
   end
 
-  defp breaker_exists?(name) do
+  defp breaker_exists?({:via, Registry, {registry, key}}) do
+    case Registry.lookup(registry, key) do
+      [{_pid, _}] -> true
+      [] -> false
+    end
+  end
+
+  defp breaker_exists?(name) when is_atom(name) do
     case Process.whereis(name) do
       nil -> false
       _pid -> true
