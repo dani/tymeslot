@@ -36,7 +36,7 @@ defmodule Tymeslot.Infrastructure.CacheStore do
               CacheStore.compute_and_store(@table_name, key, fun, ttl)
             else
               # Use GenServer to coalesce concurrent computations
-              GenServer.call(__MODULE__, {:compute_coalesced, key, fun, ttl}, :timer.minutes(1))
+              GenServer.call(__MODULE__, {:compute_coalesced, key, fun, ttl}, 90_000)
             end
         end
       end
@@ -91,17 +91,26 @@ defmodule Tymeslot.Infrastructure.CacheStore do
                 # No computation in flight, start one
                 parent = self()
 
-                Task.start(fn ->
-                  value = fun.()
-                  send(parent, {:computation_done, key, value, ttl})
-                end)
+                {:ok, pid} =
+                  Task.start(fn ->
+                    value =
+                      try do
+                        fun.()
+                      catch
+                        kind, reason ->
+                          exit({kind, reason, __STACKTRACE__})
+                      end
 
-                new_state = put_in(state.pending[key], [from])
+                    send(parent, {:computation_done, key, value, ttl})
+                  end)
+
+                ref = Process.monitor(pid)
+                new_state = put_in(state.pending[key], %{waiters: [from], ref: ref})
                 {:noreply, new_state}
 
-              waiters ->
+              %{waiters: waiters} = pending ->
                 # Already computing, add this caller to waiters
-                new_state = put_in(state.pending[key], [from | waiters])
+                new_state = put_in(state.pending[key].waiters, [from | waiters])
                 {:noreply, new_state}
             end
         end
@@ -109,24 +118,54 @@ defmodule Tymeslot.Infrastructure.CacheStore do
 
       @impl true
       def handle_info({:computation_done, key, value, ttl}, state) do
-        waiters = Map.get(state.pending, key, [])
+        case Map.pop(state.pending, key) do
+          {nil, _} ->
+            {:noreply, state}
 
-        # Store in ETS
-        expiry = System.monotonic_time(:millisecond) + ttl
-        :ets.insert(@table_name, {key, value, expiry})
+          {%{waiters: waiters, ref: ref}, pending} ->
+            Process.demonitor(ref, [:flush])
 
-        # Reply to everyone
-        Enum.each(waiters, fn waiter ->
-          GenServer.reply(waiter, value)
-        end)
+            # Store in ETS
+            expiry = System.monotonic_time(:millisecond) + ttl
+            :ets.insert(@table_name, {key, value, expiry})
 
-        {:noreply, %{state | pending: Map.delete(state.pending, key)}}
+            # Reply to everyone
+            Enum.each(waiters, fn waiter ->
+              GenServer.reply(waiter, value)
+            end)
+
+            {:noreply, %{state | pending: pending}}
+        end
+      end
+
+      @impl true
+      def handle_info({:DOWN, ref, :process, _pid, reason}, state) do
+        # Task crashed - find it and notify waiters
+        entry = Enum.find(state.pending, fn {_key, val} -> val.ref == ref end)
+
+        case entry do
+          {key, %{waiters: waiters}} ->
+            # Notify waiters about the failure so they don't time out
+            Enum.each(waiters, fn waiter ->
+              GenServer.reply(waiter, {:error, :computation_failed})
+            end)
+
+            {:noreply, %{state | pending: Map.delete(state.pending, key)}}
+
+          _ ->
+            {:noreply, state}
+        end
       end
 
       @impl true
       def handle_info(:cleanup, state) do
         CacheStore.cleanup_expired(@table_name)
         CacheStore.schedule_cleanup(@cleanup_interval)
+        {:noreply, state}
+      end
+
+      @impl true
+      def handle_info(msg, state) do
         {:noreply, state}
       end
 

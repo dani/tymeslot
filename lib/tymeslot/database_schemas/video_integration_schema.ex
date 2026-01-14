@@ -158,7 +158,7 @@ defmodule Tymeslot.DatabaseSchemas.VideoIntegrationSchema do
         |> URLValidator.validate_url(:base_url)
 
       "teams" ->
-        validate_required(changeset, [:tenant_id, :client_id, :client_secret, :teams_user_id])
+        validate_required(changeset, [:tenant_id, :teams_user_id])
 
       "google_meet" ->
         validate_required(changeset, [:access_token, :refresh_token])

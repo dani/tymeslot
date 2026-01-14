@@ -84,6 +84,107 @@ defmodule Tymeslot.Integrations.Calendar.Outlook.CalendarAPITest do
     end
   end
 
+  describe "create_event/3" do
+    test "sends correct payload to Outlook API" do
+      user = insert(:user)
+
+      integration =
+        insert(:calendar_integration,
+          user: user,
+          provider: "outlook",
+          access_token_encrypted: Encryption.encrypt("valid_token"),
+          token_expires_at: DateTime.add(DateTime.utc_now(), 3600)
+        )
+
+      event_data = %{
+        summary: "New Meeting",
+        start_time: DateTime.utc_now(),
+        end_time: DateTime.add(DateTime.utc_now(), 3600),
+        timezone: "UTC"
+      }
+
+      expect(Tymeslot.HTTPClientMock, :request, fn :post, url, body, _headers, _opts ->
+        assert String.contains?(url, "/me/calendars/primary/events")
+        decoded_body = Jason.decode!(body)
+        assert decoded_body["subject"] == "New Meeting"
+
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 201,
+           body:
+             Jason.encode!(%{
+               "id" => "new_outlook_id",
+               "subject" => "New Meeting",
+               "start" => %{"dateTime" => "2024-01-01T10:00:00"},
+               "end" => %{"dateTime" => "2024-01-01T11:00:00"}
+             })
+         }}
+      end)
+
+      assert {:ok, %{id: "new_outlook_id"}} =
+               CalendarAPI.create_event(integration, "primary", event_data)
+    end
+  end
+
+  describe "update_event/4" do
+    test "sends PATCH request to Outlook API" do
+      user = insert(:user)
+
+      integration =
+        insert(:calendar_integration,
+          user: user,
+          provider: "outlook",
+          access_token_encrypted: Encryption.encrypt("valid_token"),
+          token_expires_at: DateTime.add(DateTime.utc_now(), 3600)
+        )
+
+      event_data = %{summary: "Updated Meeting"}
+
+      expect(Tymeslot.HTTPClientMock, :request, fn :patch, url, body, _headers, _opts ->
+        assert String.contains?(url, "/me/calendars/primary/events/event123")
+        decoded_body = Jason.decode!(body)
+        assert decoded_body["subject"] == "Updated Meeting"
+
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 200,
+           body:
+             Jason.encode!(%{
+               "id" => "event123",
+               "subject" => "Updated Meeting",
+               "start" => %{"dateTime" => "2024-01-01T10:00:00"},
+               "end" => %{"dateTime" => "2024-01-01T11:00:00"}
+             })
+         }}
+      end)
+
+      assert {:ok, %{id: "event123"}} =
+               CalendarAPI.update_event(integration, "primary", "event123", event_data)
+    end
+  end
+
+  describe "delete_event/3" do
+    test "sends DELETE request to Outlook API" do
+      user = insert(:user)
+
+      integration =
+        insert(:calendar_integration,
+          user: user,
+          provider: "outlook",
+          access_token_encrypted: Encryption.encrypt("valid_token"),
+          token_expires_at: DateTime.add(DateTime.utc_now(), 3600)
+        )
+
+      expect(Tymeslot.HTTPClientMock, :request, fn :delete, url, _body, _headers, _opts ->
+        assert String.contains?(url, "/me/calendars/primary/events/event123")
+
+        {:ok, %HTTPoison.Response{status_code: 204, body: ""}}
+      end)
+
+      assert :ok = CalendarAPI.delete_event(integration, "primary", "event123")
+    end
+  end
+
   describe "refresh_token/1" do
     test "calls Microsoft token endpoint and returns new tokens" do
       user = insert(:user)
@@ -116,6 +217,34 @@ defmodule Tymeslot.Integrations.Calendar.Outlook.CalendarAPITest do
 
       assert {:ok, {"new_access_token", "new_refresh_token", %DateTime{}}} =
                CalendarAPI.refresh_token(integration)
+    end
+  end
+
+  describe "retry logic" do
+    test "retries on transient errors" do
+      user = insert(:user)
+
+      integration =
+        insert(:calendar_integration,
+          user: user,
+          provider: "outlook",
+          access_token_encrypted: Tymeslot.Security.Encryption.encrypt("valid_token"),
+          token_expires_at: DateTime.add(DateTime.utc_now(), 3600)
+        )
+
+      # Expect 2 calls: first fails with 503, second succeeds
+      Tymeslot.HTTPClientMock
+      |> expect(:request, fn :get, _url, _body, _headers, _opts ->
+        {:error, %HTTPoison.Error{reason: :timeout}}
+      end)
+      |> expect(:request, fn :get, _url, _body, _headers, _opts ->
+        {:ok, %HTTPoison.Response{status_code: 200, body: Jason.encode!(%{"value" => []})}}
+      end)
+
+      # We need to reduce the retry delay for tests to run fast
+      # But Retry doesn't take opts in with_access_token call chain easily without modifying code
+      # However, we can just assert it succeeds eventually
+      assert {:ok, []} = CalendarAPI.list_calendars(integration)
     end
   end
 end

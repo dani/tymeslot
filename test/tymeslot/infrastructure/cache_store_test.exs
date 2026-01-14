@@ -71,6 +71,44 @@ defmodule Tymeslot.Infrastructure.CacheStoreTest do
     assert TestCache.get_or_compute("key", fn -> "new" end) == "new"
   end
 
+  test "get_or_compute handles task crashes gracefully" do
+    # Force coalescing even in test environment for this specific test
+    Application.put_env(:tymeslot, :force_cache_coalescing, true)
+    on_exit(fn -> Application.delete_env(:tymeslot, :force_cache_coalescing) end)
+
+    key = "crash_key"
+
+    # Start a request that will crash
+    task1 =
+      Task.async(fn ->
+        TestCache.get_or_compute(key, fn ->
+          Process.sleep(50)
+          raise "Computation crashed!"
+        end)
+      end)
+
+    # Start another request that will wait for the first one
+    task2 =
+      Task.async(fn ->
+        Process.sleep(20)
+
+        TestCache.get_or_compute(key, fn ->
+          :this_should_not_be_called_yet
+        end)
+      end)
+
+    # Wait for results
+    res1 = Task.await(task1)
+    res2 = Task.await(task2)
+
+    # Both should get the error result instead of timing out or hanging
+    assert res1 == {:error, :computation_failed}
+    assert res2 == {:error, :computation_failed}
+
+    # Verify that we can try again and succeed
+    assert TestCache.get_or_compute(key, fn -> :success end) == :success
+  end
+
   defp collect_messages(acc) do
     receive do
       msg -> collect_messages([msg | acc])

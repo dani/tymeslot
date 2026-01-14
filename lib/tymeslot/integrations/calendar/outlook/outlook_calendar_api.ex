@@ -9,11 +9,14 @@ defmodule Tymeslot.Integrations.Calendar.Outlook.CalendarAPI do
   require Logger
 
   alias Tymeslot.DatabaseSchemas.CalendarIntegrationSchema
+  alias Tymeslot.Infrastructure.HTTPClient
   alias Tymeslot.Infrastructure.Logging.Redactor
+  alias Tymeslot.Infrastructure.Retry
   alias Tymeslot.Integrations.Calendar.{EventTimeFormatter, HTTP}
   alias Tymeslot.Integrations.Calendar.Outlook.CalendarAPIBehaviour
   alias Tymeslot.Integrations.Calendar.Shared.AccessToken
   alias Tymeslot.Integrations.Common.OAuth.Token, as: OAuthToken
+  alias Tymeslot.Integrations.Shared.MicrosoftConfig
   alias Tymeslot.Integrations.Shared.OAuth.TokenFlow
 
   @base_url "https://graph.microsoft.com/v1.0"
@@ -173,15 +176,18 @@ defmodule Tymeslot.Integrations.Calendar.Outlook.CalendarAPI do
           {:ok, {String.t(), String.t(), DateTime.t()}} | api_error()
   def refresh_token(%CalendarIntegrationSchema{} = integration) do
     integration = CalendarIntegrationSchema.decrypt_oauth_tokens(integration)
+    current_scope =
+      integration.oauth_scope ||
+        "https://graph.microsoft.com/Calendars.ReadWrite https://graph.microsoft.com/User.Read offline_access openid profile"
 
-    with {:ok, client_id} <- fetch_outlook_client_id(),
-         {:ok, client_secret} <- fetch_outlook_client_secret() do
+    with {:ok, client_id} <- MicrosoftConfig.fetch_client_id(),
+         {:ok, client_secret} <- MicrosoftConfig.fetch_client_secret() do
       body = %{
         "grant_type" => "refresh_token",
         "refresh_token" => integration.refresh_token,
         "client_id" => client_id,
         "client_secret" => client_secret,
-        "scope" => "https://graph.microsoft.com/Calendars.ReadWrite"
+        "scope" => current_scope
       }
 
       case TokenFlow.refresh_token(@token_url, body, provider: :outlook) do
@@ -240,6 +246,7 @@ defmodule Tymeslot.Integrations.Calendar.Outlook.CalendarAPI do
     HTTP.request(method, @base_url, path, token,
       params: params,
       headers: [{"Content-Type", "application/json"}],
+      request_fun: &request_with_retry/4,
       response_handler: &handle_response/1
     )
   end
@@ -338,8 +345,19 @@ defmodule Tymeslot.Integrations.Calendar.Outlook.CalendarAPI do
 
   defp make_request_with_body(method, path, token, body) do
     HTTP.request_with_body(method, @base_url, path, token, body,
+      request_fun: &request_with_retry/4,
       response_handler: &handle_response/1
     )
+  end
+
+  defp request_with_retry(method, url, body, headers) do
+    Retry.with_backoff(fn ->
+      http_client().request(method, url, body, headers, [])
+    end)
+  end
+
+  defp http_client do
+    Application.get_env(:tymeslot, :http_client_module, HTTPClient)
   end
 
   defp format_event_data(event_data) do
@@ -393,32 +411,9 @@ defmodule Tymeslot.Integrations.Calendar.Outlook.CalendarAPI do
         location: get_in(event, ["location", "displayName"]),
         start: event["start"],
         end: event["end"],
+        is_all_day: event["isAllDay"] || false,
         status: if(event["isCancelled"], do: "cancelled", else: "confirmed")
       }
     end)
-  end
-
-  defp fetch_outlook_client_id do
-    client_id =
-      Application.get_env(:tymeslot, :outlook_oauth)[:client_id] ||
-        System.get_env("OUTLOOK_CLIENT_ID")
-
-    if is_binary(client_id) and String.trim(client_id) != "" do
-      {:ok, client_id}
-    else
-      {:error, "Outlook Client ID not configured"}
-    end
-  end
-
-  defp fetch_outlook_client_secret do
-    client_secret =
-      Application.get_env(:tymeslot, :outlook_oauth)[:client_secret] ||
-        System.get_env("OUTLOOK_CLIENT_SECRET")
-
-    if is_binary(client_secret) and String.trim(client_secret) != "" do
-      {:ok, client_secret}
-    else
-      {:error, "Outlook Client Secret not configured"}
-    end
   end
 end

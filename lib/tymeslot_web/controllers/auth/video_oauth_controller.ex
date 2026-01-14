@@ -180,7 +180,10 @@ defmodule TymeslotWeb.VideoOAuthController do
       refresh_token: tokens.refresh_token,
       token_expires_at: tokens.expires_at,
       oauth_scope: tokens.scope,
-      is_active: true
+      is_active: true,
+      # Required fields for teams provider in VideoIntegrationSchema
+      tenant_id: tokens.tenant_id,
+      teams_user_id: tokens.teams_user_id
     }
 
     create_and_maybe_set_default(attrs, tokens.user_id)

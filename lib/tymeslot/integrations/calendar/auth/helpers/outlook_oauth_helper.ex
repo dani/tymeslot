@@ -14,7 +14,7 @@ defmodule Tymeslot.Integrations.Calendar.Outlook.OAuthHelper do
   alias Tymeslot.Integrations.Common.OAuth.State
   alias Tymeslot.Integrations.Common.OAuth.TokenExchange
 
-  @calendar_scope "https://graph.microsoft.com/Calendars.ReadWrite"
+  @calendar_scope "https://graph.microsoft.com/Calendars.ReadWrite https://graph.microsoft.com/User.Read offline_access openid profile"
   @oauth_base_url "https://login.microsoftonline.com/common/oauth2/v2.0"
   @token_url "#{@oauth_base_url}/token"
 

@@ -249,7 +249,7 @@ defmodule Tymeslot.Utils.DateTimeUtils do
   - Local time: 20240726T163000
   - Date only: 20240726
   """
-  @spec parse_ical_datetime(String.t()) :: {:ok, NaiveDateTime.t()} | {:error, term()}
+  @spec parse_ical_datetime(String.t()) :: {:ok, NaiveDateTime.t() | Date.t()} | {:error, term()}
   def parse_ical_datetime(datetime_str) when is_binary(datetime_str) do
     cond do
       # UTC time: 20240726T163000Z
@@ -264,7 +264,17 @@ defmodule Tymeslot.Utils.DateTimeUtils do
 
       # Date only: 20240726
       String.match?(datetime_str, ~r/^\d{8}$/) ->
-        parse_date_only(datetime_str)
+        case Regex.run(~r/(\d{4})(\d{2})(\d{2})/, datetime_str) do
+          [_, year, month, day] ->
+            Date.new(
+              String.to_integer(year),
+              String.to_integer(month),
+              String.to_integer(day)
+            )
+
+          _ ->
+            {:error, "Invalid date format"}
+        end
 
       true ->
         {:error, "Unrecognized datetime format"}
@@ -273,23 +283,19 @@ defmodule Tymeslot.Utils.DateTimeUtils do
 
   @doc """
   Parses an iCal datetime with timezone information.
-
-  ## Examples
-
-      iex> parse_datetime_with_timezone(%{value: "20240726T163000Z", timezone: nil})
-      {:ok, #DateTime<...>}
-
-      iex> parse_datetime_with_timezone(%{value: "20240726T163000", timezone: "Europe/Berlin"})
-      {:ok, #DateTime<...>}
+  Supports both DateTime and Date (all-day) formats.
   """
   @spec parse_datetime_with_timezone(
           %{required(:value) => String.t(), optional(:timezone) => String.t() | nil}
           | nil
-        ) :: {:ok, DateTime.t()} | {:error, term()}
+        ) :: {:ok, DateTime.t() | Date.t()} | {:error, term()}
   def parse_datetime_with_timezone(%{value: datetime_str, timezone: timezone}) do
     case parse_ical_datetime(datetime_str) do
-      {:ok, naive_dt} ->
+      {:ok, %NaiveDateTime{} = naive_dt} ->
         convert_to_utc(naive_dt, timezone)
+
+      {:ok, %Date{} = date} ->
+        {:ok, date}
 
       {:error, _} = error ->
         error

@@ -340,7 +340,7 @@ defmodule Tymeslot.Integrations.Calendar.Operations do
 
       results =
         all_clients
-        |> Task.async_stream(&fetch_events_from_client/1, timeout: 30_000)
+        |> Task.async_stream(&fetch_events_from_client/1, timeout: 45_000)
         |> unwrap_async_results()
 
       successful_results = Enum.filter(results, &successful_result?/1)

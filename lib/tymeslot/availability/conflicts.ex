@@ -30,7 +30,12 @@ defmodule Tymeslot.Availability.Conflicts do
     max_advance_booking_days = Map.get(config, :max_advance_booking_days, 90)
 
     # Get current time in the same timezone as the slots
-    current_time = DateTime.shift_zone!(DateTime.utc_now(), timezone)
+    current_time =
+      case DateTime.shift_zone(DateTime.utc_now(), timezone) do
+        {:ok, dt} -> dt
+        _ -> DateTime.shift_zone!(DateTime.utc_now(), "Etc/UTC")
+      end
+
     minimum_booking_time = DateTime.add(current_time, advance_booking_minutes, :minute)
     maximum_booking_time = DateTime.add(current_time, max_advance_booking_days * 24 * 60, :minute)
 
@@ -57,19 +62,52 @@ defmodule Tymeslot.Availability.Conflicts do
 
   @doc """
   Converts a list of events to a specific timezone.
+  Handles both DateTime (normal) and Date (all-day) events.
   """
   @spec convert_events_to_timezone(list(map()), String.t()) :: list(map())
   def convert_events_to_timezone(events, timezone) do
     Enum.map(events, fn event ->
-      case {DateTime.shift_zone(event.start_time, timezone),
-            DateTime.shift_zone(event.end_time, timezone)} do
-        {{:ok, start_tz}, {:ok, end_tz}} ->
-          %{event | start_time: start_tz, end_time: end_tz}
+      # Convert start_time and end_time, potentially upgrading Date to DateTime
+      start_dt = ensure_datetime(event.start_time, timezone)
+      end_dt = ensure_datetime(event.end_time, timezone)
+
+      case {shift_safe(start_dt, timezone), shift_safe(end_dt, timezone)} do
+        {{:ok, s}, {:ok, e}} ->
+          %{event | start_time: s, end_time: e}
 
         _ ->
+          # If we can't shift (e.g. invalid timezone), keep original or drop if nil
           event
       end
     end)
+  end
+
+  defp ensure_datetime(%DateTime{} = dt, _timezone), do: dt
+
+  defp ensure_datetime(%Date{} = d, timezone) do
+    # All-day event: starts at 00:00:00 in the target timezone
+    # Since we're converting TO a timezone, let's treat it as 00:00:00 in THAT timezone
+    # to ensure it blocks the entire day for that user.
+    case DateTime.new(d, ~T[00:00:00], timezone) do
+      {:ok, dt} -> dt
+      {:ambiguous, first, _} -> first
+      {:error, _} -> DateTime.new!(d, ~T[00:00:00], "Etc/UTC")
+    end
+  end
+
+  defp ensure_datetime(nil, _timezone), do: nil
+  defp ensure_datetime(_, _timezone), do: nil
+
+  defp shift_safe(nil, _timezone), do: {:error, :nil}
+
+  defp shift_safe(%DateTime{} = dt, timezone) do
+    if dt.time_zone == timezone do
+      {:ok, dt}
+    else
+      DateTime.shift_zone(dt, timezone)
+    end
+  rescue
+    _ -> {:error, :invalid_timezone}
   end
 
   @doc """
@@ -108,11 +146,18 @@ defmodule Tymeslot.Availability.Conflicts do
 
     relevant_events =
       Enum.filter(events_in_user_tz, fn event ->
-        event_start_date = DateTime.to_date(event.start_time)
-        event_end_date = DateTime.to_date(event.end_time)
+        # Defensive check for start_time/end_time types after conversion
+        case {event.start_time, event.end_time} do
+          {%DateTime{} = s, %DateTime{} = e} ->
+            event_start_date = DateTime.to_date(s)
+            event_end_date = DateTime.to_date(e)
 
-        not (Date.compare(event_end_date, start_date_limit) == :lt or
-               Date.compare(event_start_date, end_date_limit) == :gt)
+            not (Date.compare(event_end_date, start_date_limit) == :lt or
+                   Date.compare(event_start_date, end_date_limit) == :gt)
+
+          _ ->
+            false
+        end
       end)
 
     params = %{

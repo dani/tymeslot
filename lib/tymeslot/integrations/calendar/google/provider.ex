@@ -159,7 +159,7 @@ defmodule Tymeslot.Integrations.Calendar.Google.Provider do
 
   defp parse_datetime(%{"date" => date_str}) do
     case Date.from_iso8601(date_str) do
-      {:ok, date} -> DateTime.new!(date, ~T[00:00:00])
+      {:ok, date} -> date
       {:error, _} -> nil
     end
   end

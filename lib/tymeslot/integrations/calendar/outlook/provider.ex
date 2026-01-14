@@ -46,13 +46,16 @@ defmodule Tymeslot.Integrations.Calendar.Outlook.Provider do
 
   @spec convert_event(map()) :: map()
   def convert_event(outlook_event) do
+    start_time = parse_datetime(outlook_event.start, outlook_event[:is_all_day])
+    end_time = parse_datetime(outlook_event.end, outlook_event[:is_all_day])
+
     %{
       uid: outlook_event.id,
       summary: outlook_event.summary,
       description: outlook_event.description,
       location: outlook_event.location,
-      start_time: parse_datetime(outlook_event.start),
-      end_time: parse_datetime(outlook_event.end),
+      start_time: start_time,
+      end_time: end_time,
       status: outlook_event.status
     }
   end
@@ -162,21 +165,43 @@ defmodule Tymeslot.Integrations.Calendar.Outlook.Provider do
 
   defp get_calendar_owner(_), do: "Unknown"
 
-  defp parse_datetime(%{"dateTime" => datetime_str, "timeZone" => _timezone}) do
-    case DateTime.from_iso8601(datetime_str) do
-      {:ok, datetime, _offset} -> datetime
+  defp parse_datetime(time_map, is_all_day \\ false)
+
+  defp parse_datetime(%{"dateTime" => datetime_str}, true) do
+    # For all-day events, Outlook returns the date part + 00:00:00
+    # We strip the time part and return just the Date
+    case Date.from_iso8601(String.slice(datetime_str, 0, 10)) do
+      {:ok, date} -> date
       {:error, _} -> nil
     end
   end
 
-  defp parse_datetime(%{"dateTime" => datetime_str}) do
-    case DateTime.from_iso8601(datetime_str) do
-      {:ok, datetime, _offset} -> datetime
-      {:error, _} -> nil
-    end
+  defp parse_datetime(%{"dateTime" => datetime_str, "timeZone" => _timezone}, _is_all_day) do
+    parse_iso8601_lenient(datetime_str)
   end
 
-  defp parse_datetime(_), do: nil
+  defp parse_datetime(%{"dateTime" => datetime_str}, _is_all_day) do
+    parse_iso8601_lenient(datetime_str)
+  end
+
+  defp parse_datetime(_, _), do: nil
+
+  defp parse_iso8601_lenient(datetime_str) do
+    case DateTime.from_iso8601(datetime_str) do
+      {:ok, datetime, _offset} ->
+        datetime
+
+      {:error, :missing_offset} ->
+        # Try appending Z if it's missing (often the case with some providers)
+        case DateTime.from_iso8601(datetime_str <> "Z") do
+          {:ok, datetime, _offset} -> datetime
+          {:error, _} -> nil
+        end
+
+      {:error, _} ->
+        nil
+    end
+  end
 
   defp format_calendar(cal) do
     %{

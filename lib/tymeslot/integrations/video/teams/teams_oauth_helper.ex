@@ -10,12 +10,14 @@ defmodule Tymeslot.Integrations.Video.Teams.TeamsOAuthHelper do
   @behaviour Tymeslot.Integrations.Video.Teams.TeamsOAuthHelperBehaviour
 
   alias Tymeslot.Infrastructure.Logging.Redactor
+  alias Tymeslot.Infrastructure.Retry
   alias Tymeslot.Integrations.Common.OAuth.State
   alias Tymeslot.Integrations.Common.OAuth.TokenExchange
+  alias Tymeslot.Integrations.Shared.MicrosoftConfig
 
   require Logger
 
-  @teams_scope "https://graph.microsoft.com/OnlineMeetings.ReadWrite"
+  @teams_scope "https://graph.microsoft.com/OnlineMeetings.ReadWrite https://graph.microsoft.com/User.Read offline_access openid profile"
   @oauth_base_url "https://login.microsoftonline.com/common/oauth2/v2.0"
   @token_url "#{@oauth_base_url}/token"
 
@@ -27,7 +29,7 @@ defmodule Tymeslot.Integrations.Video.Teams.TeamsOAuthHelper do
     state = generate_state(user_id)
 
     params = %{
-      client_id: teams_client_id(),
+      client_id: MicrosoftConfig.client_id(),
       redirect_uri: redirect_uri,
       response_type: "code",
       scope: @teams_scope,
@@ -42,16 +44,76 @@ defmodule Tymeslot.Integrations.Video.Teams.TeamsOAuthHelper do
 
   @doc """
   Exchanges authorization code for access and refresh tokens.
+  Also fetches the user profile to get the Microsoft user ID and tenant ID.
   """
   @spec exchange_code_for_tokens(String.t(), String.t(), String.t()) ::
           {:ok, map()} | {:error, String.t()}
   def exchange_code_for_tokens(code, redirect_uri, state) do
     with {:ok, user_id} <- verify_state(state),
-         {:ok, tokens} <- fetch_tokens(code, redirect_uri) do
-      {:ok, Map.put(tokens, :user_id, user_id)}
+         {:ok, tokens} <- fetch_tokens(code, redirect_uri),
+         {:ok, profile} <- fetch_user_profile(tokens.access_token) do
+      tenant_id = extract_tenant_id_from_id_token(tokens[:id_token]) || profile["tenant_id"] || "common"
+
+      {:ok,
+       Map.merge(tokens, %{
+         user_id: user_id,
+         teams_user_id: profile["id"],
+         tenant_id: tenant_id
+       })}
     else
       {:error, reason} -> {:error, reason}
     end
+  end
+
+  defp extract_tenant_id_from_id_token(nil), do: nil
+
+  defp extract_tenant_id_from_id_token(id_token) do
+    case String.split(id_token, ".") do
+      [_, payload_b64, _] ->
+        with {:ok, payload_json} <- Base.url_decode64(payload_b64, padding: false),
+             {:ok, %{"tid" => tenant_id}} <- Jason.decode(payload_json) do
+          tenant_id
+        else
+          _ -> nil
+        end
+
+      _ ->
+        nil
+    end
+  end
+
+  defp fetch_user_profile(token) do
+    headers = [
+      {"Authorization", "Bearer #{token}"},
+      {"Content-Type", "application/json"}
+    ]
+
+    Retry.with_backoff(fn ->
+      case http_client().get("https://graph.microsoft.com/v1.0/me", headers, []) do
+        {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
+          case Jason.decode(body) do
+            {:ok, %{"id" => id} = profile} when is_binary(id) and id != "" ->
+              {:ok, profile}
+
+            {:ok, _} ->
+              {:error, "Microsoft profile missing unique ID"}
+
+            {:error, _} ->
+              {:error, "Invalid JSON response from Microsoft profile API"}
+          end
+
+        {:ok, %HTTPoison.Response{status_code: status, body: body}} ->
+          Logger.error("Failed to fetch Microsoft user profile", status: status, body: body)
+          {:error, "Failed to fetch user profile: HTTP #{status}"}
+
+        {:error, %HTTPoison.Error{reason: reason}} ->
+          {:error, "Network error fetching profile: #{inspect(reason)}"}
+      end
+    end)
+  end
+
+  defp http_client do
+    Application.get_env(:tymeslot, :http_client_module, Tymeslot.Infrastructure.HTTPClient)
   end
 
   @doc """
@@ -63,8 +125,8 @@ defmodule Tymeslot.Integrations.Video.Teams.TeamsOAuthHelper do
 
     body = %{
       refresh_token: refresh_token,
-      client_id: teams_client_id(),
-      client_secret: teams_client_secret(),
+      client_id: MicrosoftConfig.client_id(),
+      client_secret: MicrosoftConfig.client_secret(),
       grant_type: "refresh_token",
       scope: scope
     }
@@ -118,40 +180,19 @@ defmodule Tymeslot.Integrations.Video.Teams.TeamsOAuthHelper do
       code,
       redirect_uri,
       @token_url,
-      teams_client_id(),
-      teams_client_secret(),
+      MicrosoftConfig.client_id(),
+      MicrosoftConfig.client_secret(),
       @teams_scope
     )
   end
 
   defp generate_state(user_id) do
-    State.generate(user_id, state_secret())
+    State.generate(user_id, MicrosoftConfig.state_secret())
   end
 
   defp verify_state(state) when is_binary(state) do
-    State.validate(state, state_secret())
+    State.validate(state, MicrosoftConfig.state_secret())
   end
 
   defp verify_state(_), do: {:error, "Invalid state parameter"}
-
-  defp teams_client_id do
-    # Reuse Outlook OAuth credentials since both use Microsoft Graph API
-    Application.get_env(:tymeslot, :outlook_oauth)[:client_id] ||
-      System.get_env("OUTLOOK_CLIENT_ID") ||
-      raise "Outlook Client ID not configured"
-  end
-
-  defp teams_client_secret do
-    # Reuse Outlook OAuth credentials since both use Microsoft Graph API
-    Application.get_env(:tymeslot, :outlook_oauth)[:client_secret] ||
-      System.get_env("OUTLOOK_CLIENT_SECRET") ||
-      raise "Outlook Client Secret not configured"
-  end
-
-  defp state_secret do
-    # Reuse Outlook OAuth state secret
-    Application.get_env(:tymeslot, :outlook_oauth)[:state_secret] ||
-      System.get_env("OUTLOOK_STATE_SECRET") ||
-      raise "Outlook State Secret not configured"
-  end
 end

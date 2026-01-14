@@ -121,6 +121,7 @@ defmodule Tymeslot.Integrations.Common.OAuth.TokenExchange do
      %{
        access_token: response["access_token"],
        refresh_token: response["refresh_token"] || fallback_refresh_token,
+       id_token: response["id_token"],
        expires_at: expires_at,
        scope: response["scope"] || fallback_scope
      }}

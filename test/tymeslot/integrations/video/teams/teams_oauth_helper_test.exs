@@ -40,8 +40,21 @@ defmodule Tymeslot.Integrations.Video.Teams.TeamsOAuthHelperTest do
           "scope" => "OnlineMeetings.ReadWrite"
         })
 
+      profile_body =
+        Jason.encode!(%{
+          "id" => "microsoft-user-123",
+          "displayName" => "Microsoft User"
+        })
+
+      # Mock token exchange
       expect(Tymeslot.HTTPClientMock, :request, fn :post, _, _, _, _ ->
         {:ok, %{status_code: 200, body: resp_body}}
+      end)
+
+      # Mock profile fetch
+      expect(Tymeslot.HTTPClientMock, :get, fn url, _headers, _opts ->
+        assert url == "https://graph.microsoft.com/v1.0/me"
+        {:ok, %HTTPoison.Response{status_code: 200, body: profile_body}}
       end)
 
       assert {:ok, tokens} =
@@ -49,6 +62,111 @@ defmodule Tymeslot.Integrations.Video.Teams.TeamsOAuthHelperTest do
 
       assert tokens.access_token == "at-123"
       assert tokens.user_id == user_id
+      assert tokens.teams_user_id == "microsoft-user-123"
+      assert tokens.tenant_id == "common"
+    end
+
+    test "extracts tenant_id from id_token claims" do
+      user_id = 123
+      state = State.generate(user_id, "teams-state")
+
+      # Mock id_token with tid claim
+      header = Jason.encode!(%{alg: "RS256"}) |> Base.url_encode64(padding: false)
+      payload = Jason.encode!(%{tid: "real-tenant-id"}) |> Base.url_encode64(padding: false)
+      id_token = "#{header}.#{payload}.sig"
+
+      resp_body =
+        Jason.encode!(%{
+          "access_token" => "at-123",
+          "id_token" => id_token,
+          "expires_in" => 3600,
+          "scope" => "OnlineMeetings.ReadWrite"
+        })
+
+      profile_body =
+        Jason.encode!(%{
+          "id" => "microsoft-user-123"
+        })
+
+      # Mock token exchange
+      expect(Tymeslot.HTTPClientMock, :request, fn :post, _, _, _, _ ->
+        {:ok, %{status_code: 200, body: resp_body}}
+      end)
+
+      # Mock profile fetch
+      expect(Tymeslot.HTTPClientMock, :get, fn _url, _headers, _opts ->
+        {:ok, %HTTPoison.Response{status_code: 200, body: profile_body}}
+      end)
+
+      assert {:ok, tokens} =
+               TeamsOAuthHelper.exchange_code_for_tokens("code", "http://uri", state)
+
+      assert tokens.tenant_id == "real-tenant-id"
+    end
+
+    test "fails if profile is missing id" do
+      user_id = 123
+      state = State.generate(user_id, "teams-state")
+
+      resp_body =
+        Jason.encode!(%{
+          "access_token" => "at-123",
+          "refresh_token" => "rt-123",
+          "expires_in" => 3600,
+          "scope" => "OnlineMeetings.ReadWrite"
+        })
+
+      profile_body = Jason.encode!(%{"displayName" => "Microsoft User"})
+
+      # Mock token exchange
+      expect(Tymeslot.HTTPClientMock, :request, fn :post, _, _, _, _ ->
+        {:ok, %{status_code: 200, body: resp_body}}
+      end)
+
+      # Mock profile fetch
+      expect(Tymeslot.HTTPClientMock, :get, fn _url, _headers, _opts ->
+        {:ok, %HTTPoison.Response{status_code: 200, body: profile_body}}
+      end)
+
+      assert {:error, "Microsoft profile missing unique ID"} =
+               TeamsOAuthHelper.exchange_code_for_tokens("code", "http://uri", state)
+    end
+
+    test "retries profile fetch on transient error" do
+      user_id = 123
+      state = State.generate(user_id, "teams-state")
+
+      resp_body =
+        Jason.encode!(%{
+          "access_token" => "at-123",
+          "refresh_token" => "rt-123",
+          "expires_in" => 3600,
+          "scope" => "OnlineMeetings.ReadWrite"
+        })
+
+      profile_body =
+        Jason.encode!(%{
+          "id" => "microsoft-user-123"
+        })
+
+      # Mock token exchange
+      expect(Tymeslot.HTTPClientMock, :request, fn :post, _, _, _, _ ->
+        {:ok, %{status_code: 200, body: resp_body}}
+      end)
+
+      # Mock profile fetch: failure then success
+      Tymeslot.HTTPClientMock
+      |> expect(:get, fn _url, _headers, _opts ->
+        {:error, %HTTPoison.Error{reason: :timeout}}
+      end)
+      |> expect(:get, fn _url, _headers, _opts ->
+        {:ok, %HTTPoison.Response{status_code: 200, body: profile_body}}
+      end)
+
+      assert {:ok, tokens} =
+               TeamsOAuthHelper.exchange_code_for_tokens("code", "http://uri", state)
+
+      assert tokens.teams_user_id == "microsoft-user-123"
     end
   end
 
