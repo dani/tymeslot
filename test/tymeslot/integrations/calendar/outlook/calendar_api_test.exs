@@ -57,9 +57,14 @@ defmodule Tymeslot.Integrations.Calendar.Outlook.CalendarAPITest do
       start_time = DateTime.utc_now()
       end_time = DateTime.add(start_time, 3600)
 
-      expect(Tymeslot.HTTPClientMock, :request, fn :get, url, _body, _headers, _opts ->
-        assert String.contains?(url, "/me/calendars/test-cal/events")
-        assert String.contains?(url, "%24filter=")
+      expect(Tymeslot.HTTPClientMock, :request, fn :get, url, _body, headers, _opts ->
+        assert String.contains?(url, "/me/calendars/test-cal/calendarView")
+        assert String.contains?(url, "startDateTime=")
+        assert String.contains?(url, "endDateTime=")
+
+        assert Enum.any?(headers, fn {k, v} ->
+                 String.downcase(k) == "prefer" and String.contains?(v, "outlook.timezone=\"UTC\"")
+               end)
 
         {:ok,
          %HTTPoison.Response{

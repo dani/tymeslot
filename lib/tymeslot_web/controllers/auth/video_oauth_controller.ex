@@ -87,6 +87,7 @@ defmodule TymeslotWeb.VideoOAuthController do
     with :ok <- RateLimiter.check_oauth_callback_rate_limit(ClientIP.get(conn)),
          :ok <- validate_state_parameter(state),
          {:ok, tokens} <- TeamsOAuthHelper.exchange_code_for_tokens(code, redirect_uri, state),
+         :ok <- validate_teams_tokens(tokens),
          {:ok, _integration} <- create_teams_integration(tokens) do
       DashboardContext.invalidate_integration_status(tokens.user_id)
 
@@ -111,8 +112,13 @@ defmodule TymeslotWeb.VideoOAuthController do
       {:error, reason} ->
         Logger.error("Teams OAuth flow failed: #{inspect(reason)}")
 
+        message =
+          if is_binary(reason),
+            do: reason,
+            else: "Failed to connect Microsoft Teams. Please try again."
+
         conn
-        |> put_flash(:error, "Failed to connect Microsoft Teams. Please try again.")
+        |> put_flash(:error, message)
         |> redirect(to: "/dashboard/video")
     end
   end
@@ -140,6 +146,18 @@ defmodule TymeslotWeb.VideoOAuthController do
   end
 
   # Private functions
+
+  defp validate_teams_tokens(tokens) do
+    if tokens[:tenant_id] && tokens[:teams_user_id] do
+      :ok
+    else
+      Logger.error("Teams OAuth tokens missing required fields: tenant_id or teams_user_id",
+        tokens: inspect(tokens)
+      )
+
+      {:error, "Missing required Microsoft Teams information (tenant_id or user_id)."}
+    end
+  end
 
   defp validate_state_parameter(state) when is_binary(state) do
     case State.validate(state, state_secret()) do

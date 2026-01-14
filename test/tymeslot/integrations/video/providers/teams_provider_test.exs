@@ -128,13 +128,14 @@ defmodule Tymeslot.Integrations.Video.Providers.TeamsProviderTest do
       config = %{
         access_token: "valid_token",
         refresh_token: "refresh_token",
-        token_expires_at: DateTime.add(DateTime.utc_now(), 3600, :second)
+        token_expires_at: DateTime.add(DateTime.utc_now(), 3600, :second),
+        oauth_scope: "Calendars.ReadWrite"
       }
 
       expect(TeamsOAuthHelperMock, :validate_token, fn ^config -> {:ok, :valid} end)
 
       expect(HTTPClientMock, :request, fn :post, url, _body, headers, _opts ->
-        assert url == "https://graph.microsoft.com/v1.0/me/onlineMeetings"
+        assert url == "https://graph.microsoft.com/v1.0/me/events"
 
         assert Enum.any?(headers, fn {k, v} ->
                  String.downcase(k) == "authorization" and v == "Bearer valid_token"
@@ -146,10 +147,7 @@ defmodule Tymeslot.Integrations.Video.Providers.TeamsProviderTest do
            body:
              Jason.encode!(%{
                "id" => "meeting123",
-               "joinUrl" => "https://teams.microsoft.com/l/meetup-join/abc",
-               "joinWebUrl" => "https://teams.microsoft.com/join/abc",
-               "videoTeleconferenceId" => "v-123",
-               "passcode" => "123456"
+               "onlineMeetingUrl" => "https://teams.microsoft.com/l/meetup-join/abc"
              })
          }}
       end)
@@ -173,7 +171,8 @@ defmodule Tymeslot.Integrations.Video.Providers.TeamsProviderTest do
           teams_user_id: "u1",
           access_token: "expired",
           refresh_token: "refresh",
-          token_expires_at: DateTime.add(DateTime.utc_now(), -3600)
+          token_expires_at: DateTime.add(DateTime.utc_now(), -3600),
+          oauth_scope: "Calendars.ReadWrite"
         })
 
       config = %{
@@ -181,7 +180,8 @@ defmodule Tymeslot.Integrations.Video.Providers.TeamsProviderTest do
         refresh_token: "refresh",
         token_expires_at: DateTime.add(DateTime.utc_now(), -3600),
         integration_id: integration.id,
-        user_id: user.id
+        user_id: user.id,
+        oauth_scope: "Calendars.ReadWrite"
       }
 
       expect(TeamsOAuthHelperMock, :validate_token, fn ^config -> {:ok, :needs_refresh} end)
@@ -191,7 +191,8 @@ defmodule Tymeslot.Integrations.Video.Providers.TeamsProviderTest do
          %{
            access_token: "new_token",
            refresh_token: "new_refresh",
-           expires_at: DateTime.add(DateTime.utc_now(), 3600)
+           expires_at: DateTime.add(DateTime.utc_now(), 3600),
+           scope: "Calendars.ReadWrite"
          }}
       end)
 
@@ -203,7 +204,7 @@ defmodule Tymeslot.Integrations.Video.Providers.TeamsProviderTest do
         {:ok,
          %HTTPoison.Response{
            status_code: 201,
-           body: Jason.encode!(%{"id" => "m1", "joinUrl" => "url"})
+           body: Jason.encode!(%{"id" => "m1", "onlineMeetingUrl" => "url"})
          }}
       end)
 
@@ -219,7 +220,8 @@ defmodule Tymeslot.Integrations.Video.Providers.TeamsProviderTest do
       config = %{
         access_token: "valid_token",
         refresh_token: "refresh_token",
-        token_expires_at: DateTime.add(DateTime.utc_now(), 3600, :second)
+        token_expires_at: DateTime.add(DateTime.utc_now(), 3600, :second),
+        oauth_scope: "Calendars.ReadWrite"
       }
 
       expect(TeamsOAuthHelperMock, :validate_token, fn ^config -> {:ok, :valid} end)
@@ -229,9 +231,8 @@ defmodule Tymeslot.Integrations.Video.Providers.TeamsProviderTest do
         {:ok, %HTTPoison.Response{status_code: 201, body: Jason.encode!(%{"id" => "m1"})}}
       end)
 
-      assert {:ok, room_data} = TeamsProvider.create_meeting_room(config)
-      assert room_data.room_id == "m1"
-      assert room_data.meeting_url == nil
+      assert {:error, message} = TeamsProvider.create_meeting_room(config)
+      assert String.contains?(message, "Teams meeting link was not generated")
 
       # Audio conferencing missing
       expect(TeamsOAuthHelperMock, :validate_token, fn ^config -> {:ok, :valid} end)
@@ -240,7 +241,7 @@ defmodule Tymeslot.Integrations.Video.Providers.TeamsProviderTest do
         {:ok,
          %HTTPoison.Response{
            status_code: 201,
-           body: Jason.encode!(%{"id" => "m2", "joinUrl" => "url2"})
+           body: Jason.encode!(%{"id" => "m2", "onlineMeetingUrl" => "url2"})
          }}
       end)
 

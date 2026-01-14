@@ -95,6 +95,8 @@ defmodule Tymeslot.Integrations.Calendar.Outlook.ProviderTest do
       assert result.description == "Quarterly planning"
       assert result.location == "Conference Room A"
       assert result.status == "confirmed"
+      assert result.show_as == nil
+      assert result.response_status == nil
       assert %DateTime{} = result.start_time
       assert %DateTime{} = result.end_time
     end
@@ -197,6 +199,27 @@ defmodule Tymeslot.Integrations.Calendar.Outlook.ProviderTest do
       assert is_nil(result.start_time)
       assert is_nil(result.end_time)
     end
+
+    test "handles all-day events correctly" do
+      outlook_event = %{
+        id: "event-allday",
+        summary: "All Day",
+        description: nil,
+        location: nil,
+        start: %{"dateTime" => "2024-03-15T00:00:00.0000000"},
+        end: %{"dateTime" => "2024-03-16T00:00:00.0000000"},
+        is_all_day: true,
+        status: "confirmed"
+      }
+
+      result = Provider.convert_event(outlook_event)
+
+      assert result.uid == "event-allday"
+      assert %Date{} = result.start_time
+      assert %Date{} = result.end_time
+      assert result.start_time == ~D[2024-03-15]
+      assert result.end_time == ~D[2024-03-16]
+    end
   end
 
   describe "convert_events/1" do
@@ -260,6 +283,57 @@ defmodule Tymeslot.Integrations.Calendar.Outlook.ProviderTest do
       assert length(results) == 2
       assert Enum.at(results, 0).summary == "Complete"
       assert is_nil(Enum.at(results, 1).summary)
+    end
+
+    test "filters out non-busy events" do
+      outlook_events = [
+        %{
+          id: "busy-event",
+          summary: "Busy",
+          description: "desc",
+          location: "loc",
+          start: %{"dateTime" => "2024-03-15T14:00:00Z"},
+          end: %{"dateTime" => "2024-03-15T15:00:00Z"},
+          status: "confirmed",
+          show_as: "busy"
+        },
+        %{
+          id: "free-event",
+          summary: "Free",
+          description: "desc",
+          location: "loc",
+          start: %{"dateTime" => "2024-03-15T16:00:00Z"},
+          end: %{"dateTime" => "2024-03-15T17:00:00Z"},
+          status: "confirmed",
+          show_as: "free"
+        },
+        %{
+          id: "declined-event",
+          summary: "Declined",
+          description: "desc",
+          location: "loc",
+          start: %{"dateTime" => "2024-03-15T18:00:00Z"},
+          end: %{"dateTime" => "2024-03-15T19:00:00Z"},
+          status: "confirmed",
+          show_as: "busy",
+          response_status: "declined"
+        },
+        %{
+          id: "cancelled-event",
+          summary: "Cancelled",
+          description: "desc",
+          location: "loc",
+          start: %{"dateTime" => "2024-03-15T20:00:00Z"},
+          end: %{"dateTime" => "2024-03-15T21:00:00Z"},
+          status: "cancelled",
+          show_as: "busy"
+        }
+      ]
+
+      results = Provider.convert_events(outlook_events)
+
+      assert length(results) == 1
+      assert Enum.at(results, 0).uid == "busy-event"
     end
   end
 

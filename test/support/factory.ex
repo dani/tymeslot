@@ -27,7 +27,7 @@ defmodule Tymeslot.Factory do
     end_time = DateTime.add(start_time, 60, :minute)
 
     %MeetingSchema{
-      uid: sequence(:uid, &"meeting-uid-#{&1}"),
+      uid: Ecto.UUID.generate(),
       title: "Test Meeting",
       summary: "Test Meeting Summary",
       description: sequence(:description, &"Meeting description #{&1}"),

@@ -485,6 +485,82 @@ defmodule Tymeslot.Availability.ConflictsTest do
     end
   end
 
+  property "all-day events on Day X do not block slots on Day X+1" do
+    # Verify that all-day events ending at 00:00:00 of the next day (common in Outlook)
+    # don't accidentally block the next day.
+    check all(
+            timezone <-
+              member_of([
+                "UTC",
+                "America/New_York",
+                "Europe/London",
+                "Asia/Tokyo",
+                "Australia/Sydney"
+              ]),
+            # Fixed dates for Monday/Tuesday
+            monday_date <- constant(~D[2025-06-16]),
+            tuesday_date <- constant(~D[2025-06-17]),
+            # Random slot on Tuesday
+            slot_hour <- integer(0..23),
+            slot_min <- member_of([0, 15, 30, 45]),
+            duration <- member_of([15, 30, 60, 120])
+          ) do
+      # All-day event on Monday: start ~D[2025-06-16], end ~D[2025-06-17]
+      # This is how Outlook/Google represent "Monday" (exclusive end)
+      events = [
+        %{
+          start_time: monday_date,
+          end_time: tuesday_date,
+          uid: "all-day-monday"
+        }
+      ]
+
+      # Convert to the target timezone
+      events_in_tz = Conflicts.convert_events_to_timezone(events, timezone)
+
+      # Slot on Tuesday
+      slot_time = Time.new!(slot_hour, slot_min, 0)
+
+      slot_start =
+        case DateTime.new(tuesday_date, slot_time, timezone) do
+          {:ok, dt} -> dt
+          {:ambiguous, first, _} -> first
+          {:error, _} -> DateTime.new!(tuesday_date, slot_time, "Etc/UTC")
+        end
+
+      slot_end = DateTime.add(slot_start, duration, :minute)
+
+      # Verify it does NOT block Tuesday
+      refute Tymeslot.Utils.TimeRange.has_conflict_with_events?(
+               slot_start,
+               slot_end,
+               events_in_tz,
+               0
+             ),
+             "All-day Monday event blocked slot at #{slot_start} on Tuesday in #{timezone}"
+
+      # Verify it DOES block Monday
+      monday_slot_time = ~T[12:00:00]
+
+      monday_slot_start =
+        case DateTime.new(monday_date, monday_slot_time, timezone) do
+          {:ok, dt} -> dt
+          {:ambiguous, first, _} -> first
+          {:error, _} -> DateTime.new!(monday_date, monday_slot_time, "Etc/UTC")
+        end
+
+      monday_slot_end = DateTime.add(monday_slot_start, duration, :minute)
+
+      assert Tymeslot.Utils.TimeRange.has_conflict_with_events?(
+               monday_slot_start,
+               monday_slot_end,
+               events_in_tz,
+               0
+             ),
+             "All-day Monday event failed to block slot at #{monday_slot_start} on Monday in #{timezone}"
+    end
+  end
+
   defp build_events(date, start_time, end_time, timezone \\ "Etc/UTC") do
     [
       %{

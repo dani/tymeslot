@@ -166,7 +166,7 @@ defmodule Tymeslot.Integrations.Video.Providers.TeamsProvider do
   # Private functions
 
   defp validate_teams_scope(config) do
-    stored_scope = Map.get(config, :oauth_scope, "")
+    stored_scope = Map.get(config, :oauth_scope) || ""
     # Calendars.ReadWrite is a valid scope for creating Teams meetings via calendar events
     required_scopes = ["Calendars.ReadWrite"]
     downcased_scope = String.downcase(stored_scope)

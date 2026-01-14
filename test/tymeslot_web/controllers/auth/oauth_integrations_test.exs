@@ -191,7 +191,9 @@ defmodule TymeslotWeb.OAuthIntegrationsControllerTest do
            access_token: "at",
            refresh_token: "rt",
            expires_at: DateTime.utc_now(),
-           scope: "scope"
+           scope: "scope",
+           tenant_id: "test-tenant-id",
+           teams_user_id: "test-teams-user-id"
          }}
       end)
 
@@ -249,7 +251,9 @@ defmodule TymeslotWeb.OAuthIntegrationsControllerTest do
            access_token: "at",
            refresh_token: "rt",
            expires_at: DateTime.utc_now(),
-           scope: "scope"
+           scope: "scope",
+           tenant_id: "test-tenant-id",
+           teams_user_id: "test-teams-user-id"
          }}
       end)
 
@@ -261,6 +265,29 @@ defmodule TymeslotWeb.OAuthIntegrationsControllerTest do
 
       assert redirected_to(conn) == "/dashboard/video"
       assert Flash.get(conn.assigns.flash, :error) =~ "Failed to connect Microsoft Teams"
+    end
+
+    test "teams_callback handles missing tenant_id or teams_user_id", %{conn: conn} do
+      user_id = 999
+
+      :meck.expect(TeamsOAuthHelper, :exchange_code_for_tokens, fn _, _, _ ->
+        {:ok,
+         %{
+           user_id: user_id,
+           access_token: "at",
+           refresh_token: "rt",
+           expires_at: DateTime.utc_now(),
+           scope: "scope"
+           # tenant_id and teams_user_id are missing
+         }}
+      end)
+
+      Factory.insert(:user, id: user_id)
+
+      conn = get(conn, ~p"/auth/teams/video/callback", %{"code" => "code", "state" => "state"})
+
+      assert redirected_to(conn) == "/dashboard/video"
+      assert Flash.get(conn.assigns.flash, :error) =~ "Missing required Microsoft Teams information"
     end
   end
 end

@@ -94,7 +94,8 @@ defmodule Tymeslot.Integrations.Video.TokenRefreshConcurrencyTest do
           tenant_id: "tenant",
           client_id: "client",
           client_secret: "secret",
-          teams_user_id: "user"
+          teams_user_id: "user",
+          oauth_scope: "Calendars.ReadWrite"
         })
 
       # Mock validation - called by each process
@@ -123,7 +124,7 @@ defmodule Tymeslot.Integrations.Video.TokenRefreshConcurrencyTest do
            body:
              Jason.encode!(%{
                "id" => "teams-123",
-               "joinUrl" => "https://teams.microsoft.com/l/meetup-join/123",
+               "onlineMeetingUrl" => "https://teams.microsoft.com/l/meetup-join/123",
                "joinWebUrl" => "https://teams.microsoft.com/l/meetup-join/123",
                "videoTeleconferenceId" => "vid-123",
                "passcode" => "123456"

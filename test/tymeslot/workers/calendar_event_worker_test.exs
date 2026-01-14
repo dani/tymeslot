@@ -173,10 +173,11 @@ defmodule Tymeslot.Workers.CalendarEventWorkerTest do
     end
 
     test "handles missing calendar integration on update" do
-      meeting = insert(:meeting, calendar_integration_id: nil, uid: "test-uid")
+      meeting = insert(:meeting, calendar_integration_id: nil)
+      uid = meeting.uid
 
       # Should attempt update with nil integration_id
-      expect(Tymeslot.CalendarMock, :update_event, fn "test-uid", _data, nil ->
+      expect(Tymeslot.CalendarMock, :update_event, fn ^uid, _data, nil ->
         {:error, :not_found}
       end)
 
@@ -186,31 +187,33 @@ defmodule Tymeslot.Workers.CalendarEventWorkerTest do
       end)
 
       assert :ok =
-               perform_job(CalendarEventWorker, %{
-                 "action" => "update",
-                 "meeting_id" => meeting.id
-               })
+        perform_job(CalendarEventWorker, %{
+          "action" => "update",
+          "meeting_id" => meeting.id
+        })
     end
   end
 
   describe "perform/1 - update action" do
     test "updates existing event" do
       %{meeting: meeting} = setup_calendar_scenario()
+      uid = meeting.uid
 
-      expect_calendar_update_success()
+      expect(Tymeslot.CalendarMock, :update_event, fn ^uid, _data, _id -> :ok end)
 
       assert :ok =
-               perform_job(CalendarEventWorker, %{
-                 "action" => "update",
-                 "meeting_id" => meeting.id
-               })
+        perform_job(CalendarEventWorker, %{
+          "action" => "update",
+          "meeting_id" => meeting.id
+        })
     end
 
     test "creates new event if not found during update" do
       %{user: user, integration: integration, meeting: meeting} = setup_calendar_scenario()
+      uid = meeting.uid
 
       # Update fails with not_found
-      expect(Tymeslot.CalendarMock, :update_event, fn "test-uid", _data, id ->
+      expect(Tymeslot.CalendarMock, :update_event, fn ^uid, _data, id ->
         assert id == integration.id
         {:error, :not_found}
       end)
@@ -222,39 +225,41 @@ defmodule Tymeslot.Workers.CalendarEventWorkerTest do
       end)
 
       assert :ok =
-               perform_job(CalendarEventWorker, %{
-                 "action" => "update",
-                 "meeting_id" => meeting.id
-               })
+        perform_job(CalendarEventWorker, %{
+          "action" => "update",
+          "meeting_id" => meeting.id
+        })
     end
   end
 
   describe "perform/1 - delete action" do
     test "deletes event" do
       %{meeting: meeting} = setup_calendar_scenario()
+      uid = meeting.uid
 
-      expect_calendar_delete_success()
+      expect(Tymeslot.CalendarMock, :delete_event, fn ^uid, _id -> :ok end)
 
       assert :ok =
-               perform_job(CalendarEventWorker, %{
-                 "action" => "delete",
-                 "meeting_id" => meeting.id
-               })
+        perform_job(CalendarEventWorker, %{
+          "action" => "delete",
+          "meeting_id" => meeting.id
+        })
     end
 
     test "considers not_found as success for deletion (idempotent)" do
       %{integration: integration, meeting: meeting} = setup_calendar_scenario()
+      uid = meeting.uid
 
-      expect(Tymeslot.CalendarMock, :delete_event, fn "test-uid", id ->
+      expect(Tymeslot.CalendarMock, :delete_event, fn ^uid, id ->
         assert id == integration.id
         {:error, :not_found}
       end)
 
       assert :ok =
-               perform_job(CalendarEventWorker, %{
-                 "action" => "delete",
-                 "meeting_id" => meeting.id
-               })
+        perform_job(CalendarEventWorker, %{
+          "action" => "delete",
+          "meeting_id" => meeting.id
+        })
     end
 
     test "succeeds even if meeting not found (graceful degradation)" do
@@ -274,31 +279,38 @@ defmodule Tymeslot.Workers.CalendarEventWorkerTest do
     test "duplicate creation is safe (idempotent)" do
       %{integration: integration, meeting: meeting} = setup_calendar_scenario()
 
-      # Mock expects exactly 2 calls (once per execution)
-      expect(Tymeslot.CalendarMock, :create_event, 2, fn _event_data, _user_id ->
+      # First call: switches from UUID to external ID
+      expect(Tymeslot.CalendarMock, :create_event, 1, fn _event_data, _user_id ->
         {:ok, "remote-uid-123"}
       end)
 
-      expect(Tymeslot.CalendarMock, :get_booking_integration_info, 2, fn _user_id ->
+      expect(Tymeslot.CalendarMock, :get_booking_integration_info, 1, fn _user_id ->
         {:ok, %{integration_id: integration.id, calendar_path: "primary"}}
+      end)
+
+      # Second call: meeting now has "remote-uid-123", so it's an update
+      expect(Tymeslot.CalendarMock, :update_event, 1, fn "remote-uid-123", _data, id ->
+        assert id == integration.id
+        :ok
       end)
 
       # Execute twice - should not cause errors
       assert :ok =
-               perform_job(CalendarEventWorker, %{
-                 "action" => "create",
-                 "meeting_id" => meeting.id
-               })
+        perform_job(CalendarEventWorker, %{
+          "action" => "create",
+          "meeting_id" => meeting.id
+        })
 
       assert :ok =
-               perform_job(CalendarEventWorker, %{
-                 "action" => "create",
-                 "meeting_id" => meeting.id
-               })
+        perform_job(CalendarEventWorker, %{
+          "action" => "create",
+          "meeting_id" => meeting.id
+        })
 
       # Meeting should have integration info from last execution
       updated_meeting = Repo.get(MeetingSchema, meeting.id)
       assert updated_meeting.calendar_integration_id == integration.id
+      assert updated_meeting.uid == "remote-uid-123"
     end
   end
 
@@ -306,16 +318,23 @@ defmodule Tymeslot.Workers.CalendarEventWorkerTest do
     test "handles job with unknown fields (forward compatibility)" do
       %{integration: integration, meeting: meeting} = setup_calendar_scenario()
 
-      expect_calendar_create_success(integration.id)
+      # Initial creation
+      expect(Tymeslot.CalendarMock, :create_event, 1, fn _event_data, _user_id ->
+        {:ok, "remote-uid-future"}
+      end)
+
+      expect(Tymeslot.CalendarMock, :get_booking_integration_info, 1, fn _user_id ->
+        {:ok, %{integration_id: integration.id, calendar_path: "primary"}}
+      end)
 
       # Job contains a field from a future version
       assert :ok =
-               perform_job(CalendarEventWorker, %{
-                 "action" => "create",
-                 "meeting_id" => meeting.id,
-                 "future_field" => "unknown_value",
-                 "priority" => "high"
-               })
+        perform_job(CalendarEventWorker, %{
+          "action" => "create",
+          "meeting_id" => meeting.id,
+          "future_field" => "unknown_value",
+          "priority" => "high"
+        })
     end
   end
 

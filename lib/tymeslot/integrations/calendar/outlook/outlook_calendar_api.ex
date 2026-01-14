@@ -59,7 +59,7 @@ defmodule Tymeslot.Integrations.Calendar.Outlook.CalendarAPI do
           {:ok, [calendar_event()]} | api_error()
   def list_events(%CalendarIntegrationSchema{} = integration, calendar_id, start_time, end_time) do
     params = build_events_query_params(start_time, end_time)
-    path = "/me/calendars/#{calendar_id}/events"
+    path = "/me/calendars/#{calendar_id}/calendarView"
     list_events_for_path(integration, path, params)
   end
 
@@ -70,7 +70,7 @@ defmodule Tymeslot.Integrations.Calendar.Outlook.CalendarAPI do
           {:ok, [calendar_event()]} | api_error()
   def list_primary_events(%CalendarIntegrationSchema{} = integration, start_time, end_time) do
     params = build_events_query_params(start_time, end_time)
-    path = "/me/events"
+    path = "/me/calendarView"
     list_events_for_path(integration, path, params)
   end
 
@@ -226,11 +226,11 @@ defmodule Tymeslot.Integrations.Calendar.Outlook.CalendarAPI do
 
   defp build_events_query_params(start_time, end_time) do
     %{
-      "$filter" =>
-        "start/dateTime ge '#{DateTime.to_iso8601(start_time)}' and end/dateTime le '#{DateTime.to_iso8601(end_time)}'",
+      "startDateTime" => DateTime.to_iso8601(start_time),
+      "endDateTime" => DateTime.to_iso8601(end_time),
       "$orderby" => "start/dateTime",
       "$top" => "1000",
-      "$select" => "id,subject,body,location,start,end,showAs,isCancelled,responseStatus"
+      "$select" => "id,subject,body,location,start,end,showAs,isCancelled,responseStatus,isAllDay"
     }
   end
 
@@ -244,9 +244,14 @@ defmodule Tymeslot.Integrations.Calendar.Outlook.CalendarAPI do
   end
 
   defp make_request(method, path, token, params) do
+    headers = [
+      {"Content-Type", "application/json"},
+      {"Prefer", "outlook.timezone=\"UTC\""}
+    ]
+
     HTTP.request(method, @base_url, path, token,
       params: params,
-      headers: [{"Content-Type", "application/json"}],
+      headers: headers,
       request_fun: &request_with_retry/4,
       response_handler: &handle_response/1
     )
@@ -413,7 +418,9 @@ defmodule Tymeslot.Integrations.Calendar.Outlook.CalendarAPI do
         start: event["start"],
         end: event["end"],
         is_all_day: event["isAllDay"] || false,
-        status: if(event["isCancelled"], do: "cancelled", else: "confirmed")
+        status: if(event["isCancelled"], do: "cancelled", else: "confirmed"),
+        show_as: event["showAs"],
+        response_status: get_in(event, ["responseStatus", "response"])
       }
     end)
   end

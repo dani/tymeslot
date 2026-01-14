@@ -189,7 +189,7 @@ defmodule TymeslotWeb.OnboardingNavigationTest do
       |> render_click()
 
       # Modal should be visible
-      assert has_element?(view, "#skip-onboarding-modal-container")
+      assert has_element?(view, "#skip-onboarding-modal")
 
       # Confirm skip
       view
@@ -270,7 +270,7 @@ defmodule TymeslotWeb.OnboardingNavigationTest do
       |> render_click()
 
       # Modal should be visible
-      assert has_element?(view, "#skip-onboarding-modal-container")
+      assert has_element?(view, "#skip-onboarding-modal")
 
       # Click "Continue Setup" to cancel
       view

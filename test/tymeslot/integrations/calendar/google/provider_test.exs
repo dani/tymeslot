@@ -205,11 +205,11 @@ defmodule Tymeslot.Integrations.Calendar.Google.ProviderTest do
       result = Provider.convert_event(google_event)
 
       assert result.uid == "event-allday"
-      assert %DateTime{} = result.start_time
-      assert %DateTime{} = result.end_time
-      # All-day events should start at midnight
-      assert result.start_time.hour == 0
-      assert result.start_time.minute == 0
+      assert %Date{} = result.start_time
+      assert %Date{} = result.end_time
+      assert result.start_time.year == 2024
+      assert result.start_time.month == 3
+      assert result.start_time.day == 15
     end
 
     test "handles invalid datetime gracefully" do
@@ -285,7 +285,10 @@ defmodule Tymeslot.Integrations.Calendar.Google.ProviderTest do
       results = Provider.convert_events(google_events)
 
       assert length(results) == 2
-      assert Enum.all?(results, fn event -> %DateTime{} = event.start_time end)
+      assert Enum.at(results, 0).uid == "datetime-event"
+      assert Enum.at(results, 1).uid == "date-event"
+      assert %DateTime{} = Enum.at(results, 0).start_time
+      assert %Date{} = Enum.at(results, 1).start_time
     end
   end
 

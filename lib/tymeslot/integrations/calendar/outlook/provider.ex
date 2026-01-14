@@ -41,22 +41,39 @@ defmodule Tymeslot.Integrations.Calendar.Outlook.Provider do
 
   @spec convert_events(list(map())) :: list(map())
   def convert_events(outlook_events) do
-    Enum.map(outlook_events, &convert_event/1)
+    outlook_events
+    |> Enum.filter(&is_busy_event?/1)
+    |> Enum.map(&convert_event/1)
+  end
+
+  defp is_busy_event?(event) do
+    # Filter out cancelled events and events marked as "free"
+    # show_as can be: free, tentative, busy, oom, workingElsewhere, unknown
+    # response_status can be: none, organizer, tentativelyAccepted, accepted, declined, notResponded
+    status = Map.get(event, :status)
+    show_as = Map.get(event, :show_as)
+    response_status = Map.get(event, :response_status)
+
+    status != "cancelled" and
+      show_as != "free" and
+      response_status != "declined"
   end
 
   @spec convert_event(map()) :: map()
   def convert_event(outlook_event) do
-    start_time = parse_datetime(outlook_event.start, outlook_event[:is_all_day])
-    end_time = parse_datetime(outlook_event.end, outlook_event[:is_all_day])
+    start_time = parse_datetime(outlook_event[:start], outlook_event[:is_all_day])
+    end_time = parse_datetime(outlook_event[:end], outlook_event[:is_all_day])
 
     %{
-      uid: outlook_event.id,
-      summary: outlook_event.summary,
-      description: outlook_event.description,
-      location: outlook_event.location,
+      uid: outlook_event[:id] || outlook_event[:uid],
+      summary: outlook_event[:summary],
+      description: outlook_event[:description],
+      location: outlook_event[:location],
       start_time: start_time,
       end_time: end_time,
-      status: outlook_event.status
+      status: outlook_event[:status],
+      show_as: outlook_event[:show_as],
+      response_status: outlook_event[:response_status]
     }
   end
 

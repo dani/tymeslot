@@ -15,7 +15,7 @@ defmodule Tymeslot.WorkerTestHelpers do
   Sets up a complete calendar scenario with user, integration, and meeting.
 
   ## Options
-    * `:uid` - Meeting UID (default: "test-uid")
+    * `:uid` - Meeting UID (default: a new UUID)
     * `:with_calendar_path` - Include calendar_path in meeting (default: true)
   """
   @spec setup_calendar_scenario(keyword()) :: %{
@@ -30,7 +30,7 @@ defmodule Tymeslot.WorkerTestHelpers do
     meeting_attrs = %{
       organizer_user_id: user.id,
       calendar_integration_id: integration.id,
-      uid: Keyword.get(opts, :uid, "test-uid")
+      uid: Keyword.get(opts, :uid, Ecto.UUID.generate())
     }
 
     meeting_attrs =

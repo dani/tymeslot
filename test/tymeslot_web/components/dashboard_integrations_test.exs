@@ -382,7 +382,7 @@ defmodule TymeslotWeb.Components.DashboardIntegrationsTest do
 
     doc = Floki.parse_document!(html)
     assert html =~ "Manage Integration"
-    assert html =~ "Select calendars to sync:"
+    assert html =~ "Select calendars to sync"
     assert html =~ "Where should new bookings be created?"
     assert Floki.find(doc, "select[name='calendars[default_booking_calendar]']") != []
     assert Floki.find(doc, "button[form='calendar-selection-form']") != []
@@ -399,7 +399,7 @@ defmodule TymeslotWeb.Components.DashboardIntegrationsTest do
       })
 
     doc = Floki.parse_document!(html)
-    assert html =~ "Sync-Only Calendar"
+    assert html =~ "Sync-Only Integration"
 
     assert Floki.find(
              doc,

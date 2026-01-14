@@ -3,11 +3,15 @@ defmodule TymeslotWeb.Live.MultilingualBookingTest do
 
   import Phoenix.LiveViewTest
   import Tymeslot.Factory
+  import Mox
 
   setup do
     # Create a user with calendar integration for booking flow
     user = insert(:user)
     profile = insert(:profile, user: user, username: "testuser")
+
+    # Stub calendar operations to avoid Mox errors
+    stub(Tymeslot.CalendarMock, :get_events_for_range_fresh, fn _, _, _ -> {:ok, []} end)
 
     insert(:calendar_integration,
       user: user,
@@ -60,23 +64,19 @@ defmodule TymeslotWeb.Live.MultilingualBookingTest do
       view |> element("button[phx-click='toggle_language_dropdown']") |> render_click()
 
       # follow_redirect can take just the conn if we don't want to assert on the path
-      {:ok, new_view, _html} =
+      # It returns {:ok, conn} for external redirects (which we use for locale change)
+      {:ok, conn} =
         view
         |> element("button[phx-click='change_locale'][phx-value-locale='de']")
         |> render_click()
         |> follow_redirect(conn)
 
+      {:ok, new_view, _html} = live(conn)
       assert render(new_view) =~ "data-locale=\"de\""
 
-      # Navigate to a different page - locale should persist
-      # We use recycle(conn) from the follow_redirect but we don't have it easily.
-      # Actually, follow_redirect uses the conn and returns the view.
-
-      # Let's try to just use the new_view's session if it was carried over.
-      # But live(conn, ...) needs a conn.
-
-      # Alternatively, just use the query param which is what push_navigate does.
-      {:ok, final_view, _html} = live(conn, "/#{username}?locale=de")
+      # Navigate again - locale should persist in session
+      conn = recycle(conn)
+      {:ok, final_view, _html} = live(conn, "/#{username}")
       assert render(final_view) =~ "data-locale=\"de\""
     end
 
@@ -94,11 +94,14 @@ defmodule TymeslotWeb.Live.MultilingualBookingTest do
       assert render(view) =~ "role=\"menu\""
 
       # Switch to German (don't use change_locale helper as it toggles again)
-      {:ok, view, _html} =
+      # It returns {:ok, conn} for external redirects (which we use for locale change)
+      {:ok, conn} =
         view
         |> element("button[phx-click='change_locale'][phx-value-locale='de']")
         |> render_click()
         |> follow_redirect(conn)
+
+      {:ok, view, _html} = live(conn)
 
       # Verify dropdown closed (in the NEW view)
       refute render(view) =~ "role=\"menu\""

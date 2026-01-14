@@ -205,15 +205,15 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ScheduleComponent do
                           <button
                             phx-click="prev_month"
                             phx-target={@myself}
+                            phx-disable-with="..."
                             disabled={
-                              @availability_status == :loading or
                                 Helpers.prev_month_disabled?(
                                   @current_year,
                                   @current_month,
                                   @user_timezone
                                 )
                             }
-                            class="p-1 md:p-2 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            class="p-1 md:p-2 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed phx-click-loading:animate-pulse"
                             style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3); hover:background: rgba(255,255,255,0.2);"
                           >
                             ←
@@ -227,15 +227,15 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ScheduleComponent do
                           <button
                             phx-click="next_month"
                             phx-target={@myself}
+                            phx-disable-with="..."
                             disabled={
-                              @availability_status == :loading or
                                 Helpers.next_month_disabled?(
                                   @current_year,
                                   @current_month,
                                   @user_timezone
                                 )
                             }
-                            class="p-1 md:p-2 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            class="p-1 md:p-2 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed phx-click-loading:animate-pulse"
                             style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3); hover:background: rgba(255,255,255,0.2);"
                           >
                             →

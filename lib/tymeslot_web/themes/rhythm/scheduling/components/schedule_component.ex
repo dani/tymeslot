@@ -209,10 +209,11 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ScheduleComponent do
               <div class="calendar-section" style="flex-shrink: 0;">
                 <div class="calendar-header">
                   <button
-                    class="calendar-nav-button"
+                    class="calendar-nav-button phx-click-loading:animate-pulse"
                     phx-click="prev_week"
                     phx-target={@myself}
-                    disabled={@availability_status == :loading}
+                    phx-disable-with="..."
+                    disabled={false}
                   >
                     ←
                   </button>
@@ -230,10 +231,11 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ScheduleComponent do
                       </div>
                     <% end %>
                     <button
-                      class="calendar-nav-button"
+                      class="calendar-nav-button phx-click-loading:animate-pulse"
                       phx-click="next_week"
                       phx-target={@myself}
-                      disabled={@availability_status == :loading}
+                      phx-disable-with="..."
+                      disabled={false}
                     >
                       →
                     </button>
