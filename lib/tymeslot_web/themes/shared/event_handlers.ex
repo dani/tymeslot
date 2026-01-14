@@ -24,13 +24,15 @@ defmodule TymeslotWeb.Themes.Shared.EventHandlers do
   end
 
   @doc """
-  Handles locale change with push_navigate for reliability.
+  Handles locale change with a full page redirect to ensure the session is updated.
+  Using a full redirect (external: true) is necessary because session updates
+  can only happen over HTTP, not via WebSocket/LiveView client-side navigation.
   """
   @spec handle_change_locale(Phoenix.LiveView.Socket.t(), String.t(), module()) ::
           {:noreply, Phoenix.LiveView.Socket.t()}
   def handle_change_locale(socket, locale, path_handlers_module) do
     path = path_handlers_module.build_path_with_locale(socket, locale)
-    {:noreply, LiveView.push_navigate(socket, to: path)}
+    {:noreply, LiveView.redirect(socket, external: path)}
   end
 
   @doc """

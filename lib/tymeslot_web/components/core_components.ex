@@ -55,6 +55,7 @@ defmodule TymeslotWeb.Components.CoreComponents do
   """
   attr :variant, :atom, default: :primary
   attr :type, :string, default: "button"
+  attr :form, :string, default: nil
   attr :disabled, :boolean, default: false
   attr :class, :string, default: ""
   attr :rest, :global
@@ -74,6 +75,7 @@ defmodule TymeslotWeb.Components.CoreComponents do
   attr :loading_text, :string, default: "Processing..."
   attr :variant, :atom, default: :primary
   attr :type, :string, default: "button"
+  attr :form, :string, default: nil
   attr :class, :string, default: ""
   attr :disabled, :boolean, default: false
   attr :rest, :global

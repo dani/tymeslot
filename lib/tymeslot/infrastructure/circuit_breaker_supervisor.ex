@@ -20,6 +20,11 @@ defmodule Tymeslot.Infrastructure.CircuitBreakerSupervisor do
     # Build children for all calendar providers
     calendar_breakers = build_calendar_breakers()
 
+    # Dynamic supervisor for per-host circuit breakers
+    dynamic_breakers = [
+      {DynamicSupervisor, name: Tymeslot.Infrastructure.DynamicCircuitBreakerSupervisor, strategy: :one_for_one}
+    ]
+
     # Other circuit breakers
     other_breakers = [
       # Circuit breaker for email service (Postmark)
@@ -60,7 +65,7 @@ defmodule Tymeslot.Infrastructure.CircuitBreakerSupervisor do
       )
     ]
 
-    children = calendar_breakers ++ other_breakers
+    children = calendar_breakers ++ dynamic_breakers ++ other_breakers
 
     Supervisor.init(children, strategy: :one_for_one)
   end

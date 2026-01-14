@@ -7,6 +7,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.CalendarManager
 
   alias Phoenix.LiveView
   alias Tymeslot.Integrations.Calendar
+  alias TymeslotWeb.Components.CoreComponents
 
   @impl true
   def mount(socket) do
@@ -71,227 +72,202 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.CalendarManager
     {:noreply, socket}
   end
 
-  # hide handled by parent via events; this local handler is no longer used
-
   @impl true
   def render(assigns) do
     ~H"""
     <div>
-      <.modal
+      <CoreComponents.modal
         id="calendar-manager-modal"
         show={@show}
         on_cancel={JS.push("hide_calendar_manager", target: @parent)}
         size={:large}
       >
         <:header>
-          <div class="flex items-center justify-between w-full">
-            <div class="flex items-center">
-              <span>Manage Integration</span>
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-turquoise-50 rounded-token-xl flex items-center justify-center border border-turquoise-100">
+              <CoreComponents.icon name="hero-calendar" class="w-6 h-6 text-turquoise-600" />
+            </div>
+            <div class="flex flex-col">
+              <span class="text-2xl font-black text-tymeslot-900 tracking-tight">Manage Integration</span>
               <%= if @managing_integration do %>
-                <span class="text-gray-500 ml-2">
-                  - {format_provider_name(@managing_integration.provider)}
+                <span class="text-tymeslot-500 font-medium text-token-sm">
+                  {format_provider_name(@managing_integration.provider)}
+                  <%= if Map.get(@managing_integration, :is_primary, false) do %>
+                    • <span class="text-turquoise-600 font-bold">Booking Calendar</span>
+                  <% end %>
                 </span>
-                <%= if Map.get(@managing_integration, :is_primary, false) do %>
-                  <span class="inline-flex items-center ml-3 px-2 py-1 text-xs font-medium bg-turquoise-100 text-turquoise-800 rounded-full">
-                    📝 Booking Calendar
-                  </span>
-                <% end %>
               <% end %>
             </div>
-            <%= if @managing_integration && @managing_integration.is_active do %>
-              <div class="flex items-center gap-2">
-                <%= if not Map.get(@managing_integration, :is_primary, false) do %>
-                  <button
-                    phx-click="set_as_primary"
-                    phx-target={@parent}
-                    phx-value-id={@managing_integration.id}
-                    class="btn btn-xs bg-green-600 hover:bg-green-700 text-white"
-                    title="Use for Creating Bookings"
-                  >
-                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
-                      />
-                    </svg>
-                    Use for Bookings
-                  </button>
-                <% end %>
-              </div>
-            <% end %>
           </div>
         </:header>
 
         <%= if @managing_integration do %>
           <%= if @loading_calendars do %>
-            <div class="text-center py-8 max-w-md mx-auto">
-              <div class="inline-flex items-center">
-                <.spinner />
-                <span class="ml-3">Discovering calendars...</span>
-              </div>
+            <div class="text-center py-20">
+              <CoreComponents.spinner />
+              <p class="mt-4 text-tymeslot-600 font-medium">Discovering calendars...</p>
             </div>
           <% else %>
-            <form
-              id="calendar-selection-form"
-              phx-submit="save_calendar_selection"
-              phx-change="update_calendar_selection"
-              phx-target={@myself}
-              class="max-w-md mx-auto"
-            >
-              <!-- Calendar Selection -->
-              <div class="mb-6">
-                <h4 class="text-sm font-medium mb-3">Select calendars to sync:</h4>
-                <div class="space-y-2 max-h-60 overflow-y-auto card-glass p-2">
-                  <%= for calendar <- @managing_integration.calendar_list || [] do %>
-                    <label class="flex items-center p-3 rounded-lg hover:bg-white/50 cursor-pointer transition-colors">
-                      <input
-                        type="checkbox"
-                        name="calendars[selected_calendars][]"
-                        value={calendar["id"] || calendar[:id]}
-                        checked={calendar["selected"] || calendar[:selected]}
-                        class="h-4 w-4 text-turquoise-600 focus:ring-turquoise-500 border-gray-300 rounded"
-                      />
-                      <div class="ml-3 flex-1">
-                        <span class="text-sm font-medium">
-                          {calendar["name"] || calendar[:name] || "Calendar"}
-                        </span>
-                        <%= if calendar["primary"] || calendar[:primary] do %>
-                          <span class="ml-2 text-xs opacity-70">(Primary)</span>
-                        <% end %>
-                        <%= if calendar["owner"] || calendar[:owner] do %>
-                          <span class="ml-2 text-xs opacity-70">
-                            Owner: {calendar["owner"] || calendar[:owner]}
-                          </span>
-                        <% end %>
-                      </div>
-                      <%= if calendar["color"] || calendar[:color] do %>
-                        <div
-                          class="w-4 h-4 rounded-full ml-2 border border-white/20"
-                          style={"background-color: #{calendar["color"] || calendar[:color]}"}
-                        >
-                        </div>
-                      <% end %>
-                    </label>
-                  <% end %>
-                </div>
-              </div>
-              
-    <!-- Booking Calendar Selection - Only for Primary Integration -->
-              <%= if Map.get(@managing_integration, :is_primary, false) do %>
-                <div class="mb-6">
-                  <h4 class="text-sm font-medium mb-3">
-                    Where should new bookings be created?
+            <div class="space-y-8">
+              <form
+                id="calendar-selection-form"
+                phx-submit="save_calendar_selection"
+                phx-change="update_calendar_selection"
+                phx-target={@myself}
+              >
+                <!-- Calendar Selection -->
+                <div class="space-y-4">
+                  <h4 class="text-token-base font-black text-tymeslot-900 flex items-center gap-2">
+                    <CoreComponents.icon name="hero-check-circle" class="w-5 h-5 text-turquoise-600" />
+                    Select calendars to sync
                   </h4>
-                  <select
-                    name="calendars[default_booking_calendar]"
-                    required
-                    class="mt-1 block w-full glass-dropdown"
-                  >
-                    <option value="">Select a calendar...</option>
-                    <%= for calendar <- @managing_integration.calendar_list || [], 
-                    calendar["selected"] || calendar[:selected] do %>
-                      <option
-                        value={calendar["id"] || calendar[:id]}
-                        selected={
-                          (calendar["id"] || calendar[:id]) ==
-                            @managing_integration.default_booking_calendar_id
-                        }
-                      >
-                        {calendar["name"] || calendar[:name] || "Calendar"}
-                        <%= if calendar["primary"] || calendar[:primary] do %>
-                          (Primary)
+                  <div class="space-y-2 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
+                    <%= for calendar <- @managing_integration.calendar_list || [] do %>
+                      <label class="flex items-center p-4 rounded-token-2xl border-2 border-tymeslot-50 bg-white hover:border-turquoise-200 hover:bg-turquoise-50/10 cursor-pointer transition-all group">
+                        <input
+                          type="checkbox"
+                          name="calendars[selected_calendars][]"
+                          value={calendar["id"] || calendar[:id]}
+                          checked={calendar["selected"] || calendar[:selected]}
+                          class="h-5 w-5 text-turquoise-600 focus:ring-turquoise-500 border-tymeslot-300 rounded-token-lg transition-all"
+                        />
+                        <div class="ml-4 flex-1">
+                          <div class="flex items-center gap-2">
+                            <span class="font-black text-tymeslot-900">
+                              {calendar["name"] || calendar[:name] || "Calendar"}
+                            </span>
+                            <%= if calendar["primary"] || calendar[:primary] do %>
+                              <span class="bg-tymeslot-100 text-tymeslot-600 text-token-xs font-black px-2 py-0.5 rounded-full uppercase tracking-wider">Primary</span>
+                            <% end %>
+                          </div>
+                          <%= if calendar["owner"] || calendar[:owner] do %>
+                            <span class="text-token-xs text-tymeslot-500 font-medium">
+                              Owner: {calendar["owner"] || calendar[:owner]}
+                            </span>
+                          <% end %>
+                        </div>
+                        <%= if calendar["color"] || calendar[:color] do %>
+                          <div
+                            class="w-5 h-5 rounded-full border-2 border-white shadow-sm shrink-0"
+                            style={"background-color: #{calendar["color"] || calendar[:color]}"}
+                          >
+                          </div>
                         <% end %>
-                      </option>
+                      </label>
                     <% end %>
-                  </select>
-                  <p class="mt-2 text-sm opacity-70">
-                    New meetings will be created in this calendar. You can change this anytime.
-                  </p>
-                </div>
-              <% else %>
-                <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div class="flex items-start">
-                    <svg
-                      class="w-5 h-5 text-blue-400 mt-0.5 mr-3"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fill-rule="evenodd"
-                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                        clip-rule="evenodd"
-                      />
-                    </svg>
-                    <div>
-                      <h4 class="text-sm font-medium text-blue-800">👁️ Sync-Only Calendar</h4>
-                      <p class="text-sm text-blue-600 mt-1">
-                        This calendar checks for conflicts but doesn't receive new bookings.
-                        To create bookings here, click "Use for Bookings" above.
-                      </p>
-                    </div>
                   </div>
                 </div>
-              <% end %>
-            </form>
+                
+                <!-- Booking Calendar Selection -->
+                <div class="mt-8">
+                  <%= if Map.get(@managing_integration, :is_primary, false) do %>
+                    <div class="space-y-4">
+                      <h4 class="text-token-base font-black text-tymeslot-900 flex items-center gap-2">
+                        <CoreComponents.icon name="hero-plus-circle" class="w-5 h-5 text-turquoise-600" />
+                        Where should new bookings be created?
+                      </h4>
+                      <div class="relative">
+                        <select
+                          name="calendars[default_booking_calendar]"
+                          required
+                          class="w-full pl-4 pr-10 py-4 rounded-token-2xl border-2 border-tymeslot-100 bg-tymeslot-50/50 text-tymeslot-900 font-medium focus:border-turquoise-400 focus:bg-white focus:ring-0 transition-all appearance-none"
+                        >
+                          <option value="">Select a calendar...</option>
+                          <%= for calendar <- @managing_integration.calendar_list || [], 
+                          calendar["selected"] || calendar[:selected] do %>
+                            <option
+                              value={calendar["id"] || calendar[:id]}
+                              selected={
+                                (calendar["id"] || calendar[:id]) ==
+                                  @managing_integration.default_booking_calendar_id
+                              }
+                            >
+                              {calendar["name"] || calendar[:name] || "Calendar"}
+                              <%= if calendar["primary"] || calendar[:primary] do %>(Primary)<% end %>
+                            </option>
+                          <% end %>
+                        </select>
+                        <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-tymeslot-400">
+                          <CoreComponents.icon name="hero-chevron-down" class="w-5 h-5" />
+                        </div>
+                      </div>
+                      <p class="text-token-sm text-tymeslot-500 font-medium">
+                        New meetings will be created in this calendar. You can change this anytime.
+                      </p>
+                    </div>
+                  <% else %>
+                    <div class="p-6 bg-turquoise-50/50 border-2 border-turquoise-100 rounded-token-2xl">
+                      <div class="flex items-start gap-4">
+                        <div class="w-10 h-10 bg-turquoise-100 rounded-token-xl flex items-center justify-center shrink-0">
+                          <CoreComponents.icon name="hero-information-circle" class="w-6 h-6 text-turquoise-600" />
+                        </div>
+                        <div>
+                          <h4 class="text-token-base font-black text-turquoise-900">Sync-Only Integration</h4>
+                          <p class="text-turquoise-700 font-medium mt-1">
+                            This integration checks for conflicts but doesn't receive new bookings.
+                            To use it for creating bookings, click "Use for Bookings" in the header.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  <% end %>
+                </div>
+              </form>
+            </div>
           <% end %>
         <% end %>
 
         <:footer>
-          <%= if @managing_integration && !@loading_calendars do %>
-            <div class="flex items-center justify-between w-full">
-              <div class="flex items-center gap-3">
-                <%= if @managing_integration.provider == "google" and needs_scope_upgrade?(@managing_integration) do %>
-                  <button
-                    type="button"
-                    phx-click="upgrade_google_scope"
-                    phx-target={@parent}
-                    class="btn btn-sm btn-warning"
-                  >
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M13 10V3L4 14h7v7l9-11h-7z"
-                      />
-                    </svg>
-                    Upgrade Google Scope
-                  </button>
-                <% end %>
-              </div>
-              <div class="flex gap-3">
-                <.action_button
-                  variant={:secondary}
-                  phx-click="hide_calendar_manager"
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-4 w-full">
+            <div class="flex items-center gap-3 w-full sm:w-auto">
+              <%= if @managing_integration && @managing_integration.provider == "google" && needs_scope_upgrade?(@managing_integration) do %>
+                <CoreComponents.action_button
+                  variant={:outline}
+                  phx-click="upgrade_google_scope"
                   phx-target={@parent}
+                  class="flex-1 sm:flex-none border-amber-200 text-amber-700 hover:bg-amber-50"
                 >
-                  Cancel
-                </.action_button>
-                <button
-                  type="submit"
-                  form="calendar-selection-form"
-                  class="action-button action-button--primary"
-                  disabled={@loading_calendars}
+                  <CoreComponents.icon name="hero-bolt" class="w-4 h-4 mr-2" />
+                  Upgrade Scope
+                </CoreComponents.action_button>
+              <% end %>
+              
+              <%= if @managing_integration && @managing_integration.is_active && not Map.get(@managing_integration, :is_primary, false) do %>
+                <CoreComponents.action_button
+                  variant={:secondary}
+                  phx-click="set_as_primary"
+                  phx-target={@parent}
+                  phx-value-id={@managing_integration.id}
+                  class="flex-1 sm:flex-none border-emerald-200 text-emerald-700 hover:bg-emerald-50"
                 >
-                  Save Changes
-                </button>
-              </div>
+                  <CoreComponents.icon name="hero-star" class="w-4 h-4 mr-2" />
+                  Use for Bookings
+                </CoreComponents.action_button>
+              <% end %>
             </div>
-          <% else %>
-            <div class="flex items-center justify-end w-full">
-              <.action_button
+
+            <div class="flex gap-3 w-full sm:w-auto">
+              <CoreComponents.action_button
                 variant={:secondary}
                 phx-click="hide_calendar_manager"
                 phx-target={@parent}
+                class="flex-1 sm:flex-none"
               >
-                Close
-              </.action_button>
+                Cancel
+              </CoreComponents.action_button>
+              <CoreComponents.action_button
+                type="submit"
+                form="calendar-selection-form"
+                variant={:primary}
+                disabled={@loading_calendars}
+                class="flex-1 sm:flex-none"
+              >
+                Save Changes
+              </CoreComponents.action_button>
             </div>
-          <% end %>
+          </div>
         </:footer>
-      </.modal>
+      </CoreComponents.modal>
     </div>
     """
   end

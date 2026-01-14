@@ -18,6 +18,7 @@ defmodule TymeslotWeb.Components.CoreComponents.Buttons do
   """
   attr :variant, :atom, default: :primary, values: [:primary, :secondary, :danger, :outline]
   attr :type, :string, default: "button"
+  attr :form, :string, default: nil
   attr :disabled, :boolean, default: false
   attr :class, :string, default: ""
   attr :rest, :global
@@ -29,6 +30,7 @@ defmodule TymeslotWeb.Components.CoreComponents.Buttons do
     ~H"""
     <button
       type={@type}
+      form={@form}
       disabled={@disabled}
       class={["action-button", "action-button--#{@variant}", @class]}
       {@rest}
@@ -50,6 +52,7 @@ defmodule TymeslotWeb.Components.CoreComponents.Buttons do
   attr :loading_text, :string, default: "Processing..."
   attr :variant, :atom, default: :primary
   attr :type, :string, default: "button"
+  attr :form, :string, default: nil
   attr :class, :string, default: ""
   attr :disabled, :boolean, default: false
   attr :rest, :global
@@ -62,6 +65,7 @@ defmodule TymeslotWeb.Components.CoreComponents.Buttons do
     <.action_button
       variant={@variant}
       type={@type}
+      form={@form}
       disabled={@loading or @disabled}
       class={@class}
       {@rest}

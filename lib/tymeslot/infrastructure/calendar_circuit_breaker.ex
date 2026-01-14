@@ -60,7 +60,7 @@ defmodule Tymeslot.Infrastructure.CalendarCircuitBreaker do
       ...>   {:ok, events}
       ...> end)
       {:ok, events}
-      
+
       iex> CalendarCircuitBreaker.call(:caldav, fn ->
       ...>   # Circuit open due to failures
       ...> end)
@@ -109,6 +109,48 @@ defmodule Tymeslot.Infrastructure.CalendarCircuitBreaker do
   end
 
   @doc """
+  Executes a calendar operation through a host-specific circuit breaker.
+  Useful for CalDAV providers where individual servers may be slow or down.
+  """
+  @spec call_with_host(atom(), String.t(), (-> any())) :: {:ok, any()} | {:error, atom()}
+  def call_with_host(provider, host, fun)
+      when provider in @calendar_providers and is_binary(host) and is_function(fun, 0) do
+    # Clean host name to use as part of atom
+    safe_host = String.replace(host, ~r/[^a-zA-Z0-9]/, "_")
+    breaker_name = :"calendar_breaker_#{provider}_#{safe_host}"
+
+    # Ensure breaker exists
+    ensure_breaker_exists(breaker_name, provider)
+
+    case CircuitBreaker.call(breaker_name, fun) do
+      {:ok, result} ->
+        {:ok, result}
+
+      {:error, :circuit_open} = error ->
+        Logger.warning("Calendar host circuit breaker open", provider: provider, host: host)
+        error
+
+      {:error, reason} = error ->
+        Logger.error("Calendar host operation failed",
+          provider: provider,
+          host: host,
+          error: inspect(reason)
+        )
+
+        error
+    end
+  rescue
+    error ->
+      Logger.error("Calendar host circuit breaker error",
+        provider: provider,
+        host: host,
+        error: inspect(error)
+      )
+
+      {:error, :circuit_breaker_error}
+  end
+
+  @doc """
   Wraps a calendar operation with circuit breaker protection.
 
   This is a convenience function that handles common calendar operation patterns.
@@ -116,11 +158,17 @@ defmodule Tymeslot.Infrastructure.CalendarCircuitBreaker do
   @spec with_breaker(atom(), keyword(), (-> any())) :: any()
   def with_breaker(provider, opts \\ [], fun) do
     skip_breaker = Keyword.get(opts, :skip_breaker, false)
+    host = Keyword.get(opts, :host)
 
-    if skip_breaker do
-      fun.()
-    else
-      call(provider, fun)
+    cond do
+      skip_breaker ->
+        fun.()
+
+      is_binary(host) and host != "" ->
+        call_with_host(provider, host, fun)
+
+      true ->
+        call(provider, fun)
     end
   end
 
@@ -180,6 +228,19 @@ defmodule Tymeslot.Infrastructure.CalendarCircuitBreaker do
 
   defp breaker_name(provider) do
     Map.fetch!(@calendar_breaker_names, provider)
+  end
+
+  defp ensure_breaker_exists(name, provider) do
+    if !breaker_exists?(name) do
+      config = get_config(provider)
+      child_spec = {CircuitBreaker, name: name, config: config}
+
+      # Use dynamic supervisor to start the breaker
+      DynamicSupervisor.start_child(
+        Tymeslot.Infrastructure.DynamicCircuitBreakerSupervisor,
+        child_spec
+      )
+    end
   end
 
   defp breaker_exists?(name) do

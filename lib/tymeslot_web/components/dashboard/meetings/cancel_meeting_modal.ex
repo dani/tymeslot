@@ -44,7 +44,7 @@ defmodule TymeslotWeb.Components.Dashboard.Meetings.CancelMeetingModal do
   @spec cancel_meeting_modal(map()) :: Phoenix.LiveView.Rendered.t()
   def cancel_meeting_modal(assigns) do
     ~H"""
-    <CoreComponents.modal id={@id} show={@show} on_cancel={@on_cancel}>
+    <CoreComponents.modal id={@id} show={@show} on_cancel={@on_cancel} size={:medium}>
       <:header>
         <div class="flex items-center gap-2">
           <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -60,27 +60,31 @@ defmodule TymeslotWeb.Components.Dashboard.Meetings.CancelMeetingModal do
       </:header>
 
       <%= if @meeting do %>
-        <p class="text-gray-700">
-          Are you sure you want to cancel the meeting with <strong>{@meeting.attendee_name}</strong>
-          scheduled for <strong><%= Helpers.format_meeting_date(@meeting, @timezone) %> • <%= Helpers.format_meeting_time(@meeting, @timezone) %></strong>?
-        </p>
-        <p class="mt-2 text-sm text-gray-600">
-          This action cannot be undone. The attendee will be notified of the cancellation.
-        </p>
+        <div class="space-y-4">
+          <p class="text-tymeslot-600 font-medium text-lg leading-relaxed">
+            Are you sure you want to cancel the meeting with <strong>{@meeting.attendee_name}</strong>
+            scheduled for <strong><%= Helpers.format_meeting_date(@meeting, @timezone) %> • <%= Helpers.format_meeting_time(@meeting, @timezone) %></strong>?
+          </p>
+          <p class="text-tymeslot-500 font-medium">
+            This action cannot be undone. The attendee will be notified of the cancellation.
+          </p>
+        </div>
       <% end %>
 
       <:footer>
-        <CoreComponents.action_button variant={:secondary} phx-click={@on_cancel}>
-          Keep Meeting
-        </CoreComponents.action_button>
-        <CoreComponents.loading_button
-          variant={:danger}
-          phx-click={@on_confirm}
-          loading={@cancelling}
-          loading_text="Cancelling..."
-        >
-          Cancel Meeting
-        </CoreComponents.loading_button>
+        <div class="flex justify-end gap-3">
+          <CoreComponents.action_button variant={:secondary} phx-click={@on_cancel}>
+            Keep Meeting
+          </CoreComponents.action_button>
+          <CoreComponents.loading_button
+            variant={:danger}
+            phx-click={@on_confirm}
+            loading={@cancelling}
+            loading_text="Cancelling..."
+          >
+            Cancel Meeting
+          </CoreComponents.loading_button>
+        </div>
       </:footer>
     </CoreComponents.modal>
     """

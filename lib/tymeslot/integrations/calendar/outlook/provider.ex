@@ -165,7 +165,7 @@ defmodule Tymeslot.Integrations.Calendar.Outlook.Provider do
 
   defp get_calendar_owner(_), do: "Unknown"
 
-  defp parse_datetime(time_map, is_all_day \\ false)
+  defp parse_datetime(time_map, is_all_day)
 
   defp parse_datetime(%{"dateTime" => datetime_str}, true) do
     # For all-day events, Outlook returns the date part + 00:00:00

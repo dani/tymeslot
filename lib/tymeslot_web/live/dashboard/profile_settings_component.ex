@@ -499,20 +499,20 @@ defmodule TymeslotWeb.Dashboard.ProfileSettingsComponent do
         </p>
         <:footer>
           <div class="flex gap-4">
-            <button
-              type="button"
+            <CoreComponents.action_button
+              variant={:secondary}
               phx-click={Phoenix.LiveView.JS.push("hide_delete_avatar_modal", target: @myself)}
-              class="btn-secondary flex-1 py-4"
+              class="flex-1 py-4"
             >
               Cancel
-            </button>
-            <button
-              type="button"
+            </CoreComponents.action_button>
+            <CoreComponents.action_button
+              variant={:danger}
               phx-click={Phoenix.LiveView.JS.push("delete_avatar", target: @myself)}
-              class="btn-danger flex-1 py-4"
+              class="flex-1 py-4"
             >
               Delete Avatar
-            </button>
+            </CoreComponents.action_button>
           </div>
         </:footer>
       </CoreComponents.modal>

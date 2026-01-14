@@ -42,8 +42,9 @@ defmodule TymeslotWeb.Themes.Shared.LocaleHandler do
         Gettext.put_locale(TymeslotWeb.Gettext, new_locale)
 
         # Update socket assigns
-        # Note: For persistence across navigation, themes should push_patch
-        # with the locale in query params
+        # Note: For persistence across navigation, themes should use a full
+        # redirect (external: true) with the locale in query params to ensure
+        # the LocalePlug updates the session.
         Component.assign(socket, :locale, new_locale)
 
       true ->

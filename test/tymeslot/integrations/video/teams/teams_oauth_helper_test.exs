@@ -29,16 +29,7 @@ defmodule Tymeslot.Integrations.Video.Teams.TeamsOAuthHelperTest do
 
   describe "exchange_code_for_tokens/3" do
     test "exchanges code and validates state" do
-      user_id = 123
-      state = State.generate(user_id, "teams-state")
-
-      resp_body =
-        Jason.encode!(%{
-          "access_token" => "at-123",
-          "refresh_token" => "rt-123",
-          "expires_in" => 3600,
-          "scope" => "OnlineMeetings.ReadWrite"
-        })
+      %{user_id: user_id, state: state, resp_body: resp_body} = oauth_test_data()
 
       profile_body =
         Jason.encode!(%{
@@ -67,12 +58,11 @@ defmodule Tymeslot.Integrations.Video.Teams.TeamsOAuthHelperTest do
     end
 
     test "extracts tenant_id from id_token claims" do
-      user_id = 123
-      state = State.generate(user_id, "teams-state")
+      %{state: state} = oauth_test_data()
 
       # Mock id_token with tid claim
-      header = Jason.encode!(%{alg: "RS256"}) |> Base.url_encode64(padding: false)
-      payload = Jason.encode!(%{tid: "real-tenant-id"}) |> Base.url_encode64(padding: false)
+      header = Base.url_encode64(Jason.encode!(%{alg: "RS256"}), padding: false)
+      payload = Base.url_encode64(Jason.encode!(%{tid: "real-tenant-id"}), padding: false)
       id_token = "#{header}.#{payload}.sig"
 
       resp_body =
@@ -105,16 +95,7 @@ defmodule Tymeslot.Integrations.Video.Teams.TeamsOAuthHelperTest do
     end
 
     test "fails if profile is missing id" do
-      user_id = 123
-      state = State.generate(user_id, "teams-state")
-
-      resp_body =
-        Jason.encode!(%{
-          "access_token" => "at-123",
-          "refresh_token" => "rt-123",
-          "expires_in" => 3600,
-          "scope" => "OnlineMeetings.ReadWrite"
-        })
+      %{state: state, resp_body: resp_body} = oauth_test_data()
 
       profile_body = Jason.encode!(%{"displayName" => "Microsoft User"})
 
@@ -133,16 +114,7 @@ defmodule Tymeslot.Integrations.Video.Teams.TeamsOAuthHelperTest do
     end
 
     test "retries profile fetch on transient error" do
-      user_id = 123
-      state = State.generate(user_id, "teams-state")
-
-      resp_body =
-        Jason.encode!(%{
-          "access_token" => "at-123",
-          "refresh_token" => "rt-123",
-          "expires_in" => 3600,
-          "scope" => "OnlineMeetings.ReadWrite"
-        })
+      %{state: state, resp_body: resp_body} = oauth_test_data()
 
       profile_body =
         Jason.encode!(%{
@@ -201,5 +173,20 @@ defmodule Tymeslot.Integrations.Video.Teams.TeamsOAuthHelperTest do
     test "returns error when expiration info is missing" do
       assert {:error, _} = TeamsOAuthHelper.validate_token(%{})
     end
+  end
+
+  defp oauth_test_data do
+    user_id = 123
+    state = State.generate(user_id, "teams-state")
+
+    resp_body =
+      Jason.encode!(%{
+        "access_token" => "at-123",
+        "refresh_token" => "rt-123",
+        "expires_in" => 3600,
+        "scope" => "OnlineMeetings.ReadWrite"
+      })
+
+    %{user_id: user_id, state: state, resp_body: resp_body}
   end
 end

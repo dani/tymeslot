@@ -40,7 +40,7 @@ defmodule TymeslotWeb.Components.Dashboard.Availability.DeleteBreakModal do
   @spec delete_break_modal(map()) :: Phoenix.LiveView.Rendered.t()
   def delete_break_modal(assigns) do
     ~H"""
-    <CoreComponents.modal id={@id} show={@show} on_cancel={@on_cancel}>
+    <CoreComponents.modal id={@id} show={@show} on_cancel={@on_cancel} size={:medium}>
       <:header>
         <div class="flex items-center gap-2">
           <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -56,21 +56,25 @@ defmodule TymeslotWeb.Components.Dashboard.Availability.DeleteBreakModal do
       </:header>
 
       <%= if @break_data do %>
-        <p>
-          Are you sure you want to delete this break{format_break_label(@break_data)}?
-        </p>
-        <p class="mt-2 text-sm text-gray-600">
-          This action cannot be undone.
-        </p>
+        <div class="space-y-4">
+          <p class="text-tymeslot-600 font-medium text-lg leading-relaxed">
+            Are you sure you want to delete this break{format_break_label(@break_data)}?
+          </p>
+          <p class="text-tymeslot-500 font-medium">
+            This action cannot be undone.
+          </p>
+        </div>
       <% end %>
 
       <:footer>
-        <CoreComponents.action_button variant={:secondary} phx-click={@on_cancel}>
-          Cancel
-        </CoreComponents.action_button>
-        <CoreComponents.action_button variant={:danger} phx-click={@on_confirm}>
-          Delete Break
-        </CoreComponents.action_button>
+        <div class="flex justify-end gap-3">
+          <CoreComponents.action_button variant={:secondary} phx-click={@on_cancel}>
+            Cancel
+          </CoreComponents.action_button>
+          <CoreComponents.action_button variant={:danger} phx-click={@on_confirm}>
+            Delete Break
+          </CoreComponents.action_button>
+        </div>
       </:footer>
     </CoreComponents.modal>
     """

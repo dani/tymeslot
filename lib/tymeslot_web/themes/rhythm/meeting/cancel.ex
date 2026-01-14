@@ -195,6 +195,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Meeting.Cancel do
                       class="action-button-primary"
                       type="button"
                       data-testid="keep-meeting"
+                      disabled={@loading}
                       style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); display: inline-flex; align-items: center; gap: 0.5rem;"
                     >
                       Keep Meeting

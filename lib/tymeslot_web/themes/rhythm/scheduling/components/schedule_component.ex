@@ -208,13 +208,36 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ScheduleComponent do
               <!-- Calendar -->
               <div class="calendar-section" style="flex-shrink: 0;">
                 <div class="calendar-header">
-                  <button class="calendar-nav-button" phx-click="prev_week" phx-target={@myself}>
+                  <button
+                    class="calendar-nav-button"
+                    phx-click="prev_week"
+                    phx-target={@myself}
+                    disabled={@availability_status == :loading}
+                  >
                     ←
                   </button>
                   <h3>{get_week_display(@current_week_start)}</h3>
-                  <button class="calendar-nav-button" phx-click="next_week" phx-target={@myself}>
-                    →
-                  </button>
+                  <div class="flex items-center gap-2">
+                    <%= if @availability_status in [:error, :timeout] do %>
+                      <div
+                        class="calendar-error-inline"
+                        style="font-size: 11px; color: #fbbf24; background: rgba(0,0,0,0.4); padding: 2px 6px; rounded: 4px; display: flex; align-items: center; gap: 4px;"
+                      >
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        {gettext("Service slow")}
+                      </div>
+                    <% end %>
+                    <button
+                      class="calendar-nav-button"
+                      phx-click="next_week"
+                      phx-target={@myself}
+                      disabled={@availability_status == :loading}
+                    >
+                      →
+                    </button>
+                  </div>
                 </div>
 
                 <div class="calendar-grid">
@@ -267,24 +290,25 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ScheduleComponent do
                               >
                                 {period}
                               </h4>
-                              <div
-                                class="time-period-slots"
-                                style={get_period_slots_style(@available_slots)}
-                              >
-                                <%= for slot <- slots do %>
-                                  <button
-                                    class={"time-slot #{if @selected_time == slot, do: "selected", else: ""}"}
-                                    data-testid="time-slot"
-                                    data-time={slot}
-                                    style={get_slot_button_style(@available_slots)}
-                                    phx-click="select_time"
-                                    phx-value-time={slot}
-                                    phx-target={@myself}
-                                  >
-                                    {LocalizationHelpers.format_time_by_locale(Helpers.parse_slot_time(slot))}
-                                  </button>
-                                <% end %>
-                              </div>
+                                <div
+                                  class="time-period-slots"
+                                  style={get_period_slots_style(@available_slots)}
+                                >
+                                  <%= for slot <- slots do %>
+                                    <button
+                                      class={"time-slot #{if @selected_time == slot, do: "selected", else: ""}"}
+                                      data-testid="time-slot"
+                                      data-time={slot}
+                                      style={get_slot_button_style(@available_slots)}
+                                      phx-click="select_time"
+                                      phx-value-time={slot}
+                                      phx-target={@myself}
+                                      disabled={@loading_slots}
+                                    >
+                                      {LocalizationHelpers.format_time_by_locale(Helpers.parse_slot_time(slot))}
+                                    </button>
+                                  <% end %>
+                                </div>
                             </div>
                           <% end %>
                         <% end %>

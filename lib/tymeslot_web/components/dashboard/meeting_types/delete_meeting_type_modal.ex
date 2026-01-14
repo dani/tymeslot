@@ -52,27 +52,31 @@ defmodule TymeslotWeb.Components.Dashboard.MeetingTypes.DeleteMeetingTypeModal d
       </:header>
 
       <%= if @meeting_type do %>
-        <p>
-          Are you sure you want to delete the meeting type <strong>"{@meeting_type.name}"</strong>?
-        </p>
-        <p class="mt-2" style="color: rgba(255,255,255,0.7);">
-          This action cannot be undone and will permanently remove this meeting type from your account.
-        </p>
+        <div class="space-y-4">
+          <p class="text-tymeslot-600 font-medium text-lg leading-relaxed">
+            Are you sure you want to delete the meeting type <strong>"{@meeting_type.name}"</strong>?
+          </p>
+          <p class="text-tymeslot-500 font-medium">
+            This action cannot be undone and will permanently remove this meeting type from your account.
+          </p>
+        </div>
       <% end %>
 
       <:footer>
-        <CoreComponents.action_button
-          variant={:secondary}
-          phx-click={JS.push("hide_delete_modal", target: @myself)}
-        >
-          Cancel
-        </CoreComponents.action_button>
-        <CoreComponents.action_button
-          variant={:danger}
-          phx-click={JS.push("confirm_delete_meeting_type", target: @myself)}
-        >
-          Delete Meeting Type
-        </CoreComponents.action_button>
+        <div class="flex justify-end gap-3">
+          <CoreComponents.action_button
+            variant={:secondary}
+            phx-click={JS.push("hide_delete_modal", target: @myself)}
+          >
+            Cancel
+          </CoreComponents.action_button>
+          <CoreComponents.action_button
+            variant={:danger}
+            phx-click={JS.push("confirm_delete_meeting_type", target: @myself)}
+          >
+            Delete Meeting Type
+          </CoreComponents.action_button>
+        </div>
       </:footer>
     </CoreComponents.modal>
     """

@@ -49,9 +49,9 @@ defmodule Tymeslot.Integrations.Calendar.CalDAV.Base do
   # Timeout configuration for CalDAV operations
   # Hierarchy: report_timeout < task_await_timeout < coalescer_call_timeout
   # With retry: worst case = report_timeout + base_delay + report_timeout ≈ 21s
-  @report_timeout_ms 10_000
-  @task_await_timeout_ms 25_000
-  @coalescer_call_timeout_ms 30_000
+  @report_timeout_ms 15_000
+  @task_await_timeout_ms 45_000
+  @coalescer_call_timeout_ms 50_000
 
   @default_retry_opts [
     max_retries: 1,
@@ -362,6 +362,8 @@ defmodule Tymeslot.Integrations.Calendar.CalDAV.Base do
   def discover_calendars(client, opts \\ []) do
     ip_address = Keyword.get(opts, :ip_address, "127.0.0.1")
     provider = Map.get(client, :provider, :caldav)
+    host = extract_host_from_url(client.base_url)
+    opts = Keyword.put(opts, :host, host)
 
     with :ok <- check_rate_limit(:discovery, ip_address),
          :ok <- validate_client_url(client.base_url) do
@@ -386,6 +388,8 @@ defmodule Tymeslot.Integrations.Calendar.CalDAV.Base do
           {:ok, list(map())} | {:error, error_reason()}
   def fetch_events(client, calendar_path, start_time, end_time, opts \\ []) do
     provider = Map.get(client, :provider, :caldav)
+    host = extract_host_from_url(client.base_url)
+    opts = Keyword.put(opts, :host, host)
 
     CalendarCircuitBreaker.with_breaker(provider, opts, fn ->
       url = build_calendar_url(client.base_url, calendar_path)
@@ -428,6 +432,8 @@ defmodule Tymeslot.Integrations.Calendar.CalDAV.Base do
           {:ok, String.t()} | {:error, error_reason()}
   def create_calendar_event(client, calendar_path, event_data, opts \\ []) do
     provider = Map.get(client, :provider, :caldav)
+    host = extract_host_from_url(client.base_url)
+    opts = Keyword.put(opts, :host, host)
 
     CalendarCircuitBreaker.with_breaker(provider, opts, fn ->
       uid = event_data[:uid] || generate_uid()
@@ -593,6 +599,8 @@ defmodule Tymeslot.Integrations.Calendar.CalDAV.Base do
 
   defp with_caldav_breaker(client, opts, fun) when is_function(fun, 0) do
     provider = Map.get(client, :provider, :caldav)
+    host = extract_host_from_url(client.base_url)
+    opts = Keyword.put(opts, :host, host)
     CalendarCircuitBreaker.with_breaker(provider, opts, fun)
   end
 
@@ -696,5 +704,12 @@ defmodule Tymeslot.Integrations.Calendar.CalDAV.Base do
         "172.30.",
         "172.31."
       ])
+  end
+
+  defp extract_host_from_url(url) do
+    case URI.parse(url) do
+      %URI{host: host} when is_binary(host) -> host
+      _ -> nil
+    end
   end
 end

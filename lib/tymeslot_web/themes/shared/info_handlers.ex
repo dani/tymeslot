@@ -3,7 +3,6 @@ defmodule TymeslotWeb.Themes.Shared.InfoHandlers do
   Shared handle_info handlers for theme scheduling LiveViews.
   """
   import Phoenix.Component, only: [assign: 3]
-  import Phoenix.LiveView, only: [put_flash: 3]
   require Logger
 
   alias TymeslotWeb.Live.Scheduling.Handlers.SlotFetchingHandlerComponent
@@ -48,10 +47,6 @@ defmodule TymeslotWeb.Themes.Shared.InfoHandlers do
         |> assign(:availability_status, :error)
         |> assign(:availability_task, nil)
         |> assign(:availability_task_ref, nil)
-        |> put_flash(
-          :info,
-          "Calendar is loading slowly. Click any date to see available times."
-        )
 
       {:noreply, socket}
     else
@@ -74,7 +69,6 @@ defmodule TymeslotWeb.Themes.Shared.InfoHandlers do
         |> assign(:availability_status, :timeout)
         |> assign(:availability_task, nil)
         |> assign(:availability_task_ref, nil)
-        |> put_flash(:info, "Calendar service is slow. You can still select dates and book.")
 
       {:noreply, socket}
     else

@@ -166,6 +166,7 @@ defmodule TymeslotWeb.Components.MeetingComponents do
   """
   attr :slot, :map, required: true
   attr :selected, :boolean, default: false
+  attr :disabled, :boolean, default: false
   attr :rest, :global
 
   @spec time_slot_button(map()) :: Phoenix.LiveView.Rendered.t()
@@ -177,6 +178,7 @@ defmodule TymeslotWeb.Components.MeetingComponents do
         @selected && "time-slot-button--selected"
       ]}
       data-testid="time-slot"
+      disabled={@disabled}
       {@rest}
     >
       {format_time_by_locale(@slot.start_time)}

@@ -310,7 +310,7 @@ defmodule Tymeslot.Integrations.Calendar.ICalParserTest do
 
       assert {:ok, [event]} = ICalParser.parse(ical_content)
       assert event.summary == "All Day Event"
-      assert %DateTime{} = event.start_time
+      assert %Date{} = event.start_time
     end
 
     test "handles timezone parameter in DTSTART" do

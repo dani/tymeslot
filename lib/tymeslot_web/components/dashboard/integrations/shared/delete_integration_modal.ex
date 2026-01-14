@@ -37,32 +37,40 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Shared.DeleteIntegration
   @spec delete_integration_modal(map()) :: Phoenix.LiveView.Rendered.t()
   def delete_integration_modal(assigns) do
     ~H"""
-    <CoreComponents.modal id={@id} show={@show} on_cancel={@on_cancel}>
+    <CoreComponents.modal id={@id} show={@show} on_cancel={@on_cancel} size={:medium}>
       <:header>
-        <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-          />
-        </svg>
-        Delete {format_integration_type(@integration_type)} Integration
+        <div class="flex items-center gap-2">
+          <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+            />
+          </svg>
+          Delete {format_integration_type(@integration_type)} Integration
+        </div>
       </:header>
-      <p>
-        Are you sure you want to delete this {format_integration_type(@integration_type)
-        |> String.downcase()} integration?
-        This action cannot be undone and will remove all associated {format_integration_data(
-          @integration_type
-        )}.
-      </p>
+      <div class="space-y-4">
+        <p class="text-tymeslot-600 font-medium text-lg leading-relaxed">
+          Are you sure you want to delete this {format_integration_type(@integration_type)
+          |> String.downcase()} integration?
+        </p>
+        <p class="text-tymeslot-500 font-medium">
+          This action cannot be undone and will remove all associated {format_integration_data(
+            @integration_type
+          )}.
+        </p>
+      </div>
       <:footer>
-        <CoreComponents.action_button variant={:secondary} phx-click={@on_cancel}>
-          Cancel
-        </CoreComponents.action_button>
-        <CoreComponents.action_button variant={:danger} phx-click={@on_confirm}>
-          Delete Integration
-        </CoreComponents.action_button>
+        <div class="flex justify-end gap-3">
+          <CoreComponents.action_button variant={:secondary} phx-click={@on_cancel}>
+            Cancel
+          </CoreComponents.action_button>
+          <CoreComponents.action_button variant={:danger} phx-click={@on_confirm}>
+            Delete Integration
+          </CoreComponents.action_button>
+        </div>
       </:footer>
     </CoreComponents.modal>
     """

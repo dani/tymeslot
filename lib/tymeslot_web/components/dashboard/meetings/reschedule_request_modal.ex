@@ -44,7 +44,7 @@ defmodule TymeslotWeb.Components.Dashboard.Meetings.RescheduleRequestModal do
   @spec reschedule_request_modal(map()) :: Phoenix.LiveView.Rendered.t()
   def reschedule_request_modal(assigns) do
     ~H"""
-    <CoreComponents.modal id={@id} show={@show} on_cancel={@on_cancel}>
+    <CoreComponents.modal id={@id} show={@show} on_cancel={@on_cancel} size={:medium}>
       <:header>
         <div class="flex items-center gap-2">
           <svg
@@ -56,7 +56,7 @@ defmodule TymeslotWeb.Components.Dashboard.Meetings.RescheduleRequestModal do
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
-              stroke-width="2"
+              stroke-width="2.5"
               d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
             />
           </svg>
@@ -65,86 +65,65 @@ defmodule TymeslotWeb.Components.Dashboard.Meetings.RescheduleRequestModal do
       </:header>
 
       <%= if @meeting do %>
-        <div class="space-y-4">
-          <p class="text-neutral-700">
-            Send a reschedule request to <strong class="font-semibold text-neutral-800">{@meeting.attendee_name}</strong>?
+        <div class="space-y-6">
+          <p class="text-tymeslot-600 font-medium text-lg leading-relaxed">
+            Send a reschedule request to <strong>{@meeting.attendee_name}</strong>?
           </p>
 
-          <div class="bg-neutral-50 rounded-lg p-4 space-y-2">
-            <p class="text-sm font-medium text-neutral-700">Current Meeting:</p>
-            <div class="text-sm text-neutral-600 space-y-1">
-              <div class="flex items-center gap-2">
-                <svg
-                  class="w-4 h-4 text-turquoise-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
-                </svg>
+          <div class="bg-tymeslot-50 rounded-token-2xl p-6 border border-tymeslot-100 space-y-3">
+            <p class="text-token-xs font-black text-tymeslot-500 uppercase tracking-wider">Current Meeting</p>
+            <div class="text-tymeslot-900 font-black text-lg space-y-2">
+              <div class="flex items-center gap-3">
+                <CoreComponents.icon name="hero-calendar" class="w-5 h-5 text-turquoise-600" />
                 <span>{format_meeting_datetime(@meeting, @timezone)}</span>
               </div>
-              <div class="flex items-center gap-2">
-                <svg
-                  class="w-4 h-4 text-turquoise-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
+              <div class="flex items-center gap-3">
+                <CoreComponents.icon name="hero-clock" class="w-5 h-5 text-turquoise-600" />
                 <span>{@meeting.duration} minutes</span>
               </div>
             </div>
           </div>
 
-          <div class="bg-turquoise-50 border border-turquoise-200 rounded-lg p-4">
-            <p class="text-sm text-turquoise-800">
-              <strong class="font-medium">What happens next:</strong>
+          <div class="bg-turquoise-50/50 border-2 border-turquoise-100 rounded-token-2xl p-6">
+            <p class="text-turquoise-800 font-black mb-3">
+              What happens next:
             </p>
-            <ul class="mt-2 text-sm text-turquoise-700 space-y-1 list-disc list-inside">
-              <li>The current meeting will be cancelled immediately</li>
-              <li>
-                {@meeting.attendee_name} will receive an email explaining you need to reschedule
+            <ul class="text-turquoise-700 font-medium space-y-2">
+              <li class="flex items-start gap-2">
+                <span class="mt-1.5 w-1.5 h-1.5 rounded-full bg-turquoise-400 shrink-0"></span>
+                <span>The current meeting will be cancelled immediately</span>
               </li>
-              <li>They can choose a new time from your availability</li>
-              <li>You'll both receive confirmation once they select a new time</li>
+              <li class="flex items-start gap-2">
+                <span class="mt-1.5 w-1.5 h-1.5 rounded-full bg-turquoise-400 shrink-0"></span>
+                <span>{@meeting.attendee_name} will receive an email explaining you need to reschedule</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="mt-1.5 w-1.5 h-1.5 rounded-full bg-turquoise-400 shrink-0"></span>
+                <span>They can choose a new time from your availability</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="mt-1.5 w-1.5 h-1.5 rounded-full bg-turquoise-400 shrink-0"></span>
+                <span>You'll both receive confirmation once they select a new time</span>
+              </li>
             </ul>
           </div>
         </div>
       <% end %>
 
       <:footer>
-        <button type="button" phx-click={@on_cancel} class="btn btn-secondary">
-          Cancel
-        </button>
-        <button type="button" phx-click={@on_confirm} disabled={@sending} class="btn btn-primary">
-          <%= if @sending do %>
-            <svg class="animate-spin h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
-              </circle>
-              <path
-                class="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              >
-              </path>
-            </svg>
-            Sending...
-          <% else %>
+        <div class="flex justify-end gap-3">
+          <CoreComponents.action_button variant={:secondary} phx-click={@on_cancel}>
+            Cancel
+          </CoreComponents.action_button>
+          <CoreComponents.loading_button
+            variant={:primary}
+            phx-click={@on_confirm}
+            loading={@sending}
+            loading_text="Sending..."
+          >
             Send Request
-          <% end %>
-        </button>
+          </CoreComponents.loading_button>
+        </div>
       </:footer>
     </CoreComponents.modal>
     """

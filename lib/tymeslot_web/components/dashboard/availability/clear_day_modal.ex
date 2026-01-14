@@ -38,7 +38,7 @@ defmodule TymeslotWeb.Components.Dashboard.Availability.ClearDayModal do
   @spec clear_day_modal(map()) :: Phoenix.LiveView.Rendered.t()
   def clear_day_modal(assigns) do
     ~H"""
-    <CoreComponents.modal id={@id} show={@show} on_cancel={@on_cancel}>
+    <CoreComponents.modal id={@id} show={@show} on_cancel={@on_cancel} size={:medium}>
       <:header>
         <div class="flex items-center gap-2">
           <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -54,21 +54,25 @@ defmodule TymeslotWeb.Components.Dashboard.Availability.ClearDayModal do
       </:header>
 
       <%= if @day_data do %>
-        <p>
-          Are you sure you want to clear all settings for <strong><%= @day_data.day_name %></strong>?
-        </p>
-        <p class="mt-2 text-sm text-gray-600">
-          This will remove all availability hours and breaks for this day. This action cannot be undone.
-        </p>
+        <div class="space-y-4">
+          <p class="text-tymeslot-600 font-medium text-lg leading-relaxed">
+            Are you sure you want to clear all settings for <strong><%= @day_data.day_name %></strong>?
+          </p>
+          <p class="text-tymeslot-500 font-medium">
+            This will remove all availability hours and breaks for this day. This action cannot be undone.
+          </p>
+        </div>
       <% end %>
 
       <:footer>
-        <CoreComponents.action_button variant={:secondary} phx-click={@on_cancel}>
-          Cancel
-        </CoreComponents.action_button>
-        <CoreComponents.action_button variant={:danger} phx-click={@on_confirm}>
-          Clear All Settings
-        </CoreComponents.action_button>
+        <div class="flex justify-end gap-3">
+          <CoreComponents.action_button variant={:secondary} phx-click={@on_cancel}>
+            Cancel
+          </CoreComponents.action_button>
+          <CoreComponents.action_button variant={:danger} phx-click={@on_confirm}>
+            Clear All Settings
+          </CoreComponents.action_button>
+        </div>
       </:footer>
     </CoreComponents.modal>
     """

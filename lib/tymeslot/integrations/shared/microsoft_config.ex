@@ -6,6 +6,7 @@ defmodule Tymeslot.Integrations.Shared.MicrosoftConfig do
   @doc """
   Returns the Microsoft Client ID from configuration or environment variables.
   """
+  @spec client_id() :: String.t() | nil
   def client_id do
     Application.get_env(:tymeslot, :outlook_oauth)[:client_id] ||
       System.get_env("OUTLOOK_CLIENT_ID")
@@ -14,6 +15,7 @@ defmodule Tymeslot.Integrations.Shared.MicrosoftConfig do
   @doc """
   Returns the Microsoft Client Secret from configuration or environment variables.
   """
+  @spec client_secret() :: String.t() | nil
   def client_secret do
     Application.get_env(:tymeslot, :outlook_oauth)[:client_secret] ||
       System.get_env("OUTLOOK_CLIENT_SECRET")
@@ -22,6 +24,7 @@ defmodule Tymeslot.Integrations.Shared.MicrosoftConfig do
   @doc """
   Returns the state secret used for OAuth CSRF protection.
   """
+  @spec state_secret() :: String.t() | nil
   def state_secret do
     Application.get_env(:tymeslot, :outlook_oauth)[:state_secret] ||
       System.get_env("OUTLOOK_STATE_SECRET")
@@ -30,6 +33,7 @@ defmodule Tymeslot.Integrations.Shared.MicrosoftConfig do
   @doc """
   Fetches client_id and returns it in a tagged tuple or error.
   """
+  @spec fetch_client_id() :: {:ok, String.t()} | {:error, String.t()}
   def fetch_client_id do
     case client_id() do
       id when is_binary(id) and byte_size(id) > 0 -> {:ok, id}
@@ -40,6 +44,7 @@ defmodule Tymeslot.Integrations.Shared.MicrosoftConfig do
   @doc """
   Fetches client_secret and returns it in a tagged tuple or error.
   """
+  @spec fetch_client_secret() :: {:ok, String.t()} | {:error, String.t()}
   def fetch_client_secret do
     case client_secret() do
       secret when is_binary(secret) and byte_size(secret) > 0 -> {:ok, secret}

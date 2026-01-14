@@ -98,8 +98,17 @@ defmodule Tymeslot.Integrations.Calendar.ICalParser do
     |> Enum.map(&parse_event_block/1)
     |> Enum.filter(fn event ->
       # Only include valid events that haven't ended yet
-      event != nil && event.end_time && DateTime.compare(event.end_time, now) != :lt
+      event != nil && event.end_time && compare_end_time(event.end_time, now) != :lt
     end)
+  end
+
+  defp compare_end_time(%DateTime{} = dt, now), do: DateTime.compare(dt, now)
+
+  defp compare_end_time(%Date{} = date, now) do
+    # For all-day events, the end date (DTEND) is non-inclusive (starts at 00:00:00).
+    # We compare with the start of that day in UTC.
+    {:ok, dt} = DateTime.new(date, ~T[00:00:00], "Etc/UTC")
+    DateTime.compare(dt, now)
   end
 
   defp extract_vevent_blocks(content) do
@@ -242,9 +251,8 @@ defmodule Tymeslot.Integrations.Calendar.ICalParser do
              {year, ""} <- Integer.parse(y1),
              {month, ""} <- Integer.parse(m1),
              {day, ""} <- Integer.parse(d1),
-             {:ok, date} <- Date.new(year, month, day),
-             {:ok, dt} <- DateTime.new(date, ~T[00:00:00], "Etc/UTC") do
-          dt
+             {:ok, date} <- Date.new(year, month, day) do
+          date
         else
           _ -> nil
         end
@@ -252,14 +260,31 @@ defmodule Tymeslot.Integrations.Calendar.ICalParser do
   end
 
   defp calculate_end_time(nil, _), do: nil
-  # Default 1 hour
-  defp calculate_end_time(start_time, nil), do: DateTime.add(start_time, 3600, :second)
 
-  defp calculate_end_time(start_time, duration_str) do
+  # Default 1 hour for DateTime, 1 day for Date
+  defp calculate_end_time(%DateTime{} = start_time, nil), do: DateTime.add(start_time, 3600, :second)
+  defp calculate_end_time(%Date{} = start_time, nil), do: Date.add(start_time, 1)
+
+  defp calculate_end_time(%DateTime{} = start_time, duration_str) do
     # Parse ISO 8601 duration (simplified - only handles basic cases)
     case DateTimeUtils.parse_duration(duration_str) do
       {:ok, seconds} -> DateTime.add(start_time, seconds, :second)
       _ -> DateTime.add(start_time, 3600, :second)
+    end
+  end
+
+  defp calculate_end_time(%Date{} = start_time, duration_str) do
+    # For all-day events with duration, we calculate the number of days.
+    # RFC 5545 durations like PT1H30M or P1D
+    case DateTimeUtils.parse_duration(duration_str) do
+      {:ok, seconds} ->
+        # Convert seconds to days, rounding up to at least 1 day
+        days = div(seconds, 86_400)
+        Date.add(start_time, max(days, 1))
+
+      _ ->
+        # Fallback to 1 day
+        Date.add(start_time, 1)
     end
   end
 

@@ -291,6 +291,7 @@ defmodule TymeslotWeb.Themes.Quill.Meeting.Cancel do
                     phx-click="keep_meeting"
                     variant={:secondary}
                     data-testid="keep-meeting"
+                    disabled={@loading}
                     class="flex-1"
                   >
                     Keep Meeting

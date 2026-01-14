@@ -362,23 +362,6 @@ body,
 }
 
 
-/* Onboarding Modal */
-.onboarding-modal-overlay {
-  @apply fixed inset-0 z-50 overflow-y-auto;
-}
-
-.onboarding-modal-container {
-  @apply flex items-center justify-center min-h-screen p-6;
-}
-
-.onboarding-modal-backdrop {
-  @apply fixed inset-0 bg-tymeslot-900/60 backdrop-blur-sm;
-}
-
-.onboarding-modal-content {
-  @apply relative max-w-md w-full;
-}
-
 /* Onboarding Form Styling */
 .onboarding-form {
   @apply space-y-8;

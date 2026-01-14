@@ -228,7 +228,7 @@ defmodule Tymeslot.Integrations.Calendar.Outlook.CalendarAPITest do
         insert(:calendar_integration,
           user: user,
           provider: "outlook",
-          access_token_encrypted: Tymeslot.Security.Encryption.encrypt("valid_token"),
+          access_token_encrypted: Encryption.encrypt("valid_token"),
           token_expires_at: DateTime.add(DateTime.utc_now(), 3600)
         )
 

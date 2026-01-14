@@ -141,6 +141,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.BookingComponent do
                         phx-target={@myself}
                         data-testid="back-step"
                         variant={:secondary}
+                        disabled={@submitting}
                         class="flex-1"
                       >
                         ← {gettext("back")}

@@ -66,95 +66,22 @@ defmodule Tymeslot.Infrastructure.CacheStore do
 
       @impl true
       def init(_opts) do
-        :ets.new(@table_name, [
-          :named_table,
-          :public,
-          :set,
-          read_concurrency: true
-        ])
-
-        CacheStore.schedule_cleanup(@cleanup_interval)
-        {:ok, %{pending: %{}}}
+        CacheStore.init_cache(@table_name, @cleanup_interval)
       end
 
       @impl true
       def handle_call({:compute_coalesced, key, fun, ttl}, from, state) do
-        # Double-check lookup inside the GenServer to handle race between
-        # the initial lookup and reaching the GenServer.
-        case CacheStore.lookup(@table_name, key) do
-          {:ok, value} ->
-            {:reply, value, state}
-
-          :miss ->
-            case Map.get(state.pending, key) do
-              nil ->
-                # No computation in flight, start one
-                parent = self()
-
-                {:ok, pid} =
-                  Task.start(fn ->
-                    value =
-                      try do
-                        fun.()
-                      catch
-                        kind, reason ->
-                          exit({kind, reason, __STACKTRACE__})
-                      end
-
-                    send(parent, {:computation_done, key, value, ttl})
-                  end)
-
-                ref = Process.monitor(pid)
-                new_state = put_in(state.pending[key], %{waiters: [from], ref: ref})
-                {:noreply, new_state}
-
-              %{waiters: waiters} = pending ->
-                # Already computing, add this caller to waiters
-                new_state = put_in(state.pending[key].waiters, [from | waiters])
-                {:noreply, new_state}
-            end
-        end
+        CacheStore.handle_compute_coalesced(@table_name, key, fun, ttl, from, state)
       end
 
       @impl true
       def handle_info({:computation_done, key, value, ttl}, state) do
-        case Map.pop(state.pending, key) do
-          {nil, _} ->
-            {:noreply, state}
-
-          {%{waiters: waiters, ref: ref}, pending} ->
-            Process.demonitor(ref, [:flush])
-
-            # Store in ETS
-            expiry = System.monotonic_time(:millisecond) + ttl
-            :ets.insert(@table_name, {key, value, expiry})
-
-            # Reply to everyone
-            Enum.each(waiters, fn waiter ->
-              GenServer.reply(waiter, value)
-            end)
-
-            {:noreply, %{state | pending: pending}}
-        end
+        CacheStore.handle_computation_done(@table_name, key, value, ttl, state)
       end
 
       @impl true
-      def handle_info({:DOWN, ref, :process, _pid, reason}, state) do
-        # Task crashed - find it and notify waiters
-        entry = Enum.find(state.pending, fn {_key, val} -> val.ref == ref end)
-
-        case entry do
-          {key, %{waiters: waiters}} ->
-            # Notify waiters about the failure so they don't time out
-            Enum.each(waiters, fn waiter ->
-              GenServer.reply(waiter, {:error, :computation_failed})
-            end)
-
-            {:noreply, %{state | pending: Map.delete(state.pending, key)}}
-
-          _ ->
-            {:noreply, state}
-        end
+      def handle_info({:DOWN, ref, :process, _pid, _reason}, state) do
+        CacheStore.handle_task_down(state, ref)
       end
 
       @impl true
@@ -165,7 +92,7 @@ defmodule Tymeslot.Infrastructure.CacheStore do
       end
 
       @impl true
-      def handle_info(msg, state) do
+      def handle_info(_msg, state) do
         {:noreply, state}
       end
 
@@ -174,6 +101,96 @@ defmodule Tymeslot.Infrastructure.CacheStore do
   end
 
   # Helpers to reduce quote block size
+
+  @doc false
+  @spec init_cache(atom(), integer()) :: {:ok, map()}
+  def init_cache(table_name, cleanup_interval) do
+    :ets.new(table_name, [
+      :named_table,
+      :public,
+      :set,
+      read_concurrency: true
+    ])
+
+    schedule_cleanup(cleanup_interval)
+    {:ok, %{pending: %{}}}
+  end
+
+  @doc false
+  @spec handle_compute_coalesced(atom(), any(), (-> any()), integer(), GenServer.from(), map()) ::
+          {:reply, any(), map()} | {:noreply, map()}
+  def handle_compute_coalesced(table_name, key, fun, ttl, from, state) do
+    case lookup(table_name, key) do
+      {:ok, value} ->
+        {:reply, value, state}
+
+      :miss ->
+        case Map.get(state.pending, key) do
+          nil ->
+            parent = self()
+
+            {:ok, pid} =
+              Task.start(fn ->
+                value =
+                  try do
+                    fun.()
+                  catch
+                    kind, reason ->
+                      exit({kind, reason, __STACKTRACE__})
+                  end
+
+                send(parent, {:computation_done, key, value, ttl})
+              end)
+
+            ref = Process.monitor(pid)
+            new_state = put_in(state.pending[key], %{waiters: [from], ref: ref})
+            {:noreply, new_state}
+
+          %{waiters: waiters} ->
+            new_state = put_in(state.pending[key].waiters, [from | waiters])
+            {:noreply, new_state}
+        end
+    end
+  end
+
+  @doc false
+  @spec handle_computation_done(atom(), any(), any(), integer(), map()) :: {:noreply, map()}
+  def handle_computation_done(table_name, key, value, ttl, state) do
+    case Map.pop(state.pending, key) do
+      {nil, _} ->
+        {:noreply, state}
+
+      {%{waiters: waiters, ref: ref}, pending} ->
+        Process.demonitor(ref, [:flush])
+
+        expiry = System.monotonic_time(:millisecond) + ttl
+        :ets.insert(table_name, {key, value, expiry})
+
+        Enum.each(waiters, fn waiter ->
+          GenServer.reply(waiter, value)
+        end)
+
+        {:noreply, %{state | pending: pending}}
+    end
+  end
+
+  @doc false
+  @spec handle_task_down(map(), reference()) :: {:noreply, map()}
+  def handle_task_down(state, ref) do
+    entry = Enum.find(state.pending, fn {_key, val} -> val.ref == ref end)
+
+    case entry do
+      {key, %{waiters: waiters}} ->
+        Enum.each(waiters, fn waiter ->
+          GenServer.reply(waiter, {:error, :computation_failed})
+        end)
+
+        {:noreply, %{state | pending: Map.delete(state.pending, key)}}
+
+      _ ->
+        {:noreply, state}
+    end
+  end
 
   @doc false
   @spec lookup(atom(), any()) :: {:ok, any()} | :miss

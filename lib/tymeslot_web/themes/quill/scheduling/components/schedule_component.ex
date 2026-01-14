@@ -194,15 +194,24 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ScheduleComponent do
                           <% end %>
                         </h2>
                         <div class="flex items-center gap-1 md:gap-2">
+                          <%= if @availability_status in [:error, :timeout] do %>
+                            <div class="text-xs text-amber-300 bg-amber-900/40 px-2 py-1 rounded border border-amber-700/50 flex items-center gap-1">
+                              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                              </svg>
+                              {gettext("Calendar is loading slowly")}
+                            </div>
+                          <% end %>
                           <button
                             phx-click="prev_month"
                             phx-target={@myself}
                             disabled={
-                              Helpers.prev_month_disabled?(
-                                @current_year,
-                                @current_month,
-                                @user_timezone
-                              )
+                              @availability_status == :loading or
+                                Helpers.prev_month_disabled?(
+                                  @current_year,
+                                  @current_month,
+                                  @user_timezone
+                                )
                             }
                             class="p-1 md:p-2 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                             style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3); hover:background: rgba(255,255,255,0.2);"
@@ -219,11 +228,12 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ScheduleComponent do
                             phx-click="next_month"
                             phx-target={@myself}
                             disabled={
-                              Helpers.next_month_disabled?(
-                                @current_year,
-                                @current_month,
-                                @user_timezone
-                              )
+                              @availability_status == :loading or
+                                Helpers.next_month_disabled?(
+                                  @current_year,
+                                  @current_month,
+                                  @user_timezone
+                                )
                             }
                             class="p-1 md:p-2 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                             style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3); hover:background: rgba(255,255,255,0.2);"
@@ -520,6 +530,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ScheduleComponent do
                             phx-value-time={slot}
                             slot={%{start_time: Helpers.parse_slot_time(slot)}}
                             selected={@selected_time == slot}
+                            disabled={@loading_slots}
                           />
                         <% end %>
                       </div>

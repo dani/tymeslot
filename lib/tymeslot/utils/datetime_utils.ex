@@ -355,26 +355,55 @@ defmodule Tymeslot.Utils.DateTimeUtils do
 
   @doc """
   Parses an ISO 8601 duration string (simplified).
+  Supports both time durations (PT1H) and day durations (P1D).
 
   ## Examples
 
       iex> parse_duration("PT1H30M")
       {:ok, 5400}  # 1 hour 30 minutes in seconds
 
-      iex> parse_duration("PT45M")
-      {:ok, 2700}  # 45 minutes in seconds
+      iex> parse_duration("P1D")
+      {:ok, 86400} # 1 day in seconds
   """
   @spec parse_duration(String.t()) :: {:ok, non_neg_integer()} | {:error, String.t()}
   def parse_duration(duration_str) when is_binary(duration_str) do
-    case Regex.run(~r/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/, duration_str) do
-      [_ | captures] ->
-        hours = parse_duration_component(Enum.at(captures, 0), 3600)
-        minutes = parse_duration_component(Enum.at(captures, 1), 60)
-        seconds = parse_duration_component(Enum.at(captures, 2), 1)
+    cond do
+      # Time duration: PT1H30M
+      String.starts_with?(duration_str, "PT") ->
+        case Regex.run(~r/^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/, duration_str) do
+          [_ | captures] ->
+            hours = parse_duration_component(Enum.at(captures, 0), 3600)
+            minutes = parse_duration_component(Enum.at(captures, 1), 60)
+            seconds = parse_duration_component(Enum.at(captures, 2), 1)
 
-        {:ok, hours + minutes + seconds}
+            if hours + minutes + seconds > 0 or duration_str == "PT0S" do
+              {:ok, hours + minutes + seconds}
+            else
+              {:error, "Invalid time duration values"}
+            end
 
-      _ ->
+          _ ->
+            {:error, "Invalid time duration format"}
+        end
+
+      # Day duration: P1D or P1W
+      String.starts_with?(duration_str, "P") ->
+        case Regex.run(~r/^P(?:(\d+)W)?(?:(\d+)D)?$/, duration_str) do
+          [_ | captures] ->
+            weeks = parse_duration_component(Enum.at(captures, 0), 86_400 * 7)
+            days = parse_duration_component(Enum.at(captures, 1), 86_400)
+
+            if weeks + days > 0 or duration_str == "P0D" do
+              {:ok, weeks + days}
+            else
+              {:error, "Unsupported or invalid duration format"}
+            end
+
+          _ ->
+            {:error, "Invalid day/week duration format or unsupported components"}
+        end
+
+      true ->
         {:error, "Invalid duration format"}
     end
   end
@@ -395,23 +424,6 @@ defmodule Tymeslot.Utils.DateTimeUtils do
 
       _ ->
         {:error, "Invalid datetime format"}
-    end
-  end
-
-  defp parse_date_only(date_str) do
-    case Regex.run(~r/(\d{4})(\d{2})(\d{2})/, date_str) do
-      [_, year, month, day] ->
-        NaiveDateTime.new(
-          String.to_integer(year),
-          String.to_integer(month),
-          String.to_integer(day),
-          0,
-          0,
-          0
-        )
-
-      _ ->
-        {:error, "Invalid date format"}
     end
   end
 
