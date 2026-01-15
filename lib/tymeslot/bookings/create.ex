@@ -42,6 +42,8 @@ defmodule Tymeslot.Bookings.Create do
     with {:ok, booking_data} <- prepare_booking_data(meeting_params, form_data),
          {:ok, :validated} <- validate_booking(booking_data, opts) do
       create_meeting_and_all_side_effects_atomically(booking_data, opts)
+    else
+      {:error, reason} -> {:error, map_error_to_message(reason)}
     end
   end
 
@@ -56,21 +58,25 @@ defmodule Tymeslot.Bookings.Create do
   def execute_with_video_room(meeting_params, form_data, opts \\ []) do
     opts = Keyword.put(opts, :with_video_room, true)
 
-    with {:ok, booking_data} <- prepare_booking_data(meeting_params, form_data) do
-      # Try calendar pre-check for better UX
-      case fresh_calendar_check(booking_data) do
-        :ok ->
-          # Calendar shows available, proceed normally
-          execute_internal(booking_data, form_data, opts)
+    case prepare_booking_data(meeting_params, form_data) do
+      {:ok, booking_data} ->
+        # Try calendar pre-check for better UX
+        case fresh_calendar_check(booking_data) do
+          :ok ->
+            # Calendar shows available, proceed normally
+            execute_internal(booking_data, form_data, opts)
 
-        {:error, :slot_unavailable} ->
-          # Fail fast for better UX
-          {:error, "This time slot is no longer available. Please select a different time."}
+          {:error, :slot_unavailable} ->
+            # Fail fast for better UX
+            {:error, map_error_to_message(:slot_unavailable)}
 
-        {:error, _reason} ->
-          # Calendar check failed, but continue with atomic booking
-          execute_internal(booking_data, form_data, opts)
-      end
+          {:error, _reason} ->
+            # Calendar check failed, but continue with atomic booking
+            execute_internal(booking_data, form_data, opts)
+        end
+
+      {:error, reason} ->
+        {:error, map_error_to_message(reason)}
     end
   end
 
@@ -100,7 +106,9 @@ defmodule Tymeslot.Bookings.Create do
         user_timezone: meeting_params.user_timezone,
         form_data: form_data,
         date: date,
-        organizer_user_id: Map.get(meeting_params, :organizer_user_id)
+        organizer_user_id: Map.get(meeting_params, :organizer_user_id),
+        meeting_type_id: Map.get(meeting_params, :meeting_type_id),
+        video_integration_id: Map.get(meeting_params, :video_integration_id)
       }
 
       {:ok, booking_data}
@@ -126,22 +134,37 @@ defmodule Tymeslot.Bookings.Create do
         {:error, :organizer_required}
 
       user_id ->
-        config = Policy.scheduling_config(user_id)
+        # Meeting type active check
+        with :ok <- validate_meeting_type_active(booking_data, user_id) do
+          config = Policy.scheduling_config(user_id)
 
-        # Time window validation
-        with :ok <-
-               Validation.validate_booking_time(
-                 booking_data.start_datetime,
-                 booking_data.user_timezone,
-                 config
-               ) do
-          # Optional fresh calendar validation
-          if Keyword.get(opts, :skip_calendar_check, false) do
-            {:ok, :validated}
-          else
-            validate_calendar_availability(booking_data, config)
+          # Time window validation
+          with :ok <-
+                 Validation.validate_booking_time(
+                   booking_data.start_datetime,
+                   booking_data.user_timezone,
+                   config
+                 ) do
+            # Optional fresh calendar validation
+            if Keyword.get(opts, :skip_calendar_check, false) do
+              {:ok, :validated}
+            else
+              validate_calendar_availability(booking_data, config)
+            end
           end
         end
+    end
+  end
+
+  defp validate_meeting_type_active(%{meeting_type_id: nil}, _user_id), do: :ok
+
+  defp validate_meeting_type_active(%{meeting_type_id: type_id}, user_id) do
+    alias Tymeslot.MeetingTypes
+
+    case MeetingTypes.get_meeting_type(type_id, user_id) do
+      nil -> :ok
+      %{is_active: true} -> :ok
+      _ -> {:error, :meeting_type_inactive}
     end
   end
 
@@ -212,8 +235,12 @@ defmodule Tymeslot.Bookings.Create do
   end
 
   defp execute_internal(booking_data, _form_data, opts) do
-    with {:ok, :validated} <- validate_booking(booking_data, opts) do
-      create_meeting_and_all_side_effects_atomically(booking_data, opts)
+    case validate_booking(booking_data, opts) do
+      {:ok, :validated} ->
+        create_meeting_and_all_side_effects_atomically(booking_data, opts)
+
+      {:error, reason} ->
+        {:error, map_error_to_message(reason)}
     end
   end
 
@@ -258,26 +285,49 @@ defmodule Tymeslot.Bookings.Create do
 
   defp map_transaction_result({:ok, meeting}), do: {:ok, meeting}
 
-  defp map_transaction_result({:error, :time_conflict}),
-    do: {:error, "This time slot is no longer available. Please select a different time."}
+  defp map_transaction_result({:error, reason}), do: {:error, map_error_to_message(reason)}
 
-  defp map_transaction_result({:error, :validation_error}),
-    do: {:error, "Failed to save meeting to database"}
+  defp map_error_to_message(reason) do
+    case reason do
+      :meeting_type_inactive ->
+        "This meeting type is no longer available. Please refresh the page."
 
-  defp map_transaction_result({:error, _reason}),
-    do: {:error, "Failed to save meeting to database"}
+      :time_conflict ->
+        "This time slot is no longer available. Please select a different time."
+
+      :slot_unavailable ->
+        "This time slot is no longer available. Please select a different time."
+
+      :organizer_required ->
+        "Organizer is required for booking"
+
+      :validation_error ->
+        "Failed to save meeting to database"
+
+      reason when is_binary(reason) ->
+        reason
+
+      _ ->
+        "Failed to save meeting to database"
+    end
+  end
 
   defp handle_post_creation_effects(meeting, opts) do
     # Calendar job was scheduled atomically with meeting creation
 
-    # If explicitly requested, always create video room first and send emails after
+    # If explicitly requested, create video room first when a provider is configured
     if Keyword.get(opts, :with_video_room, false) do
-      schedule_video_room_with_emails(meeting)
+      if meeting.video_integration_id do
+        schedule_video_room_with_emails(meeting)
+      else
+        # No video provider configured, skip video job
+        schedule_email_notifications(meeting)
+      end
     else
-      # Auto-detect: if the organizer has a default video provider configured that supports
+      # Auto-detect: if the meeting has a specific video provider configured that supports
       # API-based room creation, create the video room before sending emails so the email
       # includes the join link.
-      case default_video_provider_for(meeting.organizer_user_id) do
+      case video_provider_for(meeting) do
         {:ok, provider} when provider in [:mirotalk, :google_meet, :teams] ->
           schedule_video_room_with_emails(meeting)
 
@@ -309,10 +359,14 @@ defmodule Tymeslot.Bookings.Create do
     end
   end
 
-  defp default_video_provider_for(nil), do: {:error, :organizer_required}
+  defp video_provider_for(meeting) do
+    integration_result =
+      case meeting.video_integration_id do
+        nil -> {:error, :not_found}
+        id -> VideoIntegrationQueries.get_for_user(id, meeting.organizer_user_id)
+      end
 
-  defp default_video_provider_for(user_id) do
-    case VideoIntegrationQueries.get_default_for_user(user_id) do
+    case integration_result do
       {:ok, integration} ->
         # Convert stored provider string (e.g., "google_meet") to atom if known
         raw_provider =

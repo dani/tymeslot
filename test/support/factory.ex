@@ -5,6 +5,7 @@ defmodule Tymeslot.Factory do
 
   use ExMachina.Ecto, repo: Tymeslot.Repo
 
+  alias Ecto.UUID
   alias Tymeslot.DatabaseSchemas.AvailabilityBreakSchema
   alias Tymeslot.DatabaseSchemas.AvailabilityOverrideSchema
   alias Tymeslot.DatabaseSchemas.CalendarIntegrationSchema
@@ -27,7 +28,7 @@ defmodule Tymeslot.Factory do
     end_time = DateTime.add(start_time, 60, :minute)
 
     %MeetingSchema{
-      uid: Ecto.UUID.generate(),
+      uid: UUID.generate(),
       title: "Test Meeting",
       summary: "Test Meeting Summary",
       description: sequence(:description, &"Meeting description #{&1}"),
@@ -162,7 +163,6 @@ defmodule Tymeslot.Factory do
       access_token: "test-access-token",
       refresh_token: "test-refresh-token",
       is_active: true,
-      is_default: false,
       settings: %{},
       user: build(:user)
     }

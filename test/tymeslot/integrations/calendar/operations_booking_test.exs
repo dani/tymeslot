@@ -35,7 +35,7 @@ defmodule Tymeslot.Integrations.Calendar.OperationsBookingTest do
           ]
         )
 
-      assert {:ok, %{integration_id: id, calendar_path: "cal-123"}} =
+      assert {:ok, %{integration_id: id, calendar_path: "/dav/cal-123"}} =
                Operations.get_booking_integration_info(user.id)
 
       assert id == integration.id

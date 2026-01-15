@@ -63,7 +63,8 @@ defmodule Tymeslot.Integrations.Calendar.Outlook.CalendarAPITest do
         assert String.contains?(url, "endDateTime=")
 
         assert Enum.any?(headers, fn {k, v} ->
-                 String.downcase(k) == "prefer" and String.contains?(v, "outlook.timezone=\"UTC\"")
+                 String.downcase(k) == "prefer" and
+                   String.contains?(v, "outlook.timezone=\"UTC\"")
                end)
 
         {:ok,

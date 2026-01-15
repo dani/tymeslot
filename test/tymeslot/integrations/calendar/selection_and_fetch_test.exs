@@ -37,25 +37,7 @@ defmodule Tymeslot.Integrations.Calendar.SelectionAndFetchTest do
   end
 
   describe "update_calendar_selection/2" do
-    test "rejects default booking calendars that are not selected" do
-      integration = %{
-        user_id: 1,
-        id: 10,
-        calendar_list: [
-          %{"id" => "work", "selected" => false, "path" => "/cal/work"}
-        ]
-      }
-
-      params = %{
-        "selected_calendars" => [],
-        "default_booking_calendar" => "work"
-      }
-
-      assert {:error, :invalid_default_calendar} ==
-               Selection.update_calendar_selection(integration, params)
-    end
-
-    test "persists selected calendars and sets default when provided" do
+    test "persists selected calendars" do
       user = insert(:user)
 
       integration =
@@ -69,12 +51,10 @@ defmodule Tymeslot.Integrations.Calendar.SelectionAndFetchTest do
         )
 
       params = %{
-        "selected_calendars" => ["team"],
-        "default_booking_calendar" => "team"
+        "selected_calendars" => ["team"]
       }
 
       assert {:ok, updated} = Selection.update_calendar_selection(integration, params)
-      assert updated.default_booking_calendar_id == "team"
 
       assert [{"team", true}, {"work", false}] =
                updated.calendar_list

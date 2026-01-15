@@ -10,6 +10,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm do
   # Follow project rule: ALWAYS alias nested modules and organize alphabetically within groups
   alias Phoenix.LiveView.JS
   alias Tymeslot.DatabaseSchemas.MeetingTypeSchema
+  alias Tymeslot.Integrations.Calendar
   alias Tymeslot.Security.MeetingSettingsInputProcessor
   alias TymeslotWeb.Dashboard.MeetingSettings.Helpers
 
@@ -33,6 +34,10 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm do
      |> assign(:selected_icon, "none")
      |> assign(:meeting_mode, "personal")
      |> assign(:selected_video_integration_id, nil)
+     |> assign(:selected_calendar_integration_id, nil)
+     |> assign(:selected_target_calendar_id, nil)
+     |> assign(:available_calendars, [])
+     |> assign(:refreshing_calendars, false)
      |> assign(:__initialized__, false)}
   end
 
@@ -266,6 +271,134 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm do
           </div>
         <% end %>
       </div>
+
+      <div class="pt-4 border-t border-tymeslot-100">
+        <label class="label">
+          Booking Destination
+        </label>
+        <p class="text-token-sm text-tymeslot-600 mb-4">
+          Choose where new bookings for this meeting type should be created.
+        </p>
+
+        <div class="space-y-4">
+          <div>
+            <label class="label text-token-sm">
+              1. Select Calendar Account
+            </label>
+            <%= if @calendar_integrations == [] do %>
+              <div class="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-token-lg">
+                <p class="text-token-sm text-yellow-700">
+                  No calendar integrations configured.
+                  <a href="/dashboard/calendar-settings" class="underline hover:text-yellow-800">
+                    Connect a calendar
+                  </a>
+                </p>
+              </div>
+            <% else %>
+              <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                <%= for integration <- @calendar_integrations do %>
+                  <button
+                    type="button"
+                    disabled={@refreshing_calendars}
+                    phx-click={
+                      JS.push("select_calendar_integration",
+                        value: %{id: integration.id},
+                        target: @myself
+                      )
+                    }
+                    class={[
+                      "glass-selector !h-20",
+                      if(@selected_calendar_integration_id == integration.id, do: "glass-selector--active"),
+                      if(@refreshing_calendars, do: "opacity-50 cursor-not-allowed")
+                    ]}
+                    title={integration.name}
+                  >
+                    <div class="flex flex-col items-center justify-center space-y-1">
+                      <.provider_icon provider={integration.provider} size="compact" />
+                      <span class="text-token-sm font-medium truncate max-w-full">
+                        {integration.name}
+                      </span>
+                    </div>
+                  </button>
+                <% end %>
+              </div>
+              <%= if errors = Map.get(@form_errors, :calendar_integration) do %>
+                <p class="form-error mt-2">{Helpers.format_errors(errors)}</p>
+              <% end %>
+            <% end %>
+          </div>
+
+          <%= if @selected_calendar_integration_id do %>
+            <div class="animate-in fade-in slide-in-from-top-2 duration-300">
+              <label class="label text-token-sm">
+                2. Select Specific Calendar
+              </label>
+              <%= if @refreshing_calendars do %>
+                <div class="flex items-center space-x-2 p-4 bg-tymeslot-50 rounded-token-lg">
+                  <svg class="animate-spin h-4 w-4 text-teal-600" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span class="text-token-sm text-tymeslot-600 font-medium italic">Refreshing calendars...</span>
+                </div>
+              <% else %>
+                <%= if @available_calendars == [] do %>
+                  <p class="text-token-sm text-tymeslot-500 italic">
+                    No calendars found for this account.
+                  </p>
+                <% else %>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <%= for cal <- @available_calendars do %>
+                      <button
+                        type="button"
+                        phx-click={
+                          JS.push("select_target_calendar",
+                            value: %{id: cal["id"] || cal[:id]},
+                            target: @myself
+                          )
+                        }
+                        class={[
+                          "flex items-center p-3 rounded-token-lg border-2 transition-all text-left",
+                          if(@selected_target_calendar_id == (cal["id"] || cal[:id]),
+                            do: "bg-teal-50 border-teal-500 shadow-sm",
+                            else: "bg-white border-tymeslot-100 hover:border-teal-200"
+                          )
+                        ]}
+                      >
+                        <div class={[
+                          "w-4 h-4 rounded-full border-2 mr-3 flex items-center justify-center",
+                          if(@selected_target_calendar_id == (cal["id"] || cal[:id]),
+                            do: "border-teal-500 bg-teal-500",
+                            else: "border-tymeslot-300"
+                          )
+                        ]}>
+                          <%= if @selected_target_calendar_id == (cal["id"] || cal[:id]) do %>
+                            <svg class="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
+                            </svg>
+                          <% end %>
+                        </div>
+                        <span class={[
+                          "text-token-sm font-medium truncate",
+                          if(@selected_target_calendar_id == (cal["id"] || cal[:id]),
+                            do: "text-teal-900",
+                            else: "text-tymeslot-700"
+                          )
+                        ]}>
+                          {Calendar.extract_calendar_display_name(cal)}
+                        </span>
+                      </button>
+                    <% end %>
+                  </div>
+                  <%= if errors = Map.get(@form_errors, :target_calendar) do %>
+                    <p class="form-error mt-2">{Helpers.format_errors(errors)}</p>
+                  <% end %>
+                <% end %>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      </div>
       
     <!-- Hidden fields -->
       <input
@@ -278,6 +411,16 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm do
         type="hidden"
         name="meeting_type[video_integration_id]"
         value={@selected_video_integration_id}
+      />
+      <input
+        type="hidden"
+        name="meeting_type[calendar_integration_id]"
+        value={@selected_calendar_integration_id}
+      />
+      <input
+        type="hidden"
+        name="meeting_type[target_calendar_id]"
+        value={@selected_target_calendar_id}
       />
       <input type="hidden" name="meeting_type[icon]" value={@selected_icon} />
 
@@ -294,7 +437,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm do
         >
           Cancel
         </button>
-        <button type="submit" disabled={@saving} class="btn btn-primary">
+        <button type="submit" disabled={@saving || @refreshing_calendars} class="btn btn-primary">
           <%= if @saving do %>
             <span class="flex items-center">
               <svg class="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24">
@@ -351,13 +494,6 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm do
     socket =
       socket
       |> assign(:meeting_mode, mode)
-      |> assign(
-        :selected_video_integration_id,
-        if(mode == "video" && length(socket.assigns.video_integrations || []) == 1,
-          do: hd(socket.assigns.video_integrations).id,
-          else: nil
-        )
-      )
       |> assign(:form_errors, Map.delete(socket.assigns.form_errors, :video_integration))
 
     {:noreply, socket}
@@ -380,6 +516,38 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm do
       socket
       |> assign(:selected_video_integration_id, integration_id)
       |> assign(:form_errors, Map.delete(socket.assigns.form_errors, :video_integration))
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("select_calendar_integration", %{"id" => id}, socket) do
+    integration_id =
+      case id do
+        id when is_binary(id) -> String.to_integer(id)
+        id when is_integer(id) -> id
+      end
+
+    # Send a message to parent to fetch fresh calendars
+    send(self(), {:refresh_calendar_list, socket.assigns.id, integration_id})
+
+    socket =
+      socket
+      |> assign(:selected_calendar_integration_id, integration_id)
+      |> assign(:refreshing_calendars, true)
+      |> assign(:available_calendars, [])
+      |> assign(:selected_target_calendar_id, nil)
+      |> assign(:form_errors, Map.delete(socket.assigns.form_errors, :calendar_integration))
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("select_target_calendar", %{"id" => id}, socket) do
+    socket =
+      socket
+      |> assign(:selected_target_calendar_id, id)
+      |> assign(:form_errors, Map.delete(socket.assigns.form_errors, :target_calendar))
 
     {:noreply, socket}
   end
@@ -437,6 +605,15 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm do
     |> assign(:selected_icon, get_selected_icon(type))
     |> assign(:meeting_mode, get_meeting_mode(type))
     |> assign(:selected_video_integration_id, get_video_integration_id(type))
+    |> assign(:selected_calendar_integration_id, get_calendar_integration_id(type))
+    |> assign(:selected_target_calendar_id, get_target_calendar_id(type))
+    |> then(fn socket ->
+      if id = socket.assigns.selected_calendar_integration_id do
+        assign(socket, :available_calendars, fetch_available_calendars(id, socket.assigns.calendar_integrations))
+      else
+        socket
+      end
+    end)
     |> assign(:form_data, build_form_data(type))
     |> assign(:__initialized__, true)
   end
@@ -460,6 +637,24 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm do
   end
 
   defp get_video_integration_id(_), do: nil
+
+  defp get_calendar_integration_id(nil), do: nil
+  defp get_calendar_integration_id(%{calendar_integration_id: nil}), do: nil
+  defp get_calendar_integration_id(%{calendar_integration_id: id}), do: id
+
+  defp get_target_calendar_id(nil), do: nil
+  defp get_target_calendar_id(%{target_calendar_id: nil}), do: nil
+  defp get_target_calendar_id(%{target_calendar_id: id}), do: id
+
+  defp fetch_available_calendars(integration_id, integrations) do
+    integration = Enum.find(integrations, &(&1.id == integration_id))
+
+    if integration && integration.calendar_list do
+      integration.calendar_list
+    else
+      []
+    end
+  end
 
   defp build_form_data(nil) do
     %{"name" => "", "duration" => "30", "description" => "", "icon" => "none"}

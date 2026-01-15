@@ -64,7 +64,7 @@ defmodule Tymeslot.Bookings.CreateTest do
 
     @spec start_link() :: {:ok, pid()} | {:error, term()}
     def start_link do
-      Agent.start_link(fn -> %{response: {:ok, []}} end, name: __MODULE__)
+      Agent.start_link(fn -> %{response: {:ok, []}, integration_info: {:error, :no_integration}} end, name: __MODULE__)
     end
 
     @spec get_events_for_range_fresh(integer(), Date.t(), Date.t()) ::
@@ -77,14 +77,19 @@ defmodule Tymeslot.Bookings.CreateTest do
       end
     end
 
-    @spec get_booking_integration_info(integer()) :: {:ok, map()} | {:error, term()}
-    def get_booking_integration_info(_user_id) do
-      {:error, :no_integration}
+    @spec get_booking_integration_info(integer() | map()) :: {:ok, map()} | {:error, term()}
+    def get_booking_integration_info(_context) do
+      Agent.get(__MODULE__, & &1.integration_info)
     end
 
     @spec set_response(term()) :: :ok
     def set_response(response) do
-      Agent.update(__MODULE__, fn _ -> %{response: response} end)
+      Agent.update(__MODULE__, fn state -> %{state | response: response} end)
+    end
+
+    @spec set_integration_info(term()) :: :ok
+    def set_integration_info(info) do
+      Agent.update(__MODULE__, fn state -> %{state | integration_info: info} end)
     end
 
     @spec stop() :: :ok
@@ -151,9 +156,8 @@ defmodule Tymeslot.Bookings.CreateTest do
 
       set_calendar_events([conflicting_event])
 
-      # Validation should detect conflict and return slot_unavailable
-      # This gets converted to user-friendly error message in Orchestrator
-      assert {:error, :slot_unavailable} =
+      # Validation should detect conflict and return user-friendly error message
+      assert {:error, "This time slot is no longer available. Please select a different time."} =
                Create.execute(meeting_params, form_data, skip_calendar_check: false)
     end
 
@@ -204,6 +208,125 @@ defmodule Tymeslot.Bookings.CreateTest do
       # Should succeed despite calendar error
       assert {:ok, meeting} = Create.execute(meeting_params, form_data)
       assert meeting.uid != nil
+    end
+
+    test "inherits calendar and video settings from meeting type", %{
+      user: user,
+      form_data: form_data
+    } do
+      # Set up integrations
+      calendar_int = insert(:calendar_integration, user: user)
+      video_int = insert(:video_integration, user: user)
+
+      # Create meeting type with specific settings
+      meeting_type =
+        insert(:meeting_type,
+          user: user,
+          calendar_integration: calendar_int,
+          target_calendar_id: "specific-cal-123",
+          video_integration: video_int,
+          allow_video: true
+        )
+
+      # Mock calendar behavior for this meeting type
+      MockCalendar.set_integration_info(
+        {:ok, %{integration_id: calendar_int.id, calendar_path: "specific-cal-123"}}
+      )
+
+      # Set mock calendar to return empty events (no conflicts)
+      set_calendar_empty()
+
+      meeting_params = %{
+        date: Date.add(Date.utc_today(), 1),
+        time: "10:00",
+        duration: "30min",
+        user_timezone: "UTC",
+        organizer_user_id: user.id,
+        meeting_type_id: meeting_type.id
+      }
+
+      assert {:ok, meeting} = Create.execute(meeting_params, form_data)
+
+      # Verify meeting record inherits settings
+      assert meeting.meeting_type_id == meeting_type.id
+      assert meeting.video_integration_id == video_int.id
+      assert meeting.calendar_integration_id == calendar_int.id
+      assert meeting.calendar_path == "specific-cal-123"
+      assert meeting.meeting_type == meeting_type.name
+    end
+
+    test "ignores meeting_type_id that does not belong to organizer", %{
+      user: user,
+      form_data: form_data
+    } do
+      other_user = insert(:user)
+      _profile = insert(:profile, user: other_user)
+
+      other_meeting_type = insert(:meeting_type, user: other_user)
+
+      set_calendar_empty()
+
+      meeting_params = %{
+        date: Date.add(Date.utc_today(), 1),
+        time: "10:30",
+        duration: "30min",
+        user_timezone: "UTC",
+        organizer_user_id: user.id,
+        meeting_type_id: other_meeting_type.id
+      }
+
+      assert {:ok, meeting} = Create.execute(meeting_params, form_data)
+
+      assert meeting.meeting_type_id == nil
+      assert meeting.meeting_type == "General Meeting"
+      assert meeting.video_integration_id == nil
+    end
+
+    test "ignores video_integration_id that does not belong to organizer", %{
+      user: user,
+      form_data: form_data
+    } do
+      other_user = insert(:user)
+      _profile = insert(:profile, user: other_user)
+
+      other_video_integration = insert(:video_integration, user: other_user)
+
+      set_calendar_empty()
+
+      meeting_params = %{
+        date: Date.add(Date.utc_today(), 1),
+        time: "11:00",
+        duration: "30min",
+        user_timezone: "UTC",
+        organizer_user_id: user.id,
+        video_integration_id: other_video_integration.id
+      }
+
+      assert {:ok, meeting} = Create.execute(meeting_params, form_data)
+
+      assert meeting.video_integration_id == nil
+      assert meeting.meeting_type == "General Meeting"
+    end
+
+    test "fails when meeting type is inactive", %{
+      user: user,
+      form_data: form_data
+    } do
+      meeting_type = insert(:meeting_type, user: user, is_active: false)
+
+      set_calendar_empty()
+
+      meeting_params = %{
+        date: Date.add(Date.utc_today(), 1),
+        time: "12:00",
+        duration: "30min",
+        user_timezone: "UTC",
+        organizer_user_id: user.id,
+        meeting_type_id: meeting_type.id
+      }
+
+      assert {:error, "This meeting type is no longer available. Please refresh the page."} =
+               Create.execute(meeting_params, form_data)
     end
   end
 

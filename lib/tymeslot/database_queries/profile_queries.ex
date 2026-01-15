@@ -256,7 +256,7 @@ defmodule Tymeslot.DatabaseQueries.ProfileQueries do
   Sets the primary calendar integration for a user within a transaction.
   This ensures data consistency when updating the profile and clearing other integrations.
   """
-  @spec set_primary_calendar_integration_transactional(integer(), integer(), function()) ::
+  @spec set_primary_calendar_integration_transactional(integer(), integer(), function() | nil) ::
           {:ok, ProfileSchema.t()} | {:error, Ecto.Changeset.t() | term()}
   def set_primary_calendar_integration_transactional(user_id, integration_id, clear_others_fn) do
     Repo.transaction(fn ->
@@ -271,6 +271,8 @@ defmodule Tymeslot.DatabaseQueries.ProfileQueries do
       end
     end)
   end
+
+  defp run_clear_fun(nil), do: :ok
 
   defp run_clear_fun(fun) when is_function(fun, 0) do
     case fun.() do

@@ -42,11 +42,11 @@ defmodule Tymeslot.Integrations.Calendar.Outlook.Provider do
   @spec convert_events(list(map())) :: list(map())
   def convert_events(outlook_events) do
     outlook_events
-    |> Enum.filter(&is_busy_event?/1)
+    |> Enum.filter(&busy_event?/1)
     |> Enum.map(&convert_event/1)
   end
 
-  defp is_busy_event?(event) do
+  defp busy_event?(event) do
     # Filter out cancelled events and events marked as "free"
     # show_as can be: free, tentative, busy, oom, workingElsewhere, unknown
     # response_status can be: none, organizer, tentativelyAccepted, accepted, declined, notResponded

@@ -122,18 +122,22 @@ defmodule Tymeslot.Dashboard.DashboardContext do
   """
   @spec get_meeting_settings_data(integer()) :: %{
           meeting_types: list(),
-          video_integrations: list()
+          video_integrations: list(),
+          calendar_integrations: list()
         }
   def get_meeting_settings_data(user_id) when is_integer(user_id) do
     %{
       meeting_types: MeetingTypes.get_all_meeting_types(user_id),
-      video_integrations: VideoIntegrationQueries.list_active_for_user_public(user_id)
+      video_integrations: VideoIntegrationQueries.list_active_for_user_public(user_id),
+      calendar_integrations: CalendarManagement.list_active_calendar_integrations(user_id)
     }
   end
 
   @spec get_meeting_settings_data(nil | any()) :: %{
           meeting_types: list(),
-          video_integrations: list()
+          video_integrations: list(),
+          calendar_integrations: list()
         }
-  def get_meeting_settings_data(_user_id), do: %{meeting_types: [], video_integrations: []}
+  def get_meeting_settings_data(_user_id),
+    do: %{meeting_types: [], video_integrations: [], calendar_integrations: []}
 end

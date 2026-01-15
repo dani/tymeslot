@@ -354,14 +354,23 @@ defmodule Tymeslot.MeetingsContextTest do
       %{user: user} = create_user_with_profile()
 
       # Set up video integration for user
-      insert(:video_integration,
+      vi = insert(:video_integration,
         user: user,
         provider: "mirotalk",
-        is_active: true,
-        is_default: true
+        is_active: true
       )
 
-      meeting_params = build_meeting_params(user, %{date: Date.add(Date.utc_today(), 6)})
+      # Create a meeting type that uses this video integration
+      meeting_type = insert(:meeting_type,
+        user: user,
+        allow_video: true,
+        video_integration_id: vi.id
+      )
+
+      meeting_params = build_meeting_params(user, %{
+        date: Date.add(Date.utc_today(), 6),
+        meeting_type_id: meeting_type.id
+      })
       form_data = build_form_data()
 
       result = Meetings.create_appointment_with_video_room(meeting_params, form_data)

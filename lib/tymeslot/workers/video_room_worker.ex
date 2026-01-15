@@ -272,12 +272,25 @@ defmodule Tymeslot.Workers.VideoRoomWorker do
     # Categorize the error
     categorized_error = categorize_error(reason)
 
-    # If this is the final attempt and emails should be sent, send them without video
-    if send_emails and attempt >= 5 do
-      send_fallback_emails(meeting_id)
-    end
+    # If integration is missing or inactive, discard without retries (send emails if requested)
+    if categorized_error in [{:error, :video_integration_missing},
+                             {:error, :video_integration_inactive}] do
+      if send_emails, do: send_fallback_emails(meeting_id)
 
-    categorized_error
+      discard_reason =
+        if categorized_error == {:error, :video_integration_missing},
+          do: "Video integration missing",
+          else: "Video integration inactive"
+
+      {:discard, discard_reason}
+    else
+      # If this is the final attempt and emails should be sent, send them without video
+      if send_emails and attempt >= 5 do
+        send_fallback_emails(meeting_id)
+      end
+
+      categorized_error
+    end
   end
 
   defp handle_timeout_with_fallback(meeting_id, send_emails, attempt) do
@@ -317,5 +330,7 @@ defmodule Tymeslot.Workers.VideoRoomWorker do
 
   defp categorize_error(:rate_limited), do: {:error, :rate_limited}
   defp categorize_error(:not_found), do: {:error, :meeting_not_found}
+  defp categorize_error(:video_integration_missing), do: {:error, :video_integration_missing}
+  defp categorize_error(:video_integration_inactive), do: {:error, :video_integration_inactive}
   defp categorize_error(other), do: {:error, other}
 end

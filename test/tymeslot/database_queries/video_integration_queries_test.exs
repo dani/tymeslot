@@ -7,33 +7,18 @@ defmodule Tymeslot.DatabaseQueries.VideoIntegrationQueriesTest do
   alias Tymeslot.DatabaseQueries.VideoIntegrationQueries
 
   describe "video integration business rules" do
-    test "default integration always appears first for user" do
+    test "active integrations are ordered by name for user" do
       user = insert(:user)
 
-      insert(:video_integration, user: user, name: "Z Video", is_active: true, is_default: false)
-      insert(:video_integration, user: user, name: "A Video", is_active: true, is_default: true)
-      insert(:video_integration, user: user, name: "B Video", is_active: true, is_default: false)
+      insert(:video_integration, user: user, name: "Z Video", is_active: true)
+      insert(:video_integration, user: user, name: "A Video", is_active: true)
+      insert(:video_integration, user: user, name: "B Video", is_active: true)
 
       result = VideoIntegrationQueries.list_active_for_user(user.id)
 
-      # Business rule: default integration must be first
-      assert Enum.at(result, 0).is_default == true
       assert Enum.at(result, 0).name == "A Video"
-    end
-
-    test "only one default integration allowed per user" do
-      user = insert(:user)
-
-      _vi1 = insert(:video_integration, user: user, is_default: true)
-      vi2 = insert(:video_integration, user: user, is_default: false)
-
-      # Setting new default should unset previous
-      {:ok, _updated} = VideoIntegrationQueries.set_as_default(vi2)
-
-      integrations = VideoIntegrationQueries.list_all_for_user(user.id)
-      default_count = Enum.count(integrations, & &1.is_default)
-
-      assert default_count == 1
+      assert Enum.at(result, 1).name == "B Video"
+      assert Enum.at(result, 2).name == "Z Video"
     end
 
     test "provider-specific settings are preserved during updates" do

@@ -243,7 +243,7 @@ defmodule Tymeslot.Meetings do
   def add_video_room_to_meeting(meeting_id) do
     with {:ok, meeting} <- get_meeting_or_error(meeting_id),
          {:ok, user_id} <- get_meeting_organizer_user_id(meeting),
-         {:ok, :proceed} <- should_create_video_room(user_id, meeting_id) do
+         {:ok, :proceed} <- should_create_video_room(meeting, user_id) do
       create_and_attach_video_room(meeting, user_id)
     end
   end
@@ -273,11 +273,11 @@ defmodule Tymeslot.Meetings do
     end
   end
 
-  defp should_create_video_room(user_id, meeting_id) do
-    case check_video_provider_type(user_id) do
+  defp should_create_video_room(meeting, user_id) do
+    case check_video_provider_type(meeting, user_id) do
       {:ok, :none} ->
         Logger.info("Video provider is 'none', skipping video room creation",
-          meeting_id: meeting_id
+          meeting_id: meeting.id
         )
 
         {:error, :video_disabled}
@@ -293,7 +293,9 @@ defmodule Tymeslot.Meetings do
   defp create_and_attach_video_room(meeting, user_id) do
     Logger.info("Adding video room to meeting", meeting_id: meeting.id)
 
-    with {:ok, meeting_context} <- video_module().create_meeting_room(user_id),
+    # Use the specific video integration ID stored in the meeting if available
+    with {:ok, meeting_context} <-
+           video_module().create_meeting_room(user_id, integration_id: meeting.video_integration_id),
          {:ok, video_room_attrs} <- build_video_room_attrs(meeting, meeting_context),
          {:ok, updated_meeting} <- update_meeting_with_video_room(meeting, video_room_attrs) do
       # After attaching the video room, update the calendar event so Google/other calendars
@@ -424,14 +426,23 @@ defmodule Tymeslot.Meetings do
       meeting_context.room_data["room_id"]
   end
 
-  defp check_video_provider_type(user_id) do
-    case VideoIntegrationQueries.get_default_for_user(user_id) do
+  defp check_video_provider_type(meeting, user_id) do
+    integration_result =
+      case meeting.video_integration_id do
+        nil -> {:error, :not_found}
+        id -> VideoIntegrationQueries.get_for_user(id, user_id)
+      end
+
+    case integration_result do
+      {:ok, %{is_active: false}} ->
+        {:error, :video_integration_inactive}
+
       {:ok, integration} ->
         provider_type = String.to_existing_atom(integration.provider)
         {:ok, provider_type}
 
       {:error, :not_found} ->
-        {:error, "No video integration configured"}
+        {:error, :video_integration_missing}
     end
   end
 

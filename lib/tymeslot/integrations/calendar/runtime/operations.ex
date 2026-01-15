@@ -7,6 +7,8 @@ defmodule Tymeslot.Integrations.Calendar.Operations do
   @behaviour Tymeslot.Integrations.Calendar.CalendarBehaviour
   require Logger
   alias Tymeslot.DatabaseQueries.CalendarIntegrationQueries
+  alias Tymeslot.DatabaseSchemas.MeetingSchema
+  alias Tymeslot.DatabaseSchemas.MeetingTypeSchema
   alias Tymeslot.Infrastructure.Metrics
   alias Tymeslot.Integrations.Calendar.CalDAV.Base
   alias Tymeslot.Integrations.Calendar.EventsRead
@@ -156,37 +158,87 @@ defmodule Tymeslot.Integrations.Calendar.Operations do
 
   @doc """
   Gets the calendar client for creating bookings.
-  Uses the user's primary calendar integration with booking calendar set.
+  Can take a user_id (fallback to primary), a Meeting, or a MeetingType to resolve the destination.
   """
-  @spec booking_client(integer() | nil) :: map() | nil
-  def booking_client(user_id \\ nil) do
-    user_id
-    |> get_booking_integration()
+  @spec booking_client(integer() | MeetingSchema.t() | MeetingTypeSchema.t() | nil) :: map() | nil
+  def booking_client(context \\ nil) do
+    context
+    |> resolve_booking_integration()
     |> create_client_from_integration()
   end
 
-  # Private helper to get the appropriate booking integration
-  defp get_booking_integration(nil) do
-    Logger.warning("User ID is required for booking calendar operations")
-    nil
+  # Private helper to resolve the appropriate booking integration based on context
+  defp resolve_booking_integration(nil), do: nil
+
+  defp resolve_booking_integration(%MeetingSchema{} = meeting) do
+    cond do
+      not is_nil(meeting.calendar_integration_id) ->
+        case CalendarIntegrationQueries.get_for_user(
+               meeting.calendar_integration_id,
+               meeting.organizer_user_id
+             ) do
+          {:ok, integration} when integration.is_active ->
+            # Override default_booking_calendar_id with the one stored in the meeting
+            %{integration | default_booking_calendar_id: meeting.calendar_path}
+
+          _ ->
+            resolve_booking_integration(meeting.organizer_user_id)
+        end
+
+      not is_nil(meeting.organizer_user_id) ->
+        resolve_booking_integration(meeting.organizer_user_id)
+
+      true ->
+        nil
+    end
   end
 
-  defp get_booking_integration(user_id) do
+  defp resolve_booking_integration(%MeetingTypeSchema{} = meeting_type) do
+    cond do
+      not is_nil(meeting_type.calendar_integration_id) ->
+        case CalendarIntegrationQueries.get_for_user(
+               meeting_type.calendar_integration_id,
+               meeting_type.user_id
+             ) do
+          {:ok, integration} when integration.is_active ->
+            # Override default_booking_calendar_id with the one stored in the meeting type
+            %{integration | default_booking_calendar_id: meeting_type.target_calendar_id}
+
+          _ ->
+            resolve_booking_integration(meeting_type.user_id)
+        end
+
+      not is_nil(meeting_type.user_id) ->
+        resolve_booking_integration(meeting_type.user_id)
+
+      true ->
+        nil
+    end
+  end
+
+  defp resolve_booking_integration(user_id) when is_integer(user_id) do
     case CalendarPrimary.get_primary_calendar_integration(user_id) do
       {:ok, integration} when not is_nil(integration.default_booking_calendar_id) ->
         integration
 
-      {:ok, _integration} ->
-        # Primary exists but no booking calendar set, find any with booking calendar
-        find_integration_with_booking_calendar(user_id)
+      {:ok, integration} ->
+        # Primary exists but no booking calendar set, try to find any with booking calendar
+        # if none found, return the primary integration itself as ultimate fallback
+        find_integration_with_booking_calendar(user_id) || integration
 
-      {:error, :no_primary_set} ->
+      {:error, _} ->
         # No primary set, find any with booking calendar
-        find_integration_with_booking_calendar(user_id)
+        # if still none found, just pick the first integration
+        find_integration_with_booking_calendar(user_id) || pick_first_integration(user_id)
+    end
+  end
 
-      {:error, :not_found} ->
-        # User profile not found
-        nil
+  defp resolve_booking_integration(_), do: nil
+
+  defp pick_first_integration(user_id) do
+    case get_integrations_from_database(user_id) do
+      {:ok, integrations} -> List.first(integrations)
+      _ -> nil
     end
   end
 
@@ -207,37 +259,73 @@ defmodule Tymeslot.Integrations.Calendar.Operations do
   end
 
   @doc """
-  Gets the booking calendar integration info for a user.
+  Gets the booking calendar integration info for a user or meeting type.
   Returns the integration ID and calendar path that will be used for creating bookings.
   """
-  @spec get_booking_integration_info(integer()) :: {:ok, map()} | {:error, atom()}
-  def get_booking_integration_info(user_id) do
-    with {:ok, integrations} <- get_integrations_from_database(user_id),
-         integration <-
-           Enum.find(integrations, & &1.default_booking_calendar_id) ||
-             List.first(integrations),
-         true <- not is_nil(integration) do
-      {:ok,
-       %{
-         integration_id: integration.id,
-         calendar_path:
-           integration.default_booking_calendar_id ||
-             List.first(integration.calendar_paths)
-       }}
+  @spec get_booking_integration_info(integer() | MeetingSchema.t() | MeetingTypeSchema.t()) ::
+          {:ok, map()} | {:error, atom()}
+  def get_booking_integration_info(%MeetingSchema{} = meeting) do
+    if not is_nil(meeting.calendar_integration_id) and not is_nil(meeting.calendar_path) do
+      case CalendarIntegrationQueries.get_for_user(
+             meeting.calendar_integration_id,
+             meeting.organizer_user_id
+           ) do
+        {:ok, integration} when integration.is_active ->
+          {:ok,
+           %{
+             integration_id: meeting.calendar_integration_id,
+             calendar_path: meeting.calendar_path
+           }}
+
+        _ ->
+          get_booking_integration_info(meeting.organizer_user_id)
+      end
     else
-      :not_found ->
-        {:error, :no_integration}
-
-      {:error, :user_id_required} ->
-        {:error, :user_id_required}
-
-      false ->
-        {:error, :no_integration}
+      get_booking_integration_info(meeting.organizer_user_id)
     end
   end
 
-  defp get_client_by_integration_id(integration_id) do
-    case CalendarIntegrationQueries.get(integration_id) do
+  def get_booking_integration_info(%MeetingTypeSchema{} = mt) do
+    if not is_nil(mt.calendar_integration_id) and not is_nil(mt.target_calendar_id) do
+      case CalendarIntegrationQueries.get_for_user(mt.calendar_integration_id, mt.user_id) do
+        {:ok, integration} when integration.is_active ->
+          {:ok,
+           %{
+             integration_id: mt.calendar_integration_id,
+             calendar_path: mt.target_calendar_id
+           }}
+
+        _ ->
+          get_booking_integration_info(mt.user_id)
+      end
+    else
+      get_booking_integration_info(mt.user_id)
+    end
+  end
+
+  def get_booking_integration_info(user_id) when is_integer(user_id) do
+    case resolve_booking_integration(user_id) do
+      nil ->
+        {:error, :no_integration}
+
+      integration ->
+        {:ok,
+         %{
+           integration_id: integration.id,
+           calendar_path: resolve_calendar_path(integration)
+         }}
+    end
+  end
+
+  defp get_client_by_integration_id(integration_id, user_id \\ nil) do
+    query_result =
+      if user_id do
+        CalendarIntegrationQueries.get_for_user(integration_id, user_id)
+      else
+        CalendarIntegrationQueries.get(integration_id)
+      end
+
+    case query_result do
       {:error, :not_found} ->
         nil
 
@@ -326,6 +414,21 @@ defmodule Tymeslot.Integrations.Calendar.Operations do
     (calendar["id"] || calendar[:id]) == calendar_id
   end
 
+  defp log_context(%MeetingSchema{} = meeting) do
+    %{
+      meeting_id: meeting.id,
+      organizer_user_id: meeting.organizer_user_id,
+      meeting_type_id: meeting.meeting_type_id
+    }
+  end
+
+  defp log_context(%MeetingTypeSchema{} = meeting_type) do
+    %{meeting_type_id: meeting_type.id, user_id: meeting_type.user_id}
+  end
+
+  defp log_context(user_id) when is_integer(user_id), do: %{user_id: user_id}
+  defp log_context(_), do: %{}
+
   @doc """
   Lists all events from all configured calendars.
   Fetches from all calendars in parallel for better performance.
@@ -362,21 +465,21 @@ defmodule Tymeslot.Integrations.Calendar.Operations do
   @doc """
   Creates a new event.
   """
-  @spec create_event(map(), integer() | nil) :: {:ok, map()} | {:error, term()}
-  def create_event(event_data, user_id \\ nil) do
+  @spec create_event(map(), integer() | MeetingSchema.t() | MeetingTypeSchema.t() | nil) ::
+          {:ok, map()} | {:error, term()}
+  def create_event(event_data, context \\ nil) do
     Metrics.time_operation(:create_event, %{}, fn ->
       Logger.info("Creating new calendar event")
 
       with :ok <- validate_event(event_data),
-           client when not is_nil(client) <- booking_client(user_id),
+           client when not is_nil(client) <- booking_client(context),
            {:ok, _event} = result <- ProviderAdapter.create_event(client, event_data) do
         Logger.info("Successfully created calendar event")
         result
       else
         nil ->
-          Logger.error(
-            "Failed to create calendar event - no calendar client available",
-            user_id: user_id
+          Logger.error("Failed to create calendar event - no calendar client available",
+            context: log_context(context)
           )
 
           {:error, :no_calendar_client}
@@ -393,19 +496,25 @@ defmodule Tymeslot.Integrations.Calendar.Operations do
 
   @doc """
   Updates an existing event.
-  Now accepts optional calendar_integration_id to use specific calendar.
+  Now accepts optional context (MeetingSchema or integration_id) to use specific calendar.
   """
-  @spec update_event(String.t(), map(), integer() | nil) ::
+  @spec update_event(String.t(), map(), integer() | MeetingSchema.t() | nil) ::
           {:ok, :updated} | {:error, atom()}
-  def update_event(uid, event_data, calendar_integration_id \\ nil) do
+  def update_event(uid, event_data, context \\ nil) do
     Metrics.time_operation(:update_event, %{uid: uid}, fn ->
       Logger.info("Updating calendar event", uid: uid)
 
       calendar_client =
-        if calendar_integration_id do
-          get_client_by_integration_id(calendar_integration_id)
-        else
-          client()
+        case context do
+          %MeetingSchema{calendar_integration_id: integration_id, organizer_user_id: user_id}
+          when not is_nil(integration_id) ->
+            get_client_by_integration_id(integration_id, user_id)
+
+          integration_id when is_integer(integration_id) ->
+            get_client_by_integration_id(integration_id)
+
+          _ ->
+            client()
         end
 
       with client when not is_nil(client) <- calendar_client,
@@ -414,7 +523,7 @@ defmodule Tymeslot.Integrations.Calendar.Operations do
         {:ok, :updated}
       else
         nil ->
-          Logger.error("No calendar integration found", integration_id: calendar_integration_id)
+          Logger.error("No calendar integration found", context: log_context(context))
           {:error, :no_calendar_integration}
 
         {:error, reason} = error ->
@@ -426,18 +535,25 @@ defmodule Tymeslot.Integrations.Calendar.Operations do
 
   @doc """
   Deletes an event.
-  Now accepts optional calendar_integration_id to use specific calendar.
+  Now accepts optional context (MeetingSchema or integration_id) to use specific calendar.
   """
-  @spec delete_event(String.t(), integer() | nil) :: {:ok, :deleted} | {:error, term()}
-  def delete_event(uid, calendar_integration_id \\ nil) do
+  @spec delete_event(String.t(), integer() | MeetingSchema.t() | nil) ::
+          {:ok, :deleted} | {:error, term()}
+  def delete_event(uid, context \\ nil) do
     Metrics.time_operation(:delete_event, %{uid: uid}, fn ->
       Logger.info("Deleting calendar event", uid: uid)
 
       calendar_client =
-        if calendar_integration_id do
-          get_client_by_integration_id(calendar_integration_id)
-        else
-          client()
+        case context do
+          %MeetingSchema{calendar_integration_id: integration_id, organizer_user_id: user_id}
+          when not is_nil(integration_id) ->
+            get_client_by_integration_id(integration_id, user_id)
+
+          integration_id when is_integer(integration_id) ->
+            get_client_by_integration_id(integration_id)
+
+          _ ->
+            client()
         end
 
       with client when not is_nil(client) <- calendar_client,
@@ -449,7 +565,7 @@ defmodule Tymeslot.Integrations.Calendar.Operations do
           Logger.warning(
             "No calendar integration available to delete event",
             uid: uid,
-            integration_id: calendar_integration_id
+            context: log_context(context)
           )
 
           # Return success since we can't delete from a non-existent calendar

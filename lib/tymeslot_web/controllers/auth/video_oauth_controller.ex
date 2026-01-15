@@ -186,7 +186,7 @@ defmodule TymeslotWeb.VideoOAuthController do
       is_active: true
     }
 
-    create_and_maybe_set_default(attrs, tokens.user_id)
+    VideoIntegrationQueries.create(attrs)
   end
 
   defp create_teams_integration(tokens) do
@@ -204,25 +204,6 @@ defmodule TymeslotWeb.VideoOAuthController do
       teams_user_id: tokens.teams_user_id
     }
 
-    create_and_maybe_set_default(attrs, tokens.user_id)
-  end
-
-  defp create_and_maybe_set_default(attrs, user_id) do
-    case VideoIntegrationQueries.create(attrs) do
-      {:ok, integration} ->
-        # Set as default if it's the first video integration
-        case VideoIntegrationQueries.list_all_for_user(user_id) do
-          [_single_integration] ->
-            # This is the only integration, set as default
-            VideoIntegrationQueries.set_as_default(integration)
-
-          _ ->
-            # There are other integrations, don't set as default
-            {:ok, integration}
-        end
-
-      {:error, reason} ->
-        {:error, reason}
-    end
+    VideoIntegrationQueries.create(attrs)
   end
 end

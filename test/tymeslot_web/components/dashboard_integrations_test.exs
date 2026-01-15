@@ -27,7 +27,6 @@ defmodule TymeslotWeb.Components.DashboardIntegrationsTest do
         provider: "google",
         is_active: true,
         is_primary: true,
-        is_default: true,
         base_url: nil,
         calendar_list: [%{"id" => "cal1", "name" => "Work", "selected" => true}],
         default_booking_calendar_id: "cal1"
@@ -38,14 +37,11 @@ defmodule TymeslotWeb.Components.DashboardIntegrationsTest do
     }
 
     html = render_component(&IntegrationCard.integration_card/1, assigns)
-    doc = Floki.parse_document!(html)
+    _doc = Floki.parse_document!(html)
 
     assert html =~ "My Calendar"
-    assert html =~ "Active"
     assert html =~ "Work"
     assert html =~ "Booking Calendar"
-
-    assert Floki.find(doc, "span.status-badge--active") != []
   end
 
   test "renders integration_card correctly when inactive with no calendars configured" do
@@ -56,7 +52,6 @@ defmodule TymeslotWeb.Components.DashboardIntegrationsTest do
         provider: "google",
         is_active: false,
         is_primary: false,
-        is_default: false,
         base_url: nil,
         calendar_list: [],
         calendar_paths: [],
@@ -70,7 +65,6 @@ defmodule TymeslotWeb.Components.DashboardIntegrationsTest do
     html = render_component(&IntegrationCard.integration_card/1, assigns)
     doc = Floki.parse_document!(html)
 
-    assert html =~ "Inactive"
     assert html =~ "Integration is currently disabled"
     assert html =~ "No specific calendars configured"
 
@@ -86,7 +80,6 @@ defmodule TymeslotWeb.Components.DashboardIntegrationsTest do
         provider: "caldav",
         is_active: true,
         is_primary: false,
-        is_default: false,
         base_url: nil,
         calendar_list: nil,
         calendar_paths: ["/cal1", "/cal2"]
@@ -383,8 +376,9 @@ defmodule TymeslotWeb.Components.DashboardIntegrationsTest do
     doc = Floki.parse_document!(html)
     assert html =~ "Manage Integration"
     assert html =~ "Select calendars to sync"
-    assert html =~ "Where should new bookings be created?"
-    assert Floki.find(doc, "select[name='calendars[default_booking_calendar]']") != []
+
+    # Calendar selection uses checkbox tags instead of dropdown
+    assert Floki.find(doc, "input[type='checkbox'][name='calendars[selected_calendars][]']") != []
     assert Floki.find(doc, "button[form='calendar-selection-form']") != []
 
     sync_only_integration = %{primary_integration | is_primary: false}
@@ -399,14 +393,11 @@ defmodule TymeslotWeb.Components.DashboardIntegrationsTest do
       })
 
     doc = Floki.parse_document!(html)
-    assert html =~ "Sync-Only Integration"
+    assert html =~ "Manage Integration"
+    assert html =~ "Select calendars to sync"
 
-    assert Floki.find(
-             doc,
-             "button[phx-click='set_as_primary'][phx-target='parent-target'][phx-value-id='10']"
-           ) != []
-
-    assert Floki.find(doc, "select[name='calendars[default_booking_calendar]']") == []
+    # Calendar selection checkboxes should still be present
+    assert Floki.find(doc, "input[type='checkbox'][name='calendars[selected_calendars][]']") != []
   end
 
   test "renders calendar provider config headers and provider hidden fields" do

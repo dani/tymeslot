@@ -4,7 +4,9 @@ defmodule Tymeslot.Bookings.Policy do
   Pure functions that define what is allowed.
   """
   alias Tymeslot.DatabaseQueries.ProfileQueries
+  alias Tymeslot.DatabaseQueries.VideoIntegrationQueries
   alias Tymeslot.Integrations.Calendar
+  alias Tymeslot.MeetingTypes
   alias Tymeslot.Profiles
   alias Tymeslot.Utils.TimezoneUtils
   alias TymeslotWeb.Endpoint
@@ -56,6 +58,18 @@ defmodule Tymeslot.Bookings.Policy do
     duration_minutes = params.duration_minutes
     form_data = params.form_data
     organizer_user_id = Map.get(params, :organizer_user_id)
+    meeting_type_id = Map.get(params, :meeting_type_id)
+
+    # Resolve meeting type if ID provided
+    meeting_type_record =
+      if meeting_type_id && organizer_user_id do
+        case MeetingTypes.get_meeting_type(meeting_type_id, organizer_user_id) do
+          %{is_active: true} = type -> type
+          _ -> nil
+        end
+      else
+        nil
+      end
 
     # Get organizer details from profile if available
     {org_name, org_email, org_username} = get_organizer_details(organizer_user_id)
@@ -66,18 +80,31 @@ defmodule Tymeslot.Bookings.Policy do
     user_timezone = params.user_timezone || config.owner_timezone
 
     # Get calendar integration info
-    {calendar_integration_id, calendar_path} = get_calendar_integration_info(organizer_user_id)
+    {calendar_integration_id, calendar_path} =
+      get_calendar_integration_info(meeting_type_record || organizer_user_id)
+
+    # Resolve meeting type name and video integration
+    {meeting_type_name, resolved_meeting_type_id, video_integration_id} =
+      case meeting_type_record do
+        nil ->
+          # Fallback if no meeting type record found
+          {"General Meeting", nil, resolve_video_integration_id(params, organizer_user_id)}
+
+        type ->
+          {type.name, type.id, type.video_integration_id}
+      end
 
     %{
       uid: meeting_uid,
-      title: "Meeting with #{form_data["name"]}",
-      summary: "Meeting with #{form_data["name"]}",
+      title: "#{meeting_type_name} with #{form_data["name"]}",
+      summary: "#{meeting_type_name} with #{form_data["name"]}",
       description: form_data["message"] || "",
       start_time: start_datetime,
       end_time: end_datetime,
       duration: duration_minutes,
       location: "To be determined",
-      meeting_type: "General Meeting",
+      meeting_type: meeting_type_name,
+      meeting_type_id: resolved_meeting_type_id,
 
       # Organizer details (from profile or config)
       organizer_name: org_name,
@@ -88,6 +115,9 @@ defmodule Tymeslot.Bookings.Policy do
       # Calendar integration tracking
       calendar_integration_id: calendar_integration_id,
       calendar_path: calendar_path,
+
+      # Video integration tracking
+      video_integration_id: video_integration_id,
 
       # Attendee details
       attendee_name: form_data["name"],
@@ -251,13 +281,39 @@ defmodule Tymeslot.Bookings.Policy do
   # Private helper to get calendar integration info for tracking
   defp get_calendar_integration_info(nil), do: {nil, nil}
 
-  defp get_calendar_integration_info(user_id) do
-    case Calendar.get_booking_integration_info(user_id) do
+  defp get_calendar_integration_info(context) do
+    case Calendar.get_booking_integration_info(context) do
       {:ok, %{integration_id: integration_id, calendar_path: calendar_path}} ->
         {integration_id, calendar_path}
 
       _ ->
         {nil, nil}
+    end
+  end
+
+  defp resolve_video_integration_id(params, organizer_user_id) do
+    video_integration_id =
+      case Map.get(params, :video_integration_id) do
+        id when is_integer(id) ->
+          id
+
+        id when is_binary(id) ->
+          case Integer.parse(id) do
+            {int, ""} -> int
+            _ -> nil
+          end
+
+        _ ->
+          nil
+      end
+
+    if is_nil(video_integration_id) or is_nil(organizer_user_id) do
+      nil
+    else
+      case VideoIntegrationQueries.get_for_user(video_integration_id, organizer_user_id) do
+        {:ok, %{is_active: true}} -> video_integration_id
+        _ -> nil
+      end
     end
   end
 

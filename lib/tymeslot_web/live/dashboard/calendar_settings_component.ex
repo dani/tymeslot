@@ -5,11 +5,11 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
   use TymeslotWeb, :live_component
 
   alias Phoenix.LiveView.JS
-  alias Tymeslot.Integrations.{Calendar, CalendarPrimary}
+  alias Tymeslot.Integrations.Calendar
   alias Tymeslot.Utils.ChangesetUtils
   alias TymeslotWeb.Components.Dashboard.Integrations.Calendar.CalendarManagerModal
   alias TymeslotWeb.Components.Dashboard.Integrations.Shared.DeleteIntegrationModal
-  alias TymeslotWeb.Dashboard.CalendarSettings.{Components, Helpers}
+  alias TymeslotWeb.Dashboard.CalendarSettings.Components
   alias TymeslotWeb.Hooks.ModalHook
   alias TymeslotWeb.Live.Dashboard.Shared.DashboardHelpers
   alias TymeslotWeb.Live.Shared.Flash
@@ -115,19 +115,9 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
   def handle_event("toggle_integration", %{"id" => id}, socket) do
     user_id = socket.assigns.current_user.id
 
-    # Capture primary before toggle
-    before_primary_id =
-      case CalendarPrimary.get_primary_calendar_integration(user_id) do
-        {:ok, primary} -> primary.id
-        _ -> nil
-      end
-
     case Calendar.toggle_integration(to_int!(id), user_id) do
       {:ok, _integration} ->
-        # Reload integrations and determine if primary changed
-        after_primary = CalendarPrimary.get_primary_calendar_integration(user_id)
-
-        Flash.info(Helpers.flash_message_for_primary_change(before_primary_id, after_primary))
+        Flash.info("Calendar status updated")
 
         # Notify parent LiveView that integration status has changed
         send(self(), {:integration_updated, :calendar})
@@ -288,9 +278,10 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
   def handle_event("save_calendar_selection", %{"calendars" => params}, socket) do
     integration = socket.assigns.managing_integration
 
+    # Update calendar selection (selected calendars)
     case Calendar.update_calendar_selection(integration, params) do
       {:ok, _updated} ->
-        Flash.info("Calendar selection updated successfully")
+        Flash.info("Calendar settings updated successfully")
 
         {:noreply,
          socket
@@ -309,59 +300,6 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
      socket
      |> assign(:show_calendar_manager, false)
      |> assign(:managing_integration, nil)}
-  end
-
-  def handle_event("set_as_primary", %{"id" => id}, socket) do
-    integration_id = to_int!(id)
-    user_id = socket.assigns.current_user.id
-
-    # Find the integration to see its provider
-    _integration = Enum.find(socket.assigns.integrations, &(&1.id == integration_id))
-
-    case Calendar.set_primary(user_id, integration_id) do
-      {:ok, _integration} ->
-        Flash.info("Primary calendar integration updated successfully")
-
-        # Check if we're currently in the manage modal
-        if socket.assigns.show_calendar_manager do
-          # Update the managing_integration with new primary status
-          updated_integration =
-            Map.put(socket.assigns.managing_integration, :is_primary, true)
-
-          {:noreply,
-           discover_calendars(
-             assign(
-               assign(load_integrations(socket), :managing_integration, updated_integration),
-               :is_loading_calendars,
-               true
-             ),
-             updated_integration
-           )}
-        else
-          # Called from card, auto-open manage modal for the new primary
-          {:noreply,
-           discover_calendars(
-             assign(
-               assign(
-                 assign(
-                   load_integrations(socket),
-                   :managing_integration,
-                   Enum.find(socket.assigns.integrations, &(&1.id == integration_id))
-                 ),
-                 :show_calendar_manager,
-                 true
-               ),
-               :is_loading_calendars,
-               true
-             ),
-             Enum.find(socket.assigns.integrations, fn int -> int.id == integration_id end)
-           )}
-        end
-
-      {:error, _reason} ->
-        Flash.error("Failed to set primary calendar integration")
-        {:noreply, socket}
-    end
   end
 
   def handle_event("upgrade_google_scope", %{"id" => id}, socket) do

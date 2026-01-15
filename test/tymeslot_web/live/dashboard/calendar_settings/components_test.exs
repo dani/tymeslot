@@ -37,9 +37,8 @@ defmodule TymeslotWeb.Dashboard.CalendarSettings.ComponentsTest do
       }
 
       html = render_component(&Components.connected_calendars_section/1, assigns)
-      assert html =~ "Connected Calendars"
+      assert html =~ "Active for Conflict Checking"
       assert html =~ "My Calendar"
-      assert html =~ "1 active"
     end
   end
 

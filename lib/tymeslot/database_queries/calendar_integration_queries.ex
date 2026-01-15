@@ -41,7 +41,7 @@ defmodule Tymeslot.DatabaseQueries.CalendarIntegrationQueries do
   def list_all_for_user(user_id) do
     CalendarIntegrationSchema
     |> where([c], c.user_id == ^user_id)
-    |> order_by([c], asc: c.name)
+    |> order_by([c], desc: c.is_active, asc: c.name)
     |> Repo.all()
     |> Enum.map(&CalendarIntegrationSchema.decrypt_credentials/1)
   end

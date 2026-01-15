@@ -27,20 +27,19 @@ defmodule Tymeslot.Integrations.Video.RoomsTest do
       assert String.contains?(message, "No video integration configured")
     end
 
-    test "successfully creates room using user's default integration" do
+    test "successfully creates room using specific integration" do
       user = insert(:user)
 
-      {:ok, _integration} =
+      {:ok, integration} =
         VideoIntegrationQueries.create(%{
           user_id: user.id,
           name: "MiroTalk",
           provider: "mirotalk",
-          is_default: true,
           base_url: "https://mirotalk.test",
           api_key: "test-key"
         })
 
-      # Mock MiroTalk API call - called twice: once for validate_config and once for create_meeting_room
+      # Mock MiroTalk API call
       expect(Tymeslot.HTTPClientMock, :post, 2, fn _url, _body, _headers, _opts ->
         {:ok,
          %HTTPoison.Response{
@@ -49,7 +48,7 @@ defmodule Tymeslot.Integrations.Video.RoomsTest do
          }}
       end)
 
-      assert {:ok, context} = Rooms.create_meeting_room(user.id)
+      assert {:ok, context} = Rooms.create_meeting_room(user.id, integration_id: integration.id)
       assert context.provider_type == :mirotalk
       assert context.room_data.room_id == "https://mirotalk.test/room123"
     end
@@ -62,7 +61,6 @@ defmodule Tymeslot.Integrations.Video.RoomsTest do
           user_id: user.id,
           name: "Google Meet",
           provider: "google_meet",
-          is_default: true,
           access_token: "expired",
           refresh_token: "refresh",
           token_expires_at: DateTime.add(DateTime.utc_now(), -3600)
@@ -95,7 +93,7 @@ defmodule Tymeslot.Integrations.Video.RoomsTest do
          }}
       end)
 
-      assert {:ok, context} = Rooms.create_meeting_room(user.id)
+      assert {:ok, context} = Rooms.create_meeting_room(user.id, integration_id: integration.id)
       assert context.provider_type == :google_meet
       assert context.room_data.room_id == "abc-defg-hij"
 
@@ -116,7 +114,6 @@ defmodule Tymeslot.Integrations.Video.RoomsTest do
           user_id: user.id,
           name: "Google Meet Concurrent",
           provider: "google_meet",
-          is_default: true,
           access_token: "expired",
           refresh_token: "refresh",
           token_expires_at: DateTime.add(DateTime.utc_now(), -3600)
@@ -154,12 +151,12 @@ defmodule Tymeslot.Integrations.Video.RoomsTest do
       # Start two concurrent requests
       t1 =
         Task.async(fn ->
-          Rooms.create_meeting_room(user.id)
+          Rooms.create_meeting_room(user.id, integration_id: integration.id)
         end)
 
       t2 =
         Task.async(fn ->
-          Rooms.create_meeting_room(user.id)
+          Rooms.create_meeting_room(user.id, integration_id: integration.id)
         end)
 
       # Wait for both to finish

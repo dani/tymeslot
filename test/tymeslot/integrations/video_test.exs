@@ -4,9 +4,7 @@ defmodule Tymeslot.Integrations.VideoTest do
   import Mox
   import Tymeslot.Factory
 
-  alias Tymeslot.DatabaseSchemas.VideoIntegrationSchema
   alias Tymeslot.Integrations.Video
-  alias Tymeslot.Repo
 
   setup :verify_on_exit!
 
@@ -94,20 +92,6 @@ defmodule Tymeslot.Integrations.VideoTest do
 
       {:ok, updated2} = Video.toggle_integration(user.id, integration.id)
       assert updated2.is_active
-    end
-  end
-
-  describe "set_default/2" do
-    test "sets integration as default" do
-      user = insert(:user)
-      i1 = insert(:video_integration, user: user, is_default: false)
-      i2 = insert(:video_integration, user: user, is_default: true)
-
-      {:ok, updated} = Video.set_default(user.id, i1.id)
-      assert updated.is_default
-
-      # Verify other one is no longer default
-      assert !Repo.get(VideoIntegrationSchema, i2.id).is_default
     end
   end
 

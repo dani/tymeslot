@@ -26,7 +26,6 @@ defmodule Tymeslot.DatabaseSchemas.VideoIntegrationSchema do
           token_expires_at: DateTime.t() | nil,
           oauth_scope: String.t() | nil,
           is_active: boolean(),
-          is_default: boolean(),
           settings: map(),
           user: Tymeslot.DatabaseSchemas.UserSchema.t() | Ecto.Association.NotLoaded.t(),
           inserted_at: DateTime.t() | nil,
@@ -49,7 +48,6 @@ defmodule Tymeslot.DatabaseSchemas.VideoIntegrationSchema do
     field(:token_expires_at, :utc_datetime)
     field(:oauth_scope, :string)
     field(:is_active, :boolean, default: true)
-    field(:is_default, :boolean, default: false)
     field(:settings, :map, default: %{})
 
     # Virtual fields for decrypted credentials
@@ -87,7 +85,6 @@ defmodule Tymeslot.DatabaseSchemas.VideoIntegrationSchema do
       :token_expires_at,
       :oauth_scope,
       :is_active,
-      :is_default,
       :settings,
       :user_id
     ])
@@ -99,14 +96,6 @@ defmodule Tymeslot.DatabaseSchemas.VideoIntegrationSchema do
     |> validate_provider_specific_fields()
     |> encrypt_credentials()
     |> foreign_key_constraint(:user_id)
-  end
-
-  @doc """
-  Sets this integration as the default, unsetting any other defaults for the user.
-  """
-  @spec set_as_default_changeset(t()) :: Ecto.Changeset.t()
-  def set_as_default_changeset(video_integration) do
-    change(video_integration, is_default: true)
   end
 
   @doc """

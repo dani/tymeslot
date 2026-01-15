@@ -2,6 +2,7 @@ defmodule TymeslotWeb.DashboardLive do
   use TymeslotWeb, :live_view
 
   alias Tymeslot.Dashboard.DashboardContext
+  alias Tymeslot.Integrations.Calendar
   alias Tymeslot.Profiles
   alias Tymeslot.Profiles.Timezone
   alias Tymeslot.Scheduling.LinkAccessPolicy
@@ -254,6 +255,48 @@ defmodule TymeslotWeb.DashboardLive do
           {:noreply, Phoenix.LiveView.Socket.t()}
   def handle_info({:user_updated, user}, socket) do
     {:noreply, assign(socket, :current_user, user)}
+  end
+
+  @impl true
+  def handle_info({:refresh_calendar_list, component_id, integration_id}, socket) do
+    user_id = socket.assigns.current_user.id
+    parent = self()
+
+    Task.start(fn ->
+      case Calendar.get_integration(integration_id, user_id) do
+        {:ok, integration} ->
+          case Calendar.discover_calendars_for_integration(integration) do
+            {:ok, calendars} ->
+              # Update the integration's calendar_list in the database so it's persisted
+              Calendar.update_integration(integration, %{calendar_list: calendars})
+
+              send(parent, {:calendar_list_refreshed, component_id, integration_id, calendars})
+
+            {:error, _reason} ->
+              send(
+                parent,
+                {:calendar_list_refreshed, component_id, integration_id,
+                 integration.calendar_list}
+              )
+          end
+
+        {:error, _reason} ->
+          send(parent, {:calendar_list_refreshed, component_id, integration_id, []})
+      end
+    end)
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_info({:calendar_list_refreshed, component_id, _integration_id, calendars}, socket) do
+    send_update(TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm,
+      id: component_id,
+      refreshing_calendars: false,
+      available_calendars: calendars
+    )
+
+    {:noreply, socket}
   end
 
   @spec handle_info(:reset_avatar_upload, Phoenix.LiveView.Socket.t()) ::

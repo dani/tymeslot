@@ -187,10 +187,10 @@ defmodule Tymeslot.Workers.CalendarEventWorkerTest do
       end)
 
       assert :ok =
-        perform_job(CalendarEventWorker, %{
-          "action" => "update",
-          "meeting_id" => meeting.id
-        })
+               perform_job(CalendarEventWorker, %{
+                 "action" => "update",
+                 "meeting_id" => meeting.id
+               })
     end
   end
 
@@ -202,10 +202,10 @@ defmodule Tymeslot.Workers.CalendarEventWorkerTest do
       expect(Tymeslot.CalendarMock, :update_event, fn ^uid, _data, _id -> :ok end)
 
       assert :ok =
-        perform_job(CalendarEventWorker, %{
-          "action" => "update",
-          "meeting_id" => meeting.id
-        })
+               perform_job(CalendarEventWorker, %{
+                 "action" => "update",
+                 "meeting_id" => meeting.id
+               })
     end
 
     test "creates new event if not found during update" do
@@ -225,10 +225,10 @@ defmodule Tymeslot.Workers.CalendarEventWorkerTest do
       end)
 
       assert :ok =
-        perform_job(CalendarEventWorker, %{
-          "action" => "update",
-          "meeting_id" => meeting.id
-        })
+               perform_job(CalendarEventWorker, %{
+                 "action" => "update",
+                 "meeting_id" => meeting.id
+               })
     end
   end
 
@@ -240,10 +240,10 @@ defmodule Tymeslot.Workers.CalendarEventWorkerTest do
       expect(Tymeslot.CalendarMock, :delete_event, fn ^uid, _id -> :ok end)
 
       assert :ok =
-        perform_job(CalendarEventWorker, %{
-          "action" => "delete",
-          "meeting_id" => meeting.id
-        })
+               perform_job(CalendarEventWorker, %{
+                 "action" => "delete",
+                 "meeting_id" => meeting.id
+               })
     end
 
     test "considers not_found as success for deletion (idempotent)" do
@@ -256,10 +256,10 @@ defmodule Tymeslot.Workers.CalendarEventWorkerTest do
       end)
 
       assert :ok =
-        perform_job(CalendarEventWorker, %{
-          "action" => "delete",
-          "meeting_id" => meeting.id
-        })
+               perform_job(CalendarEventWorker, %{
+                 "action" => "delete",
+                 "meeting_id" => meeting.id
+               })
     end
 
     test "succeeds even if meeting not found (graceful degradation)" do
@@ -296,16 +296,16 @@ defmodule Tymeslot.Workers.CalendarEventWorkerTest do
 
       # Execute twice - should not cause errors
       assert :ok =
-        perform_job(CalendarEventWorker, %{
-          "action" => "create",
-          "meeting_id" => meeting.id
-        })
+               perform_job(CalendarEventWorker, %{
+                 "action" => "create",
+                 "meeting_id" => meeting.id
+               })
 
       assert :ok =
-        perform_job(CalendarEventWorker, %{
-          "action" => "create",
-          "meeting_id" => meeting.id
-        })
+               perform_job(CalendarEventWorker, %{
+                 "action" => "create",
+                 "meeting_id" => meeting.id
+               })
 
       # Meeting should have integration info from last execution
       updated_meeting = Repo.get(MeetingSchema, meeting.id)
@@ -329,12 +329,12 @@ defmodule Tymeslot.Workers.CalendarEventWorkerTest do
 
       # Job contains a field from a future version
       assert :ok =
-        perform_job(CalendarEventWorker, %{
-          "action" => "create",
-          "meeting_id" => meeting.id,
-          "future_field" => "unknown_value",
-          "priority" => "high"
-        })
+               perform_job(CalendarEventWorker, %{
+                 "action" => "create",
+                 "meeting_id" => meeting.id,
+                 "future_field" => "unknown_value",
+                 "priority" => "high"
+               })
     end
   end
 

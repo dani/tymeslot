@@ -46,8 +46,14 @@ defmodule Tymeslot.Integrations.Calendar do
         {:error, :no_primary_set} -> nil
       end
 
-    Enum.map(integrations, fn integration ->
+    integrations
+    |> Enum.map(fn integration ->
       Map.put(integration, :is_primary, integration.id == primary_id)
+    end)
+    |> Enum.sort_by(fn integration ->
+      # Sort by: primary first (true = 1, false = 0), then by is_active (desc), then by name (asc)
+      # We negate is_primary and is_active to get descending order (false/0 sorts before true/1 naturally)
+      {!integration.is_primary, !integration.is_active, integration.name}
     end)
   end
 
@@ -401,19 +407,20 @@ defmodule Tymeslot.Integrations.Calendar do
   end
 
   @doc """
-  Update an event with optional target integration.
+  Update an event with optional target integration or meeting context.
   """
-  @spec update_event(String.t(), map(), pos_integer() | nil) :: :ok | {:error, term()}
-  def update_event(uid, event_data, calendar_integration_id \\ nil) do
-    calendar_module().update_event(uid, event_data, calendar_integration_id)
+  @spec update_event(String.t(), map(), pos_integer() | MeetingSchema.t() | nil) ::
+          :ok | {:error, term()}
+  def update_event(uid, event_data, context \\ nil) do
+    calendar_module().update_event(uid, event_data, context)
   end
 
   @doc """
-  Delete an event with optional target integration.
+  Delete an event with optional target integration or meeting context.
   """
-  @spec delete_event(String.t(), pos_integer() | nil) :: :ok | {:error, term()}
-  def delete_event(uid, calendar_integration_id \\ nil) do
-    calendar_module().delete_event(uid, calendar_integration_id)
+  @spec delete_event(String.t(), pos_integer() | MeetingSchema.t() | nil) :: :ok | {:error, term()}
+  def delete_event(uid, context \\ nil) do
+    calendar_module().delete_event(uid, context)
   end
 
   @doc """
@@ -423,12 +430,12 @@ defmodule Tymeslot.Integrations.Calendar do
   def get_event(uid), do: calendar_module().get_event(uid)
 
   @doc """
-  Returns the booking calendar integration info for a user (id and path) used for event creation.
+  Returns the booking calendar integration info for a user or meeting type (id and path) used for event creation.
   """
-  @spec get_booking_integration_info(pos_integer()) ::
+  @spec get_booking_integration_info(pos_integer() | Tymeslot.DatabaseSchemas.MeetingTypeSchema.t()) ::
           {:ok, %{integration_id: pos_integer(), calendar_path: String.t()}} | {:error, term()}
-  def get_booking_integration_info(user_id) when is_integer(user_id) do
-    calendar_module().get_booking_integration_info(user_id)
+  def get_booking_integration_info(context) do
+    calendar_module().get_booking_integration_info(context)
   end
 
   # --- private helpers ---
@@ -508,6 +515,67 @@ defmodule Tymeslot.Integrations.Calendar do
   def format_provider_display_name(provider) do
     IntegrationProviders.format_provider_name(:calendar, provider)
   end
+
+  @doc """
+  Helper to extract a friendly display name from a calendar.
+  Handles the case where Radicale calendars may have UUIDs as names.
+  """
+  @spec extract_calendar_display_name(map()) :: String.t()
+  def extract_calendar_display_name(calendar) do
+    raw_name = calendar["name"] || calendar[:name]
+    path = calendar["path"] || calendar[:path] || calendar["href"] || calendar[:href]
+    id = calendar["id"] || calendar[:id]
+
+    cond do
+      # If name exists and doesn't look like a UUID, use it
+      raw_name && !uuid_like?(raw_name) ->
+        raw_name
+
+      # If path exists, try to extract a friendly name from it
+      path ->
+        extract_name_from_path(path)
+
+      # If id doesn't look like a UUID, use it
+      id && !uuid_like?(id) ->
+        id
+
+      # Last resort: use the raw name even if it's a UUID
+      raw_name ->
+        raw_name
+
+      true ->
+        "Calendar"
+    end
+  end
+
+  # Check if a string looks like a UUID
+  defp uuid_like?(str) when is_binary(str) do
+    String.match?(str, ~r/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
+  end
+
+  defp uuid_like?(_), do: false
+
+  # Extract a friendly name from a path like "/user/calendar-name/" -> "Calendar Name"
+  defp extract_name_from_path(path) when is_binary(path) do
+    segments =
+      path
+      |> String.split("/")
+      |> Enum.reject(&(&1 == ""))
+
+    case List.last(segments) do
+      nil ->
+        "Calendar"
+
+      name ->
+        name
+        |> String.replace(~r/\.(ics|cal)$/, "")
+        |> String.replace(["_", "-"], " ")
+        |> String.split()
+        |> Enum.map_join(" ", &String.capitalize/1)
+    end
+  end
+
+  defp extract_name_from_path(_), do: "Calendar"
 
   # ---------------------------
   # Internal helpers (legacy) — moved to dedicated modules

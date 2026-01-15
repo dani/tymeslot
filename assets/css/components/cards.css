@@ -161,12 +161,13 @@
 
 
 .card-glass-calendar-secondary {
-  /* Matches the standard available card border style */
-  border-color: var(--color-border-glass-dark);
-  background: linear-gradient(135deg, 
-    rgba(255, 255, 255, 0.04), 
-    rgba(255, 255, 255, 0.02));
-  box-shadow: var(--shadow-glass-card);
+  /* More visible borders for secondary calendars */
+  border-color: rgb(226, 232, 240); /* slate-200 - more visible */
+  border-width: 2px; /* Ensure consistent width */
+  background: linear-gradient(135deg,
+    rgba(148, 163, 184, 0.03),  /* slate-400 tint */
+    rgba(203, 213, 225, 0.02)); /* slate-300 tint */
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
 }
 
 

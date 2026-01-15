@@ -23,8 +23,8 @@ defmodule Tymeslot.Integrations.CalendarPrimary do
   def set_primary_calendar_integration(user_id, integration_id) do
     with {:ok, integration} <- validate_and_prepare_integration(user_id, integration_id),
          {:ok, _profile} <- update_profile_primary(user_id, integration_id) do
-      # After clearing other booking calendars and setting profile primary,
-      # ensure the chosen integration has a default booking calendar set (if needed).
+      # We no longer clear other booking calendars here, as booking is managed per meeting type.
+      # We just ensure the newly primary integration has a default set for fallback.
       updated = ensure_default_booking_calendar(integration)
       {:ok, updated}
     else
@@ -48,26 +48,6 @@ defmodule Tymeslot.Integrations.CalendarPrimary do
       {:error, _} ->
         {:error, :not_found}
     end
-  end
-
-  @doc """
-  Clears all booking calendars for a user except the specified one.
-  Used when setting a new primary calendar.
-  """
-  @spec clear_booking_calendars_for_user(user_id(), integration_id() | nil) :: :ok
-  def clear_booking_calendars_for_user(user_id, except_integration_id \\ nil) do
-    integrations = CalendarManagement.list_calendar_integrations(user_id)
-
-    Enum.each(integrations, fn integration ->
-      if integration.id != except_integration_id &&
-           !is_nil(integration.default_booking_calendar_id) do
-        CalendarManagement.update_calendar_integration(integration, %{
-          default_booking_calendar_id: nil
-        })
-      end
-    end)
-
-    :ok
   end
 
   @doc """
@@ -155,14 +135,10 @@ defmodule Tymeslot.Integrations.CalendarPrimary do
   end
 
   defp update_profile_primary(user_id, integration_id) do
-    clear_others_fn = fn ->
-      clear_booking_calendars_for_user(user_id, integration_id)
-    end
-
     ProfileQueries.set_primary_calendar_integration_transactional(
       user_id,
       integration_id,
-      clear_others_fn
+      nil
     )
   end
 

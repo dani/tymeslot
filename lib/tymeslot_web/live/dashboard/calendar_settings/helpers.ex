@@ -19,24 +19,6 @@ defmodule TymeslotWeb.Dashboard.CalendarSettings.Helpers do
     Calendar.needs_scope_upgrade?(integration)
   end
 
-  @spec flash_message_for_primary_change(integer() | nil, {:ok, map()} | {:error, any()}) ::
-          String.t()
-  def flash_message_for_primary_change(before_id, after_primary_result) do
-    case {before_id, after_primary_result} do
-      {nil, {:ok, new_primary}} ->
-        "Active calendar set to #{new_primary.name}"
-
-      {prev_id, {:ok, new_primary}} when prev_id != nil and prev_id != new_primary.id ->
-        "Active calendar switched to #{new_primary.name}"
-
-      {prev_id, {:error, _}} when prev_id != nil ->
-        "Active calendar disabled. No active calendar remains."
-
-      _ ->
-        "Integration status updated"
-    end
-  end
-
   @doc """
   Centralized provider metadata for rendering provider cards
   """
@@ -86,4 +68,13 @@ defmodule TymeslotWeb.Dashboard.CalendarSettings.Helpers do
 
   def provider_card_info(type),
     do: %{provider: Atom.to_string(type), click: nil, btn: "Connect", desc: ""}
+
+  @doc """
+  Helper to extract a friendly display name from a calendar
+  Handles the case where Radicale calendars may have UUIDs as names
+  """
+  @spec extract_calendar_display_name(map()) :: String.t()
+  def extract_calendar_display_name(calendar) do
+    Calendar.extract_calendar_display_name(calendar)
+  end
 end

@@ -19,16 +19,16 @@ defmodule Tymeslot.Integrations.Video.Rooms do
   Returns {:ok, meeting_context} or {:error, reason}.
   The meeting_context contains provider-specific room data and metadata.
   """
-  @spec create_meeting_room(pos_integer() | nil) :: {:ok, map()} | {:error, any()}
-  def create_meeting_room(user_id \\ nil) do
+  @spec create_meeting_room(pos_integer() | nil, keyword()) :: {:ok, map()} | {:error, any()}
+  def create_meeting_room(user_id \\ nil, opts \\ []) do
     Metrics.time_operation(:video_create_meeting_room, %{}, fn ->
       Logger.info("Creating meeting room for user", user_id: user_id)
-      do_create_meeting_room(user_id)
+      do_create_meeting_room(user_id, opts)
     end)
   end
 
-  defp do_create_meeting_room(user_id) do
-    case get_provider_config(user_id) do
+  defp do_create_meeting_room(user_id, opts) do
+    case get_provider_config(user_id, opts) do
       {:ok, provider_type, config} ->
         create_room_with_provider(provider_type, config)
 
@@ -163,8 +163,8 @@ defmodule Tymeslot.Integrations.Video.Rooms do
     meeting_context.room_data[:room_id] || meeting_context.room_data["room_id"] || "unknown"
   end
 
-  defp get_provider_config(user_id) do
-    case get_integration_from_database(user_id) do
+  defp get_provider_config(user_id, opts) do
+    case get_integration_from_database(user_id, opts) do
       {:ok, integration} ->
         decrypted = VideoIntegrationSchema.decrypt_credentials(integration)
 
@@ -222,15 +222,21 @@ defmodule Tymeslot.Integrations.Video.Rooms do
     end
   end
 
-  defp get_integration_from_database(user_id) do
+  defp get_integration_from_database(user_id, opts) do
     case user_id do
       nil ->
         {:error, :user_id_required}
 
       user_id ->
-        case VideoIntegrationQueries.get_default_for_user(user_id) do
-          {:ok, integration} -> {:ok, integration}
-          {:error, :not_found} -> :not_found
+        case Keyword.get(opts, :integration_id) do
+          nil ->
+            :not_found
+
+          integration_id ->
+            case VideoIntegrationQueries.get_for_user(integration_id, user_id) do
+              {:ok, integration} -> {:ok, integration}
+              {:error, :not_found} -> :not_found
+            end
         end
     end
   end

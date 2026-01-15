@@ -107,17 +107,6 @@ defmodule Tymeslot.Integrations.Video do
   end
 
   # ---------------
-  # Set default
-  # ---------------
-  @spec set_default(pos_integer(), pos_integer()) :: {:ok, any()} | {:error, any()}
-  def set_default(user_id, id) when is_integer(user_id) do
-    case VideoIntegrationQueries.get_for_user(id, user_id) do
-      {:ok, integration} -> VideoIntegrationQueries.set_as_default(integration)
-      {:error, _} = err -> err
-    end
-  end
-
-  # ---------------
   # Provider discovery helpers
   # ---------------
   @spec list_available_providers() :: list()
@@ -135,8 +124,8 @@ defmodule Tymeslot.Integrations.Video do
   # ---------------
   # Meeting room operations
   # ---------------
-  @spec create_meeting_room(pos_integer() | nil) :: {:ok, map()} | {:error, any()}
-  defdelegate create_meeting_room(user_id \\ nil), to: Rooms
+  @spec create_meeting_room(pos_integer() | nil, keyword()) :: {:ok, map()} | {:error, any()}
+  defdelegate create_meeting_room(user_id \\ nil, opts \\ []), to: Rooms
 
   @spec create_join_url(map(), String.t(), String.t(), String.t(), DateTime.t()) ::
           {:ok, String.t()} | {:error, any()}

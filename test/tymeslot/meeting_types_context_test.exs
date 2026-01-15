@@ -34,6 +34,18 @@ defmodule Tymeslot.MeetingTypesContextTest do
       assert length(result) > 0
     end
 
+    test "defaults do not set calendar integration without booking target" do
+      user = insert(:user)
+      integration = insert(:calendar_integration, user: user)
+      _profile = insert(:profile, user: user, primary_calendar_integration_id: integration.id)
+
+      result = MeetingTypes.get_active_meeting_types(user.id)
+
+      assert length(result) > 0
+      assert Enum.all?(result, &is_nil(&1.calendar_integration_id))
+      assert Enum.all?(result, &is_nil(&1.target_calendar_id))
+    end
+
     test "returns all meeting types including inactive ones" do
       user = insert(:user)
       _active_type = insert(:meeting_type, user: user, is_active: true)
@@ -184,6 +196,59 @@ defmodule Tymeslot.MeetingTypesContextTest do
       assert meeting_type.name == "Video Consultation"
       assert meeting_type.allow_video == true
       assert meeting_type.video_integration_id == video_integration.id
+    end
+
+    test "fails when calendar integration does not belong to user" do
+      user = insert(:user)
+      other_user = insert(:user)
+
+      other_calendar = insert(:calendar_integration, user: other_user)
+
+      form_params = %{
+        "name" => "Calendar Meeting",
+        "duration" => "30",
+        "description" => "Calendar scoped meeting",
+        "is_active" => "true",
+        "calendar_integration_id" => other_calendar.id,
+        "target_calendar_id" => "cal-1"
+      }
+
+      ui_state = %{
+        meeting_mode: "in_person",
+        selected_icon: "hero-clock",
+        selected_video_integration_id: nil
+      }
+
+      assert {:error, :calendar_integration_invalid} =
+               MeetingTypes.create_meeting_type_from_form(user.id, form_params, ui_state)
+    end
+
+    test "fails when target calendar is not in the integration calendar list" do
+      user = insert(:user)
+
+      calendar_integration =
+        insert(:calendar_integration,
+          user: user,
+          calendar_list: [%{"id" => "cal-1", "name" => "Primary", "selected" => true}]
+        )
+
+      form_params = %{
+        "name" => "Calendar Meeting",
+        "duration" => "30",
+        "description" => "Calendar scoped meeting",
+        "is_active" => "true",
+        "calendar_integration_id" => calendar_integration.id,
+        "target_calendar_id" => "cal-2"
+      }
+
+      ui_state = %{
+        meeting_mode: "in_person",
+        selected_icon: "hero-clock",
+        selected_video_integration_id: nil
+      }
+
+      assert {:error, :target_calendar_invalid} =
+               MeetingTypes.create_meeting_type_from_form(user.id, form_params, ui_state)
     end
   end
 

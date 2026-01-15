@@ -315,6 +315,13 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Live do
     end
   end
 
+  defp get_meeting_type_id(socket) do
+    case socket.assigns[:meeting_type] do
+      %{id: id} -> id
+      _ -> nil
+    end
+  end
+
   defp process_booking_submission(socket, form_data) do
     Logger.debug("Processing booking submission with form_data: #{inspect(form_data)}")
 
@@ -338,7 +345,8 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Live do
         date: socket.assigns[:selected_date],
         time: socket.assigns[:selected_time],
         duration: socket.assigns[:selected_duration],
-        user_timezone: socket.assigns[:user_timezone]
+        user_timezone: socket.assigns[:user_timezone],
+        meeting_type_id: get_meeting_type_id(socket)
       }
     }
 

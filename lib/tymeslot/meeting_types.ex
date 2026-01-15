@@ -2,6 +2,7 @@ defmodule Tymeslot.MeetingTypes do
   @moduledoc """
   Context for managing meeting types.
   """
+  alias Tymeslot.DatabaseQueries.CalendarIntegrationQueries
   alias Tymeslot.DatabaseQueries.MeetingTypeQueries
   alias Tymeslot.DatabaseQueries.VideoIntegrationQueries
   require Logger
@@ -181,7 +182,8 @@ defmodule Tymeslot.MeetingTypes do
           {:ok, Ecto.Schema.t()} | {:error, atom() | Ecto.Changeset.t()}
   def create_meeting_type_from_form(user_id, form_params, ui_state) do
     with {:ok, attrs} <- build_meeting_type_attrs(form_params, ui_state),
-         :ok <- validate_video_integration(attrs, user_id) do
+         :ok <- validate_video_integration(attrs, user_id),
+         :ok <- validate_calendar_integration(attrs, user_id) do
       create_meeting_type(Map.put(attrs, :user_id, user_id))
     end
   end
@@ -193,7 +195,8 @@ defmodule Tymeslot.MeetingTypes do
           {:ok, Ecto.Schema.t()} | {:error, atom() | Ecto.Changeset.t()}
   def update_meeting_type_from_form(meeting_type, form_params, ui_state) do
     with {:ok, attrs} <- build_meeting_type_attrs(form_params, ui_state),
-         :ok <- validate_video_integration(attrs, meeting_type.user_id) do
+         :ok <- validate_video_integration(attrs, meeting_type.user_id),
+         :ok <- validate_calendar_integration(attrs, meeting_type.user_id) do
       update_meeting_type(meeting_type, attrs)
     end
   end
@@ -215,7 +218,9 @@ defmodule Tymeslot.MeetingTypes do
       icon: ui_state.selected_icon,
       is_active: params["is_active"] == "true",
       allow_video: ui_state.meeting_mode == "video",
-      video_integration_id: video_integration_id
+      video_integration_id: video_integration_id,
+      calendar_integration_id: params["calendar_integration_id"],
+      target_calendar_id: params["target_calendar_id"]
     }
 
     {:ok, attrs}
@@ -241,4 +246,59 @@ defmodule Tymeslot.MeetingTypes do
   end
 
   defp validate_video_integration(_attrs, _user_id), do: :ok
+
+  defp validate_calendar_integration(%{calendar_integration_id: nil, target_calendar_id: nil}, _),
+    do: :ok
+
+  defp validate_calendar_integration(%{calendar_integration_id: "", target_calendar_id: nil}, _),
+    do: :ok
+
+  defp validate_calendar_integration(%{calendar_integration_id: nil}, _),
+    do: {:error, :calendar_integration_required}
+
+  defp validate_calendar_integration(%{calendar_integration_id: "", target_calendar_id: _}, _),
+    do: {:error, :calendar_integration_required}
+
+  defp validate_calendar_integration(
+         %{calendar_integration_id: id, target_calendar_id: target_calendar_id},
+         user_id
+       )
+       when is_integer(id) do
+    with {:ok, integration} <- CalendarIntegrationQueries.get_for_user(id, user_id),
+         :ok <- validate_target_calendar(target_calendar_id, integration) do
+      :ok
+    else
+      {:error, :not_found} -> {:error, :calendar_integration_invalid}
+      {:error, _} = error -> error
+    end
+  end
+
+  defp validate_calendar_integration(%{calendar_integration_id: id}, _)
+       when is_binary(id) and id != "" do
+    {:error, :calendar_integration_invalid}
+  end
+
+  defp validate_calendar_integration(_attrs, _user_id), do: :ok
+
+  defp validate_target_calendar(nil, _integration), do: {:error, :target_calendar_required}
+  defp validate_target_calendar("", _integration), do: {:error, :target_calendar_required}
+
+  defp validate_target_calendar(target_calendar_id, integration) do
+    calendar_list = integration.calendar_list
+
+    if calendar_list == [] do
+      :ok
+    else
+      found? =
+        Enum.any?(calendar_list, fn cal ->
+          (cal["id"] || cal[:id]) == target_calendar_id
+        end)
+
+      if found? do
+        :ok
+      else
+        {:error, :target_calendar_invalid}
+      end
+    end
+  end
 end

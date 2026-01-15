@@ -363,16 +363,6 @@ defmodule Tymeslot.DatabaseSchemas.VideoIntegrationSchemaTest do
     end
   end
 
-  describe "set_as_default_changeset/1" do
-    test "sets is_default to true" do
-      integration = %VideoIntegrationSchema{is_default: false}
-
-      changeset = VideoIntegrationSchema.set_as_default_changeset(integration)
-
-      assert changeset.changes.is_default == true
-    end
-  end
-
   describe "changeset/2 - foreign key constraints" do
     test "enforces foreign key constraint on user_id" do
       attrs = %{

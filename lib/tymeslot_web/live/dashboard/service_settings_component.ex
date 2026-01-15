@@ -47,6 +47,7 @@ defmodule TymeslotWeb.Dashboard.ServiceSettingsComponent do
       socket
       |> assign(:meeting_types, sort_meeting_types(data.meeting_types))
       |> assign(:video_integrations, data.video_integrations)
+      |> assign(:calendar_integrations, data.calendar_integrations)
 
     {:ok, socket}
   end
@@ -257,7 +258,12 @@ defmodule TymeslotWeb.Dashboard.ServiceSettingsComponent do
     <div class="space-y-10 pb-20">
       <%= if (@show_edit_overlay && @editing_type) || @show_add_form do %>
         <!-- Form View (Add or Edit) -->
-        <div class="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div
+          id="meeting-type-config-view"
+          phx-hook="ScrollReset"
+          data-action={if @editing_type, do: "edit-#{@editing_type.id}", else: "new"}
+          class="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500"
+        >
           <div class="flex items-center justify-between bg-white p-6 rounded-token-3xl border-2 border-tymeslot-50 shadow-sm">
             <h2 class="text-token-3xl font-black text-tymeslot-900 tracking-tight">
               <%= if @editing_type, do: "Edit Meeting Type", else: "Add Meeting Type" %>
@@ -281,6 +287,7 @@ defmodule TymeslotWeb.Dashboard.ServiceSettingsComponent do
               type={@editing_type}
               is_edit={!!@editing_type}
               video_integrations={@video_integrations}
+              calendar_integrations={@calendar_integrations}
               parent_myself={@myself}
               saving={@saving}
               current_user={@current_user}

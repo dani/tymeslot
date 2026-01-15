@@ -8,6 +8,7 @@ defmodule Tymeslot.Availability.ConflictsTest do
 
   alias Tymeslot.Availability.Calculate
   alias Tymeslot.Availability.Conflicts
+  alias Tymeslot.Utils.TimeRange
 
   property "date_has_slots_with_events? matches available_slots availability" do
     # This property test verifies that the optimized month-view check (date_has_slots_with_events?)
@@ -531,7 +532,7 @@ defmodule Tymeslot.Availability.ConflictsTest do
       slot_end = DateTime.add(slot_start, duration, :minute)
 
       # Verify it does NOT block Tuesday
-      refute Tymeslot.Utils.TimeRange.has_conflict_with_events?(
+      refute TimeRange.has_conflict_with_events?(
                slot_start,
                slot_end,
                events_in_tz,
@@ -551,7 +552,7 @@ defmodule Tymeslot.Availability.ConflictsTest do
 
       monday_slot_end = DateTime.add(monday_slot_start, duration, :minute)
 
-      assert Tymeslot.Utils.TimeRange.has_conflict_with_events?(
+      assert TimeRange.has_conflict_with_events?(
                monday_slot_start,
                monday_slot_end,
                events_in_tz,

@@ -165,14 +165,6 @@ defmodule TymeslotWeb.OAuthIntegrationsControllerTest do
         {:ok, integration}
       end)
 
-      :meck.expect(VideoIntegrationQueries, :list_all_for_user, fn ^user_id ->
-        [integration]
-      end)
-
-      :meck.expect(VideoIntegrationQueries, :set_as_default, fn ^integration ->
-        {:ok, integration}
-      end)
-
       Factory.insert(:user, id: user_id)
 
       conn = get(conn, ~p"/auth/google/video/callback", %{"code" => "code", "state" => "state"})
@@ -206,14 +198,6 @@ defmodule TymeslotWeb.OAuthIntegrationsControllerTest do
       }
 
       :meck.expect(VideoIntegrationQueries, :create, fn _attrs ->
-        {:ok, integration}
-      end)
-
-      :meck.expect(VideoIntegrationQueries, :list_all_for_user, fn ^user_id ->
-        [integration]
-      end)
-
-      :meck.expect(VideoIntegrationQueries, :set_as_default, fn ^integration ->
         {:ok, integration}
       end)
 
@@ -287,7 +271,9 @@ defmodule TymeslotWeb.OAuthIntegrationsControllerTest do
       conn = get(conn, ~p"/auth/teams/video/callback", %{"code" => "code", "state" => "state"})
 
       assert redirected_to(conn) == "/dashboard/video"
-      assert Flash.get(conn.assigns.flash, :error) =~ "Missing required Microsoft Teams information"
+
+      assert Flash.get(conn.assigns.flash, :error) =~
+               "Missing required Microsoft Teams information"
     end
   end
 end

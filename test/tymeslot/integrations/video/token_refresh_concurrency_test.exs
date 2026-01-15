@@ -19,12 +19,11 @@ defmodule Tymeslot.Integrations.Video.TokenRefreshConcurrencyTest do
     test "Google Meet token refresh is only called once even with multiple concurrent requests" do
       user = insert(:user)
 
-      {:ok, _integration} =
+      {:ok, integration} =
         VideoIntegrationQueries.create(%{
           user_id: user.id,
           name: "Google Meet Concurrent",
           provider: "google_meet",
-          is_default: true,
           access_token: "expired",
           refresh_token: "refresh",
           token_expires_at: DateTime.add(DateTime.utc_now(), -3600)
@@ -64,7 +63,7 @@ defmodule Tymeslot.Integrations.Video.TokenRefreshConcurrencyTest do
       tasks =
         for _ <- 1..10 do
           Task.async(fn ->
-            Rooms.create_meeting_room(user.id)
+            Rooms.create_meeting_room(user.id, integration_id: integration.id)
           end)
         end
 
@@ -81,12 +80,11 @@ defmodule Tymeslot.Integrations.Video.TokenRefreshConcurrencyTest do
     test "Teams token refresh is only called once even with multiple concurrent requests" do
       user = insert(:user)
 
-      {:ok, _integration} =
+      {:ok, integration} =
         VideoIntegrationQueries.create(%{
           user_id: user.id,
           name: "Teams Concurrent",
           provider: "teams",
-          is_default: true,
           access_token: "expired",
           refresh_token: "refresh",
           token_expires_at: DateTime.add(DateTime.utc_now(), -3600),
@@ -136,7 +134,7 @@ defmodule Tymeslot.Integrations.Video.TokenRefreshConcurrencyTest do
       tasks =
         for _ <- 1..10 do
           Task.async(fn ->
-            Rooms.create_meeting_room(user.id)
+            Rooms.create_meeting_room(user.id, integration_id: integration.id)
           end)
         end
 

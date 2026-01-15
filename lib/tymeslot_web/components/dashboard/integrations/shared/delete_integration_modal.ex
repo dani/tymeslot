@@ -37,7 +37,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Shared.DeleteIntegration
   @spec delete_integration_modal(map()) :: Phoenix.LiveView.Rendered.t()
   def delete_integration_modal(assigns) do
     ~H"""
-    <CoreComponents.modal id={@id} show={@show} on_cancel={@on_cancel} size={:medium}>
+    <CoreComponents.modal id={@id} show={@show} on_cancel={@on_cancel} size={:small}>
       <:header>
         <div class="flex items-center gap-2">
           <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -6,7 +6,6 @@ defmodule Tymeslot.Integrations.Calendar.Selection do
 
   alias Tymeslot.Integrations.Calendar
   alias Tymeslot.Integrations.CalendarManagement
-  alias Tymeslot.Integrations.CalendarPrimary
 
   @doc """
   Build the params fragment based on selected calendar paths and discovered items.
@@ -111,12 +110,11 @@ defmodule Tymeslot.Integrations.Calendar.Selection do
   defp maybe_put(acc, key, val), do: Map.put(acc, key, val)
 
   @doc """
-  Update calendar selection for an integration; sets primary if explicit default provided.
+  Update calendar selection for an integration.
   """
   @spec update_calendar_selection(map(), map()) :: {:ok, any()} | {:error, any()}
   def update_calendar_selection(integration, params) do
     selected_calendar_ids = params["selected_calendars"] || []
-    default_calendar_id = params["default_booking_calendar"]
 
     calendar_list =
       Enum.map(integration.calendar_list || [], fn cal ->
@@ -136,45 +134,6 @@ defmodule Tymeslot.Integrations.Calendar.Selection do
         )
       end)
 
-    result =
-      apply_selection_update(
-        integration,
-        calendar_list,
-        selected_calendar_ids,
-        default_calendar_id
-      )
-
-    result
+    CalendarManagement.update_calendar_integration(integration, %{calendar_list: calendar_list})
   end
-
-  defp apply_selection_update(
-         integration,
-         calendar_list,
-         selected_calendar_ids,
-         default_calendar_id
-       ) do
-    cond do
-      present_default?(default_calendar_id) and default_calendar_id in selected_calendar_ids ->
-        _ = CalendarPrimary.set_primary_calendar_integration(integration.user_id, integration.id)
-
-        attrs = %{
-          calendar_list: calendar_list,
-          default_booking_calendar_id: default_calendar_id,
-          is_active: true
-        }
-
-        CalendarManagement.update_calendar_integration(integration, attrs)
-
-      present_default?(default_calendar_id) ->
-        {:error, :invalid_default_calendar}
-
-      true ->
-        # No explicit default provided; just update the calendar_list selection.
-        # For non-primary integrations, do NOT set default_booking_calendar_id.
-        attrs = %{calendar_list: calendar_list}
-        CalendarManagement.update_calendar_integration(integration, attrs)
-    end
-  end
-
-  defp present_default?(id), do: is_binary(id) and id != ""
 end

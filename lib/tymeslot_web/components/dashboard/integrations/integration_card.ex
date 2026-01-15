@@ -4,6 +4,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.IntegrationCard do
   """
   use TymeslotWeb, :live_component
 
+  alias Tymeslot.Integrations.Calendar
   alias TymeslotWeb.Components.Icons.ProviderIcon
   alias TymeslotWeb.Components.UI.StatusSwitch
 
@@ -31,34 +32,32 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.IntegrationCard do
           <div class="integration-details">
             <div class="integration-title-row">
               <h3 class="integration-name">
-                {@integration.name}
+                <%= if @integration.name == @provider_display_name do %>
+                  {@provider_display_name}
+                <% else %>
+                  {@integration.name} • {@provider_display_name}
+                <% end %>
                 <%= if Map.has_key?(@integration, :is_default) and @integration.is_default do %>
                   <svg
                     class="w-4 h-4 ml-2 text-yellow-500 inline"
                     fill="currentColor"
                     viewBox="0 0 20 20"
+                    title="Default provider for new meetings"
                   >
                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                   </svg>
                 <% end %>
               </h3>
-              <%= if @integration.is_active do %>
-                <span class="status-badge status-badge--active">Active</span>
-              <% else %>
-                <span class="status-badge status-badge--inactive">Inactive</span>
-              <% end %>
             </div>
-            <p class="integration-provider">
-              <%= if @integration.provider in ["nextcloud", "caldav"] and @integration.base_url do %>
+            <p class="integration-provider text-xs text-gray-500">
+              <%= if @integration.provider in ["nextcloud", "caldav", "radicale"] and @integration.base_url do %>
                 {URI.parse(@integration.base_url).host}
-              <% else %>
-                {@provider_display_name}
-                <%= if @integration.provider in ["mirotalk", "custom"] and @integration.base_url do %>
-                  • {URI.parse(@integration.base_url).host}
-                <% end %>
-                <%= if Map.has_key?(@integration, :custom_meeting_url) and @integration.custom_meeting_url do %>
-                  • Custom URL
-                <% end %>
+              <% end %>
+              <%= if @integration.provider in ["mirotalk", "custom"] and @integration.base_url do %>
+                {URI.parse(@integration.base_url).host}
+              <% end %>
+              <%= if Map.has_key?(@integration, :custom_meeting_url) and @integration.custom_meeting_url do %>
+                Custom URL configured
               <% end %>
             </p>
           </div>
@@ -117,10 +116,10 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.IntegrationCard do
                       d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                     />
                   </svg>
-                  👁️ Sync-Only Calendar
+                  📖 Read-Only Calendar
                 </div>
                 <p class="text-xs text-blue-700">
-                  Prevents double-bookings by checking this calendar for conflicts
+                  We check this calendar for conflicts but won't create bookings here
                 </p>
               </div>
             <% end %>
@@ -366,6 +365,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.IntegrationCard do
                   phx-value-id={@integration.id}
                   phx-target={@myself}
                   class="btn btn-sm bg-green-600 hover:bg-green-700 text-white min-w-[90px]"
+                  title="New meetings will use this provider by default"
                 >
                   <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
@@ -378,25 +378,6 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.IntegrationCard do
                   Set Default
                 </button>
               <% end %>
-              
-    <!-- Delete button removed in favor of persistent trash icon in card corner -->
-            <% else %>
-              <button
-                phx-click="toggle_integration"
-                phx-value-id={@integration.id}
-                phx-target={@myself}
-                class="btn btn-sm btn-primary min-w-[90px]"
-              >
-                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M4.5 12.75l6 6 9-13.5"
-                  />
-                </svg>
-                Enable
-              </button>
             <% end %>
           <% end %>
         </div>
@@ -432,7 +413,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.IntegrationCard do
         end)
 
       if calendar do
-        calendar["name"] || calendar[:name] || "Calendar"
+        Calendar.extract_calendar_display_name(calendar)
       else
         "Primary Calendar"
       end

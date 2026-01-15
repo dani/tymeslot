@@ -81,9 +81,17 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.BookingFlow do
         duration: socket.assigns[:duration] || socket.assigns[:selected_duration],
         user_timezone: socket.assigns[:user_timezone],
         organizer_user_id: socket.assigns[:organizer_user_id],
+        meeting_type_id: get_meeting_type_id(socket),
         with_video_room: true
       }
     }
+  end
+
+  defp get_meeting_type_id(socket) do
+    case socket.assigns[:meeting_type] do
+      %{id: id} -> id
+      _ -> nil
+    end
   end
 
   defp build_booking_opts(socket) do

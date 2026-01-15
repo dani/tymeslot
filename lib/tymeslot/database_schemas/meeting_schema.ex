@@ -81,6 +81,15 @@ defmodule Tymeslot.DatabaseSchemas.MeetingSchema do
       type: :id
     )
 
+    belongs_to(:video_integration, Tymeslot.DatabaseSchemas.VideoIntegrationSchema,
+      type: :id
+    )
+
+    belongs_to(:meeting_type_ref, Tymeslot.DatabaseSchemas.MeetingTypeSchema,
+      foreign_key: :meeting_type_id,
+      type: :id
+    )
+
     field(:calendar_path, :string)
 
     # Attendee details
@@ -104,8 +113,6 @@ defmodule Tymeslot.DatabaseSchemas.MeetingSchema do
     field(:video_room_enabled, :boolean, default: false)
     field(:video_room_created_at, :utc_datetime)
     field(:video_room_expires_at, :utc_datetime)
-
-    # Calendar integration - .ics files are attached to emails
 
     # Reminder settings
     field(:reminder_time, :string)
@@ -141,9 +148,11 @@ defmodule Tymeslot.DatabaseSchemas.MeetingSchema do
     :duration,
     :location,
     :meeting_type,
+    :meeting_type_id,
     :organizer_title,
     :organizer_user_id,
     :calendar_integration_id,
+    :video_integration_id,
     :calendar_path,
     :attendee_message,
     :attendee_phone,

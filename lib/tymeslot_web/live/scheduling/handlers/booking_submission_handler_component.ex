@@ -238,6 +238,7 @@ defmodule TymeslotWeb.Live.Scheduling.Handlers.BookingSubmissionHandlerComponent
         duration: socket.assigns.duration || socket.assigns.selected_duration,
         user_timezone: socket.assigns.user_timezone,
         organizer_user_id: socket.assigns.organizer_user_id,
+        meeting_type_id: get_meeting_type_id(socket),
         # Always true for public booking flow
         with_video_room: true
       }
@@ -266,6 +267,13 @@ defmodule TymeslotWeb.Live.Scheduling.Handlers.BookingSubmissionHandlerComponent
 
       {:error, reason} ->
         handle_booking_error(socket, reason)
+    end
+  end
+
+  defp get_meeting_type_id(socket) do
+    case socket.assigns[:meeting_type] do
+      %{id: id} -> id
+      _ -> nil
     end
   end
 end

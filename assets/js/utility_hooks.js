@@ -78,6 +78,7 @@ export const AutoFocus = {
 export const ScrollReset = {
   mounted() {
     this.currentAction = String(this.el.dataset.action || '');
+    this.scrollToTop();
   },
   
   updated() {

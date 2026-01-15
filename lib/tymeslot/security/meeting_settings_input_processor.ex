@@ -23,37 +23,60 @@ defmodule Tymeslot.Security.MeetingSettingsInputProcessor do
   def validate_meeting_type_form(params, opts \\ []) do
     metadata = Keyword.get(opts, :metadata, %{})
 
-    with {:ok, sanitized_name} <- validate_meeting_name(params["name"], metadata),
-         {:ok, sanitized_duration} <- validate_meeting_duration(params["duration"], metadata),
-         {:ok, sanitized_description} <-
-           validate_meeting_description(params["description"], metadata),
-         {:ok, sanitized_icon} <- validate_icon(params["icon"], metadata),
-         {:ok, sanitized_mode} <- validate_meeting_mode(params["meeting_mode"], metadata) do
-      SecurityLogger.log_security_event("meeting_type_form_validation_success", %{
-        ip_address: metadata[:ip],
-        user_agent: metadata[:user_agent],
-        user_id: metadata[:user_id]
-      })
+    validations = [
+      {:name, params["name"]},
+      {:duration, params["duration"]},
+      {:description, params["description"]},
+      {:icon, params["icon"]},
+      {:meeting_mode, params["meeting_mode"]},
+      {:calendar_integration_id, params["calendar_integration_id"]},
+      {:target_calendar_id, params["target_calendar_id"]}
+    ]
 
-      {:ok,
-       %{
-         "name" => sanitized_name,
-         "duration" => sanitized_duration,
-         "description" => sanitized_description,
-         "icon" => sanitized_icon,
-         "meeting_mode" => sanitized_mode
-       }}
-    else
-      {:error, errors} when is_map(errors) ->
-        SecurityLogger.log_security_event("meeting_type_form_validation_failure", %{
-          ip_address: metadata[:ip],
-          user_agent: metadata[:user_agent],
-          user_id: metadata[:user_id],
-          errors: Map.keys(errors)
-        })
+    case run_validations(validations, metadata) do
+      {:ok, sanitized_params} ->
+        log_validation_result("success", metadata)
+        {:ok, sanitized_params}
 
+      {:error, errors} ->
+        log_validation_result("failure", metadata, errors)
         {:error, errors}
     end
+  end
+
+  defp run_validations(validations, metadata) do
+    Enum.reduce_while(validations, {:ok, %{}}, fn {field, value}, {:ok, acc} ->
+      case validate_field(field, value, metadata) do
+        {:ok, sanitized} ->
+          {:cont, {:ok, Map.put(acc, Atom.to_string(field), sanitized)}}
+
+        {:error, err} ->
+          {:halt, {:error, err}}
+      end
+    end)
+  end
+
+  defp validate_field(:name, v, m), do: validate_meeting_name(v, m)
+  defp validate_field(:duration, v, m), do: validate_meeting_duration(v, m)
+  defp validate_field(:description, v, m), do: validate_meeting_description(v, m)
+  defp validate_field(:icon, v, m), do: validate_icon(v, m)
+  defp validate_field(:meeting_mode, v, m), do: validate_meeting_mode(v, m)
+  defp validate_field(:calendar_integration_id, v, m), do: validate_calendar_integration_id(v, m)
+  defp validate_field(:target_calendar_id, v, m), do: validate_target_calendar_id(v, m)
+
+  defp log_validation_result(status, metadata, errors \\ nil) do
+    event_name = "meeting_type_form_validation_#{status}"
+
+    log_params = %{
+      ip_address: metadata[:ip],
+      user_agent: metadata[:user_agent],
+      user_id: metadata[:user_id]
+    }
+
+    log_params =
+      if errors, do: Map.put(log_params, :errors, Map.keys(errors)), else: log_params
+
+    SecurityLogger.log_security_event(event_name, log_params)
   end
 
   @doc """
@@ -384,6 +407,32 @@ defmodule Tymeslot.Security.MeetingSettingsInputProcessor do
 
   defp validate_meeting_mode(_, _metadata) do
     {:error, %{meeting_mode: "Invalid meeting mode format"}}
+  end
+
+  defp validate_calendar_integration_id(nil, _metadata), do: {:ok, nil}
+  defp validate_calendar_integration_id("", _metadata), do: {:ok, nil}
+
+  defp validate_calendar_integration_id(id, _metadata) do
+    case id do
+      id when is_integer(id) -> {:ok, id}
+      id when is_binary(id) ->
+        case Integer.parse(id) do
+          {int, ""} -> {:ok, int}
+          _ -> {:error, %{calendar_integration: "Invalid calendar account selected"}}
+        end
+      _ -> {:error, %{calendar_integration: "Invalid calendar account format"}}
+    end
+  end
+
+  defp validate_target_calendar_id(nil, _metadata), do: {:ok, nil}
+  defp validate_target_calendar_id("", _metadata), do: {:ok, nil}
+
+  defp validate_target_calendar_id(id, metadata) when is_binary(id) do
+    UniversalSanitizer.sanitize_and_validate(id, allow_html: false, metadata: metadata)
+  end
+
+  defp validate_target_calendar_id(_, _metadata) do
+    {:error, %{target_calendar: "Invalid target calendar format"}}
   end
 
   defp validate_numeric_range(value_str, min, max, field_name) do

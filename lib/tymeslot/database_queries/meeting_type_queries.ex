@@ -113,6 +113,18 @@ defmodule Tymeslot.DatabaseQueries.MeetingTypeQueries do
   @spec create_default_meeting_types(integer()) ::
           {:ok, [MeetingTypeSchema.t()]} | {:error, term()}
   def create_default_meeting_types(user_id) when is_integer(user_id) do
+    # Get user's primary calendar info for default booking destination
+    alias Tymeslot.Integrations.CalendarPrimary
+
+    {calendar_integration_id, target_calendar_id} =
+      case CalendarPrimary.get_primary_calendar_integration(user_id) do
+        {:ok, integration} when not is_nil(integration.default_booking_calendar_id) ->
+          {integration.id, integration.default_booking_calendar_id}
+
+        _ ->
+          {nil, nil}
+      end
+
     # Check existing meeting types to avoid duplicates
     existing_names =
       MapSet.new(
@@ -138,6 +150,8 @@ defmodule Tymeslot.DatabaseQueries.MeetingTypeQueries do
             sort_order: 0,
             is_active: true,
             allow_video: false,
+            calendar_integration_id: calendar_integration_id,
+            target_calendar_id: target_calendar_id,
             inserted_at: now,
             updated_at: now
           },
@@ -150,6 +164,8 @@ defmodule Tymeslot.DatabaseQueries.MeetingTypeQueries do
             sort_order: 1,
             is_active: true,
             allow_video: false,
+            calendar_integration_id: calendar_integration_id,
+            target_calendar_id: target_calendar_id,
             inserted_at: now,
             updated_at: now
           }

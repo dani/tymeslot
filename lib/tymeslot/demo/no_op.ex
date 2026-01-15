@@ -9,7 +9,6 @@ defmodule Tymeslot.Demo.NoOp do
 
   alias Tymeslot.Availability.WeeklySchedule
   alias Tymeslot.DatabaseQueries.UserQueries
-  alias Tymeslot.DatabaseQueries.VideoIntegrationQueries
   alias Tymeslot.Integrations.Calendar
   alias Tymeslot.MeetingTypes
   alias Tymeslot.Profiles
@@ -74,11 +73,10 @@ defmodule Tymeslot.Demo.NoOp do
   end
 
   @impl true
-  def get_active_video_integration(user_id) when is_integer(user_id) do
-    case VideoIntegrationQueries.get_default_for_user(user_id) do
-      {:ok, integration} -> integration
-      {:error, :not_found} -> nil
-    end
+  def get_active_video_integration(_user_id) do
+    # Since we removed the "default" flag, we return nil here.
+    # Consumers should instead look at the specific meeting type's video integration.
+    nil
   end
 
   @impl true

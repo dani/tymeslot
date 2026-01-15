@@ -22,7 +22,7 @@ defmodule Tymeslot.Workers.VideoRoomWorkerTest do
 
     test "handles invalid meeting_id type" do
       user = insert(:user)
-      insert(:video_integration, user: user, provider: "mirotalk", is_default: true)
+      insert(:video_integration, user: user, provider: "mirotalk")
 
       # String meeting_id should be converted to string internally
       result = perform_job(VideoRoomWorker, %{"meeting_id" => "invalid-id"})
@@ -39,6 +39,28 @@ defmodule Tymeslot.Workers.VideoRoomWorkerTest do
 
       # Worker discards jobs for non-existent meetings (no point retrying)
       assert {:discard, "Meeting not found"} = result
+    end
+
+    test "discards when video integration is missing and sends fallback emails" do
+      user = insert(:user)
+      _profile = insert(:profile, user: user)
+
+      meeting =
+        insert(:meeting,
+          organizer_user_id: user.id,
+          organizer_email: user.email,
+          video_integration_id: nil
+        )
+
+      result =
+        perform_job(
+          VideoRoomWorker,
+          %{"meeting_id" => meeting.id, "send_emails" => true},
+          attempt: 1
+        )
+
+      assert {:discard, "Video integration missing"} = result
+      assert_enqueued(worker: EmailWorker)
     end
   end
 

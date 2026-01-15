@@ -91,24 +91,13 @@ defmodule Tymeslot.Integrations.Calendar.ICalParser do
   end
 
   defp extract_events(content) do
-    now = DateTime.utc_now()
-
     content
     |> extract_vevent_blocks()
     |> Enum.map(&parse_event_block/1)
     |> Enum.filter(fn event ->
-      # Only include valid events that haven't ended yet
-      event != nil && event.end_time && compare_end_time(event.end_time, now) != :lt
+      # Only include valid events
+      event != nil && event.end_time
     end)
-  end
-
-  defp compare_end_time(%DateTime{} = dt, now), do: DateTime.compare(dt, now)
-
-  defp compare_end_time(%Date{} = date, now) do
-    # For all-day events, the end date (DTEND) is non-inclusive (starts at 00:00:00).
-    # We compare with the start of that day in UTC.
-    {:ok, dt} = DateTime.new(date, ~T[00:00:00], "Etc/UTC")
-    DateTime.compare(dt, now)
   end
 
   defp extract_vevent_blocks(content) do

@@ -350,7 +350,7 @@ defmodule Tymeslot.Workers.CalendarEventWorker do
     # Get the calendar integration ID from the meeting
     {:ok, meeting} = MeetingQueries.get_meeting(meeting_id)
 
-    case calendar_module().update_event(uid, event_data, meeting.calendar_integration_id) do
+    case calendar_module().update_event(uid, event_data, meeting) do
       :ok ->
         Logger.info("Calendar event updated successfully", meeting_id: meeting_id)
         :ok
@@ -383,7 +383,7 @@ defmodule Tymeslot.Workers.CalendarEventWorker do
       {:ok, meeting} ->
         Logger.info("Deleting calendar event", meeting_id: meeting_id, uid: meeting.uid)
 
-        case calendar_module().delete_event(meeting.uid, meeting.calendar_integration_id) do
+        case calendar_module().delete_event(meeting.uid, meeting) do
           :ok ->
             Logger.info("Calendar event deleted successfully", meeting_id: meeting_id)
             :ok
@@ -428,8 +428,8 @@ defmodule Tymeslot.Workers.CalendarEventWorker do
 
     event_data = build_event_data(meeting)
 
-    # Use the organizer_user_id from the meeting to create in the correct calendar
-    case calendar_module().create_event(event_data, meeting.organizer_user_id) do
+    # Use the meeting context to create in the correct calendar
+    case calendar_module().create_event(event_data, meeting) do
       {:ok, returned_uid} ->
         Logger.info("Calendar event created successfully", meeting_id: meeting_id)
         # Pass the returned UID to persist it
@@ -487,7 +487,7 @@ defmodule Tymeslot.Workers.CalendarEventWorker do
 
   defp persist_calendar_mapping(meeting, returned_uid) do
     # Persist which integration and calendar path were used for creation
-    case calendar_module().get_booking_integration_info(meeting.organizer_user_id) do
+    case calendar_module().get_booking_integration_info(meeting) do
       {:ok, %{integration_id: integration_id, calendar_path: calendar_path}} ->
         attrs = %{
           calendar_integration_id: integration_id,

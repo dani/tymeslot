@@ -9,11 +9,12 @@ defmodule TymeslotWeb.Dashboard.VideoSettingsComponent do
   alias Tymeslot.Integrations.Video, as: Video
   alias Tymeslot.Security.VideoInputProcessor
   alias Tymeslot.Utils.ChangesetUtils
-  alias TymeslotWeb.Components.Dashboard.Integrations.IntegrationCard
   alias TymeslotWeb.Components.Dashboard.Integrations.ProviderCard
   alias TymeslotWeb.Components.Dashboard.Integrations.Shared.DeleteIntegrationModal
   alias TymeslotWeb.Components.Dashboard.Integrations.Video.CustomConfig
   alias TymeslotWeb.Components.Dashboard.Integrations.Video.MirotalkConfig
+  alias TymeslotWeb.Components.Icons.ProviderIcon
+  alias TymeslotWeb.Components.UI.StatusSwitch
   alias TymeslotWeb.Helpers.IntegrationProviders
   alias TymeslotWeb.Hooks.ModalHook
   alias TymeslotWeb.Live.Dashboard.Shared.DashboardHelpers
@@ -214,20 +215,6 @@ defmodule TymeslotWeb.Dashboard.VideoSettingsComponent do
     end
   end
 
-  def handle_event("set_default", %{"id" => id}, socket) do
-    user_id = socket.assigns.current_user.id
-
-    case Video.set_default(user_id, normalize_id(id)) do
-      {:ok, _} ->
-        send(self(), {:flash, {:info, "Default integration updated"}})
-        {:noreply, load_integrations(socket)}
-
-      {:error, _} ->
-        send(self(), {:flash, {:error, "Failed to set default integration"}})
-        {:noreply, socket}
-    end
-  end
-
   def handle_event("modal_action", %{"action" => action, "modal" => modal} = params, socket) do
     case {action, modal} do
       {"show", "delete"} ->
@@ -331,8 +318,26 @@ defmodule TymeslotWeb.Dashboard.VideoSettingsComponent do
 
       <%= if @view_mode == :config do %>
         <!-- Configuration Page Mode -->
-        <div class="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div class="flex items-center justify-between bg-white p-6 rounded-token-3xl border-2 border-tymeslot-50 shadow-sm">
+        <div
+          id="video-config-view"
+          phx-hook="ScrollReset"
+          data-action={@config_provider}
+          class="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500"
+        >
+          <div class="flex items-center gap-6 bg-white p-6 rounded-token-3xl border-2 border-tymeslot-50 shadow-sm">
+            <button
+              phx-click="back_to_providers"
+              phx-target={@myself}
+              class="flex items-center gap-2 px-4 py-2 rounded-token-xl bg-tymeslot-50 text-tymeslot-600 font-bold hover:bg-tymeslot-100 transition-all"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Back
+            </button>
+
+            <div class="h-8 w-px bg-tymeslot-100"></div>
+
             <div class="flex items-center gap-4">
               <div class="w-12 h-12 bg-turquoise-50 rounded-token-xl flex items-center justify-center border border-turquoise-100 shadow-sm">
                 <svg class="w-6 h-6 text-turquoise-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -347,16 +352,6 @@ defmodule TymeslotWeb.Dashboard.VideoSettingsComponent do
                 end %>
               </h2>
             </div>
-            <button
-              phx-click="back_to_providers"
-              phx-target={@myself}
-              class="flex items-center gap-2 px-4 py-2 rounded-token-xl bg-tymeslot-50 text-tymeslot-600 font-bold hover:bg-tymeslot-100 transition-all"
-            >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              Back
-            </button>
           </div>
 
           <div class="card-glass">
@@ -390,27 +385,45 @@ defmodule TymeslotWeb.Dashboard.VideoSettingsComponent do
         
     <!-- Connected Video Providers Section -->
         <%= if @integrations != [] do %>
-          <div class="space-y-6">
-            <div class="flex items-center gap-3">
-              <h2 class="text-token-2xl font-black text-tymeslot-900 tracking-tight">Connected Video Providers</h2>
-              <span class="bg-turquoise-100 text-turquoise-700 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider">
-                {length(@integrations)} active
-              </span>
-            </div>
+          <% {active_integrations, inactive_integrations} = Enum.split_with(@integrations, & &1.is_active) %>
+          <% show_section_headers = active_integrations != [] and inactive_integrations != [] %>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              <%= for integration <- @integrations do %>
-                <IntegrationCard.integration_card
-                  integration={integration}
-                  integration_type={:video}
-                  provider_display_name={format_provider_name(integration.provider)}
-                  token_expiry_text={format_token_expiry(integration.token_expires_at)}
-                  needs_scope_upgrade={false}
-                  testing_connection={@testing_connection}
-                  myself={@myself}
-                />
-              <% end %>
-            </div>
+          <div class="space-y-6">
+            <!-- Active Video Integrations -->
+            <%= if active_integrations != [] do %>
+              <div class="space-y-3">
+                <%= if show_section_headers do %>
+                  <h3 class="text-lg font-bold text-turquoise-800">Active Video Integrations</h3>
+                <% end %>
+
+                <%= for integration <- active_integrations do %>
+                  <.video_row
+                    integration={integration}
+                    provider_display_name={format_provider_name(integration.provider)}
+                    testing_connection={@testing_connection}
+                    myself={@myself}
+                  />
+                <% end %>
+              </div>
+            <% end %>
+
+            <!-- Inactive Video Integrations -->
+            <%= if inactive_integrations != [] do %>
+              <div class="space-y-3">
+                <%= if show_section_headers do %>
+                  <h3 class="text-lg font-semibold text-slate-600">Inactive Video Integrations</h3>
+                <% end %>
+
+                <%= for integration <- inactive_integrations do %>
+                  <.video_row
+                    integration={integration}
+                    provider_display_name={format_provider_name(integration.provider)}
+                    testing_connection={@testing_connection}
+                    myself={@myself}
+                  />
+                <% end %>
+              </div>
+            <% end %>
           </div>
         <% end %>
         
@@ -458,6 +471,141 @@ defmodule TymeslotWeb.Dashboard.VideoSettingsComponent do
           </div>
         </div>
       <% end %>
+    </div>
+    """
+  end
+
+  # Private render components
+
+  defp video_row(assigns) do
+    ~H"""
+    <div class={[
+      "card-glass transition-all duration-200",
+      !@integration.is_active && "card-glass-unavailable"
+    ]}>
+      <div class="flex items-start justify-between gap-6">
+        <!-- Left: Info -->
+        <div class="flex items-start gap-4 flex-1 min-w-0">
+          <ProviderIcon.provider_icon provider={@integration.provider} size="compact" class="mt-1" />
+
+          <div class="flex-1 min-w-0">
+            <!-- Title -->
+            <div class="flex items-center gap-2 mb-1">
+              <h4 class="text-base font-bold text-slate-900 truncate">
+                <%= if @integration.name == @provider_display_name do %>
+                  {@provider_display_name}
+                <% else %>
+                  {@integration.name}
+                <% end %>
+              </h4>
+            </div>
+
+            <!-- Provider Type -->
+            <div class="text-xs text-gray-600 mb-2">
+              <%= case @integration.provider do %>
+                <% "google_meet" -> %>
+                  <span class="font-semibold text-turquoise-700">OAuth Provider</span>
+                <% "teams" -> %>
+                  <span class="font-semibold text-turquoise-700">OAuth Provider</span>
+                <% "mirotalk" -> %>
+                  <span class="font-semibold text-blue-700">Self-Hosted</span>
+                <% "custom" -> %>
+                  <span class="font-semibold text-purple-700">Custom URL</span>
+                <% _ -> %>
+                  <span class="font-semibold text-gray-600">Video Provider</span>
+              <% end %>
+            </div>
+
+            <!-- Details -->
+            <div class="text-sm text-gray-600">
+              <%= if @integration.is_active do %>
+                <%= if @integration.provider in ["google_meet", "teams"] do %>
+                  <span>Authenticated via OAuth</span>
+                <% end %>
+                <%= if @integration.base_url do %>
+                  <span>{URI.parse(@integration.base_url).host}</span>
+                <% end %>
+                <%= if Map.get(@integration, :custom_meeting_url) do %>
+                  <span>Static meeting URL configured</span>
+                <% end %>
+              <% else %>
+                <span class="text-gray-500 italic">Integration is currently disabled</span>
+              <% end %>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Actions -->
+        <div class="flex items-center gap-2 flex-shrink-0">
+          <StatusSwitch.status_switch
+            id={"video-toggle-#{@integration.id}"}
+            checked={@integration.is_active}
+            on_change="toggle_integration"
+            target={@myself}
+            phx_value_id={to_string(@integration.id)}
+            size={:large}
+            class="ring-2 ring-turquoise-300/50"
+          />
+
+          <%= if @integration.is_active do %>
+            <button
+              phx-click="test_connection"
+              phx-value-id={@integration.id}
+              phx-target={@myself}
+              disabled={@testing_connection == @integration.id}
+              class="btn btn-sm btn-secondary"
+            >
+              <%= if @testing_connection == @integration.id do %>
+                <svg class="animate-spin h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24">
+                  <circle
+                    class="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="4"
+                  >
+                  </circle>
+                  <path
+                    class="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  >
+                  </path>
+                </svg>
+                Testing...
+              <% else %>
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                Test
+              <% end %>
+            </button>
+          <% end %>
+
+          <button
+            phx-click="show_delete_modal"
+            phx-value-id={@integration.id}
+            phx-target={@myself}
+            class="text-gray-500 hover:text-red-600 transition-colors p-2"
+            title="Delete Integration"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
     </div>
     """
   end
@@ -544,10 +692,6 @@ defmodule TymeslotWeb.Dashboard.VideoSettingsComponent do
 
   defp format_provider_name(provider) do
     IntegrationProviders.format_provider_name(:video, provider)
-  end
-
-  defp format_token_expiry(expires_at) do
-    IntegrationProviders.format_token_expiry(expires_at)
   end
 
   # Helper function to get security metadata

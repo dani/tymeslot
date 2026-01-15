@@ -16,6 +16,8 @@ defmodule Tymeslot.DatabaseSchemas.MeetingTypeSchema do
           sort_order: integer(),
           user_id: integer() | nil,
           video_integration_id: integer() | nil,
+          calendar_integration_id: integer() | nil,
+          target_calendar_id: String.t() | nil,
           inserted_at: DateTime.t() | nil,
           updated_at: DateTime.t() | nil
         }
@@ -28,9 +30,11 @@ defmodule Tymeslot.DatabaseSchemas.MeetingTypeSchema do
     field(:is_active, :boolean, default: true)
     field(:allow_video, :boolean, default: false)
     field(:sort_order, :integer, default: 0)
+    field(:target_calendar_id, :string)
 
     belongs_to(:user, Tymeslot.DatabaseSchemas.UserSchema)
     belongs_to(:video_integration, Tymeslot.DatabaseSchemas.VideoIntegrationSchema)
+    belongs_to(:calendar_integration, Tymeslot.DatabaseSchemas.CalendarIntegrationSchema)
 
     timestamps()
   end
@@ -66,7 +70,9 @@ defmodule Tymeslot.DatabaseSchemas.MeetingTypeSchema do
       :allow_video,
       :sort_order,
       :user_id,
-      :video_integration_id
+      :video_integration_id,
+      :calendar_integration_id,
+      :target_calendar_id
     ])
     |> validate_required([:name, :duration_minutes, :user_id])
     |> validate_length(:name, min: 1, max: 100)
@@ -75,11 +81,13 @@ defmodule Tymeslot.DatabaseSchemas.MeetingTypeSchema do
     |> validate_number(:sort_order, greater_than_or_equal_to: 0)
     |> validate_inclusion(:icon, @valid_icons, message: "must be one of the available icons")
     |> validate_video_integration()
+    |> validate_calendar_destination()
     |> unique_constraint([:user_id, :name],
       message: "You already have a meeting type with this name"
     )
     |> foreign_key_constraint(:user_id)
     |> foreign_key_constraint(:video_integration_id)
+    |> foreign_key_constraint(:calendar_integration_id)
   end
 
   @doc """
@@ -100,6 +108,23 @@ defmodule Tymeslot.DatabaseSchemas.MeetingTypeSchema do
       add_error(changeset, :video_integration_id, "is required when video meetings are enabled")
     else
       changeset
+    end
+  end
+
+  # Validate that target calendar is set when calendar integration is chosen
+  defp validate_calendar_destination(changeset) do
+    integration_id = get_field(changeset, :calendar_integration_id)
+    target_id = get_field(changeset, :target_calendar_id)
+
+    case {integration_id, target_id} do
+      {id, nil} when not is_nil(id) ->
+        add_error(changeset, :target_calendar_id, "is required when a calendar integration is selected")
+
+      {nil, tid} when not is_nil(tid) ->
+        add_error(changeset, :calendar_integration_id, "is required when a target calendar is selected")
+
+      _ ->
+        changeset
     end
   end
 

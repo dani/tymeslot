@@ -6,6 +6,7 @@ defmodule Tymeslot.WorkerTestHelpers do
   import Mox
   import Tymeslot.Factory
 
+  alias Ecto.UUID
   alias Tymeslot.DatabaseSchemas.CalendarIntegrationSchema
   alias Tymeslot.DatabaseSchemas.MeetingSchema
   alias Tymeslot.DatabaseSchemas.UserSchema
@@ -30,7 +31,7 @@ defmodule Tymeslot.WorkerTestHelpers do
     meeting_attrs = %{
       organizer_user_id: user.id,
       calendar_integration_id: integration.id,
-      uid: Keyword.get(opts, :uid, Ecto.UUID.generate())
+      uid: Keyword.get(opts, :uid, UUID.generate())
     }
 
     meeting_attrs =
@@ -60,11 +61,15 @@ defmodule Tymeslot.WorkerTestHelpers do
     integration =
       insert(:video_integration,
         user: user,
-        provider: Keyword.get(opts, :provider, "mirotalk"),
-        is_default: true
+        provider: Keyword.get(opts, :provider, "mirotalk")
       )
 
-    meeting = insert(:meeting, organizer_user_id: user.id, organizer_email: user.email)
+    meeting =
+      insert(:meeting,
+        organizer_user_id: user.id,
+        organizer_email: user.email,
+        video_integration_id: integration.id
+      )
 
     %{user: user, integration: integration, meeting: meeting}
   end
@@ -75,12 +80,12 @@ defmodule Tymeslot.WorkerTestHelpers do
   @spec expect_calendar_create_success(integer(), String.t()) :: :ok
   def expect_calendar_create_success(integration_id, returned_uid \\ "remote-uid-123") do
     # Mock the event creation
-    expect(Tymeslot.CalendarMock, :create_event, fn _event_data, _user_id ->
+    expect(Tymeslot.CalendarMock, :create_event, fn _event_data, _context ->
       {:ok, returned_uid}
     end)
 
     # Mock the post-creation integration info fetch (called by persist_calendar_mapping)
-    expect(Tymeslot.CalendarMock, :get_booking_integration_info, fn _user_id ->
+    expect(Tymeslot.CalendarMock, :get_booking_integration_info, fn _context ->
       {:ok, %{integration_id: integration_id, calendar_path: "primary"}}
     end)
   end

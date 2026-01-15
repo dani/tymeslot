@@ -31,7 +31,7 @@ defmodule Tymeslot.Integrations.Calendar.PrimaryTest do
     assert profile.primary_calendar_integration_id == updated.id
   end
 
-  test "set_primary clears other booking calendars", %{user: user} do
+  test "set_primary NO LONGER clears other booking calendars", %{user: user} do
     first =
       insert(:calendar_integration,
         user: user,
@@ -49,7 +49,7 @@ defmodule Tymeslot.Integrations.Calendar.PrimaryTest do
     assert {:ok, _} = CalendarPrimary.set_primary_calendar_integration(user.id, second.id)
 
     {:ok, cleared_first} = CalendarIntegrationQueries.get_for_user(first.id, user.id)
-    assert cleared_first.default_booking_calendar_id == nil
+    assert cleared_first.default_booking_calendar_id == "old-default"
   end
 
   test "delete_with_primary_handling promotes another integration", %{user: user} do
