@@ -27,19 +27,19 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Video.CustomConfig do
         </div>
         <UIComponents.close_button target={@target} />
       </div>
-      
+
     <!-- Info Section -->
       <.custom_video_info />
 
       <div class="border-t border-purple-200/30 my-6"></div>
-      
+
     <!-- Configuration Form with Glass Morphism -->
       <form phx-submit="add_integration" phx-target={@target} class="space-y-6">
         <input type="hidden" name="integration[provider]" value="custom" />
-        
+
     <!-- Integration Name Field -->
         <div>
-          <label for="integration_name" class="block text-sm font-semibold text-neutral-700 mb-2">
+          <label for="integration_name" class="label">
             Integration Name
           </label>
           <div class="relative">
@@ -68,20 +68,14 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Video.CustomConfig do
               phx-target={@target}
               required
               class={[
-                "w-full pl-10 pr-3 py-2.5 border rounded-lg",
-                "bg-white/50 backdrop-blur-sm",
-                "focus:outline-none focus:ring-2 focus:ring-turquoise-500 focus:border-transparent",
-                "transition-all duration-200",
-                if(Map.get(@form_errors, :name),
-                  do: "border-red-300 text-red-900 placeholder-red-300",
-                  else: "border-purple-200/50 text-neutral-700 placeholder-neutral-400"
-                )
+                "input input-with-icon w-full",
+                if(Map.get(@form_errors, :name), do: "input-error", else: "")
               ]}
               placeholder="My Custom Video Service"
             />
           </div>
           <%= if error = Map.get(@form_errors, :name) do %>
-            <p class="mt-1 text-sm text-red-600 flex items-center">
+            <p class="form-error flex items-center">
               <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                 <path
                   fill-rule="evenodd"
@@ -93,12 +87,12 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Video.CustomConfig do
             </p>
           <% end %>
         </div>
-        
+
     <!-- Video Meeting URL Field -->
         <div>
           <label
             for="integration_custom_meeting_url"
-            class="block text-sm font-semibold text-neutral-700 mb-2"
+            class="label"
           >
             Video Meeting URL
           </label>
@@ -128,20 +122,14 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Video.CustomConfig do
               phx-target={@target}
               required
               class={[
-                "w-full pl-10 pr-3 py-2.5 border rounded-lg",
-                "bg-white/50 backdrop-blur-sm",
-                "focus:outline-none focus:ring-2 focus:ring-turquoise-500 focus:border-transparent",
-                "transition-all duration-200",
-                if(Map.get(@form_errors, :custom_meeting_url),
-                  do: "border-red-300 text-red-900 placeholder-red-300",
-                  else: "border-purple-200/50 text-neutral-700 placeholder-neutral-400"
-                )
+                "input input-with-icon w-full",
+                if(Map.get(@form_errors, :custom_meeting_url), do: "input-error", else: "")
               ]}
               placeholder="https://meet.example.com/room123"
             />
           </div>
           <%= if error = Map.get(@form_errors, :custom_meeting_url) do %>
-            <p class="mt-1 text-sm text-red-600 flex items-center">
+            <p class="form-error flex items-center">
               <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                 <path
                   fill-rule="evenodd"
@@ -157,7 +145,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Video.CustomConfig do
             </p>
           <% end %>
         </div>
-        
+
     <!-- Warning Card -->
         <div class="brand-card p-4 bg-gradient-to-r from-amber-50/50 to-yellow-50/50 border border-amber-200/30">
           <div class="flex items-start space-x-3">
@@ -256,7 +244,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Video.CustomConfig do
             </div>
           </div>
         </div>
-        
+
     <!-- How It Works Card -->
         <div class="brand-card p-4 bg-gradient-to-br from-purple-50/50 to-indigo-50/50">
           <div class="flex items-start space-x-3">

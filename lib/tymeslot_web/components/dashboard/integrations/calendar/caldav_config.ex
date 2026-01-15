@@ -110,7 +110,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.CaldavConfig do
                   phx-value-field="name"
                   phx-target={@myself}
                   class={[
-                    "input pl-10 w-full",
+                    "input input-with-icon w-full",
                     if(Map.get(@form_errors, :name), do: "input-error", else: "")
                   ]}
                   placeholder="My CalDAV"
@@ -148,7 +148,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.CaldavConfig do
                   name="integration[url]"
                   value={Map.get(@form_values || %{}, "url", "")}
                   required
-                  class="input pl-10 w-full"
+                  class="input input-with-icon w-full"
                   placeholder="caldav.example.com or https://caldav.example.com"
                 />
               </div>
@@ -181,7 +181,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.CaldavConfig do
                   name="integration[username]"
                   value={Map.get(@form_values || %{}, "username", "")}
                   required
-                  class="input pl-10 w-full"
+                  class="input input-with-icon w-full"
                   placeholder="Your username"
                 />
               </div>
@@ -214,7 +214,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.CaldavConfig do
                   name="integration[password]"
                   value={Map.get(@form_values || %{}, "password", "")}
                   required
-                  class="input pl-10 w-full"
+                  class="input input-with-icon w-full"
                   placeholder="Your password"
                 />
               </div>

@@ -177,7 +177,8 @@ defmodule Tymeslot.Workers.CalendarEventWorkerTest do
       uid = meeting.uid
 
       # Should attempt update with nil integration_id
-      expect(Tymeslot.CalendarMock, :update_event, fn ^uid, _data, nil ->
+      expect(Tymeslot.CalendarMock, :update_event, fn ^uid, _data, meeting ->
+        assert meeting.calendar_integration_id == nil
         {:error, :not_found}
       end)
 
@@ -213,8 +214,8 @@ defmodule Tymeslot.Workers.CalendarEventWorkerTest do
       uid = meeting.uid
 
       # Update fails with not_found
-      expect(Tymeslot.CalendarMock, :update_event, fn ^uid, _data, id ->
-        assert id == integration.id
+      expect(Tymeslot.CalendarMock, :update_event, fn ^uid, _data, meeting ->
+        assert meeting.calendar_integration_id == integration.id
         {:error, :not_found}
       end)
 
@@ -250,8 +251,8 @@ defmodule Tymeslot.Workers.CalendarEventWorkerTest do
       %{integration: integration, meeting: meeting} = setup_calendar_scenario()
       uid = meeting.uid
 
-      expect(Tymeslot.CalendarMock, :delete_event, fn ^uid, id ->
-        assert id == integration.id
+      expect(Tymeslot.CalendarMock, :delete_event, fn ^uid, meeting ->
+        assert meeting.calendar_integration_id == integration.id
         {:error, :not_found}
       end)
 
@@ -289,8 +290,8 @@ defmodule Tymeslot.Workers.CalendarEventWorkerTest do
       end)
 
       # Second call: meeting now has "remote-uid-123", so it's an update
-      expect(Tymeslot.CalendarMock, :update_event, 1, fn "remote-uid-123", _data, id ->
-        assert id == integration.id
+      expect(Tymeslot.CalendarMock, :update_event, 1, fn "remote-uid-123", _data, meeting ->
+        assert meeting.calendar_integration_id == integration.id
         :ok
       end)
 

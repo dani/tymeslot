@@ -110,7 +110,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.NextcloudConfig
                   phx-value-field="name"
                   phx-target={@myself}
                   class={[
-                    "input pl-10 w-full",
+                    "input input-with-icon w-full",
                     if(Map.get(@form_errors, :name), do: "input-error", else: "")
                   ]}
                   placeholder="My Nextcloud"
@@ -148,7 +148,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.NextcloudConfig
                   name="integration[url]"
                   value={Map.get(@form_values || %{}, "url", "")}
                   required
-                  class="input pl-10 w-full"
+                  class="input input-with-icon w-full"
                   placeholder="cloud.example.com or calendar URL"
                 />
               </div>
@@ -181,7 +181,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.NextcloudConfig
                   name="integration[username]"
                   value={Map.get(@form_values || %{}, "username", "")}
                   required
-                  class="input pl-10 w-full"
+                  class="input input-with-icon w-full"
                   placeholder="Your username"
                 />
               </div>
@@ -214,7 +214,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.NextcloudConfig
                   name="integration[password]"
                   value={Map.get(@form_values || %{}, "password", "")}
                   required
-                  class="input pl-10 w-full"
+                  class="input input-with-icon w-full"
                   placeholder="Your app password"
                 />
               </div>

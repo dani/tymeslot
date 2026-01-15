@@ -11,8 +11,8 @@ defmodule Tymeslot.Integrations.Calendar.ICalParserTest do
       PRODID:-//Test//Test//EN
       BEGIN:VEVENT
       UID:event-123@example.com
-      DTSTART:20260115T100000Z
-      DTEND:20260115T110000Z
+      DTSTART:20300115T100000Z
+      DTEND:20300115T110000Z
       SUMMARY:Team Meeting
       DESCRIPTION:Weekly sync
       LOCATION:Room A
@@ -35,14 +35,14 @@ defmodule Tymeslot.Integrations.Calendar.ICalParserTest do
       VERSION:2.0
       BEGIN:VEVENT
       UID:event1@example.com
-      DTSTART:20260115T100000Z
-      DTEND:20260115T110000Z
+      DTSTART:20300115T100000Z
+      DTEND:20300115T110000Z
       SUMMARY:Meeting 1
       END:VEVENT
       BEGIN:VEVENT
       UID:event2@example.com
-      DTSTART:20260115T140000Z
-      DTEND:20260115T150000Z
+      DTSTART:20300115T140000Z
+      DTEND:20300115T150000Z
       SUMMARY:Meeting 2
       END:VEVENT
       END:VCALENDAR
@@ -56,7 +56,7 @@ defmodule Tymeslot.Integrations.Calendar.ICalParserTest do
 
     test "handles different line endings (CRLF)" do
       ical_content =
-        "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:test@example.com\r\nDTSTART:20260115T100000Z\r\nDTEND:20260115T110000Z\r\nSUMMARY:Test\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
+        "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:test@example.com\r\nDTSTART:20300115T100000Z\r\nDTEND:20300115T110000Z\r\nSUMMARY:Test\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
 
       assert {:ok, [event]} = ICalParser.parse(ical_content)
       assert event.summary == "Test"
@@ -64,7 +64,7 @@ defmodule Tymeslot.Integrations.Calendar.ICalParserTest do
 
     test "handles Unix line endings (LF)" do
       ical_content =
-        "BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nUID:test@example.com\nDTSTART:20260115T100000Z\nDTEND:20260115T110000Z\nSUMMARY:Test\nEND:VEVENT\nEND:VCALENDAR\n"
+        "BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nUID:test@example.com\nDTSTART:20300115T100000Z\nDTEND:20300115T110000Z\nSUMMARY:Test\nEND:VEVENT\nEND:VCALENDAR\n"
 
       assert {:ok, [event]} = ICalParser.parse(ical_content)
       assert event.summary == "Test"
@@ -72,7 +72,7 @@ defmodule Tymeslot.Integrations.Calendar.ICalParserTest do
 
     test "handles CR line endings" do
       ical_content =
-        "BEGIN:VCALENDAR\rVERSION:2.0\rBEGIN:VEVENT\rUID:test@example.com\rDTSTART:20260115T100000Z\rDTEND:20260115T110000Z\rSUMMARY:Test\rEND:VEVENT\rEND:VCALENDAR\r"
+        "BEGIN:VCALENDAR\rVERSION:2.0\rBEGIN:VEVENT\rUID:test@example.com\rDTSTART:20300115T100000Z\rDTEND:20300115T110000Z\rSUMMARY:Test\rEND:VEVENT\rEND:VCALENDAR\r"
 
       assert {:ok, [event]} = ICalParser.parse(ical_content)
       assert event.summary == "Test"
@@ -84,8 +84,8 @@ defmodule Tymeslot.Integrations.Calendar.ICalParserTest do
       VERSION:2.0
       BEGIN:VEVENT
       UID:test@example.com
-      DTSTART:20260115T100000Z
-      DTEND:20260115T110000Z
+      DTSTART:20300115T100000Z
+      DTEND:20300115T110000Z
       SUMMARY:Meeting\\, Planning
       DESCRIPTION:Line 1\\nLine 2\\nLine 3
       LOCATION:Building A\\; Room 5
@@ -105,8 +105,8 @@ defmodule Tymeslot.Integrations.Calendar.ICalParserTest do
       VERSION:2.0
       BEGIN:VEVENT
       UID:test@example.com
-      DTSTART:20260115T100000Z
-      DTEND:20260115T110000Z
+      DTSTART:20300115T100000Z
+      DTEND:20300115T110000Z
       SUMMARY:This is a very long summary that spans
        multiple lines in the iCalendar format
       END:VEVENT
@@ -252,7 +252,7 @@ defmodule Tymeslot.Integrations.Calendar.ICalParserTest do
       VERSION:2.0
       BEGIN:VEVENT
       UID:test@example.com
-      DTSTART:20260115T100000Z
+      DTSTART:20300115T100000Z
       DURATION:PT1H
       SUMMARY:Event With Duration
       END:VEVENT
@@ -301,8 +301,8 @@ defmodule Tymeslot.Integrations.Calendar.ICalParserTest do
       VERSION:2.0
       BEGIN:VEVENT
       UID:allday@example.com
-      DTSTART:20260115
-      DTEND:20260116
+      DTSTART:20300115
+      DTEND:20300116
       SUMMARY:All Day Event
       END:VEVENT
       END:VCALENDAR
@@ -319,8 +319,8 @@ defmodule Tymeslot.Integrations.Calendar.ICalParserTest do
       VERSION:2.0
       BEGIN:VEVENT
       UID:tz-event@example.com
-      DTSTART;TZID=America/New_York:20260115T100000
-      DTEND;TZID=America/New_York:20260115T110000
+      DTSTART;TZID=America/New_York:20300115T100000
+      DTEND;TZID=America/New_York:20300115T110000
       SUMMARY:Event with Timezone
       END:VEVENT
       END:VCALENDAR
@@ -353,8 +353,8 @@ defmodule Tymeslot.Integrations.Calendar.ICalParserTest do
       VERSION:2.0
       BEGIN:VEVENT
       UID:event1@example.com
-      DTSTART:20260115T100000Z
-      DTEND:20260115T110000Z
+      DTSTART:20300115T100000Z
+      DTEND:20300115T110000Z
       SUMMARY:CalDAV Event
       END:VEVENT
       END:VCALENDAR</calendar-data>

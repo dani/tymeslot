@@ -12,6 +12,10 @@
   appearance: none;
 }
 
+.input-with-icon {
+  @apply pl-10;
+}
+
 .input::placeholder {
   @apply text-slate-400 font-medium;
 }
@@ -29,6 +33,10 @@
 /* Label - Modern Typography */
 .label {
   @apply block text-sm font-black text-slate-800 uppercase tracking-wider mb-2;
+}
+
+.form-error {
+  @apply mt-2 text-sm font-semibold text-red-600;
 }
 
 /* Form Group */

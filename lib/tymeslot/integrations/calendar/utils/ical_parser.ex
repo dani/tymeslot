@@ -91,13 +91,24 @@ defmodule Tymeslot.Integrations.Calendar.ICalParser do
   end
 
   defp extract_events(content) do
+    now = DateTime.utc_now()
+    today = Date.utc_today()
+
     content
     |> extract_vevent_blocks()
     |> Enum.map(&parse_event_block/1)
     |> Enum.filter(fn event ->
-      # Only include valid events
-      event != nil && event.end_time
+      # Only include valid events that haven't ended in the past
+      event != nil && event.end_time && !past_event?(event, now, today)
     end)
+  end
+
+  defp past_event?(%{end_time: %DateTime{} = end_time}, now, _today) do
+    DateTime.compare(end_time, now) == :lt
+  end
+
+  defp past_event?(%{end_time: %Date{} = end_time}, _now, today) do
+    Date.compare(end_time, today) == :lt
   end
 
   defp extract_vevent_blocks(content) do

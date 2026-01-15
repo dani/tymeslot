@@ -153,7 +153,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.SharedFormCompo
           phx-value-field="name"
           phx-target={@myself}
           class={[
-            "input pl-10 w-full",
+            "input input-with-icon w-full",
             if(Map.get(@form_errors, :name), do: "input-error", else: "")
           ]}
           placeholder={@placeholder}
