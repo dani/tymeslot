@@ -2,6 +2,10 @@
 
 **Enterprise-grade meeting scheduling platform built with Elixir/Phoenix LiveView**
 
+> [!IMPORTANT]
+> # 📢 OFFICIAL RELEASES ONLY
+> **We publish official, stable releases on GitHub rather than treating every commit as a release. Always use the latest [GitHub Release](https://github.com/tymeslot/tymeslot/releases) for production environments.**
+
 Tymeslot provides comprehensive appointment booking with multi-provider calendar and video conferencing integration. It combines advanced user management, flexible calendar synchronization, professional email notifications, and multi-provider video conferencing into a seamless, customizable scheduling experience.
 
 [![License: Elastic-2.0](https://img.shields.io/badge/License-Elastic--2.0-blue.svg)](https://www.elastic.co/licensing/elastic-license)
@@ -255,8 +259,6 @@ Themes are fully isolated with consistent functionality across all variations.
 ## 🤝 Contributing
 
 We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-**A note on releases:** We publish official, stable releases on GitHub rather than treating every commit as a release.
 
 **How to contribute most effectively:** The biggest contribution you can make to Tymeslot is your **feedback**. Whether it's reporting a bug, suggesting a new feature, or simply sharing how you use the platform, your insights are what drive our growth.
 
