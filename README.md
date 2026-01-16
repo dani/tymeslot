@@ -260,6 +260,8 @@ Themes are fully isolated with consistent functionality across all variations.
 
 We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
+**Beyond code and feedback, you can support Tymeslot's sustainability by subscribing to our managed cloud service.** These subscriptions directly fund the maintenance and development of the open-source core, ensuring the project remains alive and continues to evolve.
+
 **How to contribute most effectively:** The biggest contribution you can make to Tymeslot is your **feedback**. Whether it's reporting a bug, suggesting a new feature, or simply sharing how you use the platform, your insights are what drive our growth.
 
 ### Development Setup

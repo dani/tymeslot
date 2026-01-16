@@ -31,6 +31,11 @@ We welcome many types of contributions:
 - 🔌 **Integrations** - Add support for new calendar/video providers
 - 🚀 **Performance** - Optimize code and improve efficiency
 - 🔒 **Security** - Enhance security measures and practices
+- ☁️ **Cloud Support** - Consider subscribing to our cloud service to help sustain the project's growth
+
+## ☁️ Supporting Project Sustainability
+
+Beyond code and feedback, you can contribute to the long-term health of Tymeslot by subscribing to our managed cloud service. These subscriptions are vital—they provide the resources needed to keep the software alive, maintained, and evolving. By choosing the cloud version, you're directly investing in the future of the open-source core that everyone benefits from.
 
 ## 📦 Releases & Feedback
 
