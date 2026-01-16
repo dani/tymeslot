@@ -16,8 +16,13 @@ defmodule Tymeslot.Workers.EmailWorker do
     # Higher priority (0-3, lower number = higher priority)
     priority: 1
 
+  import Ecto.Query, warn: false
+
   alias Ecto.Changeset
+  alias Oban.Job
   alias Tymeslot.DatabaseQueries.MeetingQueries
+  alias Tymeslot.Repo
+  alias Tymeslot.Utils.ReminderUtils
   alias Tymeslot.Workers.EmailWorkerHandlers
   require Logger
 
@@ -183,53 +188,67 @@ defmodule Tymeslot.Workers.EmailWorker do
 
   @doc """
   Schedules reminder emails to be sent at a specific time with medium priority.
-  If no scheduled_at is provided, defaults to 30 minutes before the meeting.
+  If no scheduled_at is provided, defaults to the reminder interval before the meeting.
   """
-  @spec schedule_reminder_emails(term(), DateTime.t() | nil) :: :ok | {:error, String.t()}
-  def schedule_reminder_emails(meeting_id, scheduled_at \\ nil) do
-    scheduled_at = scheduled_at || calculate_reminder_time(meeting_id)
+  @spec schedule_reminder_emails(term(), term(), term(), DateTime.t() | nil) ::
+          :ok | {:error, String.t()}
+  def schedule_reminder_emails(meeting_id, reminder_value, reminder_unit, scheduled_at \\ nil) do
+    # Ensure atomic keys and normalized values
+    case ReminderUtils.normalize_reminder(%{value: reminder_value, unit: reminder_unit}) do
+      {:ok, %{value: value, unit: unit}} ->
+        scheduled_at =
+          scheduled_at || calculate_reminder_time(meeting_id, value, unit)
 
-    result =
-      %{"action" => "send_reminder_emails", "meeting_id" => meeting_id}
-      |> new(
-        queue: :emails,
-        # Medium priority for reminders
-        priority: 2,
-        scheduled_at: scheduled_at,
-        unique: [
-          # 1 hour uniqueness window for reminders
-          period: 3600,
-          fields: [:args, :queue],
-          keys: [:action, :meeting_id]
-        ]
-      )
-      |> Oban.insert()
+        _ = delete_existing_reminder_jobs(meeting_id, value, unit)
 
-    case result do
-      {:ok, _job} ->
-        Logger.info("Reminder email job scheduled",
-          meeting_id: meeting_id,
-          scheduled_at: scheduled_at
-        )
+        result =
+          %{
+            "action" => "send_reminder_emails",
+            "meeting_id" => meeting_id,
+            "reminder_value" => value,
+            "reminder_unit" => unit
+          }
+          |> new(
+            queue: :emails,
+            # Medium priority for reminders
+            priority: 2,
+            scheduled_at: scheduled_at,
+            unique: [
+              # Prevent duplicate reminders across long lead times (10 years in seconds)
+              period: 315_360_000,
+              fields: [:args, :queue],
+              keys: [:action, :meeting_id, :reminder_value, :reminder_unit]
+            ]
+          )
+          |> Oban.insert()
 
-        :ok
+        case result do
+          {:ok, _job} ->
+            Logger.info("Reminder email job scheduled",
+              meeting_id: meeting_id,
+              scheduled_at: scheduled_at
+            )
 
-      {:error, %Ecto.Changeset{errors: [unique: _]}} ->
-        Logger.info("Reminder email job already exists, skipping duplicate",
-          meeting_id: meeting_id
-        )
+            :ok
 
-        # Return success since job already exists
-        :ok
+          {:error, %Ecto.Changeset{errors: [unique: _]}} ->
+            Logger.info("Reminder email job already exists, skipping duplicate",
+              meeting_id: meeting_id
+            )
 
-      {:error, changeset} ->
-        Logger.error("Failed to schedule reminder emails",
-          meeting_id: meeting_id,
-          scheduled_at: scheduled_at,
-          error: inspect(changeset)
-        )
+            :ok
 
-        {:error, "Failed to schedule job"}
+          {:error, changeset} ->
+            Logger.error("Failed to schedule reminder emails",
+              meeting_id: meeting_id,
+              error: inspect(changeset)
+            )
+
+            {:error, "Failed to schedule job"}
+        end
+
+      _ ->
+        {:error, "invalid_reminder"}
     end
   end
 
@@ -323,16 +342,36 @@ defmodule Tymeslot.Workers.EmailWorker do
     div(calculate_backoff(attempt), 1_000)
   end
 
-  defp calculate_reminder_time(meeting_id) do
+  defp calculate_reminder_time(meeting_id, reminder_value, reminder_unit) do
     case MeetingQueries.get_meeting(meeting_id) do
       {:ok, meeting} ->
-        # Default to 30 minutes before the meeting
-        DateTime.add(meeting.start_time, -30, :minute)
+        seconds = ReminderUtils.reminder_interval_seconds(reminder_value, reminder_unit)
+        DateTime.add(meeting.start_time, -seconds, :second)
 
       {:error, :not_found} ->
         # Fallback to current time if meeting not found
         DateTime.utc_now()
     end
+  end
+
+  defp delete_existing_reminder_jobs(meeting_id, reminder_value, reminder_unit) do
+    worker_str = to_string(__MODULE__)
+
+    args_match = %{
+      "action" => "send_reminder_emails",
+      "meeting_id" => meeting_id,
+      "reminder_value" => reminder_value,
+      "reminder_unit" => reminder_unit
+    }
+
+    Repo.delete_all(
+      from(j in Job,
+        where: j.queue == "emails",
+        where: j.worker == ^worker_str,
+        where: j.state in ["available", "scheduled", "retryable"],
+        where: fragment("? @> ?::jsonb", j.args, type(^args_match, :map))
+      )
+    )
   end
 
   # Validate required fields based on action; reject malformed jobs early
@@ -360,7 +399,7 @@ defmodule Tymeslot.Workers.EmailWorker do
   defp required_fields_for_action(action) do
     case action do
       "send_confirmation_emails" -> ["meeting_id"]
-      "send_reminder_emails" -> ["meeting_id"]
+      "send_reminder_emails" -> ["meeting_id", "reminder_value", "reminder_unit"]
       "send_reschedule_request" -> ["meeting_id"]
       "send_contact_form" -> ["sender_name", "sender_email", "subject", "message"]
       "send_email_verification" -> ["user_id", "verification_url"]

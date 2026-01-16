@@ -3,6 +3,7 @@ defmodule Tymeslot.Workers.EmailWorkerHandlersTest do
   import Mox
   import Tymeslot.Factory
   alias Ecto.UUID
+  alias Tymeslot.DatabaseQueries.MeetingQueries
   alias Tymeslot.EmailServiceMock
   alias Tymeslot.Workers.EmailWorkerHandlers
 
@@ -124,6 +125,42 @@ defmodule Tymeslot.Workers.EmailWorkerHandlersTest do
                EmailWorkerHandlers.execute_email_action("send_reminder_emails", %{
                  "meeting_id" => meeting.id
                })
+    end
+
+    test "skips reminder if already sent for the interval" do
+      meeting =
+        insert(:meeting,
+          reminders_sent: [%{"value" => 30, "unit" => "minutes"}]
+        )
+
+      assert :ok =
+               EmailWorkerHandlers.execute_email_action("send_reminder_emails", %{
+                 "meeting_id" => meeting.id,
+                 "reminder_value" => 30,
+                 "reminder_unit" => "minutes"
+               })
+
+      {:ok, updated} = MeetingQueries.get_meeting(meeting.id)
+      assert updated.reminders_sent == meeting.reminders_sent
+    end
+
+    test "tracks reminder as sent after delivery" do
+      meeting = insert(:meeting)
+
+      expect(EmailServiceMock, :send_appointment_reminders, fn _, _ ->
+        {{:ok, "sent"}, {:ok, "sent"}}
+      end)
+
+      assert :ok =
+               EmailWorkerHandlers.execute_email_action("send_reminder_emails", %{
+                 "meeting_id" => meeting.id,
+                 "reminder_value" => 1,
+                 "reminder_unit" => "hours"
+               })
+
+      {:ok, updated} = MeetingQueries.get_meeting(meeting.id)
+      assert %{"value" => 1, "unit" => "hours"} in updated.reminders_sent
+      assert updated.reminder_email_sent == true
     end
   end
 

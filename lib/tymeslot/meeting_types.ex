@@ -5,6 +5,7 @@ defmodule Tymeslot.MeetingTypes do
   alias Tymeslot.DatabaseQueries.CalendarIntegrationQueries
   alias Tymeslot.DatabaseQueries.MeetingTypeQueries
   alias Tymeslot.DatabaseQueries.VideoIntegrationQueries
+  alias Tymeslot.Utils.ReminderUtils
   require Logger
 
   @doc """
@@ -211,19 +212,22 @@ defmodule Tymeslot.MeetingTypes do
         nil
       end
 
-    attrs = %{
-      name: params["name"],
-      duration_minutes: String.to_integer(params["duration"]),
-      description: params["description"],
-      icon: ui_state.selected_icon,
-      is_active: params["is_active"] == "true",
-      allow_video: ui_state.meeting_mode == "video",
-      video_integration_id: video_integration_id,
-      calendar_integration_id: params["calendar_integration_id"],
-      target_calendar_id: params["target_calendar_id"]
-    }
+    with {:ok, reminder_config} <- normalize_reminder_config_params(params["reminder_config"]) do
+      attrs = %{
+        name: params["name"],
+        duration_minutes: String.to_integer(params["duration"]),
+        description: params["description"],
+        icon: ui_state.selected_icon,
+        is_active: params["is_active"] == "true",
+        allow_video: ui_state.meeting_mode == "video",
+        video_integration_id: video_integration_id,
+        calendar_integration_id: params["calendar_integration_id"],
+        target_calendar_id: params["target_calendar_id"],
+        reminder_config: reminder_config
+      }
 
-    {:ok, attrs}
+      {:ok, attrs}
+    end
   rescue
     ArgumentError ->
       {:error, :invalid_duration}
@@ -301,4 +305,32 @@ defmodule Tymeslot.MeetingTypes do
       end
     end
   end
+
+  defp normalize_reminder_config_params(nil), do: {:ok, nil}
+  defp normalize_reminder_config_params(""), do: {:ok, nil}
+
+  defp normalize_reminder_config_params(reminders) when is_list(reminders) do
+    normalized = Enum.map(reminders, &ReminderUtils.normalize_reminder_string_keys/1)
+
+    if Enum.any?(normalized, &match?({:error, _}, &1)) do
+      {:error, :invalid_reminder_config}
+    else
+      {:ok, Enum.map(normalized, fn {:ok, reminder} -> reminder end)}
+    end
+  end
+
+  defp normalize_reminder_config_params(reminders) when is_map(reminders) do
+    reminders
+    |> Map.values()
+    |> normalize_reminder_config_params()
+  end
+
+  defp normalize_reminder_config_params(reminders) when is_binary(reminders) do
+    case Jason.decode(reminders) do
+      {:ok, decoded} -> normalize_reminder_config_params(decoded)
+      _ -> {:error, :invalid_reminder_config}
+    end
+  end
+
+  defp normalize_reminder_config_params(_), do: {:error, :invalid_reminder_config}
 end

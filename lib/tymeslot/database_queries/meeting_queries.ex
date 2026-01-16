@@ -14,6 +14,7 @@ defmodule Tymeslot.DatabaseQueries.MeetingQueries do
   alias Tymeslot.DatabaseQueries.UserQueries
   alias Tymeslot.DatabaseSchemas.MeetingSchema, as: Meeting
   alias Tymeslot.Repo
+  alias Tymeslot.Utils.ReminderUtils
 
   @doc false
   # Private helper: filter meetings where the given email matches organizer OR attendee.
@@ -395,6 +396,47 @@ defmodule Tymeslot.DatabaseQueries.MeetingQueries do
   end
 
   @doc """
+  Appends a reminder to reminders_sent and marks reminders as sent.
+  """
+  @spec append_reminder_sent(Meeting.t(), integer(), String.t()) ::
+          {:ok, Meeting.t()} | {:error, Changeset.t() | :invalid_reminder | :not_found}
+  def append_reminder_sent(%Meeting{} = meeting, reminder_value, reminder_unit) do
+    case ReminderUtils.normalize_reminder(%{value: reminder_value, unit: reminder_unit}) do
+      {:ok, %{value: val, unit: unit}} ->
+        new_reminder = %{"value" => val, "unit" => unit}
+        new_reminder_list = [new_reminder]
+
+        {count, _} =
+          Repo.update_all(
+            from(m in Meeting,
+              where: m.id == ^meeting.id,
+              update: [
+                set: [
+                  reminder_email_sent: true,
+                  reminders_sent:
+                    fragment(
+                      "CASE WHEN COALESCE(reminders_sent, ARRAY[]::jsonb[]) @> ?::jsonb[] THEN COALESCE(reminders_sent, ARRAY[]::jsonb[]) ELSE array_append(COALESCE(reminders_sent, ARRAY[]::jsonb[]), ?::jsonb) END",
+                      ^new_reminder_list,
+                      ^new_reminder
+                    )
+                ]
+              ]
+            ),
+            []
+          )
+
+        if count == 1 do
+          get_meeting(meeting.id)
+        else
+          {:error, :not_found}
+        end
+
+      _ ->
+        {:error, :invalid_reminder}
+    end
+  end
+
+  @doc """
   Returns the count of meetings with a specific status.
 
   ## Examples
@@ -440,20 +482,46 @@ defmodule Tymeslot.DatabaseQueries.MeetingQueries do
   Returns meetings that need reminder emails sent.
   This is a data access function that queries meetings by time window and status.
   Business logic for determining which meetings need reminders should be in the Meetings context.
+
+  For meetings with per-reminder tracking (reminders field), checks if all reminders have been sent.
+  For legacy meetings without reminders field, falls back to reminder_email_sent boolean flag.
   """
   @spec list_meetings_needing_reminders(DateTime.t(), DateTime.t()) :: [Meeting.t()]
   def list_meetings_needing_reminders(start_time, end_time) do
-    query =
+    # First get all meetings in the time window with confirmed status
+    # Then filter in application code to check per-reminder tracking
+    base_query =
       from(m in Meeting,
         where:
           m.start_time >= ^start_time and
             m.start_time <= ^end_time and
-            m.reminder_email_sent == false and
             m.status == "confirmed",
         order_by: [asc: m.start_time]
       )
 
-    Repo.all(query)
+    meetings = Repo.all(base_query)
+
+    # Filter to only those that still need reminders
+    Enum.filter(meetings, fn meeting ->
+      case meeting.reminders do
+        nil ->
+          # Legacy meeting: use boolean flag
+          not meeting.reminder_email_sent
+
+        [] ->
+          # Empty reminders list: no reminders needed
+          false
+
+        reminders when is_list(reminders) ->
+          # Per-reminder tracking: check if all have been sent
+          reminders_sent = meeting.reminders_sent || []
+          length(reminders) > length(reminders_sent)
+
+        _ ->
+          # Invalid data: assume needs reminder (safer default)
+          true
+      end
+    end)
   end
 
   @doc """

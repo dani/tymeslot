@@ -42,6 +42,8 @@ defmodule Tymeslot.DatabaseSchemas.MeetingSchema do
           video_room_expires_at: DateTime.t() | nil,
           reminder_time: String.t() | nil,
           default_reminder_time: String.t() | nil,
+          reminders: [map()],
+          reminders_sent: [map()],
           status: String.t(),
           cancelled_at: DateTime.t() | nil,
           cancellation_reason: String.t() | nil,
@@ -81,9 +83,7 @@ defmodule Tymeslot.DatabaseSchemas.MeetingSchema do
       type: :id
     )
 
-    belongs_to(:video_integration, Tymeslot.DatabaseSchemas.VideoIntegrationSchema,
-      type: :id
-    )
+    belongs_to(:video_integration, Tymeslot.DatabaseSchemas.VideoIntegrationSchema, type: :id)
 
     belongs_to(:meeting_type_ref, Tymeslot.DatabaseSchemas.MeetingTypeSchema,
       foreign_key: :meeting_type_id,
@@ -117,6 +117,8 @@ defmodule Tymeslot.DatabaseSchemas.MeetingSchema do
     # Reminder settings
     field(:reminder_time, :string)
     field(:default_reminder_time, :string)
+    field(:reminders, {:array, :map}, default: nil)
+    field(:reminders_sent, {:array, :map}, default: nil)
 
     # Status tracking
     field(:status, :string, default: "pending")
@@ -170,6 +172,8 @@ defmodule Tymeslot.DatabaseSchemas.MeetingSchema do
     :video_room_expires_at,
     :reminder_time,
     :default_reminder_time,
+    :reminders,
+    :reminders_sent,
     :status,
     :organizer_email_sent,
     :attendee_email_sent,

@@ -4,6 +4,7 @@ defmodule Tymeslot.DatabaseSchemas.MeetingTypeSchema do
   """
   use Ecto.Schema
   import Ecto.Changeset
+  alias Tymeslot.Utils.ReminderUtils
 
   @type t :: %__MODULE__{
           id: integer() | nil,
@@ -14,6 +15,7 @@ defmodule Tymeslot.DatabaseSchemas.MeetingTypeSchema do
           is_active: boolean(),
           allow_video: boolean(),
           sort_order: integer(),
+          reminder_config: [map()],
           user_id: integer() | nil,
           video_integration_id: integer() | nil,
           calendar_integration_id: integer() | nil,
@@ -31,6 +33,7 @@ defmodule Tymeslot.DatabaseSchemas.MeetingTypeSchema do
     field(:allow_video, :boolean, default: false)
     field(:sort_order, :integer, default: 0)
     field(:target_calendar_id, :string)
+    field(:reminder_config, {:array, :map}, default: nil)
 
     belongs_to(:user, Tymeslot.DatabaseSchemas.UserSchema)
     belongs_to(:video_integration, Tymeslot.DatabaseSchemas.VideoIntegrationSchema)
@@ -72,7 +75,8 @@ defmodule Tymeslot.DatabaseSchemas.MeetingTypeSchema do
       :user_id,
       :video_integration_id,
       :calendar_integration_id,
-      :target_calendar_id
+      :target_calendar_id,
+      :reminder_config
     ])
     |> validate_required([:name, :duration_minutes, :user_id])
     |> validate_length(:name, min: 1, max: 100)
@@ -82,6 +86,7 @@ defmodule Tymeslot.DatabaseSchemas.MeetingTypeSchema do
     |> validate_inclusion(:icon, @valid_icons, message: "must be one of the available icons")
     |> validate_video_integration()
     |> validate_calendar_destination()
+    |> validate_reminder_config()
     |> unique_constraint([:user_id, :name],
       message: "You already have a meeting type with this name"
     )
@@ -118,13 +123,57 @@ defmodule Tymeslot.DatabaseSchemas.MeetingTypeSchema do
 
     case {integration_id, target_id} do
       {id, nil} when not is_nil(id) ->
-        add_error(changeset, :target_calendar_id, "is required when a calendar integration is selected")
+        add_error(
+          changeset,
+          :target_calendar_id,
+          "is required when a calendar integration is selected"
+        )
 
       {nil, tid} when not is_nil(tid) ->
-        add_error(changeset, :calendar_integration_id, "is required when a target calendar is selected")
+        add_error(
+          changeset,
+          :calendar_integration_id,
+          "is required when a target calendar is selected"
+        )
 
       _ ->
         changeset
+    end
+  end
+
+  defp validate_reminder_config(changeset) do
+    case get_change(changeset, :reminder_config) do
+      nil ->
+        changeset
+
+      reminders when is_list(reminders) ->
+        validate_reminder_list(changeset, reminders)
+
+      _ ->
+        add_error(changeset, :reminder_config, "must be a list of reminder settings")
+    end
+  end
+
+  defp validate_reminder_list(changeset, reminders) do
+    if length(reminders) > 3 do
+      add_error(changeset, :reminder_config, "cannot have more than 3 reminders")
+    else
+      {errors, normalized} =
+        reminders
+        |> Enum.map(&ReminderUtils.normalize_reminder/1)
+        |> Enum.split_with(&match?({:error, _}, &1))
+
+      if errors != [] do
+        add_error(changeset, :reminder_config, "contains invalid reminder settings")
+      else
+        reminders = Enum.map(normalized, fn {:ok, reminder} -> reminder end)
+
+        if ReminderUtils.duplicate_reminders?(reminders) do
+          add_error(changeset, :reminder_config, "contains duplicate reminders")
+        else
+          changeset
+        end
+      end
     end
   end
 

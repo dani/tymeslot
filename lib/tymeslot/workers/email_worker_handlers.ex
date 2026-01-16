@@ -6,6 +6,7 @@ defmodule Tymeslot.Workers.EmailWorkerHandlers do
   require Logger
   alias Tymeslot.DatabaseQueries.{MeetingQueries, UserQueries}
   alias Tymeslot.Emails.AppointmentBuilder
+  alias Tymeslot.Utils.ReminderUtils
 
   @doc """
   Executes the specified email action with the given arguments.
@@ -67,7 +68,7 @@ defmodule Tymeslot.Workers.EmailWorkerHandlers do
     end
   end
 
-  defp handle_reminder_emails(%{"meeting_id" => meeting_id}) do
+  defp handle_reminder_emails(%{"meeting_id" => meeting_id} = args) do
     case MeetingQueries.get_meeting(meeting_id) do
       {:ok, meeting} ->
         if meeting.status == "cancelled" do
@@ -77,7 +78,18 @@ defmodule Tymeslot.Workers.EmailWorkerHandlers do
 
           {:error, :meeting_cancelled}
         else
-          send_reminder_emails(meeting)
+          reminder_value = Map.get(args, "reminder_value", 30)
+          reminder_unit = Map.get(args, "reminder_unit", "minutes")
+
+          if reminder_already_sent?(meeting, reminder_value, reminder_unit) do
+            Logger.info("Skipping reminder emails - already sent",
+              meeting_id: meeting_id
+            )
+
+            :ok
+          else
+            send_reminder_emails(meeting, reminder_value, reminder_unit)
+          end
         end
 
       {:error, :not_found} ->
@@ -160,14 +172,22 @@ defmodule Tymeslot.Workers.EmailWorkerHandlers do
     end
   end
 
-  defp send_reminder_emails(meeting) do
+  defp send_reminder_emails(meeting, reminder_value, reminder_unit) do
     Logger.info("Sending reminder emails", meeting_id: meeting.id, uid: meeting.uid)
 
-    appointment_details = AppointmentBuilder.from_meeting(meeting)
+    appointment_details =
+      AppointmentBuilder.from_meeting(meeting, %{value: reminder_value, unit: reminder_unit})
 
-    case email_service_module().send_appointment_reminders(appointment_details, "30 minutes") do
+    time_until = appointment_details.time_until
+
+    case email_service_module().send_appointment_reminders(appointment_details, time_until) do
       {organizer_result, attendee_result} ->
-        process_email_results(meeting, organizer_result, attendee_result, :reminder)
+        process_email_results(
+          meeting,
+          organizer_result,
+          attendee_result,
+          {:reminder, reminder_value, reminder_unit}
+        )
     end
   end
 
@@ -202,13 +222,19 @@ defmodule Tymeslot.Workers.EmailWorkerHandlers do
 
     case error_result do
       nil ->
-        update_email_sent_flags(meeting, email_type, organizer_success, attendee_success)
-        log_email_results(meeting, email_type, organizer_success, attendee_success)
+        case update_email_sent_flags(meeting, email_type, organizer_success, attendee_success) do
+          :ok ->
+            log_email_results(meeting, email_type, organizer_success, attendee_success)
 
-        if organizer_success && attendee_success do
-          :ok
-        else
-          {:error, "Failed to send all emails"}
+            if organizer_success && attendee_success do
+              :ok
+            else
+              {:error, "Failed to send all emails"}
+            end
+
+          {:error, _reason} = error ->
+            # Tracking failed - return error to trigger retry
+            error
         end
 
       error ->
@@ -245,11 +271,33 @@ defmodule Tymeslot.Workers.EmailWorkerHandlers do
     if attendee_success and not meeting.attendee_email_sent do
       {:ok, _} = MeetingQueries.mark_email_sent(meeting, :attendee)
     end
+
+    :ok
   end
 
-  defp update_email_sent_flags(meeting, :reminder, organizer_success, attendee_success) do
-    if organizer_success || attendee_success do
-      {:ok, _} = MeetingQueries.mark_email_sent(meeting, :reminder)
+  defp update_email_sent_flags(
+         meeting,
+         {:reminder, reminder_value, reminder_unit},
+         organizer_success,
+         attendee_success
+       ) do
+    if organizer_success && attendee_success do
+      case MeetingQueries.append_reminder_sent(meeting, reminder_value, reminder_unit) do
+        {:ok, _updated_meeting} ->
+          :ok
+
+        {:error, reason} ->
+          Logger.error("Failed to track reminder as sent",
+            meeting_id: meeting.id,
+            reminder_value: reminder_value,
+            reminder_unit: reminder_unit,
+            error: inspect(reason)
+          )
+
+          {:error, "Failed to track reminder: #{inspect(reason)}"}
+      end
+    else
+      :ok
     end
   end
 
@@ -259,6 +307,21 @@ defmodule Tymeslot.Workers.EmailWorkerHandlers do
       organizer_sent: organizer_success,
       attendee_sent: attendee_success
     )
+  end
+
+  defp reminder_already_sent?(meeting, reminder_value, reminder_unit) do
+    reminder_value = ReminderUtils.parse_reminder_value(reminder_value)
+    reminder_unit = ReminderUtils.normalize_reminder_unit(reminder_unit)
+
+    meeting.reminders_sent
+    |> List.wrap()
+    |> Enum.any?(fn reminder ->
+      case reminder do
+        %{"value" => value, "unit" => unit} -> value == reminder_value and unit == reminder_unit
+        %{value: value, unit: unit} -> value == reminder_value and unit == reminder_unit
+        _ -> false
+      end
+    end)
   end
 
   defp handle_contact_form(args) do

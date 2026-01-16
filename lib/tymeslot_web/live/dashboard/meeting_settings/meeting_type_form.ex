@@ -8,14 +8,10 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm do
   use TymeslotWeb, :live_component
 
   # Follow project rule: ALWAYS alias nested modules and organize alphabetically within groups
-  alias Phoenix.LiveView.JS
-  alias Tymeslot.DatabaseSchemas.MeetingTypeSchema
-  alias Tymeslot.Integrations.Calendar
   alias Tymeslot.Security.MeetingSettingsInputProcessor
+  alias Tymeslot.Utils.ReminderUtils
   alias TymeslotWeb.Dashboard.MeetingSettings.Helpers
-
-  # Use provider icon component locally
-  import TymeslotWeb.Components.Icons.ProviderIcon
+  import TymeslotWeb.Dashboard.MeetingSettings.Components
 
   # Public assigns passed from parent
   # - type: existing meeting type or nil
@@ -38,6 +34,12 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm do
      |> assign(:selected_target_calendar_id, nil)
      |> assign(:available_calendars, [])
      |> assign(:refreshing_calendars, false)
+     |> assign(:reminders, [])
+     |> assign(:new_reminder_value, "")
+     |> assign(:new_reminder_unit, "minutes")
+     |> assign(:reminder_error, nil)
+     |> assign(:show_custom_reminder, false)
+     |> assign(:reminder_confirmation, nil)
      |> assign(:__initialized__, false)}
   end
 
@@ -62,6 +64,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm do
             name="meeting_type[name]"
             value={Map.get(@form_data, "name", if(@type, do: @type.name, else: ""))}
             required
+            maxlength="100"
             class={[
               "input",
               if(Map.get(@form_errors, :name), do: "input-error", else: "")
@@ -109,298 +112,65 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm do
         <label for="type_description" class="label">
           Description (optional)
         </label>
-        <textarea
+        <input
+          type="text"
           id="type_description"
           name="meeting_type[description]"
-          rows="3"
+          value={Map.get(@form_data, "description", if(@type, do: @type.description, else: ""))}
+          maxlength="500"
           class={[
-            "textarea",
+            "input",
             if(Map.get(@form_errors, :description), do: "input-error", else: "")
           ]}
           placeholder="Brief description of this meeting type"
           phx-change="validate_meeting_type"
           phx-target={@myself}
-        ><%= Map.get(@form_data, "description", if(@type, do: @type.description, else: "")) %></textarea>
+        />
         <%= if errors = Map.get(@form_errors, :description) do %>
           <p class="form-error">{Helpers.format_errors(errors)}</p>
         <% end %>
       </div>
 
-      <div>
-        <label class="label">
-          Icon
-        </label>
-        <div class="grid grid-cols-8 sm:grid-cols-10 md:grid-cols-14 lg:grid-cols-16 gap-1">
-          <%= for {icon_value, icon_name} <- MeetingTypeSchema.valid_icons_with_names() do %>
-            <button
-              type="button"
-              phx-click={JS.push("select_icon", value: %{icon: icon_value}, target: @myself)}
-              class={[
-                "relative rounded-token-md border-2 transition-colors duration-200 group",
-                "w-10 h-10 flex items-center justify-center overflow-hidden",
-                if(@selected_icon == icon_value,
-                  do: "bg-gradient-to-br from-teal-50 to-teal-100 border-teal-500 shadow-md",
-                  else: "bg-white/50 border-tymeslot-300/50 hover:border-teal-400/50 hover:bg-white/70"
-                )
-              ]}
-              style="width: 40px; height: 40px; min-width: 40px; min-height: 40px; max-width: 40px; max-height: 40px;"
-              title={icon_name}
-            >
-              <%= if icon_value == "none" do %>
-                <svg
-                  class="w-6 h-6 text-tymeslot-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              <% else %>
-                <span
-                  class={[
-                    icon_value,
-                    "block",
-                    if(@selected_icon == icon_value,
-                      do: "text-teal-600",
-                      else: "text-tymeslot-500 group-hover:text-teal-500"
-                    )
-                  ]}
-                  style="width: 32px; height: 32px; min-width: 32px; min-height: 32px;"
-                />
-              <% end %>
-            </button>
-          <% end %>
-        </div>
-        <p class="mt-2 text-token-sm text-tymeslot-600">
-          Choose an icon to represent this meeting type, or select "No Icon" for no visual indicator.
-        </p>
-        <%= if errors = Map.get(@form_errors, :icon) do %>
-          <p class="form-error">{Helpers.format_errors(errors)}</p>
-        <% end %>
-      </div>
+      <.reminders_section
+        reminders={@reminders}
+        new_reminder_value={@new_reminder_value}
+        new_reminder_unit={@new_reminder_unit}
+        reminder_error={@reminder_error}
+        show_custom_reminder={@show_custom_reminder}
+        reminder_confirmation={@reminder_confirmation}
+        form_errors={@form_errors}
+        myself={@myself}
+      />
 
-      <div>
-        <label class="label">
-          Meeting Type
-        </label>
-        <div class="flex items-center space-x-4">
-          <button
-            type="button"
-            phx-click={JS.push("toggle_meeting_mode", value: %{mode: "personal"}, target: @myself)}
-            class={[
-              "glass-selector",
-              if(@meeting_mode == "personal", do: "glass-selector--active")
-            ]}
-          >
-            <div class="flex items-center justify-center">
-              <span class={[
-                "hero-user selector-icon",
-                if(@meeting_mode == "personal", do: "!text-white")
-              ]} />
-              <span class="font-medium">In-Person</span>
-            </div>
-          </button>
+      <.icon_picker
+        selected_icon={@selected_icon}
+        form_errors={@form_errors}
+        myself={@myself}
+      />
 
-          <button
-            type="button"
-            phx-click={JS.push("toggle_meeting_mode", value: %{mode: "video"}, target: @myself)}
-            class={[
-              "glass-selector",
-              if(@meeting_mode == "video", do: "glass-selector--active")
-            ]}
-          >
-            <div class="flex items-center justify-center">
-              <span class={[
-                "hero-video-camera selector-icon",
-                if(@meeting_mode == "video", do: "!text-white")
-              ]} />
-              <span class="font-medium">Video Meeting</span>
-            </div>
-          </button>
-        </div>
+      <.meeting_mode_section
+        meeting_mode={@meeting_mode}
+        video_integrations={@video_integrations}
+        selected_video_integration_id={@selected_video_integration_id}
+        form_errors={@form_errors}
+        myself={@myself}
+      />
 
-        <%= if @meeting_mode == "video" do %>
-          <div class="mt-4">
-            <label class="label text-token-sm">
-              Select Video Provider
-            </label>
-            <%= if @video_integrations == [] do %>
-              <div class="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-token-lg">
-                <p class="text-token-sm text-yellow-700">
-                  No video integrations configured.
-                  <a href="/dashboard/video-integrations" class="underline hover:text-yellow-800">
-                    Set up video integration
-                  </a>
-                </p>
-              </div>
-            <% else %>
-              <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                <%= for integration <- @video_integrations do %>
-                  <button
-                    type="button"
-                    phx-click={
-                      JS.push("select_video_integration",
-                        value: %{id: integration.id},
-                        target: @myself
-                      )
-                    }
-                    class={[
-                      "glass-selector !h-20",
-                      if(@selected_video_integration_id == integration.id, do: "glass-selector--active")
-                    ]}
-                    title={integration.name}
-                  >
-                    <div class="flex flex-col items-center justify-center space-y-1">
-                      <.provider_icon provider={integration.provider} size="compact" />
-                      <span class="text-token-sm font-medium truncate max-w-full">
-                        {integration.name}
-                      </span>
-                    </div>
-                  </button>
-                <% end %>
-              </div>
-              <%= if errors = Map.get(@form_errors, :video_integration) do %>
-                <p class="form-error mt-2">{Helpers.format_errors(errors)}</p>
-              <% end %>
-            <% end %>
-          </div>
-        <% end %>
-      </div>
+      <.booking_destination_section
+        calendar_integrations={@calendar_integrations}
+        selected_calendar_integration_id={@selected_calendar_integration_id}
+        refreshing_calendars={@refreshing_calendars}
+        available_calendars={@available_calendars}
+        selected_target_calendar_id={@selected_target_calendar_id}
+        form_errors={@form_errors}
+        myself={@myself}
+      />
 
-      <div class="pt-4 border-t border-tymeslot-100">
-        <label class="label">
-          Booking Destination
-        </label>
-        <p class="text-token-sm text-tymeslot-600 mb-4">
-          Choose where new bookings for this meeting type should be created.
-        </p>
-
-        <div class="space-y-4">
-          <div>
-            <label class="label text-token-sm">
-              1. Select Calendar Account
-            </label>
-            <%= if @calendar_integrations == [] do %>
-              <div class="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-token-lg">
-                <p class="text-token-sm text-yellow-700">
-                  No calendar integrations configured.
-                  <a href="/dashboard/calendar-settings" class="underline hover:text-yellow-800">
-                    Connect a calendar
-                  </a>
-                </p>
-              </div>
-            <% else %>
-              <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                <%= for integration <- @calendar_integrations do %>
-                  <button
-                    type="button"
-                    disabled={@refreshing_calendars}
-                    phx-click={
-                      JS.push("select_calendar_integration",
-                        value: %{id: integration.id},
-                        target: @myself
-                      )
-                    }
-                    class={[
-                      "glass-selector !h-20",
-                      if(@selected_calendar_integration_id == integration.id, do: "glass-selector--active"),
-                      if(@refreshing_calendars, do: "opacity-50 cursor-not-allowed")
-                    ]}
-                    title={integration.name}
-                  >
-                    <div class="flex flex-col items-center justify-center space-y-1">
-                      <.provider_icon provider={integration.provider} size="compact" />
-                      <span class="text-token-sm font-medium truncate max-w-full">
-                        {integration.name}
-                      </span>
-                    </div>
-                  </button>
-                <% end %>
-              </div>
-              <%= if errors = Map.get(@form_errors, :calendar_integration) do %>
-                <p class="form-error mt-2">{Helpers.format_errors(errors)}</p>
-              <% end %>
-            <% end %>
-          </div>
-
-          <%= if @selected_calendar_integration_id do %>
-            <div class="animate-in fade-in slide-in-from-top-2 duration-300">
-              <label class="label text-token-sm">
-                2. Select Specific Calendar
-              </label>
-              <%= if @refreshing_calendars do %>
-                <div class="flex items-center space-x-2 p-4 bg-tymeslot-50 rounded-token-lg">
-                  <svg class="animate-spin h-4 w-4 text-teal-600" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  <span class="text-token-sm text-tymeslot-600 font-medium italic">Refreshing calendars...</span>
-                </div>
-              <% else %>
-                <%= if @available_calendars == [] do %>
-                  <p class="text-token-sm text-tymeslot-500 italic">
-                    No calendars found for this account.
-                  </p>
-                <% else %>
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <%= for cal <- @available_calendars do %>
-                      <button
-                        type="button"
-                        phx-click={
-                          JS.push("select_target_calendar",
-                            value: %{id: cal["id"] || cal[:id]},
-                            target: @myself
-                          )
-                        }
-                        class={[
-                          "flex items-center p-3 rounded-token-lg border-2 transition-all text-left",
-                          if(@selected_target_calendar_id == (cal["id"] || cal[:id]),
-                            do: "bg-teal-50 border-teal-500 shadow-sm",
-                            else: "bg-white border-tymeslot-100 hover:border-teal-200"
-                          )
-                        ]}
-                      >
-                        <div class={[
-                          "w-4 h-4 rounded-full border-2 mr-3 flex items-center justify-center",
-                          if(@selected_target_calendar_id == (cal["id"] || cal[:id]),
-                            do: "border-teal-500 bg-teal-500",
-                            else: "border-tymeslot-300"
-                          )
-                        ]}>
-                          <%= if @selected_target_calendar_id == (cal["id"] || cal[:id]) do %>
-                            <svg class="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                              <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
-                            </svg>
-                          <% end %>
-                        </div>
-                        <span class={[
-                          "text-token-sm font-medium truncate",
-                          if(@selected_target_calendar_id == (cal["id"] || cal[:id]),
-                            do: "text-teal-900",
-                            else: "text-tymeslot-700"
-                          )
-                        ]}>
-                          {Calendar.extract_calendar_display_name(cal)}
-                        </span>
-                      </button>
-                    <% end %>
-                  </div>
-                  <%= if errors = Map.get(@form_errors, :target_calendar) do %>
-                    <p class="form-error mt-2">{Helpers.format_errors(errors)}</p>
-                  <% end %>
-                <% end %>
-              <% end %>
-            </div>
-          <% end %>
-        </div>
-      </div>
-      
-    <!-- Hidden fields -->
+      <!-- Hidden fields -->
+      <%= for reminder <- @reminders do %>
+        <input type="hidden" name="meeting_type[reminder_config][][value]" value={reminder.value} />
+        <input type="hidden" name="meeting_type[reminder_config][][unit]" value={reminder.unit} />
+      <% end %>
       <input
         type="hidden"
         name="meeting_type[is_active]"
@@ -552,6 +322,102 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm do
     {:noreply, socket}
   end
 
+  @impl true
+  def handle_event("update_reminder_input", %{"reminder" => reminder_params}, socket) do
+    reminder_value = Map.get(reminder_params, "value", socket.assigns.new_reminder_value)
+    reminder_unit = Map.get(reminder_params, "unit", socket.assigns.new_reminder_unit)
+
+    {:noreply,
+     assign(socket,
+       new_reminder_value: reminder_value,
+       new_reminder_unit: reminder_unit,
+       reminder_error: nil
+     )}
+  end
+
+  @impl true
+  def handle_event("toggle_custom_reminder", _params, socket) do
+    {:noreply,
+     assign(socket,
+       show_custom_reminder: !socket.assigns.show_custom_reminder,
+       reminder_confirmation: nil
+     )}
+  end
+
+  @impl true
+  def handle_event("add_quick_reminder", params, socket) do
+    # Handle map from JS.push
+    {amount, unit} =
+      case params do
+        %{"amount" => a, "unit" => u} -> {a, u}
+        _ -> {nil, nil}
+      end
+
+    case validate_new_reminder(socket.assigns.reminders, amount, unit) do
+      {:ok, reminder} ->
+        reminders = socket.assigns.reminders ++ [reminder]
+
+        # Clear any existing confirmation timer if we had one
+        Process.send_after(self(), {:clear_reminder_confirmation, socket.assigns.id}, 3000)
+
+        {:noreply,
+         socket
+         |> assign(:reminders, reminders)
+         |> assign(
+           :reminder_confirmation,
+           "Added #{ReminderUtils.format_reminder_label(reminder.value, reminder.unit)} before"
+         )
+         |> assign(:reminder_error, nil)}
+
+      {:error, message} ->
+        {:noreply, assign(socket, reminder_error: message)}
+    end
+  end
+
+  @impl true
+  def handle_event("add_reminder", _params, socket) do
+    value = socket.assigns.new_reminder_value
+    unit = socket.assigns.new_reminder_unit
+
+    case validate_new_reminder(socket.assigns.reminders, value, unit) do
+      {:ok, reminder} ->
+        reminders = socket.assigns.reminders ++ [reminder]
+
+        Process.send_after(self(), {:clear_reminder_confirmation, socket.assigns.id}, 3000)
+
+        {:noreply,
+         assign(socket,
+           reminders: reminders,
+           new_reminder_value: "",
+           reminder_error: nil,
+           show_custom_reminder: false,
+           reminder_confirmation:
+             "Added #{ReminderUtils.format_reminder_label(reminder.value, reminder.unit)} before"
+         )}
+
+      {:error, message} ->
+        {:noreply, assign(socket, reminder_error: message)}
+    end
+  end
+
+  @impl true
+  def handle_event("remove_reminder", params, socket) do
+    # Handle both JS.push map and individual phx-value-params
+    {value, unit} =
+      case params do
+        %{"value" => %{"value" => v, "unit" => u}} -> {v, u}
+        %{"value" => v, "unit" => u} -> {v, u}
+        _ -> {nil, nil}
+      end
+
+    reminders =
+      Enum.reject(socket.assigns.reminders, fn reminder ->
+        reminder.value == ReminderUtils.parse_reminder_value(value) and reminder.unit == unit
+      end)
+
+    {:noreply, assign(socket, reminders: reminders, reminder_error: nil)}
+  end
+
   # --- Private helpers ---
   defp validate_and_update_field("name", value, metadata, acc_data, acc_errors) do
     case MeetingSettingsInputProcessor.validate_meeting_type_field(:name, value,
@@ -607,9 +473,14 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm do
     |> assign(:selected_video_integration_id, get_video_integration_id(type))
     |> assign(:selected_calendar_integration_id, get_calendar_integration_id(type))
     |> assign(:selected_target_calendar_id, get_target_calendar_id(type))
+    |> assign(:reminders, get_reminders(type))
     |> then(fn socket ->
       if id = socket.assigns.selected_calendar_integration_id do
-        assign(socket, :available_calendars, fetch_available_calendars(id, socket.assigns.calendar_integrations))
+        assign(
+          socket,
+          :available_calendars,
+          fetch_available_calendars(id, socket.assigns.calendar_integrations)
+        )
       else
         socket
       end
@@ -667,5 +538,47 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm do
       "description" => type.description || "",
       "icon" => type.icon || "none"
     }
+  end
+
+  defp get_reminders(nil), do: [%{value: 30, unit: "minutes"}]
+
+  defp get_reminders(%{reminder_config: reminders}) when is_list(reminders) do
+    Enum.flat_map(reminders, fn r ->
+      case ReminderUtils.normalize_reminder(r) do
+        {:ok, reminder} -> [reminder]
+        _ -> []
+      end
+    end)
+  end
+
+  defp get_reminders(_), do: [%{value: 30, unit: "minutes"}]
+
+  defp validate_new_reminder(reminders, value, unit) do
+    cond do
+      is_nil(value) or value == "" ->
+        {:error, "Reminder value is required"}
+
+      length(reminders) >= 3 ->
+        {:error, "You can configure up to 3 reminders"}
+
+      match?({:error, _}, ReminderUtils.validate_reminder_value(value)) ->
+        {:error, "Reminder value must be a positive number"}
+
+      unit not in ["minutes", "hours", "days"] ->
+        {:error, "Select a valid reminder unit"}
+
+      reminder_exists?(reminders, value, unit) ->
+        {:error, "This reminder already exists"}
+
+      true ->
+        {:ok, %{value: ReminderUtils.parse_reminder_value(value), unit: unit}}
+    end
+  end
+
+  defp reminder_exists?(reminders, value, unit) do
+    reminder_value = ReminderUtils.parse_reminder_value(value)
+    new_reminder = %{value: reminder_value, unit: unit}
+
+    ReminderUtils.duplicate_reminders?(reminders ++ [new_reminder])
   end
 end

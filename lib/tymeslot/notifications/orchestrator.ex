@@ -8,6 +8,7 @@ defmodule Tymeslot.Notifications.Orchestrator do
 
   alias Tymeslot.Emails.EmailService
   alias Tymeslot.Notifications.{ContentBuilder, Recipients, SchedulingRules}
+  alias Tymeslot.Utils.ReminderUtils
 
   @doc """
   Schedules all notifications for a newly created meeting.
@@ -59,29 +60,34 @@ defmodule Tymeslot.Notifications.Orchestrator do
   """
   @spec schedule_reminder_notifications(map()) :: :ok | {:ok, atom()} | {:error, term()}
   def schedule_reminder_notifications(meeting) do
-    case SchedulingRules.should_schedule_reminder?(meeting.start_time) do
-      true ->
-        recipients = Recipients.determine_recipients(meeting, :reminder)
-        content = ContentBuilder.build_reminder_details(meeting)
-        timing = SchedulingRules.reminder_email_timing()
-        schedule_at = SchedulingRules.calculate_reminder_time(meeting.start_time)
+    reminders =
+      case Map.get(meeting, :reminders) do
+        nil ->
+          # Legacy meetings without reminders field - derive from legacy fields
+          legacy_label = meeting.reminder_time || meeting.default_reminder_time || "30 minutes"
+          value = ReminderUtils.parse_reminder_value(legacy_label)
+          unit = ReminderUtils.normalize_reminder_unit(legacy_label)
+          [%{value: value, unit: unit}]
 
-        with :ok <- Recipients.validate_recipients(recipients),
-             :ok <- ContentBuilder.validate_content(content),
-             result <- schedule_email_job(:reminder, meeting.id, content, timing, schedule_at) do
-          case result do
-            :ok -> :ok
-            {:ok, _} -> :ok
-            error -> error
-          end
-        end
+        reminder_list ->
+          normalized = normalize_reminders(reminder_list)
+          # Respect empty list as "no reminders" - only default when nil
+          normalized
+      end
 
-      false ->
-        Logger.info("Skipping reminder notification - meeting starts too soon",
-          meeting_id: meeting.id
-        )
+    recipients = Recipients.determine_recipients(meeting, :reminder)
+    content = ContentBuilder.build_reminder_details(meeting)
+    timing = SchedulingRules.reminder_email_timing()
 
-        {:ok, :reminder_not_scheduled}
+    with :ok <- Recipients.validate_recipients(recipients),
+         :ok <- ContentBuilder.validate_content(content) do
+      {result, scheduled_any?} = schedule_reminders(meeting, reminders, timing)
+
+      case {result, scheduled_any?} do
+        {:ok, true} -> :ok
+        {:ok, false} -> {:ok, :reminder_not_scheduled}
+        {error, _} -> error
+      end
     end
   end
 
@@ -161,7 +167,15 @@ defmodule Tymeslot.Notifications.Orchestrator do
 
   # Private functions
 
-  defp schedule_email_job(notification_type, meeting_id, _content, _timing, _schedule_at \\ nil) do
+  defp schedule_email_job(
+         notification_type,
+         meeting_id,
+         _content,
+         _timing,
+         schedule_at \\ nil,
+         reminder_value \\ nil,
+         reminder_unit \\ nil
+       ) do
     worker_module = get_email_worker_module()
 
     case notification_type do
@@ -169,7 +183,12 @@ defmodule Tymeslot.Notifications.Orchestrator do
         worker_module.schedule_confirmation_emails(meeting_id)
 
       :reminder ->
-        worker_module.schedule_reminder_emails(meeting_id)
+        worker_module.schedule_reminder_emails(
+          meeting_id,
+          reminder_value,
+          reminder_unit,
+          schedule_at
+        )
     end
   end
 
@@ -224,5 +243,40 @@ defmodule Tymeslot.Notifications.Orchestrator do
 
   defp get_email_service_module do
     Application.get_env(:tymeslot, :email_service_module, EmailService)
+  end
+
+  defp normalize_reminders(reminders) do
+    ReminderUtils.normalize_reminders(reminders)
+  end
+
+  defp schedule_reminders(meeting, reminders, timing) do
+    results =
+      Enum.map(reminders, fn %{value: value, unit: unit} ->
+        if SchedulingRules.should_schedule_reminder?(meeting.start_time, value, unit) do
+          schedule_at = SchedulingRules.calculate_reminder_time(meeting.start_time, value, unit)
+
+          case schedule_email_job(:reminder, meeting.id, %{}, timing, schedule_at, value, unit) do
+            :ok -> {:ok, true}
+            {:ok, _} -> {:ok, true}
+            error -> {error, false}
+          end
+        else
+          Logger.info("Skipping reminder notification - meeting starts too soon",
+            meeting_id: meeting.id,
+            reminder: "#{value} #{unit}"
+          )
+
+          {:ok, false}
+        end
+      end)
+
+    # Check if any failed
+    error = Enum.find(results, &match?({{:error, _}, _}, &1))
+
+    if error do
+      {elem(error, 0), Enum.any?(results, &elem(&1, 1))}
+    else
+      {:ok, Enum.any?(results, &elem(&1, 1))}
+    end
   end
 end

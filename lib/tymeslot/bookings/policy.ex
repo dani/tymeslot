@@ -8,7 +8,7 @@ defmodule Tymeslot.Bookings.Policy do
   alias Tymeslot.Integrations.Calendar
   alias Tymeslot.MeetingTypes
   alias Tymeslot.Profiles
-  alias Tymeslot.Utils.TimezoneUtils
+  alias Tymeslot.Utils.{ReminderUtils, TimezoneUtils}
   alias TymeslotWeb.Endpoint
 
   require Logger
@@ -94,6 +94,18 @@ defmodule Tymeslot.Bookings.Policy do
           {type.name, type.id, type.video_integration_id}
       end
 
+    reminders =
+      case meeting_type_record do
+        %{reminder_config: reminder_config} when not is_nil(reminder_config) ->
+          normalized = ReminderUtils.normalize_reminders(reminder_config)
+          # Respect empty list as "no reminders" - only default when config is nil/missing
+          normalized
+
+        _ ->
+          # Default for legacy meetings or missing config
+          [%{value: 30, unit: "minutes"}]
+      end
+
     %{
       uid: meeting_uid,
       title: "#{meeting_type_name} with #{form_data["name"]}",
@@ -135,7 +147,10 @@ defmodule Tymeslot.Bookings.Policy do
       meeting_url: nil,
 
       # Status
-      status: "confirmed"
+      status: "confirmed",
+
+      # Reminder snapshot
+      reminders: reminders
     }
   end
 

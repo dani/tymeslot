@@ -6,12 +6,12 @@ defmodule Tymeslot.Emails.AppointmentBuilder do
 
   require Logger
   alias Tymeslot.Profiles
+  alias Tymeslot.Utils.ReminderUtils
 
   @default_timezone "Europe/Kyiv"
-  @default_reminder "30 minutes"
 
-  @spec from_meeting(map()) :: map()
-  def from_meeting(meeting) do
+  @spec from_meeting(map(), map() | nil) :: map()
+  def from_meeting(meeting, reminder_interval \\ nil) do
     owner_timezone = owner_timezone(meeting)
     attendee_timezone = attendee_timezone(meeting, owner_timezone)
 
@@ -20,7 +20,7 @@ defmodule Tymeslot.Emails.AppointmentBuilder do
     participant_details = participant_details(meeting)
     preparation_details = preparation_details()
     url_details = url_details(meeting)
-    reminder_details = reminder_details(meeting)
+    reminder_details = reminder_details(meeting, reminder_interval)
 
     base_details
     |> Map.merge(timezone_details)
@@ -120,11 +120,80 @@ defmodule Tymeslot.Emails.AppointmentBuilder do
     }
   end
 
-  defp reminder_details(meeting) do
-    %{
-      reminder_time: meeting.reminder_time || @default_reminder,
-      default_reminder_time: meeting.default_reminder_time || @default_reminder
-    }
+  defp reminder_details(meeting, reminder_interval) do
+    case ReminderUtils.normalize_reminder(reminder_interval) do
+      {:ok, %{value: value, unit: unit}} ->
+        reminder_label = ReminderUtils.format_reminder_label(value, unit)
+
+        %{
+          reminder_time: reminder_label,
+          default_reminder_time: reminder_label,
+          time_until: reminder_label,
+          time_until_friendly: "in #{reminder_label}",
+          reminders_enabled: true,
+          reminders_summary: "Reminder #{reminder_label} before the appointment."
+        }
+
+      _ ->
+        reminders = ReminderUtils.normalize_reminders(Map.get(meeting, :reminders))
+
+        case reminders do
+          [] ->
+            case legacy_reminder_label(meeting) do
+              nil ->
+                %{
+                  reminder_time: nil,
+                  default_reminder_time: nil,
+                  time_until: nil,
+                  time_until_friendly: nil,
+                  reminders_enabled: false,
+                  reminders_summary: "No reminder emails are scheduled for this appointment."
+                }
+
+              legacy_label ->
+                %{
+                  reminder_time: legacy_label,
+                  default_reminder_time: legacy_label,
+                  time_until: legacy_label,
+                  time_until_friendly: "in #{legacy_label}",
+                  reminders_enabled: true,
+                  reminders_summary:
+                    "I'll send you a reminder #{legacy_label} before our appointment."
+                }
+            end
+
+          [reminder] ->
+            reminder_label = ReminderUtils.format_reminder_label(reminder.value, reminder.unit)
+
+            %{
+              reminder_time: reminder_label,
+              default_reminder_time: reminder_label,
+              time_until: reminder_label,
+              time_until_friendly: "in #{reminder_label}",
+              reminders_enabled: true,
+              reminders_summary:
+                "I'll send you a reminder #{reminder_label} before our appointment."
+            }
+
+          reminder_list ->
+            closest =
+              Enum.min_by(reminder_list, fn %{value: value, unit: unit} ->
+                ReminderUtils.reminder_interval_seconds(value, unit)
+              end)
+
+            reminder_label = ReminderUtils.format_reminder_label(closest.value, closest.unit)
+
+            %{
+              reminder_time: reminder_label,
+              default_reminder_time: reminder_label,
+              time_until: reminder_label,
+              time_until_friendly: "in #{reminder_label}",
+              reminders_enabled: true,
+              reminders_summary:
+                "You'll receive #{length(reminder_list)} reminders before the appointment."
+            }
+        end
+    end
   end
 
   defp format_location(meeting) do
@@ -149,5 +218,9 @@ defmodule Tymeslot.Emails.AppointmentBuilder do
       # Fallback to original if conversion fails
       {:error, _} -> datetime
     end
+  end
+
+  defp legacy_reminder_label(meeting) do
+    meeting.reminder_time || meeting.default_reminder_time
   end
 end
