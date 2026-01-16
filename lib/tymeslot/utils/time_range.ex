@@ -109,8 +109,8 @@ defmodule Tymeslot.Utils.TimeRange do
       when is_integer(max_days) and max_days > 0 do
     max_booking_time = DateTime.add(current_time, max_days * 24 * 60 * 60, :second)
 
-    DateTime.compare(slot_start, current_time) == :gt and
-      DateTime.compare(slot_start, max_booking_time) == :lt
+    DateTime.compare(slot_start, current_time) != :lt and
+      DateTime.compare(slot_start, max_booking_time) != :gt
   end
 
   @doc """

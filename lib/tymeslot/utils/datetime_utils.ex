@@ -193,13 +193,28 @@ defmodule Tymeslot.Utils.DateTimeUtils do
   end
 
   @doc """
-  Creates a DateTime safely with timezone fallback.
+  Creates a DateTime safely with timezone fallback and DST gap handling.
   """
   @spec create_datetime_safe(Date.t(), Time.t(), String.t()) :: DateTime.t()
   def create_datetime_safe(date, time, timezone) do
     case DateTime.new(date, time, timezone) do
       {:ok, datetime} ->
         datetime
+
+      {:ambiguous, first, _second} ->
+        # In case of ambiguity (e.g. DST fall back), use the first occurrence
+        first
+
+      {:gap, _, _} ->
+        # Time is in a DST gap (spring forward). Shift forward by 1 hour.
+        naive = NaiveDateTime.new!(date, time)
+        shifted = NaiveDateTime.add(naive, 3600, :second)
+
+        case DateTime.from_naive(shifted, timezone) do
+          {:ok, dt} -> dt
+          {:ambiguous, first, _} -> first
+          _ -> DateTime.new!(date, time, "Etc/UTC")
+        end
 
       {:error, _reason} ->
         # Fallback to UTC if timezone is invalid

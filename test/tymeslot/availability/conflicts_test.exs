@@ -6,9 +6,8 @@ defmodule Tymeslot.Availability.ConflictsTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
-  alias Tymeslot.Availability.Calculate
-  alias Tymeslot.Availability.Conflicts
-  alias Tymeslot.Utils.TimeRange
+  alias Tymeslot.Availability.{Calculate, Conflicts, Events}
+  alias Tymeslot.Utils.{DateTimeUtils, TimeRange}
 
   property "date_has_slots_with_events? matches available_slots availability" do
     # This property test verifies that the optimized month-view check (date_has_slots_with_events?)
@@ -56,12 +55,7 @@ defmodule Tymeslot.Availability.ConflictsTest do
           event_date = Date.add(date, day_offset)
           time = Time.new!(hour, min, 0)
 
-          start_time =
-            case DateTime.new(event_date, time, timezone) do
-              {:ok, dt} -> dt
-              {:ambiguous, first, _second} -> first
-              {:error, _reason} -> DateTime.new!(event_date, time, "Etc/UTC")
-            end
+          start_time = DateTimeUtils.create_datetime_safe(event_date, time, timezone)
 
           %{
             start_time: start_time,
@@ -111,68 +105,6 @@ defmodule Tymeslot.Availability.ConflictsTest do
                  """
         end
       end
-    end
-  end
-
-  describe "convert_events_to_timezone/2" do
-    test "converts events from UTC to Eastern timezone" do
-      events = [
-        %{
-          start_time: ~U[2025-06-15 14:00:00Z],
-          end_time: ~U[2025-06-15 15:00:00Z]
-        }
-      ]
-
-      converted = Conflicts.convert_events_to_timezone(events, "America/New_York")
-
-      assert length(converted) == 1
-      event = hd(converted)
-      # UTC 14:00 = Eastern 10:00 AM (during EDT)
-      assert event.start_time.time_zone == "America/New_York"
-      assert event.end_time.time_zone == "America/New_York"
-    end
-
-    test "converts multiple events" do
-      events = [
-        %{
-          start_time: ~U[2025-06-15 10:00:00Z],
-          end_time: ~U[2025-06-15 11:00:00Z]
-        },
-        %{
-          start_time: ~U[2025-06-15 14:00:00Z],
-          end_time: ~U[2025-06-15 15:00:00Z]
-        }
-      ]
-
-      converted = Conflicts.convert_events_to_timezone(events, "Europe/London")
-
-      assert length(converted) == 2
-
-      for event <- converted do
-        assert event.start_time.time_zone == "Europe/London"
-        assert event.end_time.time_zone == "Europe/London"
-      end
-    end
-
-    test "handles empty events list" do
-      assert Conflicts.convert_events_to_timezone([], "America/New_York") == []
-    end
-
-    test "preserves other event fields" do
-      events = [
-        %{
-          start_time: ~U[2025-06-15 14:00:00Z],
-          end_time: ~U[2025-06-15 15:00:00Z],
-          title: "Test Meeting",
-          uid: "test-uid-123"
-        }
-      ]
-
-      converted = Conflicts.convert_events_to_timezone(events, "America/New_York")
-
-      event = hd(converted)
-      assert event.title == "Test Meeting"
-      assert event.uid == "test-uid-123"
     end
   end
 
@@ -430,62 +362,6 @@ defmodule Tymeslot.Availability.ConflictsTest do
     end
   end
 
-  describe "events_overlap?/4" do
-    test "returns true when events overlap" do
-      slot_start = ~U[2025-06-15 10:00:00Z]
-      slot_end = ~U[2025-06-15 11:00:00Z]
-      event_start = ~U[2025-06-15 10:30:00Z]
-      event_end = ~U[2025-06-15 11:30:00Z]
-
-      assert Conflicts.events_overlap?(slot_start, slot_end, event_start, event_end)
-    end
-
-    test "returns false when events don't overlap" do
-      slot_start = ~U[2025-06-15 10:00:00Z]
-      slot_end = ~U[2025-06-15 11:00:00Z]
-      event_start = ~U[2025-06-15 12:00:00Z]
-      event_end = ~U[2025-06-15 13:00:00Z]
-
-      refute Conflicts.events_overlap?(slot_start, slot_end, event_start, event_end)
-    end
-
-    test "returns false when events are adjacent (slot ends when event starts)" do
-      slot_start = ~U[2025-06-15 10:00:00Z]
-      slot_end = ~U[2025-06-15 11:00:00Z]
-      event_start = ~U[2025-06-15 11:00:00Z]
-      event_end = ~U[2025-06-15 12:00:00Z]
-
-      refute Conflicts.events_overlap?(slot_start, slot_end, event_start, event_end)
-    end
-
-    test "returns false when events are adjacent (event ends when slot starts)" do
-      slot_start = ~U[2025-06-15 11:00:00Z]
-      slot_end = ~U[2025-06-15 12:00:00Z]
-      event_start = ~U[2025-06-15 10:00:00Z]
-      event_end = ~U[2025-06-15 11:00:00Z]
-
-      refute Conflicts.events_overlap?(slot_start, slot_end, event_start, event_end)
-    end
-
-    test "returns true when slot is completely inside event" do
-      slot_start = ~U[2025-06-15 10:30:00Z]
-      slot_end = ~U[2025-06-15 11:30:00Z]
-      event_start = ~U[2025-06-15 10:00:00Z]
-      event_end = ~U[2025-06-15 12:00:00Z]
-
-      assert Conflicts.events_overlap?(slot_start, slot_end, event_start, event_end)
-    end
-
-    test "returns true when event is completely inside slot" do
-      slot_start = ~U[2025-06-15 10:00:00Z]
-      slot_end = ~U[2025-06-15 12:00:00Z]
-      event_start = ~U[2025-06-15 10:30:00Z]
-      event_end = ~U[2025-06-15 11:30:00Z]
-
-      assert Conflicts.events_overlap?(slot_start, slot_end, event_start, event_end)
-    end
-  end
-
   property "all-day events on Day X do not block slots on Day X+1" do
     # Verify that all-day events ending at 00:00:00 of the next day (common in Outlook)
     # don't accidentally block the next day.
@@ -517,7 +393,7 @@ defmodule Tymeslot.Availability.ConflictsTest do
       ]
 
       # Convert to the target timezone
-      events_in_tz = Conflicts.convert_events_to_timezone(events, timezone)
+      events_in_tz = Events.convert_events_to_timezone(events, timezone)
 
       # Slot on Tuesday
       slot_time = Time.new!(slot_hour, slot_min, 0)
