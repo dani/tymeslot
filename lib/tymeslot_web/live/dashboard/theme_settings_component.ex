@@ -62,7 +62,7 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsComponent do
                 class={[
                   "card-glass p-0 overflow-hidden cursor-pointer transition-all duration-500 border-2",
                   if(@profile.booking_theme == theme_id,
-                    do: "border-turquoise-400 shadow-2xl shadow-turquoise-500/20 ring-4 ring-turquoise-50",
+                    do: "glass-gradient border-turquoise-400 shadow-2xl shadow-turquoise-500/20 ring-4 ring-turquoise-50",
                     else: "border-tymeslot-50 hover:border-turquoise-200 hover:shadow-xl hover:shadow-tymeslot-200/50"
                   )
                 ]}
