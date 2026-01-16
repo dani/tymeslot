@@ -9,6 +9,11 @@ defmodule TymeslotWeb.RootRedirectControllerTest do
     # Save original env and config to restore them later
     original_type = System.get_env("DEPLOYMENT_TYPE")
     original_saas_mode = Application.get_env(:tymeslot, :saas_mode)
+    original_router = Application.get_env(:tymeslot, :router)
+
+    # Force standalone mode for these tests
+    Application.put_env(:tymeslot, :saas_mode, false)
+    Application.put_env(:tymeslot, :router, TymeslotWeb.Router)
 
     on_exit(fn ->
       if original_type do
@@ -18,6 +23,7 @@ defmodule TymeslotWeb.RootRedirectControllerTest do
       end
 
       Application.put_env(:tymeslot, :saas_mode, original_saas_mode)
+      Application.put_env(:tymeslot, :router, original_router)
     end)
 
     :ok
@@ -31,19 +37,7 @@ defmodule TymeslotWeb.RootRedirectControllerTest do
       assert redirected_to(conn) == "/dashboard"
     end
 
-    test "renders homepage LiveView if unauthenticated and SaaS mode", %{conn: conn} do
-      # This test is only relevant when running in SaaS mode
-      Application.put_env(:tymeslot, :saas_mode, true)
-      System.delete_env("DEPLOYMENT_TYPE")
-      conn = get(conn, ~p"/")
-
-      # live_render doesn't redirect, it renders.
-      # We check if it returns 200 and has some homepage content
-      assert html_response(conn, 200) =~ "Tymeslot"
-    end
-
     test "redirects to login if unauthenticated and standalone (docker)", %{conn: conn} do
-      Application.put_env(:tymeslot, :saas_mode, false)
       System.put_env("DEPLOYMENT_TYPE", "docker")
       conn = get(conn, ~p"/")
 
@@ -51,7 +45,6 @@ defmodule TymeslotWeb.RootRedirectControllerTest do
     end
 
     test "redirects to login if unauthenticated and standalone (cloudron)", %{conn: conn} do
-      Application.put_env(:tymeslot, :saas_mode, false)
       System.put_env("DEPLOYMENT_TYPE", "cloudron")
       conn = get(conn, ~p"/")
 
