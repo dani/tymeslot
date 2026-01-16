@@ -17,7 +17,6 @@ defmodule TymeslotWeb.Dashboard.DashboardOverviewComponent do
       <.section_header
         icon={:home}
         title="Overview"
-        class="mb-0"
       />
 
       <!-- Welcome Section -->
@@ -33,17 +32,16 @@ defmodule TymeslotWeb.Dashboard.DashboardOverviewComponent do
         </div>
       </div>
       
-    <!-- Dashboard Grid -->
+      <!-- Dashboard Grid -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <!-- Upcoming Meetings -->
         <div class="card-glass h-full">
           <div class="flex items-center justify-between mb-8">
-            <div class="flex items-center space-x-3">
-              <h2 class="text-2xl font-black text-tymeslot-900 tracking-tight">Upcoming Meetings</h2>
-              <span class="inline-flex items-center px-3 py-1 rounded-full text-token-xs font-black bg-turquoise-100 text-turquoise-700 uppercase tracking-wider">
-                {length(Map.get(@shared_data || %{}, :upcoming_meetings, []))}
-              </span>
-            </div>
+            <.section_header
+              level={2}
+              title="Upcoming Meetings"
+              count={length(Map.get(@shared_data || %{}, :upcoming_meetings, []))}
+            />
             <.link
               patch={~p"/dashboard/meetings"}
               class="text-turquoise-600 hover:text-turquoise-700 font-bold text-token-sm transition-colors flex items-center gap-1 group"
@@ -70,7 +68,11 @@ defmodule TymeslotWeb.Dashboard.DashboardOverviewComponent do
         
     <!-- Quick Actions -->
         <div class="card-glass h-full">
-          <h2 class="text-2xl font-black text-tymeslot-900 tracking-tight mb-8">Quick Actions</h2>
+          <.section_header
+            level={2}
+            title="Quick Actions"
+            class="mb-8"
+          />
 
           <div class="grid gap-4">
             <.action_link

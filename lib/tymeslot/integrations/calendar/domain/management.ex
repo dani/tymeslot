@@ -38,7 +38,7 @@ defmodule Tymeslot.Integrations.CalendarManagement do
   Gets a single calendar integration.
   """
   @spec get_calendar_integration(integration_id(), user_id()) ::
-          {:ok, CalendarIntegrationSchema.t()} | {:error, :not_found | :unauthorized}
+          {:ok, CalendarIntegrationSchema.t()} | {:error, :not_found}
   def get_calendar_integration(integration_id, user_id) do
     CalendarIntegrationQueries.get_for_user(integration_id, user_id)
   end

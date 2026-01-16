@@ -50,26 +50,16 @@ defmodule TymeslotWeb.Dashboard.CalendarSettings.Components do
 
         <div class="h-8 w-px bg-tymeslot-100"></div>
 
-        <div class="flex items-center gap-4">
-          <div class="w-12 h-12 bg-turquoise-50 rounded-token-xl flex items-center justify-center border border-turquoise-100 shadow-sm">
-            <svg class="w-6 h-6 text-turquoise-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2.5"
-                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-              />
-            </svg>
-          </div>
-          <h2 class="text-token-3xl font-black text-tymeslot-900 tracking-tight">
-            Setup <%= case @selected_provider do
-              :nextcloud -> "Nextcloud"
-              :radicale -> "Radicale"
-              :caldav -> "CalDAV"
-              _ -> "Calendar"
-            end %>
-          </h2>
-        </div>
+        <.section_header
+          level={2}
+          icon={:calendar}
+          title={"Setup #{case @selected_provider do
+            :nextcloud -> "Nextcloud"
+            :radicale -> "Radicale"
+            :caldav -> "CalDAV"
+            _ -> "Calendar"
+          end}"}
+        />
       </div>
 
       <div class="card-glass">
@@ -124,6 +114,7 @@ defmodule TymeslotWeb.Dashboard.CalendarSettings.Components do
   attr :integrations, :list, required: true
   attr :testing_integration_id, :integer, required: true
   attr :validating_integration_id, :integer, required: true
+  attr :is_refreshing, :boolean, required: true
   attr :myself, :any, required: true
 
   @spec connected_calendars_section(map()) :: Phoenix.LiveView.Rendered.t()
@@ -147,16 +138,42 @@ defmodule TymeslotWeb.Dashboard.CalendarSettings.Components do
       <!-- Active Calendars (Conflict Checking) -->
       <%= if @grouped.active != [] do %>
         <div class="space-y-3">
-          <%= if @show_section_headers do %>
-            <div class="mb-3">
+          <div class="mb-3">
+            <div class="flex items-center justify-between gap-4 flex-col md:flex-row">
               <h3 class="text-lg font-bold text-turquoise-800 flex items-center gap-2">
-                🛡️ Active for Conflict Checking
+                Active for Conflict Checking
               </h3>
-              <p class="text-sm text-turquoise-600 font-medium mt-1 ml-6">
-                We'll check these calendars to prevent double bookings
-              </p>
+              <button
+                phx-click="refresh_all_calendars"
+                phx-target={@myself}
+                class={[
+                  "flex items-center gap-2 px-4 py-2 rounded-token-xl font-bold transition-all border-2 shrink-0",
+                  @is_refreshing && "bg-turquoise-50 text-turquoise-400 border-turquoise-200 cursor-not-allowed",
+                  !@is_refreshing &&
+                    "bg-white text-turquoise-600 border-turquoise-50 hover:bg-turquoise-50 hover:border-turquoise-100"
+                ]}
+                disabled={@is_refreshing}
+              >
+                <svg
+                  class={["w-5 h-5", @is_refreshing && "animate-spin"]}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2.5"
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
+                <%= if @is_refreshing, do: "Refreshing...", else: "Refresh All" %>
+              </button>
             </div>
-          <% end %>
+            <p class="text-sm text-turquoise-600 font-medium mt-1 ml-6">
+              We'll check these calendars to prevent double bookings
+            </p>
+          </div>
 
           <%= for integration <- @grouped.active do %>
             <.calendar_row
@@ -172,9 +189,7 @@ defmodule TymeslotWeb.Dashboard.CalendarSettings.Components do
       <!-- Inactive Calendars -->
       <%= if @grouped.inactive != [] do %>
         <div class="space-y-3">
-          <%= if @show_section_headers do %>
-            <h3 class="text-lg font-semibold text-slate-600">Paused Calendars</h3>
-          <% end %>
+          <h3 class="text-lg font-semibold text-slate-600">Paused Calendars</h3>
 
           <%= for integration <- @grouped.inactive do %>
             <.calendar_row
@@ -222,7 +237,7 @@ defmodule TymeslotWeb.Dashboard.CalendarSettings.Components do
             <div class="mb-2">
               <%= if @integration.is_active do %>
                 <span class="text-xs font-semibold text-turquoise-700">
-                  🛡️ Active for Conflict Checking
+                  Active for Conflict Checking
                 </span>
               <% else %>
                 <span class="text-xs font-semibold text-slate-500">
@@ -232,30 +247,79 @@ defmodule TymeslotWeb.Dashboard.CalendarSettings.Components do
             </div>
 
             <!-- Details -->
-            <div class="text-sm text-gray-600">
+            <div class="mt-4">
               <%= if @integration.is_active do %>
-                <%= if @integration.calendar_list && length(@integration.calendar_list) > 0 do %>
-                  <div class="flex flex-wrap gap-1.5">
-                    <%= for calendar <- Enum.filter(@integration.calendar_list, &(&1["selected"] || &1[:selected])) do %>
-                      <span class="inline-flex items-center px-2 py-1 rounded-token-lg bg-slate-100 text-slate-700 text-xs font-medium border border-slate-200">
+                <div class="flex flex-col gap-3">
+                  <div class="flex items-center justify-between">
+                    <h5 class="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                      Sync selection
+                    </h5>
+                  </div>
+
+                  <div class="flex flex-wrap gap-2">
+                    <%= for calendar <- @integration.calendar_list || [] do %>
+                      <% calendar_id = calendar["id"] || calendar[:id] %>
+                      <% calendar_name = Helpers.extract_calendar_display_name(calendar) %>
+                      <% is_selected = calendar["selected"] || calendar[:selected] %>
+
+                      <button
+                        phx-click="toggle_calendar_selection"
+                        phx-value-integration_id={@integration.id}
+                        phx-value-calendar_id={calendar_id}
+                        phx-target={@myself}
+                        class={[
+                          "inline-flex items-center gap-2 px-2.5 py-1.5 rounded-token-lg border-2 transition-all select-none text-xs font-bold",
+                          is_selected &&
+                            "bg-turquoise-50 border-turquoise-400 text-turquoise-900 shadow-sm",
+                          !is_selected &&
+                            "bg-white border-slate-100 text-slate-500 hover:border-slate-200 hover:bg-slate-50"
+                        ]}
+                      >
+                        <!-- Calendar color indicator -->
                         <%= if calendar["color"] || calendar[:color] do %>
                           <span
-                            class="w-2 h-2 rounded-full mr-1.5"
+                            class="w-2 h-2 rounded-full shrink-0"
                             style={"background-color: #{calendar["color"] || calendar[:color]}"}
                           >
                           </span>
                         <% end %>
-                        {Helpers.extract_calendar_display_name(calendar)}
-                      </span>
+
+                        <span>{calendar_name}</span>
+
+                        <!-- Primary badge -->
+                        <%= if calendar["primary"] || calendar[:primary] do %>
+                          <span class="bg-slate-200 text-slate-700 text-[9px] font-black px-1 rounded uppercase tracking-tighter">
+                            Primary
+                          </span>
+                        <% end %>
+
+                        <!-- Checkmark indicator -->
+                        <svg
+                          :if={is_selected}
+                          class="w-3 h-3 text-turquoise-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="3"
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                      </button>
+                    <% end %>
+
+                    <%= if !@integration.calendar_list || @integration.calendar_list == [] do %>
+                      <p class="text-xs text-slate-500 italic">
+                        No calendars discovered. Try refreshing.
+                      </p>
                     <% end %>
                   </div>
-                <% else %>
-                  <%= if length(@integration.calendar_paths || []) > 0 do %>
-                    <span>{length(@integration.calendar_paths)} calendars connected</span>
-                  <% end %>
-                <% end %>
+                </div>
               <% else %>
-                <span class="text-gray-500 italic">Integration is currently disabled</span>
+                <span class="text-gray-500 italic text-sm">Integration is currently disabled</span>
               <% end %>
             </div>
           </div>
@@ -263,6 +327,26 @@ defmodule TymeslotWeb.Dashboard.CalendarSettings.Components do
 
         <!-- Right: Actions -->
         <div class="flex items-center gap-2 flex-shrink-0">
+          <%= if @integration.provider == "google" && Helpers.needs_scope_upgrade?(@integration) do %>
+            <button
+              phx-click="upgrade_google_scope"
+              phx-value-id={@integration.id}
+              phx-target={@myself}
+              class="btn btn-sm border-amber-200 text-amber-700 hover:bg-amber-50 bg-white"
+              title="Upgrade Google Calendar permissions"
+            >
+              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M13 10V3L4 14h7v7l9-11h-7z"
+                />
+              </svg>
+              Upgrade Scope
+            </button>
+          <% end %>
+
           <StatusSwitch.status_switch
             id={"calendar-toggle-#{@integration.id}"}
             checked={@integration.is_active}
@@ -273,65 +357,11 @@ defmodule TymeslotWeb.Dashboard.CalendarSettings.Components do
             class="ring-2 ring-turquoise-300/50"
           />
 
-          <%= if @integration.is_active do %>
-            <button
-              phx-click="manage_calendars"
-              phx-value-id={@integration.id}
-              phx-target={@myself}
-              class="btn btn-sm btn-secondary"
-              disabled={@validating_integration_id == @integration.id}
-            >
-              <%= if @validating_integration_id == @integration.id do %>
-                <svg
-                  class="animate-spin h-4 w-4 mr-1"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    class="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    stroke-width="4"
-                  >
-                  </circle>
-                  <path
-                    class="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  >
-                  </path>
-                </svg>
-                Connecting...
-              <% else %>
-                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                  />
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                </svg>
-                Manage
-              <% end %>
-            </button>
-          <% end %>
-
           <button
-            phx-click="modal_action"
-            phx-value-action="show"
-            phx-value-modal="delete"
+            phx-click="show"
             phx-value-id={@integration.id}
-            phx-target={@myself}
-            class="text-gray-500 hover:text-red-600 transition-colors p-2"
+            phx-target="#delete-calendar-modal"
+            class="text-gray-400 hover:text-red-600 transition-colors p-2"
             title="Delete Integration"
           >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -356,9 +386,12 @@ defmodule TymeslotWeb.Dashboard.CalendarSettings.Components do
   def available_providers_section(assigns) do
     ~H"""
     <div class="space-y-8 mt-12">
-      <div class="max-w-2xl">
-        <h2 class="text-token-2xl font-black text-tymeslot-900 tracking-tight mb-3">Available Providers</h2>
-        <p class="text-tymeslot-500 font-medium text-token-lg">
+      <div class="max-w-4xl">
+        <.section_header
+          level={2}
+          title="Available Providers"
+        />
+        <p class="text-tymeslot-500 font-medium text-token-lg ml-1">
           Choose from our supported calendar providers to sync your availability and prevent double bookings automatically.
         </p>
       </div>

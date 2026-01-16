@@ -1,6 +1,7 @@
 defmodule TymeslotWeb.Live.Dashboard.Meetings.Components do
   @moduledoc false
   use Phoenix.Component
+  import TymeslotWeb.Components.CoreComponents, only: [section_header: 1]
 
   alias TymeslotWeb.Live.Dashboard.Meetings.Helpers
 
@@ -201,9 +202,9 @@ defmodule TymeslotWeb.Live.Dashboard.Meetings.Components do
                 href={@meeting.meeting_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                class="btn-primary py-3 px-4 text-token-sm w-full"
+                class="btn-primary py-3 px-4 text-token-sm w-full flex items-center justify-center whitespace-nowrap"
               >
-                <.icon name="video" class="w-4 h-4 mr-2" /> Join Meeting
+                <.icon name="video" class="w-4 h-4 mr-2 flex-shrink-0" /> Join Meeting
               </a>
             <% end %>
 
@@ -213,11 +214,11 @@ defmodule TymeslotWeb.Live.Dashboard.Meetings.Components do
               phx-target={@target}
               disabled={!Helpers.can_reschedule?(@meeting)}
               class={[
-                "btn-secondary py-3 px-4 text-token-sm w-full",
+                "btn-secondary py-3 px-4 text-token-sm w-full flex items-center justify-center whitespace-nowrap",
                 if(!Helpers.can_reschedule?(@meeting), do: "opacity-50 cursor-not-allowed", else: "")
               ]}
             >
-              <.icon name="swap" class="w-4 h-4 mr-2" /> Reschedule
+              <.icon name="swap" class="w-4 h-4 mr-2 flex-shrink-0" /> Reschedule
             </button>
 
             <button
@@ -227,18 +228,18 @@ defmodule TymeslotWeb.Live.Dashboard.Meetings.Components do
               phx-target={@target}
               disabled={@cancelling_meeting == @meeting.id || !Helpers.can_cancel?(@meeting)}
               class={[
-                "btn-danger py-3 px-4 text-token-sm w-full",
+                "btn-danger py-3 px-4 text-token-sm w-full flex items-center justify-center whitespace-nowrap",
                 if(!Helpers.can_cancel?(@meeting), do: "opacity-50 cursor-not-allowed", else: "")
               ]}
             >
               <%= if @cancelling_meeting == @meeting.id do %>
-                <svg class="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24">
+                <svg class="animate-spin h-4 w-4 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
                 Processing...
               <% else %>
-                <.icon name="x" class="w-4 h-4 mr-2" /> Cancel
+                <.icon name="x" class="w-4 h-4 mr-2 flex-shrink-0" /> Cancel
               <% end %>
             </button>
           <% else %>
@@ -323,12 +324,12 @@ defmodule TymeslotWeb.Live.Dashboard.Meetings.Components do
 
       <div class="flex flex-col lg:flex-row gap-12 relative z-10">
         <div class="flex-1">
-          <div class="flex items-center gap-4 mb-6">
-            <div class="w-14 h-14 rounded-token-2xl bg-gradient-to-br from-turquoise-500 to-cyan-600 flex items-center justify-center shadow-lg shadow-turquoise-500/20">
-              <.icon name="info" class="w-7 h-7 text-white" />
-            </div>
-            <h3 class="text-token-3xl font-black text-tymeslot-900 tracking-tight">Meeting Management</h3>
-          </div>
+          <.section_header
+            level={2}
+            icon={:calendar}
+            title="Meeting Management"
+            class="mb-6"
+          />
 
           <p class="text-tymeslot-500 font-bold text-lg leading-relaxed max-w-2xl mb-8">
             Manage all your scheduled meetings in one place. Filter by status and take quick actions on your appointments.

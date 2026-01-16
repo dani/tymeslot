@@ -390,7 +390,10 @@ defmodule TymeslotWeb.Dashboard.Availability.ListComponent do
     <div>
       <!-- Timezone Display Header -->
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-2 sm:space-y-0">
-        <h2 class="text-token-xl font-semibold text-tymeslot-800">Weekly Schedule</h2>
+        <.section_header
+          level={2}
+          title="Weekly Schedule"
+        />
         <Helpers.timezone_display timezone_display={@timezone_display} country_code={@country_code} />
       </div>
       

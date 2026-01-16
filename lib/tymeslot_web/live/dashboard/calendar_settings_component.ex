@@ -4,15 +4,12 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
   """
   use TymeslotWeb, :live_component
 
-  alias Phoenix.LiveView.JS
   alias Tymeslot.Integrations.Calendar
   alias Tymeslot.Integrations.Calendar.Discovery
   alias Tymeslot.Security.CalendarInputProcessor
   alias Tymeslot.Utils.ChangesetUtils
-  alias TymeslotWeb.Components.Dashboard.Integrations.Calendar.CalendarManagerModal
   alias TymeslotWeb.Components.Dashboard.Integrations.Shared.DeleteIntegrationModal
   alias TymeslotWeb.Dashboard.CalendarSettings.Components
-  alias TymeslotWeb.Hooks.ModalHook
   alias TymeslotWeb.Live.Dashboard.Shared.DashboardHelpers
   alias TymeslotWeb.Live.Shared.Flash
   require Logger
@@ -20,13 +17,8 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
   @impl true
   @spec mount(Phoenix.LiveView.Socket.t()) :: {:ok, Phoenix.LiveView.Socket.t()}
   def mount(socket) do
-    modal_configs = [
-      {:delete, false}
-    ]
-
     {:ok,
      socket
-     |> ModalHook.mount_modal(modal_configs)
      |> assign(:integrations, [])
      |> assign(:view, :providers)
      |> assign(:selected_provider, nil)
@@ -37,24 +29,15 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
      |> assign(:form_values, %{})
      |> assign(:is_saving, false)
      |> assign(:testing_integration_id, nil)
-     |> assign(:pending_delete_integration_id, nil)
      |> assign(:is_refreshing, false)
+     |> assign(:refresh_task_ref, nil)
      |> assign(:validating_integration_id, nil)
      |> assign(:available_calendar_providers, Calendar.list_available_providers(:calendar))}
   end
 
-  # Removed handle_info callbacks - events now come directly via phx-target
-
-  @spec handle_info({:upgrade_google_scope, integer()}, Phoenix.LiveView.Socket.t()) ::
-          {:noreply, Phoenix.LiveView.Socket.t()}
-  def handle_info({:upgrade_google_scope, integration_id}, socket) do
-    handle_event("upgrade_google_scope", %{"id" => to_string(integration_id)}, socket)
-  end
-
   @impl true
-  @spec update(map(), Phoenix.LiveView.Socket.t()) :: {:ok, Phoenix.LiveView.Socket.t()}
   def update(assigns, socket) do
-    # First, assign incoming assigns and load integrations
+    # Standard update logic
     socket =
       socket
       |> assign(assigns)
@@ -73,12 +56,6 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
           {_, socket} = handle_event("add_integration", %{"integration" => params}, socket)
           socket
 
-        {"save_calendar_selection", %{"calendars" => calendars_params}} ->
-          {_, socket} =
-            handle_event("save_calendar_selection", %{"calendars" => calendars_params}, socket)
-
-          socket
-
         _ ->
           socket
       end
@@ -87,12 +64,50 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
   end
 
   @impl true
+  def handle_async(:refresh_calendars, {:ok, results}, socket) do
+    # Extract results and count successes/failures
+    {successes, failures} =
+      Enum.reduce(results, {0, 0}, fn
+        {:ok, {:ok, _}}, {s, f} -> {s + 1, f}
+        {:ok, {:error, _}}, {s, f} -> {s, f + 1}
+        {:exit, _}, {s, f} -> {s, f + 1}
+      end)
+
+    cond do
+      failures == 0 ->
+        Flash.info("All #{successes} calendar#{if successes != 1, do: "s", else: ""} refreshed successfully")
+
+      successes > 0 ->
+        Flash.error(
+          "#{successes} calendar#{if successes != 1, do: "s", else: ""} refreshed, but #{failures} failed. Please check your connections."
+        )
+
+      true ->
+        Flash.error("All calendar refreshes failed. Please check your connections.")
+    end
+
+    {:noreply,
+     socket
+     |> assign(:is_refreshing, false)
+     |> load_integrations()}
+  end
+
+  def handle_async(:refresh_calendars, {:error, _reason}, socket) do
+    Flash.error("Calendar refresh process failed unexpectedly.")
+    {:noreply, assign(socket, :is_refreshing, false)}
+  end
+
+  @spec handle_info(any(), Phoenix.LiveView.Socket.t()) ::
+          {:noreply, Phoenix.LiveView.Socket.t()}
+  def handle_info({:upgrade_google_scope, integration_id}, socket) do
+    handle_event("upgrade_google_scope", %{"id" => to_string(integration_id)}, socket)
+  end
+
+  @impl true
   def handle_event("back_to_providers", _params, socket) do
     {:noreply, reset_integration_form_state(socket)}
   end
 
-  @spec handle_event(String.t(), map(), Phoenix.LiveView.Socket.t()) ::
-          {:noreply, Phoenix.LiveView.Socket.t()}
   def handle_event("validate_field", %{"field" => field, "value" => value}, socket) do
     # Update only the specific field in form_values
     form_values = Map.put(socket.assigns.form_values || %{}, field, value)
@@ -132,8 +147,6 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
     end
   end
 
-  # Provider config state is managed here for non-OAuth providers
-
   def handle_event("track_form_change", %{"integration" => params}, socket) do
     {:noreply, assign(socket, :form_values, params)}
   end
@@ -166,35 +179,6 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
     end
   end
 
-  defp perform_calendar_discovery(socket, provider, sanitized_params) do
-    case Discovery.discover_calendars_for_credentials(
-           provider,
-           sanitized_params["url"],
-           sanitized_params["username"],
-           sanitized_params["password"],
-           force_refresh: true
-         ) do
-      {:ok, %{calendars: calendars, discovery_credentials: credentials}} ->
-        # Filter calendars to only include those with valid paths
-        valid_calendars =
-          Enum.filter(calendars, fn calendar ->
-            is_binary(calendar[:path] || calendar[:href])
-          end)
-
-        socket
-        |> assign(:discovered_calendars, valid_calendars)
-        |> assign(:discovery_credentials, credentials)
-        |> assign(:show_calendar_selection, true)
-        |> assign(:is_saving, false)
-        |> assign(:form_errors, %{})
-
-      {:error, reason} ->
-        socket
-        |> assign(:form_errors, %{discovery: normalize_discovery_error(reason)})
-        |> assign(:is_saving, false)
-    end
-  end
-
   def handle_event("add_integration", %{"integration" => params} = full_params, socket) do
     socket = assign(socket, :is_saving, true)
     metadata = get_security_metadata(socket)
@@ -218,47 +202,10 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
         # Notify parent LiveView that integration status has changed
         send(self(), {:integration_updated, :calendar})
         {:noreply, load_integrations(socket)}
-    end
-  end
 
-  def handle_event("modal_action", %{"action" => action, "modal" => modal} = params, socket) do
-    case {action, modal} do
-      {"show", "delete"} ->
-        Logger.info("Showing delete modal for integration ID: #{params["id"]}")
-
-        socket =
-          socket
-          |> ModalHook.show_modal("delete", params["id"])
-          |> assign(:pending_delete_integration_id, String.to_integer(params["id"]))
-
+      {:error, reason} ->
+        Flash.error("Failed to update calendar status: #{inspect(reason)}")
         {:noreply, socket}
-
-      {"hide", "delete"} ->
-        {:noreply,
-         socket
-         |> ModalHook.hide_modal("delete")
-         |> assign(:pending_delete_integration_id, nil)}
-
-      _ ->
-        {:noreply, socket}
-    end
-  end
-
-  def handle_event("show_delete_modal", %{"id" => id}, socket) do
-    handle_event("modal_action", %{"action" => "show", "modal" => "delete", "id" => id}, socket)
-  end
-
-  def handle_event("hide_delete_modal", _params, socket) do
-    handle_event("modal_action", %{"action" => "hide", "modal" => "delete"}, socket)
-  end
-
-  def handle_event("delete_integration", _params, socket) do
-    case socket.assigns.pending_delete_integration_id do
-      nil ->
-        {:noreply, socket}
-
-      id ->
-        {:noreply, delete_integration_and_reset_ui(id, socket.assigns.current_user.id, socket)}
     end
   end
 
@@ -268,7 +215,7 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
     case Calendar.initiate_google_oauth(user_id) do
       {:ok, authorization_url} ->
         send(self(), {:external_redirect, authorization_url})
-        {:noreply, assign(socket, :show_provider_modal, false)}
+        {:noreply, socket}
 
       {:error, error_message} ->
         Flash.error(error_message)
@@ -282,7 +229,7 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
     case Calendar.initiate_outlook_oauth(user_id) do
       {:ok, authorization_url} ->
         send(self(), {:external_redirect, authorization_url})
-        {:noreply, assign(socket, :show_provider_modal, false)}
+        {:noreply, socket}
 
       {:error, error_message} ->
         Flash.error(error_message)
@@ -315,67 +262,81 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
   end
 
   def handle_event("refresh_all_calendars", _params, socket) do
-    socket = assign(socket, :is_refreshing, true)
-
-    # Only refresh active integrations
-    active_integrations = Enum.filter(socket.assigns.integrations, & &1.is_active)
-
-    if active_integrations == [] do
-      {:noreply, assign(socket, :is_refreshing, false)}
+    # Guard against concurrent refresh requests
+    if socket.assigns.is_refreshing do
+      {:noreply, socket}
     else
-      # Run discovery for each active integration
-      results =
-        Enum.map(active_integrations, fn integration ->
-          Calendar.update_integration_with_discovery(integration)
-        end)
+      # Only refresh active integrations
+      active_integrations = Enum.filter(socket.assigns.integrations, & &1.is_active)
 
-      case Enum.find(results, &match?({:error, _}, &1)) do
-        nil ->
-          Flash.info("All calendars refreshed successfully")
+      if active_integrations == [] do
+        {:noreply, assign(socket, :is_refreshing, false)}
+      else
+        socket =
+          socket
+          |> assign(:is_refreshing, true)
+          |> start_async(:refresh_calendars, fn ->
+            active_integrations
+            |> Task.async_stream(
+              fn integration ->
+                Calendar.update_integration_with_discovery(integration)
+              end,
+              max_concurrency: 5,
+              timeout: 30_000,
+              on_timeout: :kill_task
+            )
+            |> Enum.to_list()
+          end)
 
-        {:error, _reason} ->
-          Flash.error("Some calendars failed to refresh. Please check your connections.")
+        {:noreply, socket}
       end
-
-      {:noreply,
-       socket
-       |> assign(:is_refreshing, false)
-       |> load_integrations()}
     end
   end
 
-  def handle_event("toggle_calendar_selection", %{"integration_id" => id, "calendar_id" => cal_id}, socket) do
-    integration_id = to_int!(id)
-    integration = Enum.find(socket.assigns.integrations, &(&1.id == integration_id))
+  def handle_event(
+        "toggle_calendar_selection",
+        %{"integration_id" => id, "calendar_id" => cal_id},
+        socket
+      ) do
+    with {:ok, integration_id} <- parse_int(id),
+         true <- is_binary(cal_id) or is_integer(cal_id) do
+      integration = Enum.find(socket.assigns.integrations, &(&1.id == integration_id))
 
-    case integration do
-      nil ->
+      case integration do
+        nil ->
+          {:noreply, socket}
+
+        integration ->
+          # Find the calendar and toggle its selection
+          current_selection =
+            (integration.calendar_list || [])
+            |> Enum.filter(fn cal ->
+              cid = cal["id"] || cal[:id]
+              is_selected = cal["selected"] || cal[:selected]
+
+              if cid == cal_id do
+                !is_selected
+              else
+                is_selected
+              end
+            end)
+            |> Enum.map(fn cal -> cal["id"] || cal[:id] end)
+
+          case Calendar.update_calendar_selection(integration, %{
+                 "selected_calendars" => current_selection
+               }) do
+            {:ok, _updated} ->
+              {:noreply, load_integrations(socket)}
+
+            {:error, _reason} ->
+              Flash.error("Failed to update calendar selection")
+              {:noreply, socket}
+          end
+      end
+    else
+      _ ->
+        Flash.error("Invalid calendar selection request")
         {:noreply, socket}
-
-      integration ->
-        # Find the calendar and toggle its selection
-        current_selection =
-          (integration.calendar_list || [])
-          |> Enum.filter(fn cal ->
-            cid = cal["id"] || cal[:id]
-            is_selected = cal["selected"] || cal[:selected]
-
-            if cid == cal_id do
-              !is_selected
-            else
-              is_selected
-            end
-          end)
-          |> Enum.map(fn cal -> cal["id"] || cal[:id] end)
-
-        case Calendar.update_calendar_selection(integration, %{"selected_calendars" => current_selection}) do
-          {:ok, _updated} ->
-            {:noreply, load_integrations(socket)}
-
-          {:error, _reason} ->
-            Flash.error("Failed to update calendar selection")
-            {:noreply, socket}
-        end
     end
   end
 
@@ -395,6 +356,7 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
         end
 
       {:error, :not_found} ->
+        Flash.error("Integration not found")
         {:noreply, assign(socket, :testing_integration_id, nil)}
     end
   end
@@ -419,6 +381,35 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
       {:error, error_message} when is_binary(error_message) ->
         Flash.error(error_message)
         {:noreply, socket}
+    end
+  end
+
+  defp perform_calendar_discovery(socket, provider, sanitized_params) do
+    case Discovery.discover_calendars_for_credentials(
+           provider,
+           sanitized_params["url"],
+           sanitized_params["username"],
+           sanitized_params["password"],
+           force_refresh: true
+         ) do
+      {:ok, %{calendars: calendars, discovery_credentials: credentials}} ->
+        # Filter calendars to only include those with valid paths
+        valid_calendars =
+          Enum.filter(calendars, fn calendar ->
+            is_binary(calendar[:path] || calendar[:href])
+          end)
+
+        socket
+        |> assign(:discovered_calendars, valid_calendars)
+        |> assign(:discovery_credentials, credentials)
+        |> assign(:show_calendar_selection, true)
+        |> assign(:is_saving, false)
+        |> assign(:form_errors, %{})
+
+      {:error, reason} ->
+        socket
+        |> assign(:form_errors, %{discovery: normalize_discovery_error(reason)})
+        |> assign(:is_saving, false)
     end
   end
 
@@ -501,43 +492,11 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
     |> assign(:is_saving, false)
   end
 
-  defp delete_integration_and_reset_ui(id, user_id, socket) do
-    case Calendar.delete_with_primary_reassignment_and_invalidate(user_id, id) do
-      {:ok, _} ->
-        send(self(), {:integration_removed, :calendar})
-        Flash.info("Integration deleted successfully")
-
-        socket
-        |> load_integrations()
-        |> assign(:show_delete_modal, false)
-        |> assign(:pending_delete_integration_id, nil)
-
-      {:error, :not_found} ->
-        socket
-        |> assign(:show_delete_modal, false)
-        |> assign(:pending_delete_integration_id, nil)
-
-      {:error, _} ->
-        Flash.error("Failed to delete integration")
-
-        socket
-        |> assign(:show_delete_modal, false)
-        |> assign(:pending_delete_integration_id, nil)
-    end
-  end
-
   @impl true
   def render(assigns) do
     ~H"""
     <div class="space-y-10 pb-20">
-      <!-- Shared Delete Modal for Calendar Integrations -->
-      <DeleteIntegrationModal.delete_integration_modal
-        id="delete-calendar-modal"
-        show={@show_delete_modal}
-        integration_type={:calendar}
-        on_cancel={JS.push("hide_delete_modal", target: @myself)}
-        on_confirm={JS.push("delete_integration", target: @myself)}
-      />
+      <.section_header icon={:calendar} title="Calendar Settings" />
 
       <%= if @view == :config do %>
         <Components.config_view
@@ -552,9 +511,6 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
           is_saving={@is_saving}
         />
       <% else %>
-        <!-- Providers List Mode -->
-        <.section_header icon={:calendar} title="Calendar Integration" />
-
         <Components.connected_calendars_section
           integrations={@integrations}
           testing_integration_id={@testing_integration_id}
@@ -568,16 +524,16 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
           myself={@myself}
         />
       <% end %>
+
+      <!-- Shared Delete Modal for Calendar Integrations -->
+      <.live_component
+        module={DeleteIntegrationModal}
+        id="delete-calendar-modal"
+        integration_type={:calendar}
+        current_user={@current_user}
+      />
     </div>
     """
-  end
-
-  # Private helper functions for view rendering
-
-  # Calendar connection validation
-  defp validate_calendar_connection(integration, socket) do
-    user_id = socket.assigns.current_user.id
-    Calendar.validate_connection_with_timeout(integration, user_id, timeout: 10_000)
   end
 
   # Helper function to get security metadata
@@ -595,10 +551,12 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
   defp normalize_provider(_), do: :caldav
 
   defp normalize_discovery_error(reason) do
-    reason
-    |> List.wrap()
-    |> Enum.reject(&(&1 in [nil, ""]))
-    |> case do
+    errors =
+      reason
+      |> List.wrap()
+      |> Enum.reject(&(&1 in [nil, ""]))
+
+    case errors do
       [] -> "Calendar discovery failed. Please try again."
       errors -> Enum.map_join(errors, ", ", &to_string/1)
     end
@@ -607,6 +565,16 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
   # Small utility for ID parsing
   defp to_int!(id) when is_binary(id), do: String.to_integer(id)
   defp to_int!(id) when is_integer(id), do: id
+
+  defp parse_int(id) when is_integer(id), do: {:ok, id}
+  defp parse_int(id) when is_binary(id) do
+    case Integer.parse(id) do
+      {int, ""} -> {:ok, int}
+      _ -> :error
+    end
+  end
+
+  defp parse_int(_), do: :error
 
   # Load integrations from context and assign
   defp load_integrations(socket) do

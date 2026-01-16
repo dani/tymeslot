@@ -352,7 +352,10 @@ defmodule TymeslotWeb.Dashboard.ProfileSettingsComponent do
           <div class="relative z-10 grid grid-cols-1 lg:grid-cols-3 gap-12 items-start">
             <!-- Left Side: Avatar Upload -->
             <div class="lg:col-span-1 space-y-8 text-center pt-4">
-              <h3 class="text-xl font-black text-tymeslot-900 tracking-tight mb-8">Profile Picture</h3>
+              <.section_header
+                level={3}
+                title="Profile Picture"
+              />
               
               <div class="relative inline-block mb-8" phx-hook="AutoUpload" id="avatar-upload-section">
                 <div class="w-40 h-40 rounded-[2.5rem] overflow-hidden bg-tymeslot-100 border-4 border-white shadow-2xl relative z-10 mx-auto transform group-hover:scale-105 transition-transform duration-500">

@@ -118,7 +118,7 @@ defmodule TymeslotWeb.Components.CoreComponents.Containers do
       |> assign(:computed_title_class, computed_title_class)
 
     ~H"""
-    <div :if={@icon} class={["flex items-center mb-12", @class]}>
+    <div :if={@icon} class={["flex items-center mb-4", @class]}>
       <div class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center mr-5 shadow-sm border border-slate-100 flex-shrink-0">
         <TymeslotWeb.Components.Icons.IconComponents.icon name={@icon} class="w-8 h-8 text-turquoise-600" />
       </div>
@@ -148,7 +148,7 @@ defmodule TymeslotWeb.Components.CoreComponents.Containers do
       <% end %>
     </div>
 
-    <h1 :if={!@icon} class={[@computed_title_class, "mb-4", @class]}>
+    <h1 :if={!@icon} class={[@computed_title_class, "mb-2", @class]}>
       <%= if @title do %>
         {@title}
       <% else %>

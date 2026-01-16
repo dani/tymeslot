@@ -75,7 +75,6 @@ defmodule TymeslotWeb.Dashboard.ScheduleSettingsComponent do
         <.section_header
           icon={:calendar}
           title="Availability"
-          class="mb-0"
           saving={@saving}
         />
 

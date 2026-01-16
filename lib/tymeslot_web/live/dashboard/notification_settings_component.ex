@@ -354,6 +354,29 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
   def render(assigns) do
     ~H"""
     <div class="space-y-10 pb-20">
+      <.section_header icon={:bell} title="Notifications" />
+
+      <!-- Tabs Navigation -->
+      <div class="flex flex-wrap gap-4 bg-tymeslot-50/50 p-2 rounded-[2rem] border-2 border-tymeslot-50 mb-10">
+        <div 
+          class="flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-token-2xl text-token-sm font-black uppercase tracking-widest transition-all duration-300 border-2 bg-white border-white text-turquoise-600 shadow-xl shadow-tymeslot-200/50 scale-[1.02] cursor-default"
+        >
+          <IconComponents.icon name={:webhook} class="w-5 h-5" />
+          <span>Webhooks</span>
+        </div>
+        
+        <div 
+          class="flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-token-2xl text-token-sm font-black uppercase tracking-widest transition-all duration-300 border-2 bg-transparent border-transparent text-tymeslot-400 opacity-60 cursor-not-allowed"
+        >
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M6 12.5C6 11.1193 7.11929 10 8.5 10C9.88071 10 11 11.1193 11 12.5C11 13.8807 9.88071 15 8.5 15C7.11929 15 6 13.8807 6 12.5Z" />
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12ZM12 4C7.58172 4 4 7.58172 4 12C4 16.4183 7.58172 20 12 20C16.4183 20 20 16.4183 20 12C20 7.58172 16.4183 4 12 4Z" />
+          </svg>
+          <span>Slack</span>
+          <span class="ml-2 text-[10px] bg-tymeslot-100 px-2 py-0.5 rounded-full uppercase tracking-tighter">Coming Soon</span>
+        </div>
+      </div>
+
       <!-- Create/Edit Webhook Modal -->
       <Modals.webhook_form_modal
         show={@show_create_modal || @show_edit_modal}
@@ -400,45 +423,17 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
         />
       <% end %>
 
-      <!-- Header -->
-      <.section_header
-        icon={:bell}
-        title="Notifications"
-      />
-
-      <!-- Tabs Navigation -->
-      <div class="flex flex-wrap gap-4 bg-tymeslot-50/50 p-2 rounded-[2rem] border-2 border-tymeslot-50 mb-10">
-        <div 
-          class="flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-token-2xl text-token-sm font-black uppercase tracking-widest transition-all duration-300 border-2 bg-white border-white text-turquoise-600 shadow-xl shadow-tymeslot-200/50 scale-[1.02] cursor-default"
-        >
-          <IconComponents.icon name={:webhook} class="w-5 h-5" />
-          <span>Webhooks</span>
-        </div>
-        
-        <div 
-          class="flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-token-2xl text-token-sm font-black uppercase tracking-widest transition-all duration-300 border-2 bg-transparent border-transparent text-tymeslot-400 opacity-60 cursor-not-allowed"
-        >
-          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M6 12.5C6 11.1193 7.11929 10 8.5 10C9.88071 10 11 11.1193 11 12.5C11 13.8807 9.88071 15 8.5 15C7.11929 15 6 13.8807 6 12.5Z" />
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12ZM12 4C7.58172 4 4 7.58172 4 12C4 16.4183 7.58172 20 12 20C16.4183 20 20 16.4183 20 12C20 7.58172 16.4183 4 12 4Z" />
-          </svg>
-          <span>Slack</span>
-          <span class="ml-2 text-[10px] bg-tymeslot-100 px-2 py-0.5 rounded-full uppercase tracking-tighter">Coming Soon</span>
-        </div>
-      </div>
-
       <!-- Tab Content -->
       <div class="space-y-12">
         <!-- Connected Webhooks Section -->
         <%= if @webhooks != [] do %>
           <div class="space-y-6">
             <div class="flex items-center justify-between">
-              <div class="flex items-center gap-3">
-                <h2 class="text-2xl font-black text-tymeslot-900 tracking-tight">Your Webhooks</h2>
-                <span class="bg-turquoise-100 text-turquoise-700 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider">
-                  <%= length(@webhooks) %> configured
-                </span>
-              </div>
+              <.section_header
+                level={2}
+                title="Your Webhooks"
+                count={length(@webhooks)}
+              />
               <button
                 phx-click="show_create_modal"
                 phx-target={@myself}

@@ -39,14 +39,11 @@ defmodule TymeslotWeb.Dashboard.Availability.GridComponent do
       <!-- Availability Grid -->
       <div class="card-glass relative overflow-x-auto shadow-2xl shadow-tymeslot-200/50">
         <div class="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-6">
-          <div class="flex items-center gap-4">
-            <div class="w-12 h-12 bg-cyan-50 rounded-token-xl flex items-center justify-center border border-cyan-100 shadow-sm">
-              <svg class="w-6 h-6 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
-              </svg>
-            </div>
-            <h4 class="text-2xl font-black text-tymeslot-900 tracking-tight">Weekly Visual Grid</h4>
-          </div>
+          <.section_header
+            level={2}
+            icon={:grid}
+            title="Weekly Visual Grid"
+          />
           
           <div class="flex-shrink-0">
             <Helpers.timezone_display timezone_display={@timezone_display} country_code={@country_code} />

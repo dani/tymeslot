@@ -4,7 +4,6 @@ defmodule TymeslotWeb.Dashboard.VideoSettingsComponent do
   """
   use TymeslotWeb, :live_component
 
-  alias Phoenix.LiveView.JS
   alias Tymeslot.Integrations.Providers.Directory
   alias Tymeslot.Integrations.Video, as: Video
   alias Tymeslot.Security.VideoInputProcessor
@@ -16,20 +15,14 @@ defmodule TymeslotWeb.Dashboard.VideoSettingsComponent do
   alias TymeslotWeb.Components.Icons.ProviderIcon
   alias TymeslotWeb.Components.UI.StatusSwitch
   alias TymeslotWeb.Helpers.IntegrationProviders
-  alias TymeslotWeb.Hooks.ModalHook
   alias TymeslotWeb.Live.Dashboard.Shared.DashboardHelpers
   require Logger
 
   @impl true
   @spec mount(Phoenix.LiveView.Socket.t()) :: {:ok, Phoenix.LiveView.Socket.t()}
   def mount(socket) do
-    modal_configs = [
-      {:delete, false}
-    ]
-
     {:ok,
      socket
-     |> ModalHook.mount_modal(modal_configs)
      |> assign(:integrations, [])
      |> assign(:view_mode, :providers)
      |> assign(:config_provider, nil)
@@ -38,7 +31,6 @@ defmodule TymeslotWeb.Dashboard.VideoSettingsComponent do
      |> assign(:form_values, %{})
      |> assign(:saving, false)
      |> assign(:testing_connection, nil)
-     |> assign(:integration_to_delete, nil)
      |> assign(:available_video_providers, Directory.list(:video))}
   end
 
@@ -211,69 +203,6 @@ defmodule TymeslotWeb.Dashboard.VideoSettingsComponent do
     end
   end
 
-  def handle_event("modal_action", %{"action" => action, "modal" => modal} = params, socket) do
-    case {action, modal} do
-      {"show", "delete"} ->
-        # Standardize: store integration_to_delete as integer
-        integration_id =
-          case params["id"] do
-            nil -> nil
-            id when is_integer(id) -> id
-            id when is_binary(id) -> String.to_integer(id)
-          end
-
-        socket =
-          socket
-          |> ModalHook.show_modal("delete", params["id"])
-          |> assign(:integration_to_delete, integration_id)
-
-        {:noreply, socket}
-
-      {"hide", "delete"} ->
-        {:noreply,
-         socket
-         |> ModalHook.hide_modal("delete")
-         |> assign(:integration_to_delete, nil)}
-
-      _ ->
-        {:noreply, socket}
-    end
-  end
-
-  def handle_event("show_delete_modal", %{"id" => id}, socket) do
-    handle_event("modal_action", %{"action" => "show", "modal" => "delete", "id" => id}, socket)
-  end
-
-  def handle_event("hide_delete_modal", _params, socket) do
-    handle_event("modal_action", %{"action" => "hide", "modal" => "delete"}, socket)
-  end
-
-  def handle_event("delete_integration", _params, socket) do
-    case socket.assigns.integration_to_delete do
-      nil ->
-        {:noreply, socket}
-
-      id ->
-        user_id = socket.assigns.current_user.id
-
-        case Video.delete_integration(user_id, id) do
-          {:ok, :deleted} ->
-            send(self(), {:flash, {:info, "Integration deleted successfully"}})
-            send(self(), {:integration_removed, :video})
-
-            {:noreply,
-             socket
-             |> assign(:show_delete_modal, false)
-             |> assign(:integration_to_delete, nil)
-             |> load_integrations()}
-
-          {:error, _} ->
-            send(self(), {:flash, {:error, "Failed to delete integration"}})
-            {:noreply, socket}
-        end
-    end
-  end
-
   def handle_event("test_connection", %{"id" => id}, socket) do
     user_id = socket.assigns.current_user.id
     id = normalize_id(id)
@@ -303,14 +232,7 @@ defmodule TymeslotWeb.Dashboard.VideoSettingsComponent do
   def render(assigns) do
     ~H"""
     <div class="space-y-10 pb-20">
-      <!-- Delete Confirmation Modal -->
-      <DeleteIntegrationModal.delete_integration_modal
-        id="delete-video-modal"
-        show={@show_delete_modal}
-        integration_type={:video}
-        on_cancel={JS.push("hide_delete_modal", target: @myself)}
-        on_confirm={JS.push("delete_integration", target: @myself)}
-      />
+      <.section_header icon={:video} title="Video Integration" />
 
       <%= if @view_mode == :config do %>
         <!-- Configuration Page Mode -->
@@ -334,20 +256,15 @@ defmodule TymeslotWeb.Dashboard.VideoSettingsComponent do
 
             <div class="h-8 w-px bg-tymeslot-100"></div>
 
-            <div class="flex items-center gap-4">
-              <div class="w-12 h-12 bg-turquoise-50 rounded-token-xl flex items-center justify-center border border-turquoise-100 shadow-sm">
-                <svg class="w-6 h-6 text-turquoise-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <h2 class="text-token-3xl font-black text-tymeslot-900 tracking-tight">
-                Setup <%= case @config_provider do
-                  "mirotalk" -> "MiroTalk"
-                  "custom" -> "Custom Video"
-                  _ -> "Video Integration"
-                end %>
-              </h2>
-            </div>
+            <.section_header
+              level={2}
+              icon={:video}
+              title={"Setup #{case @config_provider do
+                "mirotalk" -> "MiroTalk"
+                "custom" -> "Custom Video"
+                _ -> "Video Integration"
+              end}"}
+            />
           </div>
 
           <div class="card-glass">
@@ -376,10 +293,7 @@ defmodule TymeslotWeb.Dashboard.VideoSettingsComponent do
           </div>
         </div>
       <% else %>
-        <!-- Providers List Mode -->
-        <.section_header icon={:video} title="Video Integration" />
-        
-    <!-- Connected Video Providers Section -->
+        <!-- Connected Video Providers Section -->
         <%= if @integrations != [] do %>
           <% {active_integrations, inactive_integrations} = Enum.split_with(@integrations, & &1.is_active) %>
           <% show_section_headers = active_integrations != [] and inactive_integrations != [] %>
@@ -425,9 +339,12 @@ defmodule TymeslotWeb.Dashboard.VideoSettingsComponent do
         
     <!-- Available Video Providers Section -->
         <div class="space-y-8 mt-12">
-          <div class="max-w-2xl">
-            <h2 class="text-token-2xl font-black text-tymeslot-900 tracking-tight mb-3">Available Providers</h2>
-            <p class="text-tymeslot-500 font-medium text-token-lg">
+          <div class="max-w-4xl">
+            <.section_header
+              level={2}
+              title="Available Providers"
+            />
+            <p class="text-tymeslot-500 font-medium text-token-lg ml-1">
               Choose from our supported video providers to enable seamless meeting experiences for your clients.
             </p>
           </div>
@@ -467,6 +384,14 @@ defmodule TymeslotWeb.Dashboard.VideoSettingsComponent do
           </div>
         </div>
       <% end %>
+
+      <!-- Delete Confirmation Modal -->
+      <.live_component
+        module={DeleteIntegrationModal}
+        id="delete-video-modal"
+        integration_type={:video}
+        current_user={@current_user}
+      />
     </div>
     """
   end
@@ -584,13 +509,13 @@ defmodule TymeslotWeb.Dashboard.VideoSettingsComponent do
             </button>
           <% end %>
 
-          <button
-            phx-click="show_delete_modal"
-            phx-value-id={@integration.id}
-            phx-target={@myself}
-            class="text-gray-500 hover:text-red-600 transition-colors p-2"
-            title="Delete Integration"
-          >
+      <button
+        phx-click="show"
+        phx-value-id={@integration.id}
+        phx-target="#delete-video-modal"
+        class="text-gray-500 hover:text-red-600 transition-colors p-2"
+        title="Delete Integration"
+      >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"

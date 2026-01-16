@@ -256,6 +256,12 @@ defmodule TymeslotWeb.Dashboard.ServiceSettingsComponent do
   def render(assigns) do
     ~H"""
     <div class="space-y-10 pb-20">
+      <.section_header
+        icon={:grid}
+        title="Meeting Settings"
+        saving={@saving}
+      />
+
       <%= if (@show_edit_overlay && @editing_type) || @show_add_form do %>
         <!-- Form View (Add or Edit) -->
         <div
@@ -265,9 +271,11 @@ defmodule TymeslotWeb.Dashboard.ServiceSettingsComponent do
           class="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500"
         >
           <div class="flex items-center justify-between bg-white p-6 rounded-token-3xl border-2 border-tymeslot-50 shadow-sm">
-            <h2 class="text-token-3xl font-black text-tymeslot-900 tracking-tight">
-              <%= if @editing_type, do: "Edit Meeting Type", else: "Add Meeting Type" %>
-            </h2>
+            <.section_header
+              level={2}
+              icon={:grid}
+              title={if @editing_type, do: "Edit Meeting Type", else: "Add Meeting Type"}
+            />
             <button
               phx-click={if @editing_type, do: "close_edit_overlay", else: "toggle_add_form"}
               phx-target={@myself}
@@ -300,13 +308,7 @@ defmodule TymeslotWeb.Dashboard.ServiceSettingsComponent do
       <% else %>
         <!-- Normal View -->
         <div class="space-y-10">
-          <.section_header
-            icon={:grid}
-            title="Meeting Settings"
-            saving={@saving}
-          />
-          
-    <!-- Meeting Types Section -->
+          <!-- Meeting Types Section -->
           <div class="space-y-6">
             <MeetingTypesListComponent.meeting_types_section
               meeting_types={@meeting_types}

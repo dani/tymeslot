@@ -62,7 +62,7 @@ defmodule Tymeslot.Integrations.Calendar do
   Gets a calendar integration by ID for a user.
   """
   @spec get_integration(integration_id(), user_id()) ::
-          {:ok, CalendarIntegrationSchema.t()} | {:error, :not_found | :unauthorized}
+          {:ok, CalendarIntegrationSchema.t()} | {:error, :not_found}
   def get_integration(id, user_id) when is_integer(id) and is_integer(user_id) do
     CalendarManagement.get_calendar_integration(id, user_id)
   end
@@ -468,13 +468,37 @@ defmodule Tymeslot.Integrations.Calendar do
   end
 
   @doc """
-  Discover calendars and return the integration with merged selection state.
+  Discover calendars and update the integration with merged selection state.
+  Persists the updated calendar_list to the database.
+  
+  Preserves existing selection state if discovery returns empty but integration
+  previously had calendars selected, to prevent accidental data loss.
   """
-  @spec update_integration_with_discovery(map()) :: {:ok, map()} | {:error, term()}
+  @spec update_integration_with_discovery(map()) :: {:ok, CalendarIntegrationSchema.t()} | {:error, term()}
   def update_integration_with_discovery(integration) do
-    case discover_calendars_with_selection(integration) do
-      {:ok, merged} -> {:ok, %{integration | calendar_list: merged}}
-      error -> error
+    with {:ok, refreshed_integration} <- refresh_integration(integration),
+         {:ok, merged} <- discover_calendars_with_selection(refreshed_integration) do
+      # If discovery returned empty but we had existing selection, preserve it
+      # to prevent accidental data loss from transient provider issues
+      existing_calendar_list = refreshed_integration.calendar_list || []
+      had_existing_selection = existing_calendar_list != []
+
+      final_calendar_list =
+        if merged == [] && had_existing_selection do
+          existing_calendar_list
+        else
+          merged
+        end
+
+      case CalendarManagement.update_calendar_integration(refreshed_integration, %{
+             calendar_list: final_calendar_list
+           }) do
+        {:ok, updated} -> {:ok, updated}
+        error -> error
+      end
+    else
+      error ->
+        error
     end
   end
 
@@ -493,6 +517,17 @@ defmodule Tymeslot.Integrations.Calendar do
   def discover_calendars_for_credentials(provider, url, username, password, opts \\ []) do
     Discovery.discover_calendars_for_credentials(provider, url, username, password, opts)
   end
+
+  defp refresh_integration(%{id: id, user_id: user_id} = integration)
+       when is_integer(id) and is_integer(user_id) do
+    case CalendarManagement.get_calendar_integration(id, user_id) do
+      {:ok, fresh} -> {:ok, fresh}
+      {:error, :not_found} -> {:error, :not_found}
+      {:error, _} -> {:ok, integration}
+    end
+  end
+
+  defp refresh_integration(integration), do: {:ok, integration}
 
   @doc """
   Map connection/validation error atoms to user-friendly messages.

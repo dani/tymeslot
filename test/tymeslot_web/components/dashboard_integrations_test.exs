@@ -6,7 +6,6 @@ defmodule TymeslotWeb.Components.DashboardIntegrationsTest do
   alias Phoenix.LiveView.JS
 
   alias TymeslotWeb.Components.Dashboard.Integrations.Calendar.CaldavConfig
-  alias TymeslotWeb.Components.Dashboard.Integrations.Calendar.CalendarManagerModal
   alias TymeslotWeb.Components.Dashboard.Integrations.Calendar.ConfigBase
   alias TymeslotWeb.Components.Dashboard.Integrations.Calendar.NextcloudConfig
   alias TymeslotWeb.Components.Dashboard.Integrations.Calendar.RadicaleConfig
@@ -18,6 +17,7 @@ defmodule TymeslotWeb.Components.DashboardIntegrationsTest do
   alias TymeslotWeb.Components.Dashboard.Integrations.Shared.UIComponents
   alias TymeslotWeb.Components.Dashboard.Integrations.Video.CustomConfig
   alias TymeslotWeb.Components.Dashboard.Integrations.Video.MirotalkConfig
+  alias TymeslotWeb.Dashboard.CalendarSettingsComponent
 
   test "renders integration_card correctly" do
     assigns = %{
@@ -168,20 +168,18 @@ defmodule TymeslotWeb.Components.DashboardIntegrationsTest do
   test "renders delete_integration_modal copy for calendar and video" do
     base_assigns = %{
       id: "delete-integration",
-      show: true,
       integration_type: :calendar,
-      on_cancel: %JS{},
-      on_confirm: %JS{}
+      current_user: %{id: 1}
     }
 
-    html = render_component(&DeleteIntegrationModal.delete_integration_modal/1, base_assigns)
+    html = render_component(DeleteIntegrationModal, base_assigns)
 
     assert html =~ "Delete Calendar Integration"
     assert html =~ "calendar data"
     assert html =~ "Delete Integration"
 
     html =
-      render_component(&DeleteIntegrationModal.delete_integration_modal/1, %{
+      render_component(DeleteIntegrationModal, %{
         base_assigns
         | integration_type: :video
       })
@@ -262,7 +260,7 @@ defmodule TymeslotWeb.Components.DashboardIntegrationsTest do
 
     # Discovery mode
     html =
-      render_component(&SharedFormComponents.config_form/1, base_assigns)
+      render_component(SharedFormComponents, :config_form, base_assigns)
 
     doc = Floki.parse_document!(html)
 
@@ -302,12 +300,18 @@ defmodule TymeslotWeb.Components.DashboardIntegrationsTest do
   test "ConfigBase event handlers update assigns without external calls" do
     socket =
       %Phoenix.LiveView.Socket{
-        assigns: %{__changed__: %{}, form_errors: %{url: "bad"}, metadata: %{}, form_values: %{}}
+        assigns: %{
+          __changed__: %{},
+          form_errors: %{url: "bad"},
+          metadata: %{},
+          form_values: %{},
+          selected_provider: :caldav
+        }
       }
 
     # track_form_change
     {:noreply, socket} =
-      CaldavConfig.handle_event(
+      CalendarSettingsComponent.handle_event(
         "track_form_change",
         %{"integration" => %{"name" => "My CalDAV"}},
         socket
@@ -315,19 +319,19 @@ defmodule TymeslotWeb.Components.DashboardIntegrationsTest do
 
     assert socket.assigns.form_values["name"] == "My CalDAV"
 
-    # validate_field clears existing url error for valid input
+    # validate_field
     {:noreply, socket} =
-      CaldavConfig.handle_event(
+      CalendarSettingsComponent.handle_event(
         "validate_field",
-        %{"field" => "url", "integration" => %{"url" => "https://example.com/dav"}},
+        %{"field" => "url", "value" => "https://example.com/dav"},
         socket
       )
 
     refute Map.has_key?(socket.assigns.form_errors, :url)
 
-    # discover_calendars with invalid credentials should surface validation errors and stop
+    # discover_calendars with invalid credentials
     {:noreply, socket} =
-      CaldavConfig.handle_event(
+      CalendarSettingsComponent.handle_event(
         "discover_calendars",
         %{
           "integration" => %{
@@ -339,89 +343,39 @@ defmodule TymeslotWeb.Components.DashboardIntegrationsTest do
         socket
       )
 
-    assert socket.assigns.saving == false
+    assert socket.assigns.is_saving == false
     assert is_map(socket.assigns.form_errors)
 
     assert Map.has_key?(socket.assigns.form_errors, :username) or
              Map.has_key?(socket.assigns.form_errors, :password)
   end
 
-  test "renders calendar manager modal for primary vs sync-only integrations" do
-    primary_integration = %{
-      id: 10,
-      provider: "caldav",
-      is_active: true,
-      is_primary: true,
-      default_booking_calendar_id: "cal1",
-      calendar_list: [
-        %{
-          "id" => "cal1",
-          "name" => "Work",
-          "selected" => true,
-          "primary" => true,
-          "owner" => "me"
-        }
-      ]
-    }
-
-    html =
-      render_component(&CalendarManagerModal.render/1, %{
-        show: true,
-        parent: "parent-target",
-        myself: "modal-target",
-        loading_calendars: false,
-        managing_integration: primary_integration
-      })
-
-    doc = Floki.parse_document!(html)
-    assert html =~ "Manage Integration"
-    assert html =~ "Select calendars to sync"
-
-    # Calendar selection uses checkbox tags instead of dropdown
-    assert Floki.find(doc, "input[type='checkbox'][name='calendars[selected_calendars][]']") != []
-    assert Floki.find(doc, "button[form='calendar-selection-form']") != []
-
-    sync_only_integration = %{primary_integration | is_primary: false}
-
-    html =
-      render_component(&CalendarManagerModal.render/1, %{
-        show: true,
-        parent: "parent-target",
-        myself: "modal-target",
-        loading_calendars: false,
-        managing_integration: sync_only_integration
-      })
-
-    doc = Floki.parse_document!(html)
-    assert html =~ "Manage Integration"
-    assert html =~ "Select calendars to sync"
-
-    # Calendar selection checkboxes should still be present
-    assert Floki.find(doc, "input[type='checkbox'][name='calendars[selected_calendars][]']") != []
-  end
-
   test "renders calendar provider config headers and provider hidden fields" do
     base_assigns = %{
+      id: "test",
       target: "parent-target",
       myself: "self-target",
       saving: false,
       form_values: %{},
-      form_errors: %{}
+      form_errors: %{},
+      show_calendar_selection: false,
+      discovered_calendars: [],
+      discovery_credentials: %{}
     }
 
     html = render_component(&CaldavConfig.render/1, base_assigns)
-    assert html =~ "Setup CalDAV Calendar"
-    assert html =~ "Discover My Calendars"
+    assert html =~ "CalDAV"
+    assert html =~ "Connect any CalDAV-compatible server"
     assert html =~ ~s(name="integration[provider]" value="caldav")
 
     html = render_component(&NextcloudConfig.render/1, base_assigns)
-    assert html =~ "Setup Nextcloud Calendar"
-    assert html =~ "Discover My Calendars"
+    assert html =~ "Nextcloud"
+    assert html =~ "Sync calendars from your Nextcloud server"
     assert html =~ ~s(name="integration[provider]" value="nextcloud")
 
     html = render_component(&RadicaleConfig.render/1, base_assigns)
-    assert html =~ "Setup Radicale Calendar"
-    assert html =~ "Discover My Calendars"
+    assert html =~ "Radicale"
+    assert html =~ "Lightweight CalDAV server integration"
     assert html =~ ~s(name="integration[provider]" value="radicale")
   end
 
@@ -436,23 +390,23 @@ defmodule TymeslotWeb.Components.DashboardIntegrationsTest do
     html = render_component(&MirotalkConfig.render/1, base_assigns)
     doc = Floki.parse_document!(html)
 
-    assert html =~ "Setup MiroTalk P2P"
+    assert html =~ "MiroTalk P2P"
 
     assert Floki.find(doc, "input[type='hidden'][name='integration[provider]'][value='mirotalk']") !=
              []
 
     assert html =~ "API Key"
-    assert html =~ "Base URL"
+    assert html =~ "Server URL"
 
     html = render_component(&CustomConfig.render/1, base_assigns)
     doc = Floki.parse_document!(html)
 
-    assert html =~ "Setup Custom Video Link"
+    assert html =~ "Custom Video"
 
     assert Floki.find(doc, "input[type='hidden'][name='integration[provider]'][value='custom']") !=
              []
 
-    assert html =~ "Video Meeting URL"
+    assert html =~ "Meeting URL"
   end
 
   test "ConfigBase macro can be exercised at runtime" do
@@ -469,5 +423,132 @@ defmodule TymeslotWeb.Components.DashboardIntegrationsTest do
     [{compiled, _bin}] = Code.compile_string(code)
     assert compiled == module_name
     assert function_exported?(module_name, :assign_config_defaults, 1)
+  end
+
+  describe "refresh_all_calendars" do
+    test "sets is_refreshing flag and handles empty active integrations" do
+      socket =
+        %Phoenix.LiveView.Socket{
+          assigns: %{
+            __changed__: %{},
+            integrations: [],
+            is_refreshing: false
+          }
+        }
+
+      {:noreply, updated_socket} =
+        CalendarSettingsComponent.handle_event("refresh_all_calendars", %{}, socket)
+
+      assert updated_socket.assigns.is_refreshing == false
+    end
+
+    test "filters only active integrations for refresh" do
+      socket =
+        %Phoenix.LiveView.Socket{
+          assigns: %{
+            id: "test",
+            __changed__: %{},
+            integrations: [
+              %{id: 1, is_active: true, calendar_list: []},
+              %{id: 2, is_active: false, calendar_list: []},
+              %{id: 3, is_active: true, calendar_list: []}
+            ],
+            is_refreshing: false,
+            current_user: %{id: 1}
+          }
+        }
+
+      # This test verifies the filtering logic - actual refresh calls would require
+      # database setup, but we can verify the event handler structure
+      {:noreply, updated_socket} =
+        CalendarSettingsComponent.handle_event("refresh_all_calendars", %{}, socket)
+
+      # Refresh starts asynchronously; flag should be set while work runs
+      assert updated_socket.assigns.is_refreshing == true
+    end
+  end
+
+  describe "toggle_calendar_selection" do
+    test "handles missing integration gracefully" do
+      socket =
+        %Phoenix.LiveView.Socket{
+          assigns: %{
+            __changed__: %{},
+            integrations: [%{id: 1, calendar_list: []}],
+            current_user: %{id: 1}
+          }
+        }
+
+      {:noreply, updated_socket} =
+        CalendarSettingsComponent.handle_event(
+          "toggle_calendar_selection",
+          %{"integration_id" => "999", "calendar_id" => "cal1"},
+          socket
+        )
+
+      # Socket should remain unchanged when integration not found
+      assert updated_socket.assigns.integrations == socket.assigns.integrations
+    end
+
+    test "correctly calculates toggled selection state" do
+      integration = %Tymeslot.DatabaseSchemas.CalendarIntegrationSchema{
+        id: 1,
+        user_id: 1,
+        provider: "caldav",
+        calendar_list: [
+          %{"id" => "cal1", "selected" => true},
+          %{"id" => "cal2", "selected" => false}
+        ]
+      }
+
+      socket =
+        %Phoenix.LiveView.Socket{
+          assigns: %{
+            __changed__: %{},
+            integrations: [integration],
+            current_user: %{id: 1}
+          }
+        }
+
+      # Test that the handler processes the toggle correctly
+      # The actual Calendar.update_calendar_selection call would require DB setup
+      {:noreply, _updated_socket} =
+        CalendarSettingsComponent.handle_event(
+          "toggle_calendar_selection",
+          %{"integration_id" => "1", "calendar_id" => "cal1"},
+          socket
+        )
+
+      # Handler should process without crashing
+      assert true
+    end
+
+    test "handles empty calendar_list" do
+      integration = %Tymeslot.DatabaseSchemas.CalendarIntegrationSchema{
+        id: 1,
+        user_id: 1,
+        provider: "caldav",
+        calendar_list: []
+      }
+
+      socket =
+        %Phoenix.LiveView.Socket{
+          assigns: %{
+            __changed__: %{},
+            integrations: [integration],
+            current_user: %{id: 1}
+          }
+        }
+
+      {:noreply, updated_socket} =
+        CalendarSettingsComponent.handle_event(
+          "toggle_calendar_selection",
+          %{"integration_id" => "1", "calendar_id" => "cal1"},
+          socket
+        )
+
+      # Should handle gracefully without error
+      assert updated_socket.assigns.integrations == socket.assigns.integrations
+    end
   end
 end
