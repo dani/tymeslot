@@ -6,6 +6,34 @@ defmodule TymeslotWeb.Components.Icons.IconComponents do
   use Phoenix.Component
 
   @doc """
+  Returns the list of all supported icon names.
+  Useful for validation and documentation.
+  """
+  @spec supported_icons() :: [atom()]
+  def supported_icons do
+    [
+      :arrow_left,
+      :bell,
+      :calendar,
+      :chat_bubble_left_right,
+      :clock,
+      :cloudron,
+      :code,
+      :credit_card,
+      :docker,
+      :grid,
+      :home,
+      :lock,
+      :n8n,
+      :paint_brush,
+      :puzzle,
+      :user,
+      :video,
+      :webhook
+    ]
+  end
+
+  @doc """
   Renders an SVG icon with consistent styling and attributes.
 
   ## Examples
@@ -215,6 +243,19 @@ defmodule TymeslotWeb.Components.Icons.IconComponents do
         stroke-linejoin="round"
         stroke-width="2"
         d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a6 6 0 00-3-5.197M11 3h8a2 2 0 012 2v4a6 6 0 01-3 5.197"
+      />
+    </svg>
+    """
+  end
+
+  def icon(%{name: :chat_bubble_left_right} = assigns) do
+    ~H"""
+    <svg class={@class} fill="none" stroke="currentColor" viewBox="0 0 24 24" {@rest}>
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="2"
+        d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
       />
     </svg>
     """

@@ -55,4 +55,52 @@
   .badge-value {
     @apply flex items-center gap-2 text-white bg-white/10 backdrop-blur-glass-light px-4 py-2 rounded-full border border-white/20 font-semibold;
   }
+
+  /* Semantic Tag Components */
+  .tag-semantic {
+    @apply inline-flex items-center gap-2 px-3 py-1 rounded-token-xl border-2 font-semibold text-token-sm transition-all duration-300;
+  }
+
+  .tag-semantic-teal {
+    @apply bg-teal-50 border-teal-200 text-teal-700;
+  }
+
+  .tag-semantic-turquoise {
+    @apply bg-turquoise-50 border-turquoise-200 text-turquoise-700;
+  }
+
+  /* Tag Selector Buttons (Quick selection patterns) */
+  .btn-tag-selector {
+    @apply inline-flex items-center px-4 py-2 rounded-token-xl text-token-sm font-black transition-all duration-300 border-2 bg-white text-tymeslot-500 border-tymeslot-100;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* Color Variants for Selectors */
+  .btn-tag-selector-teal {
+    @apply hover:border-teal-100 hover:text-teal-600 hover:bg-tymeslot-50;
+  }
+  .btn-tag-selector-teal--active {
+    @apply bg-teal-50 text-teal-700 border-teal-200 shadow-sm;
+  }
+
+  .btn-tag-selector-turquoise {
+    @apply hover:border-turquoise-100 hover:text-turquoise-600 hover:bg-tymeslot-50;
+  }
+  .btn-tag-selector-turquoise--active {
+    @apply bg-turquoise-50 text-turquoise-700 border-turquoise-200 shadow-sm;
+  }
+
+  .btn-tag-selector-cyan {
+    @apply hover:border-cyan-100 hover:text-cyan-600 hover:bg-tymeslot-50;
+  }
+  .btn-tag-selector-cyan--active {
+    @apply bg-cyan-50 text-cyan-700 border-cyan-200 shadow-sm;
+  }
+
+  .btn-tag-selector-blue {
+    @apply hover:border-blue-100 hover:text-blue-600 hover:bg-tymeslot-50;
+  }
+  .btn-tag-selector-blue--active {
+    @apply bg-blue-50 text-blue-700 border-blue-200 shadow-sm;
+  }
 }

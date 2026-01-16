@@ -229,22 +229,17 @@ defmodule TymeslotWeb.Components.DashboardSidebar do
                 <span>Profile</span>
               </.nav_link>
 
-              <.nav_link
-                patch={~p"/dashboard/notifications"}
-                current={@current_action}
-                action={:notifications}
-              >
+              <.nav_link patch={~p"/dashboard/notifications"} current={@current_action} action={:notifications}>
                 <IconComponents.icon name={:bell} class="w-5 h-5" />
                 <span>Notifications</span>
               </.nav_link>
 
-              <.nav_link patch={~p"/dashboard/payment"} current={@current_action} action={:payment}>
-                <IconComponents.icon name={:credit_card} class="w-5 h-5" />
-                <span>Payment</span>
-                <span class="ml-auto text-xs bg-turquoise-100 text-turquoise-700 px-2 py-0.5 rounded-full">
-                  Coming soon
-                </span>
-              </.nav_link>
+              <%= for ext <- Application.get_env(:tymeslot, :dashboard_sidebar_extensions, []) do %>
+                <.nav_link navigate={ext.path} current={@current_action} action={ext.action}>
+                  <IconComponents.icon name={ext.icon} class="w-5 h-5" />
+                  <span>{ext.label}</span>
+                </.nav_link>
+              <% end %>
             </div>
           </div>
         </nav>
@@ -254,7 +249,8 @@ defmodule TymeslotWeb.Components.DashboardSidebar do
   end
 
   # Private component for navigation links
-  attr :patch, :string, required: true
+  attr :patch, :string, default: nil
+  attr :navigate, :string, default: nil
   attr :current, :atom, required: true
   attr :action, :atom, required: true
   attr :show_notification, :boolean, default: false
@@ -266,6 +262,7 @@ defmodule TymeslotWeb.Components.DashboardSidebar do
     ~H"""
     <.link
       patch={@patch}
+      navigate={@navigate}
       class={[
         "dashboard-nav-link flex items-center space-x-3 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200",
         if(@current == @action,

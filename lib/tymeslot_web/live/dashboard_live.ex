@@ -1,4 +1,145 @@
 defmodule TymeslotWeb.DashboardLive do
+  @moduledoc """
+  Main dashboard LiveView for authenticated users.
+
+  This module serves as the central hub for all dashboard functionality,
+  including user settings, integrations, availability management, and more.
+
+  ## Dashboard Extension System
+
+  The dashboard is designed to be extensible, allowing external applications
+  (such as the SaaS layer) to inject additional navigation items and components
+  without modifying Core code. This maintains strict architectural separation
+  while enabling powerful customization.
+
+  ### How Extensions Work
+
+  Extensions are registered via application configuration and consumed at runtime:
+
+  1. **Navigation Extensions** - Add new sidebar menu items
+  2. **Component Extensions** - Provide LiveComponents for custom actions
+
+  ### Registering Extensions
+
+  External applications should register extensions during startup using
+  `Application.put_env/3`. This is typically done in the application's
+  `start/2` callback:
+
+      # In external_app/lib/external_app/application.ex
+      defp configure_dashboard_extensions do
+        # Register sidebar navigation items
+        Application.put_env(:tymeslot, :dashboard_sidebar_extensions, [
+          %{
+            id: :my_feature,
+            label: "My Feature",
+            icon: :puzzle,
+            path: "/dashboard/my-feature",
+            action: :my_feature
+          }
+        ])
+
+        # Register corresponding components
+        Application.put_env(:tymeslot, :dashboard_action_components, %{
+          my_feature: ExternalApp.Dashboard.MyFeatureComponent
+        })
+      end
+
+  ### Extension Schema
+
+  Each sidebar extension must be a map with the following keys:
+
+  - `:id` (atom) - Unique identifier for this extension
+  - `:label` (string) - Display text shown in the sidebar
+  - `:icon` (atom) - Icon name from `TymeslotWeb.Components.Icons.IconComponents`
+  - `:path` (string) - Route path (must start with "/")
+  - `:action` (atom) - LiveView action for routing and highlighting
+
+  See `Tymeslot.Dashboard.ExtensionSchema` for validation utilities.
+
+  ### Extension Component Requirements
+
+  Components registered via `:dashboard_action_components` must:
+
+  1. Be a LiveComponent (`use Phoenix.LiveComponent`)
+  2. Accept standard dashboard assigns in `update/2`:
+     - `current_user` - The authenticated user
+     - `profile` - The user's profile
+     - `integration_status` - Integration connection status
+     - `client_ip` - The client's IP address
+     - `user_agent` - The client's User Agent string
+     - `shared_data` - Shared dashboard statistics/data
+
+  Example component:
+
+      defmodule ExternalApp.Dashboard.MyFeatureComponent do
+        use Phoenix.LiveComponent
+
+        @impl true
+        def update(assigns, socket) do
+          {:ok, assign(socket, assigns)}
+        end
+
+        @impl true
+        def render(assigns) do
+          ~H\"\"\"
+          <div>
+            <h1>My Feature</h1>
+            <p>User: {@current_user.email}</p>
+          </div>
+          \"\"\"
+        end
+      end
+
+  ### Routing for Extensions
+
+  External applications must also register routes. The recommended pattern is:
+
+      # In external_app_web/router.ex
+      scope "/dashboard" do
+        pipe_through [:browser, :require_authenticated_user]
+
+        live_session :external_dashboard,
+          on_mount: [
+            {Tymeslot.LiveHooks.AuthLiveSessionHook, :ensure_authenticated},
+            TymeslotWeb.Hooks.ClientInfoHook
+          ] do
+          # Reuse Core's DashboardLive, but with your custom action
+          live "/my-feature", TymeslotWeb.DashboardLive, :my_feature
+        end
+      end
+
+      # Forward remaining routes to Core
+      forward "/", TymeslotWeb.Router
+
+  ### Extension Validation
+
+  To ensure extensions are valid at startup:
+
+      alias Tymeslot.Dashboard.ExtensionSchema
+
+      extensions = Application.get_env(:tymeslot, :dashboard_sidebar_extensions, [])
+
+      case ExtensionSchema.validate_all(extensions) do
+        :ok -> :ok
+        {:error, errors} ->
+          Logger.error("Invalid dashboard extensions: \#{inspect(errors)}")
+          raise "Dashboard extension validation failed"
+      end
+
+  ### Architecture Notes
+
+  This extension system follows the "Dependency Inversion Principle":
+
+  - **Core defines the interface** (config keys, expected structure)
+  - **External apps implement the interface** (provide extensions)
+  - **Core never knows about external apps** (no imports, no coupling)
+
+  The Core application can run completely standalone without any extensions.
+  Extensions are purely additive and optional.
+
+  For more details on the architecture, see `CLAUDE.md` in the project root.
+  """
+
   use TymeslotWeb, :live_view
 
   alias Tymeslot.Dashboard.DashboardContext
@@ -21,7 +162,6 @@ defmodule TymeslotWeb.DashboardLive do
     CalendarSettingsComponent,
     DashboardOverviewComponent,
     NotificationSettingsComponent,
-    PaymentLiveComponent,
     ProfileSettingsComponent,
     ScheduleSettingsComponent,
     ServiceSettingsComponent,
@@ -258,6 +398,16 @@ defmodule TymeslotWeb.DashboardLive do
   end
 
   @impl true
+  def handle_info({:clear_reminder_confirmation, component_id}, socket) do
+    send_update(TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm,
+      id: component_id,
+      reminder_confirmation: nil
+    )
+
+    {:noreply, socket}
+  end
+
+  @impl true
   def handle_info({:refresh_calendar_list, component_id, integration_id}, socket) do
     user_id = socket.assigns.current_user.id
     parent = self()
@@ -444,8 +594,6 @@ defmodule TymeslotWeb.DashboardLive do
       profile={@component_props[:profile]}
       shared_data={@component_props[:shared_data]}
       integration_status={@component_props[:integration_status]}
-      meeting_types={@component_props[:meeting_types]}
-      video_integrations={@component_props[:video_integrations]}
       client_ip={@component_props[:client_ip]}
       user_agent={@component_props[:user_agent]}
       parent_uploads={
@@ -471,8 +619,11 @@ defmodule TymeslotWeb.DashboardLive do
   defp component_for_action(:theme), do: ThemeSettingsComponent
   defp component_for_action(:meetings), do: BookingsManagementComponent
   defp component_for_action(:embed), do: EmbedSettingsComponent
-  defp component_for_action(:payment), do: PaymentLiveComponent
-  defp component_for_action(_), do: DashboardOverviewComponent
+  defp component_for_action(action) do
+    # Check dynamic components registered via configuration (e.g., by SaaS)
+    components = Application.get_env(:tymeslot, :dashboard_action_components, %{})
+    Map.get(components, action, DashboardOverviewComponent)
+  end
 
   @spec props_for_action(map()) :: map()
   defp props_for_action(%{live_action: action} = assigns) do
