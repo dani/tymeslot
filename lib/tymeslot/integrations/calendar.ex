@@ -10,6 +10,7 @@ defmodule Tymeslot.Integrations.Calendar do
   alias Tymeslot.Dashboard.DashboardContext
   alias Tymeslot.DatabaseQueries.ProfileQueries
   alias Tymeslot.DatabaseSchemas.CalendarIntegrationSchema
+  alias Tymeslot.DatabaseSchemas.MeetingSchema
   alias Tymeslot.Integrations.Calendar.Connection
   alias Tymeslot.Integrations.Calendar.Creation
   alias Tymeslot.Integrations.Calendar.Deletion

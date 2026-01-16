@@ -79,6 +79,10 @@ defmodule TymeslotWeb.Dashboard.CalendarSettings.ComponentsTest do
         myself: "target",
         security_metadata: %{},
         form_errors: %{},
+        form_values: %{},
+        discovered_calendars: [],
+        show_calendar_selection: false,
+        discovery_credentials: %{},
         is_saving: false
       }
 
@@ -93,6 +97,10 @@ defmodule TymeslotWeb.Dashboard.CalendarSettings.ComponentsTest do
         myself: "target",
         security_metadata: %{},
         form_errors: %{},
+        form_values: %{},
+        discovered_calendars: [],
+        show_calendar_selection: false,
+        discovery_credentials: %{},
         is_saving: false
       }
 

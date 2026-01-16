@@ -16,6 +16,10 @@ defmodule TymeslotWeb.Dashboard.CalendarSettings.Components do
   attr :myself, :any, required: true
   attr :security_metadata, :map, required: true
   attr :form_errors, :map, required: true
+  attr :form_values, :map, required: true
+  attr :discovered_calendars, :list, required: true
+  attr :show_calendar_selection, :boolean, required: true
+  attr :discovery_credentials, :map, required: true
   attr :is_saving, :boolean, required: true
 
   @spec config_view(map()) :: Phoenix.LiveView.Rendered.t()
@@ -77,6 +81,10 @@ defmodule TymeslotWeb.Dashboard.CalendarSettings.Components do
               target={@myself}
               metadata={@security_metadata}
               form_errors={@form_errors}
+              form_values={@form_values}
+              discovered_calendars={@discovered_calendars}
+              show_calendar_selection={@show_calendar_selection}
+              discovery_credentials={@discovery_credentials}
               saving={@is_saving}
             />
           <% :radicale -> %>
@@ -86,6 +94,10 @@ defmodule TymeslotWeb.Dashboard.CalendarSettings.Components do
               target={@myself}
               metadata={@security_metadata}
               form_errors={@form_errors}
+              form_values={@form_values}
+              discovered_calendars={@discovered_calendars}
+              show_calendar_selection={@show_calendar_selection}
+              discovery_credentials={@discovery_credentials}
               saving={@is_saving}
             />
           <% :caldav -> %>
@@ -95,6 +107,10 @@ defmodule TymeslotWeb.Dashboard.CalendarSettings.Components do
               target={@myself}
               metadata={@security_metadata}
               form_errors={@form_errors}
+              form_values={@form_values}
+              discovered_calendars={@discovered_calendars}
+              show_calendar_selection={@show_calendar_selection}
+              discovery_credentials={@discovery_credentials}
               saving={@is_saving}
             />
           <% _ -> %>

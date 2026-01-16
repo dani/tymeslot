@@ -123,35 +123,31 @@ defmodule TymeslotWeb.Dashboard.VideoSettingsComponent do
     socket = assign(socket, :form_values, form_values)
 
     metadata = get_security_metadata(socket)
+    field_atom = map_field_to_atom(field)
 
     # Validate all form values to get complete error state
     case VideoInputProcessor.validate_video_integration_form(form_values, metadata: metadata) do
       {:ok, _sanitized_params} ->
-        {:noreply, assign(socket, :form_errors, %{})}
+        current_errors = socket.assigns.form_errors || %{}
+        {:noreply, assign(socket, :form_errors, Map.delete(current_errors, field_atom))}
 
       {:error, errors} ->
         # Only show error for the field that was just validated
-        field_atom = String.to_existing_atom(field)
-        field_error = Map.get(errors, field_atom)
-
         current_errors = socket.assigns.form_errors || %{}
 
         updated_errors =
-          if field_error do
-            Map.put(current_errors, field_atom, field_error)
+          if field_atom != :unknown and Map.has_key?(errors, field_atom) do
+            Map.put(current_errors, field_atom, Map.get(errors, field_atom))
           else
             Map.delete(current_errors, field_atom)
           end
 
         {:noreply, assign(socket, :form_errors, updated_errors)}
     end
-  rescue
-    ArgumentError ->
-      # If field doesn't exist as atom, just store the value
-      {:noreply, socket}
   end
 
   def handle_event("add_integration", %{"integration" => params}, socket) do
+    socket = assign(socket, :saving, true)
     metadata = get_security_metadata(socket)
 
     # First validate the video integration form input
@@ -672,6 +668,16 @@ defmodule TymeslotWeb.Dashboard.VideoSettingsComponent do
 
   defp normalize_id(id) when is_integer(id), do: id
   defp normalize_id(id) when is_binary(id), do: String.to_integer(id)
+
+  defp map_field_to_atom(field) do
+    case field do
+      "name" -> :name
+      "base_url" -> :base_url
+      "api_key" -> :api_key
+      "custom_meeting_url" -> :custom_meeting_url
+      _ -> :unknown
+    end
+  end
 
   defp format_test_success_message(provider, message) do
     case provider do

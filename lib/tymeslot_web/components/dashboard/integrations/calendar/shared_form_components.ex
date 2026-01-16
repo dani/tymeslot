@@ -25,96 +25,116 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.SharedFormCompo
   @spec config_form(map()) :: Phoenix.LiveView.Rendered.t()
   def config_form(assigns) do
     ~H"""
-    <div class="border-t border-turquoise-200/30 my-6"></div>
-
-    <%= if @show_calendar_selection do %>
-      <form phx-submit="add_integration" phx-target={@target} class="space-y-6">
-        <.integration_name_field
-          form_errors={@form_errors}
-          suggested_name={@suggested_name}
-          placeholder={@name_placeholder}
-        />
-
-        <input type="hidden" name="integration[provider]" value={@provider} />
-
-        <.calendar_selection discovered_calendars={@discovered_calendars} />
-
-        <input type="hidden" name="integration[url]" value={@discovery_credentials[:url]} />
-        <input type="hidden" name="integration[username]" value={@discovery_credentials[:username]} />
-        <input type="hidden" name="integration[password]" value={@discovery_credentials[:password]} />
-
-        <%= if error = Map.get(@form_errors, :base) do %>
-          <.error_banner error={error} />
-        <% end %>
-
-        <div class="flex justify-end mt-6 pt-4 border-t border-turquoise-200/30">
-          <UIComponents.form_submit_button saving={@saving} />
-        </div>
-      </form>
-    <% else %>
-      <form
-        phx-submit="discover_calendars"
-        phx-change="track_form_change"
-        phx-target={@myself}
-        class="space-y-6"
-      >
-        <input type="hidden" name="integration[provider]" value={@provider} />
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="space-y-6">
+      <%= if @show_calendar_selection do %>
+        <form
+          phx-submit="add_integration"
+          phx-change="track_form_change"
+          phx-target={@target}
+          class="space-y-6"
+        >
           <.integration_name_field
             form_errors={@form_errors}
-            suggested_name={Map.get(@form_values, "name", "")}
+            suggested_name={Map.get(@form_values, "name", @suggested_name)}
             placeholder={@name_placeholder}
-            field_name="integration[name]"
             blur_event="validate_field"
-            myself={@myself}
-          />
-
-          <.text_field
-            id="discovery_url"
-            name="integration[url]"
-            label="Server URL"
-            value={Map.get(@form_values, "url", "")}
-            placeholder={@url_placeholder}
-            error={Map.get(@form_errors, :url)}
-            myself={@myself}
-            field="url"
-          />
-
-          <.text_field
-            id="discovery_username"
-            name="integration[username]"
-            label="Username"
-            value={Map.get(@form_values, "username", "")}
-            placeholder={@username_placeholder}
-            error={Map.get(@form_errors, :username)}
-            myself={@myself}
-            field="username"
-          />
-
-          <.password_field
-            id="discovery_password"
-            name="integration[password]"
-            label="Password / App Password"
-            value={Map.get(@form_values, "password", "")}
-            placeholder={@password_placeholder}
-            error={Map.get(@form_errors, :password)}
-            myself={@myself}
-            field="password"
-          />
-        </div>
-
-        <div class="flex justify-between items-center pt-4 border-t border-turquoise-200/30">
-          <UIComponents.secondary_button
-            label="Cancel"
-            icon="hero-x-mark"
             target={@target}
           />
 
-          <UIComponents.form_submit_button saving={@saving} />
-        </div>
-      </form>
-    <% end %>
+          <input type="hidden" name="integration[provider]" value={@provider} />
+
+          <p class="text-sm text-slate-500">
+            Select the calendars you want to sync for availability checks.
+          </p>
+
+          <.calendar_selection discovered_calendars={@discovered_calendars} />
+
+          <input type="hidden" name="integration[url]" value={@discovery_credentials[:url]} />
+          <input type="hidden" name="integration[username]" value={@discovery_credentials[:username]} />
+          <input type="hidden" name="integration[password]" value={@discovery_credentials[:password]} />
+
+          <%= if error = form_level_error(@form_errors) do %>
+            <.error_banner error={error} />
+          <% end %>
+
+          <div class="flex justify-between items-center pt-4 border-t border-turquoise-200/30">
+            <UIComponents.secondary_button target={@target} />
+            <UIComponents.form_submit_button saving={@saving} />
+          </div>
+        </form>
+      <% else %>
+        <form
+          phx-submit="discover_calendars"
+          phx-change="track_form_change"
+          phx-target={@target}
+          class="space-y-5"
+        >
+          <input type="hidden" name="integration[provider]" value={@provider} />
+
+          <p class="text-sm text-slate-500">
+            Enter your server URL and credentials to discover calendars.
+          </p>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <.integration_name_field
+              form_errors={@form_errors}
+              suggested_name={Map.get(@form_values, "name", @suggested_name)}
+              placeholder={@name_placeholder}
+              field_name="integration[name]"
+              blur_event="validate_field"
+              target={@target}
+            />
+
+            <.text_field
+              id="discovery_url"
+              name="integration[url]"
+              label="Server URL"
+              value={Map.get(@form_values, "url", "")}
+              placeholder={@url_placeholder}
+              error={Map.get(@form_errors, :url)}
+              target={@target}
+              field="url"
+              type="url"
+            />
+
+            <.text_field
+              id="discovery_username"
+              name="integration[username]"
+              label="Username"
+              value={Map.get(@form_values, "username", "")}
+              placeholder={@username_placeholder}
+              error={Map.get(@form_errors, :username)}
+              target={@target}
+              field="username"
+            />
+
+            <.password_field
+              id="discovery_password"
+              name="integration[password]"
+              label="Password / App Password"
+              value={Map.get(@form_values, "password", "")}
+              placeholder={@password_placeholder}
+              error={Map.get(@form_errors, :password)}
+              target={@target}
+              field="password"
+            />
+          </div>
+
+          <%= if error = form_level_error(@form_errors) do %>
+            <.error_banner error={error} />
+          <% end %>
+
+          <div class="flex justify-between items-center pt-4 border-t border-turquoise-200/30">
+            <UIComponents.secondary_button target={@target} />
+            <UIComponents.form_submit_button
+              saving={@saving}
+              text="Discover calendars"
+              saving_text="Discovering..."
+            />
+          </div>
+        </form>
+      <% end %>
+    </div>
     """
   end
 
@@ -123,7 +143,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.SharedFormCompo
   attr :placeholder, :string, required: true
   attr :field_name, :string, default: "integration[name]"
   attr :blur_event, :string, default: nil
-  attr :myself, :any, default: nil
+  attr :target, :any, default: nil
 
   @spec integration_name_field(map()) :: Phoenix.LiveView.Rendered.t()
   def integration_name_field(assigns) do
@@ -151,7 +171,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.SharedFormCompo
           required
           phx-blur={@blur_event}
           phx-value-field="name"
-          phx-target={@myself}
+          phx-target={@target}
           class={[
             "input input-with-icon w-full",
             if(Map.get(@form_errors, :name), do: "input-error", else: "")
@@ -173,27 +193,33 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.SharedFormCompo
     <div class="space-y-3">
       <h4 class="label">Select calendars to sync:</h4>
       <div class="brand-card p-4">
-        <%= for calendar <- @discovered_calendars do %>
-          <% calendar_path = calendar.path || calendar.href %>
-          <div class="flex items-center space-x-3 p-3 rounded-lg hover:bg-white/20 transition-colors">
-            <input
-              type="checkbox"
-              name="selected_calendars[]"
-              value={calendar_path}
-              checked
-              id={"calendar-#{calendar_path |> String.replace("/", "-")}"}
-              class="checkbox"
-            />
-            <label
-              for={"calendar-#{calendar_path |> String.replace("/", "-")}"}
-              class="flex-1 cursor-pointer"
-            >
-              <div class="font-semibold text-gray-800">
-                {calendar.name || "Unnamed Calendar"}
-              </div>
-              <div class="text-sm text-gray-600">{calendar_path}</div>
-            </label>
-          </div>
+        <%= if @discovered_calendars == [] do %>
+          <p class="text-sm text-slate-500">
+            No calendars were discovered. Double-check your credentials or try again.
+          </p>
+        <% else %>
+          <%= for calendar <- @discovered_calendars do %>
+            <% calendar_path = calendar.path || calendar.href %>
+            <div class="flex items-center space-x-3 p-3 rounded-lg hover:bg-white/20 transition-colors">
+              <input
+                type="checkbox"
+                name="selected_calendars[]"
+                value={calendar_path}
+                checked
+                id={"calendar-#{calendar_path |> String.replace("/", "-")}"}
+                class="checkbox"
+              />
+              <label
+                for={"calendar-#{calendar_path |> String.replace("/", "-")}"}
+                class="flex-1 cursor-pointer"
+              >
+                <div class="font-semibold text-gray-800">
+                  {calendar.name || "Unnamed Calendar"}
+                </div>
+                <div class="text-sm text-gray-600">{calendar_path}</div>
+              </label>
+            </div>
+          <% end %>
         <% end %>
       </div>
     </div>
@@ -206,8 +232,9 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.SharedFormCompo
   attr :value, :string, default: ""
   attr :placeholder, :string, required: true
   attr :error, :string, default: nil
-  attr :myself, :any, default: nil
+  attr :target, :any, default: nil
   attr :field, :string, required: true
+  attr :type, :string, default: "text"
 
   defp text_field(assigns) do
     ~H"""
@@ -216,14 +243,14 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.SharedFormCompo
         {@label}
       </label>
       <input
-        type="text"
+        type={@type}
         id={@id}
         name={@name}
         value={@value}
         required
         phx-blur="validate_field"
         phx-value-field={@field}
-        phx-target={@myself}
+        phx-target={@target}
         class={[
           "input w-full",
           if(@error, do: "input-error", else: "")
@@ -243,7 +270,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.SharedFormCompo
   attr :value, :string, default: ""
   attr :placeholder, :string, required: true
   attr :error, :string, default: nil
-  attr :myself, :any, default: nil
+  attr :target, :any, default: nil
   attr :field, :string, default: "password"
 
   defp password_field(assigns) do
@@ -260,7 +287,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.SharedFormCompo
         required
         phx-blur="validate_field"
         phx-value-field={@field}
-        phx-target={@myself}
+        phx-target={@target}
         class={[
           "input w-full",
           if(@error, do: "input-error", else: "")
@@ -292,4 +319,19 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.SharedFormCompo
     </div>
     """
   end
+
+  defp form_level_error(form_errors) do
+    [
+      Map.get(form_errors, :discovery),
+      Map.get(form_errors, :base),
+      Map.get(form_errors, :generic)
+    ]
+    |> Enum.find(& &1)
+    |> normalize_error_message()
+  end
+
+  defp normalize_error_message(nil), do: nil
+  defp normalize_error_message([message | _]) when is_binary(message), do: message
+  defp normalize_error_message(message) when is_binary(message), do: message
+  defp normalize_error_message(_), do: "Something went wrong. Please try again."
 end
