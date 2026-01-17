@@ -57,9 +57,16 @@ defmodule TymeslotWeb.Live.Scheduling.Handlers.SlotFetchingHandlerComponent do
       debug_calendar_module: socket.private[:debug_calendar_module]
     }
 
+    # If duration is a slug, we should use the actual duration in minutes
+    duration_to_fetch =
+      case socket.assigns[:meeting_type] do
+        %{duration_minutes: mins} -> "#{mins}min"
+        _ -> duration
+      end
+
     case Helpers.get_available_slots(
            date,
-           duration,
+           duration_to_fetch,
            timezone,
            socket.assigns.organizer_user_id,
            socket.assigns.organizer_profile,

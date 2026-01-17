@@ -231,7 +231,7 @@ defmodule TymeslotWeb.Plugs.SecurityHeadersPlugTest do
 
       conn =
         conn
-        |> Map.put(:request_path, "/sarah/schedule/30")
+        |> Map.put(:request_path, "/sarah/30")
         |> SecurityHeadersPlug.call(allow_embedding: true)
 
       assert [csp] = get_resp_header(conn, "content-security-policy")

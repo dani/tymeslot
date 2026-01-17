@@ -63,7 +63,9 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ConfirmationComponent 
                 <div class="meeting-ticket">
                   <div class="ticket-header">
                     <span class="ticket-label">{gettext("Meeting Details")}</span>
-                    <span class="ticket-badge">{@duration} min</span>
+                    <span class="ticket-badge">
+                      <%= if @meeting_type, do: @meeting_type.duration_minutes, else: @duration %> min
+                    </span>
                   </div>
 
                   <div class="ticket-body">

@@ -29,22 +29,21 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.OverviewComponent do
 
   @impl true
   def handle_event("select_duration", %{"duration" => duration}, socket) do
-    duration_int = String.to_integer(duration)
-
+    # duration is already a string like "30min" from the button
     new_duration =
-      if socket.assigns[:selected_duration] == duration_int do
+      if socket.assigns[:selected_duration] == duration do
         nil
       else
-        duration_int
+        duration
       end
 
-    send(self(), {:step_event, :overview, :select_duration, %{duration: new_duration}})
+    send(self(), {:step_event, :overview, :select_duration, new_duration})
     {:noreply, assign(socket, :selected_duration, new_duration)}
   end
 
   @impl true
   def handle_event("next_slide", _params, socket) do
-    send(self(), {:step_event, :overview, :next_step, %{}})
+    send(self(), {:step_event, :overview, :next_step, nil})
     {:noreply, socket}
   end
 
@@ -79,17 +78,18 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.OverviewComponent do
               </div>
             </div>
             
-    <!-- Duration Selection -->
+            <!-- Duration Selection -->
             <div class="duration-grid">
               <%= for meeting_type <- @meeting_types do %>
-                <div class={"duration-card #{if @selected_duration == meeting_type.duration_minutes, do: "selected", else: ""}"}>
+                <% slug = Tymeslot.MeetingTypes.to_slug(meeting_type) %>
+                <div class={"duration-card #{if @selected_duration == slug, do: "selected", else: ""}"}>
                   <button
                     phx-click="select_duration"
-                    phx-value-duration={meeting_type.duration_minutes}
+                    phx-value-duration={slug}
                     phx-target={@myself}
                     class="duration-button"
                     data-testid="duration-option"
-                    data-duration={meeting_type.duration_minutes}
+                    data-duration={slug}
                   >
                     <div class="duration-icon" style="flex-shrink: 0;">
                       {render_icon(meeting_type.icon || get_default_icon(meeting_type))}

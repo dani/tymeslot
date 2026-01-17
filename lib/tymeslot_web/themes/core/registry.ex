@@ -54,8 +54,8 @@ defmodule TymeslotWeb.Themes.Core.Registry do
         supports_image_background: true,
         supports_gradient_background: true,
         supports_custom_colors: true,
-        flow_type: :single_page,
-        step_count: 2
+        flow_type: :multi_step,
+        step_count: 4
       },
       status: :active
     }

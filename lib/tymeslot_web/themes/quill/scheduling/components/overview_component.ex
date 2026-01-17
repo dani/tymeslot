@@ -38,7 +38,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.OverviewComponent do
       <.page_layout
         show_steps={true}
         current_step={1}
-        duration={assigns[:selected_duration]}
+        slug={assigns[:selected_duration]}
         username_context={@username_context}
       >
         <div class="container flex-1 flex items-center justify-center px-4 py-2 md:py-8">
@@ -89,35 +89,33 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.OverviewComponent do
                         <% @username_context && length(@meeting_types) > 0 -> %>
                           <!-- Show user's configured meeting types -->
                           <%= for meeting_type <- @meeting_types do %>
+                            <% slug = MeetingTypes.to_slug(meeting_type) %>
                             <.duration_card
-                              duration={MeetingTypes.to_duration_string(meeting_type)}
+                              duration={slug}
                               title={meeting_type.name}
                               description={meeting_type.description}
                               icon={meeting_type.icon || "hero-clock"}
-                              selected={
-                                assigns[:selected_duration] ==
-                                  MeetingTypes.to_duration_string(meeting_type)
-                              }
+                              selected={assigns[:selected_duration] == slug}
                               target={@myself}
                             />
                           <% end %>
                         <% true -> %>
                           <!-- Default duration options (no username context) -->
                           <.duration_card
-                            duration="15min"
+                            duration="15-minutes"
                             title="15 Minutes"
                             description="Quick chat or brief consultation"
                             icon="hero-bolt"
-                            selected={assigns[:selected_duration] == "15min"}
+                            selected={assigns[:selected_duration] == "15-minutes"}
                             target={@myself}
                           />
 
                           <.duration_card
-                            duration="30min"
+                            duration="30-minutes"
                             title="30 Minutes"
                             description="In-depth discussion or detailed review"
                             icon="hero-rocket-launch"
-                            selected={assigns[:selected_duration] == "30min"}
+                            selected={assigns[:selected_duration] == "30-minutes"}
                             target={@myself}
                           />
                       <% end %>

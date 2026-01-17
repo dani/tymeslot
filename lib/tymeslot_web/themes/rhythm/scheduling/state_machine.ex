@@ -1,6 +1,6 @@
-defmodule TymeslotWeb.Themes.Quill.Scheduling.StateMachine do
+defmodule TymeslotWeb.Themes.Rhythm.Scheduling.StateMachine do
   @moduledoc """
-  State machine helpers for the Quill scheduling flow.
+  State machine helpers for the Rhythm scheduling flow.
   """
   alias TymeslotWeb.Themes.Shared.StateMachineHelpers
 

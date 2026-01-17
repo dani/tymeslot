@@ -7,7 +7,7 @@ defmodule TymeslotWeb.StepNavigation do
 
   attr :current_step, :integer, required: true
   attr :class, :string, default: ""
-  attr :duration, :string, default: nil
+  attr :slug, :string, default: nil
   attr :username_context, :string, default: nil
 
   @spec step_indicator(map()) :: Phoenix.LiveView.Rendered.t()
@@ -29,11 +29,11 @@ defmodule TymeslotWeb.StepNavigation do
         current_step={@current_step}
         label="Date & Time"
         path={
-          if @duration && @current_step > 2,
-            do: get_step_path(@username_context, 2, @duration),
+          if @slug && @current_step > 2,
+            do: get_step_path(@username_context, 2, @slug),
             else: nil
         }
-        clickable={@current_step > 2 && @duration != nil}
+        clickable={@current_step > 2 && @slug != nil}
       />
 
       <div class={connector_class(2, @current_step)}></div>
@@ -43,11 +43,11 @@ defmodule TymeslotWeb.StepNavigation do
         current_step={@current_step}
         label="Details"
         path={
-          if @duration && @current_step > 3,
-            do: get_step_path(@username_context, 3, @duration),
+          if @slug && @current_step > 3,
+            do: get_step_path(@username_context, 3, @slug),
             else: nil
         }
-        clickable={@current_step > 3 && @duration != nil}
+        clickable={@current_step > 3 && @slug != nil}
       />
 
       <div class={connector_class(3, @current_step)}></div>
@@ -126,29 +126,29 @@ defmodule TymeslotWeb.StepNavigation do
     "text-gray-300 drop-shadow-md"
   end
 
-  defp get_step_path(username_context, step, duration \\ nil)
+  defp get_step_path(username_context, step, slug \\ nil)
 
-  defp get_step_path(username_context, 1, _duration) do
+  defp get_step_path(username_context, 1, _slug) do
     if username_context, do: "/#{username_context}", else: "/"
   end
 
-  defp get_step_path(username_context, 2, duration) when is_binary(duration) do
+  defp get_step_path(username_context, 2, slug) when is_binary(slug) do
     if username_context do
-      "/#{username_context}/schedule/#{duration}"
+      "/#{username_context}/#{slug}"
     else
       nil
     end
   end
 
-  defp get_step_path(_username_context, 2, _duration), do: nil
+  defp get_step_path(_username_context, 2, _slug), do: nil
 
-  defp get_step_path(username_context, 3, duration) when is_binary(duration) do
+  defp get_step_path(username_context, 3, slug) when is_binary(slug) do
     if username_context do
-      "/#{username_context}/schedule/#{duration}/book"
+      "/#{username_context}/#{slug}/book"
     else
       nil
     end
   end
 
-  defp get_step_path(_username_context, 3, _duration), do: nil
+  defp get_step_path(_username_context, 3, _slug), do: nil
 end

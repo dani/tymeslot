@@ -163,7 +163,7 @@ defmodule TymeslotWeb.Live.Shared.LiveHelpers do
 
     path =
       if socket.assigns[:username_context] do
-        "/#{socket.assigns.username_context}/schedule/thank-you"
+        "/#{socket.assigns.username_context}/thank-you"
       else
         "/"
       end

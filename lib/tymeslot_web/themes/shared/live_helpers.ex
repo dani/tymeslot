@@ -1,0 +1,260 @@
+defmodule TymeslotWeb.Themes.Shared.LiveHelpers do
+  @moduledoc """
+  Shared LiveView helpers for scheduling themes.
+  """
+
+  import Phoenix.Component, only: [assign: 3]
+  import Phoenix.LiveView, only: [put_flash: 3, redirect: 2]
+
+  alias Tymeslot.Bookings.SubmissionToken
+  alias Tymeslot.Profiles
+  alias Tymeslot.Scheduling.ThemeFlow
+  alias TymeslotWeb.Helpers.ClientIP
+  alias TymeslotWeb.Live.Scheduling.Handlers.SlotFetchingHandlerComponent
+  alias TymeslotWeb.Live.Scheduling.{Helpers, ThemeUtils}
+  alias TymeslotWeb.Themes.Shared.Customization.Helpers, as: CustomizationHelpers
+
+  @doc """
+  Shared mounting logic for scheduling themes.
+  """
+  @spec mount_scheduling_view(
+          Phoenix.LiveView.Socket.t(),
+          map(),
+          atom(),
+          (Phoenix.LiveView.Socket.t() -> Phoenix.LiveView.Socket.t()),
+          (Phoenix.LiveView.Socket.t(), atom(), map() -> Phoenix.LiveView.Socket.t())
+        ) :: Phoenix.LiveView.Socket.t()
+  def mount_scheduling_view(
+        socket,
+        params,
+        initial_state,
+        assign_initial_state_fun,
+        setup_initial_state_fun
+      ) do
+    socket =
+      socket
+      |> assign_initial_state_fun.()
+      |> ThemeUtils.assign_user_timezone(params)
+      |> ThemeUtils.assign_theme_with_preview(params)
+
+    # Then handle username context (which sets meeting_types)
+    socket = Helpers.handle_username_resolution(socket, params["username"])
+
+    # Apply theme customization after organizer is resolved
+    socket = maybe_assign_customization(socket)
+
+    # Finally setup initial state
+    socket = setup_initial_state_fun.(socket, initial_state, params)
+
+    # Pre-fetch month availability regardless of initial state so it's ready for the schedule step
+    socket = Helpers.fetch_month_availability_async(socket)
+
+    socket
+  end
+
+  @doc """
+  Shared handle_params logic for scheduling themes.
+  """
+  @spec handle_scheduling_params(
+          Phoenix.LiveView.Socket.t(),
+          map(),
+          atom(),
+          (Phoenix.LiveView.Socket.t(), map() -> Phoenix.LiveView.Socket.t()),
+          (Phoenix.LiveView.Socket.t(), atom(), map() -> Phoenix.LiveView.Socket.t())
+        ) :: {:noreply, Phoenix.LiveView.Socket.t()}
+  def handle_scheduling_params(
+        socket,
+        params,
+        initial_state,
+        handle_param_updates_fun,
+        handle_state_entry_fun
+      ) do
+    socket =
+      socket
+      |> handle_param_updates_fun.(params)
+      |> ThemeUtils.assign_theme_with_preview(params)
+      |> assign(:current_state, initial_state)
+      |> handle_state_entry_fun.(initial_state, params)
+
+    # Re-apply theme customization in case theme changed in preview mode
+    socket = maybe_assign_customization(socket)
+
+    if socket.redirected do
+      {:noreply, socket}
+    else
+      {:ok, socket} = SlotFetchingHandlerComponent.maybe_reload_slots(socket)
+      {:noreply, socket}
+    end
+  end
+
+  @doc """
+  Assigns theme customization data if an organizer profile is present.
+  """
+  @spec maybe_assign_customization(Phoenix.LiveView.Socket.t()) :: Phoenix.LiveView.Socket.t()
+  def maybe_assign_customization(socket) do
+    if socket.assigns[:organizer_profile] do
+      CustomizationHelpers.assign_theme_customization(
+        socket,
+        socket.assigns.organizer_profile,
+        socket.assigns.scheduling_theme_id
+      )
+    else
+      socket
+    end
+  end
+
+  @doc """
+  Assigns a meeting type based on duration if organizer context is present.
+  """
+  @spec maybe_assign_meeting_type(Phoenix.LiveView.Socket.t(), integer() | String.t()) ::
+          Phoenix.LiveView.Socket.t()
+  def maybe_assign_meeting_type(socket, duration) do
+    duration_str = if is_integer(duration), do: "#{duration}min", else: duration
+
+    if socket.assigns[:username_context] && socket.assigns[:organizer_user_id] do
+      case ThemeFlow.resolve_meeting_type_for_duration(
+             socket.assigns[:organizer_user_id],
+             duration_str
+           ) do
+        nil -> socket
+        meeting_type -> assign(socket, :meeting_type, meeting_type)
+      end
+    else
+      socket
+    end
+  end
+
+  @doc """
+  Updates socket assigns from URL parameters.
+  """
+  @spec handle_param_updates(Phoenix.LiveView.Socket.t(), map()) :: Phoenix.LiveView.Socket.t()
+  def handle_param_updates(socket, params) do
+    socket
+    |> maybe_assign_from_params(:duration, normalize_duration_param(params))
+    |> maybe_assign_from_params(:selected_duration, normalize_duration_param(params))
+    |> maybe_assign_from_params(:selected_date, params["date"])
+    |> maybe_assign_from_params(:selected_time, params["time"])
+    |> maybe_assign_from_params(:reschedule_meeting_uid, params["reschedule_meeting_uid"])
+    |> assign(:is_rescheduling, params["reschedule_meeting_uid"] != nil)
+    |> handle_confirmation_params(params)
+  end
+
+  defp handle_confirmation_params(socket, params) do
+    if socket.assigns[:live_action] == :confirmation do
+      name =
+        case params["name"] do
+          nil -> "Guest"
+          val when is_binary(val) -> URI.decode(val)
+          _ -> "Guest"
+        end
+
+      socket
+      |> assign(:name, name)
+      |> assign(:email, params["email"] || "")
+      |> assign(:meeting_uid, params["meeting_uid"] || "")
+    else
+      socket
+    end
+  end
+
+  defp maybe_assign_from_params(socket, _key, nil), do: socket
+  defp maybe_assign_from_params(socket, key, value), do: assign(socket, key, value)
+
+  defp normalize_duration_param(params) do
+    duration = params["slug"] || params["duration"]
+    Tymeslot.MeetingTypes.normalize_duration_slug(duration)
+  end
+
+  @doc """
+  Sets up the initial state for the LiveView.
+  """
+  @spec setup_initial_state(
+          Phoenix.LiveView.Socket.t(),
+          atom(),
+          map(),
+          (Phoenix.LiveView.Socket.t(), atom(), map() -> Phoenix.LiveView.Socket.t())
+        ) :: Phoenix.LiveView.Socket.t()
+  def setup_initial_state(socket, initial_state, params, entry_handler) do
+    if initial_state in [:overview, :schedule, :booking, :confirmation] do
+      socket
+      |> assign(:current_state, initial_state)
+      |> entry_handler.(initial_state, params)
+    else
+      socket
+    end
+  end
+
+  @doc """
+  Common logic for entering the schedule state.
+  """
+  @spec handle_schedule_entry(Phoenix.LiveView.Socket.t(), map()) :: Phoenix.LiveView.Socket.t()
+  def handle_schedule_entry(socket, params) do
+    # Validate slug against meeting types if username context
+    slug = normalize_duration_param(params)
+
+    with {:username_context, true} <- {:username_context, !!socket.assigns[:username_context]},
+         {:slug, slug} when not is_nil(slug) <- {:slug, slug},
+         {:meeting_type, nil} <-
+           {:meeting_type,
+            ThemeFlow.resolve_meeting_type_for_slug(socket.assigns[:organizer_user_id], slug)} do
+      socket
+      |> put_flash(:error, "Invalid meeting type")
+      |> redirect(to: "/#{socket.assigns[:username_context]}")
+    else
+      {:meeting_type, meeting_type} ->
+        socket
+        |> assign(:meeting_type, meeting_type)
+        |> do_handle_schedule_entry(params)
+
+      _ ->
+        do_handle_schedule_entry(socket, params)
+    end
+  end
+
+  defp do_handle_schedule_entry(socket, params) do
+    # Set up calendar
+    timezone = socket.assigns[:user_timezone] || Profiles.get_default_timezone()
+
+    {current_year, current_month} =
+      case DateTime.now(timezone) do
+        {:ok, dt} -> {dt.year, dt.month}
+        _ -> {Date.utc_today().year, Date.utc_today().month}
+      end
+
+    normalized_duration =
+      normalize_duration_param(params) || socket.assigns[:selected_duration]
+
+    socket =
+      socket
+      |> assign(:current_year, current_year)
+      |> assign(:current_month, current_month)
+      |> assign(:duration, normalized_duration)
+
+    # Trigger month availability fetch in background if not already loading or loaded for this month
+    if Helpers.can_fetch_availability?(socket) do
+      Helpers.fetch_month_availability_async(socket)
+    else
+      socket
+    end
+  end
+
+  @doc """
+  Common logic for entering the booking state.
+  """
+  @spec handle_booking_entry(Phoenix.LiveView.Socket.t(), map()) :: Phoenix.LiveView.Socket.t()
+  def handle_booking_entry(socket, _params) do
+    # Set up form and rate limiting
+    client_ip = ClientIP.get(socket)
+    submission_token = SubmissionToken.generate()
+
+    # Pre-fill form if rescheduling
+    reschedule_uid = socket.assigns[:reschedule_meeting_uid]
+    form_data = ThemeFlow.build_booking_form_data(reschedule_uid)
+
+    socket
+    |> Helpers.setup_form_state(form_data, as: :booking)
+    |> assign(:client_ip, client_ip)
+    |> assign(:submission_token, submission_token)
+    |> assign(:submission_processed, false)
+  end
+end

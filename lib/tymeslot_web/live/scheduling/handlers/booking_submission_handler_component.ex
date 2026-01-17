@@ -32,6 +32,7 @@ defmodule TymeslotWeb.Live.Scheduling.Handlers.BookingSubmissionHandlerComponent
   alias Tymeslot.Demo
   alias Tymeslot.Security.FormValidation
   alias Tymeslot.Security.RateLimiter
+  alias TymeslotWeb.Helpers.ClientIP
 
   require Logger
 
@@ -91,7 +92,7 @@ defmodule TymeslotWeb.Live.Scheduling.Handlers.BookingSubmissionHandlerComponent
   @spec check_rate_limit(Phoenix.LiveView.Socket.t()) ::
           {:ok, Phoenix.LiveView.Socket.t()} | {:error, Phoenix.LiveView.Socket.t()}
   def check_rate_limit(socket) do
-    client_ip = socket.assigns[:client_ip]
+    client_ip = socket.assigns[:client_ip] || ClientIP.get(socket)
 
     if client_ip do
       case RateLimiter.check_booking_submission_limit(client_ip) do
@@ -208,8 +209,18 @@ defmodule TymeslotWeb.Live.Scheduling.Handlers.BookingSubmissionHandlerComponent
   def handle_booking_error(socket, reason) do
     error_message =
       case reason do
-        "This time slot is no longer available. Please select a different time." -> reason
-        _ -> "Failed to create appointment. Please try again."
+        "This time slot is no longer available. Please select a different time." ->
+          reason
+
+        "Booking time must be in the future" ->
+          reason
+
+        _ ->
+          if is_binary(reason) and String.length(reason) < 100 do
+            reason
+          else
+            "Failed to create appointment. Please try again."
+          end
       end
 
     socket =

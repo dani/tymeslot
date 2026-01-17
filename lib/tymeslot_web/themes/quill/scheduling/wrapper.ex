@@ -96,17 +96,4 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Wrapper do
     </div>
     """
   end
-
-  # Helper functions to safely get values from either struct or map
-  defp get_background_type(%{background_type: bg_type}), do: bg_type
-  defp get_background_type(%{"background_type" => bg_type}), do: bg_type
-  defp get_background_type(_), do: nil
-
-  defp get_background_video_path(%{background_video_path: path}), do: path
-  defp get_background_video_path(%{"background_video_path" => path}), do: path
-  defp get_background_video_path(_), do: nil
-
-  defp get_background_value(%{background_value: value}), do: value
-  defp get_background_value(%{"background_value" => value}), do: value
-  defp get_background_value(_), do: nil
 end

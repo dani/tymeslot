@@ -8,7 +8,6 @@ defmodule TymeslotWeb.Themes.Quill.Meeting.Cancel do
   alias TymeslotWeb.Themes.Quill.Scheduling.Wrapper
 
   import TymeslotWeb.Components.CoreComponents
-  import TymeslotWeb.Themes.Shared.Customization.Helpers
 
   @doc """
   Renders the cancel page in Quill theme style.
@@ -18,7 +17,7 @@ defmodule TymeslotWeb.Themes.Quill.Meeting.Cancel do
     ~H"""
     <Wrapper.quill_wrapper
       theme_customization={@theme_customization}
-      custom_css={generate_custom_css(@theme_customization)}
+      custom_css={@custom_css}
     >
       <div class="min-h-screen flex items-center justify-center px-4 py-8">
         <div class="w-full max-w-2xl">

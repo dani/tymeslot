@@ -9,53 +9,45 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Live do
   use TymeslotWeb, :live_view
   require Logger
 
-  alias Tymeslot.Bookings.Validation
-  alias Tymeslot.Demo
-  alias Tymeslot.Profiles
-  alias Tymeslot.Security.FormValidation
-  alias TymeslotWeb.Helpers.ClientIP
   alias TymeslotWeb.Live.Scheduling.Helpers
-  alias TymeslotWeb.Live.Scheduling.ThemeUtils
 
-  alias TymeslotWeb.Live.Scheduling.Handlers.{
-    SlotFetchingHandlerComponent,
-    TimezoneHandlerComponent
-  }
+  alias TymeslotWeb.Live.Scheduling.Handlers.TimezoneHandlerComponent
 
-  alias TymeslotWeb.Themes.Quill.Scheduling.BookingFlow
   alias TymeslotWeb.Themes.Quill.Scheduling.StateMachine
+  alias TymeslotWeb.Themes.Shared.BookingFlow
 
   alias TymeslotWeb.Themes.Quill.Scheduling.Components.{
     BookingComponent,
     ConfirmationComponent,
-    ErrorComponent,
     OverviewComponent,
     ScheduleComponent
   }
 
+  alias TymeslotWeb.Themes.Shared.Components.ErrorComponent
+
   alias TymeslotWeb.Themes.Quill.Scheduling.Wrapper, as: QuillThemeWrapper
-  alias TymeslotWeb.Themes.Shared.{EventHandlers, InfoHandlers, PathHandlers, SchedulingInit}
+
+  alias TymeslotWeb.Themes.Shared.{
+    EventHandlers,
+    InfoHandlers,
+    LiveHelpers,
+    PathHandlers,
+    SchedulingInit
+  }
 
   @impl true
   def mount(params, _session, socket) do
     # Determine initial state from route
     initial_state = StateMachine.determine_initial_state(socket.assigns[:live_action])
 
-    # Initialize state first
     socket =
-      socket
-      |> assign_initial_state()
-      |> ThemeUtils.assign_user_timezone(params)
-      |> ThemeUtils.assign_theme_with_preview(params)
-
-    # Then handle username context (which sets meeting_types)
-    socket = Helpers.handle_username_resolution(socket, params["username"])
-
-    # Finally setup initial state
-    socket = setup_initial_state(socket, initial_state, params)
-
-    # Pre-fetch month availability regardless of initial state so it's ready for the schedule step
-    socket = Helpers.fetch_month_availability_async(socket)
+      LiveHelpers.mount_scheduling_view(
+        socket,
+        params,
+        initial_state,
+        &assign_initial_state/1,
+        &setup_initial_state/3
+      )
 
     {:ok, socket}
   end
@@ -65,25 +57,13 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Live do
     # Handle URL changes (back/forward navigation)
     new_state = StateMachine.determine_initial_state(socket.assigns[:live_action])
 
-    # Update theme preview mode if theme param is present
-    socket =
-      if Map.has_key?(params, "theme") do
-        socket
-        |> assign(:theme_preview, true)
-        |> assign(:scheduling_theme_id, params["theme"])
-      else
-        socket
-      end
-
-    socket =
-      socket
-      |> handle_param_updates(params)
-      |> assign(:current_state, new_state)
-      |> handle_state_entry(new_state, params)
-
-    {:ok, socket} = SlotFetchingHandlerComponent.maybe_reload_slots(socket)
-
-    {:noreply, socket}
+    LiveHelpers.handle_scheduling_params(
+      socket,
+      params,
+      new_state,
+      &handle_param_updates/2,
+      &handle_state_entry/3
+    )
   end
 
   # Info handlers
@@ -168,24 +148,13 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Live do
 
   # Step-specific event handlers
   defp handle_overview_events(socket, event, data) do
-    case event do
-      :select_duration ->
-        socket =
-          socket
-          |> assign(:selected_duration, data)
-          |> assign(:duration, data)
-          |> maybe_assign_meeting_type(data)
-          # Trigger availability refresh when duration changes
-          |> Helpers.fetch_month_availability_async()
+    callbacks = %{
+      maybe_assign_meeting_type: &maybe_assign_meeting_type/2,
+      validate_state_transition: &validate_state_transition/3,
+      transition_to: &transition_to/3
+    }
 
-        {:noreply, socket}
-
-      :next_step ->
-        handle_state_transition(socket, :overview, :schedule)
-
-      _ ->
-        {:noreply, socket}
-    end
+    EventHandlers.handle_overview_events(socket, event, data, callbacks)
   end
 
   defp handle_schedule_events(socket, event, data) do
@@ -224,21 +193,12 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Live do
   end
 
   defp handle_timezone_events(socket, event, data) do
-    case event do
-      :change_timezone ->
-        handle_timezone_change(socket, data)
+    callbacks = %{
+      timezone_handler_component: TimezoneHandlerComponent,
+      handle_timezone_search: &EventHandlers.handle_timezone_search/2
+    }
 
-      :search_timezone ->
-        handle_timezone_search(socket, data)
-
-      :toggle_timezone_dropdown ->
-        {:noreply,
-         assign(socket, :timezone_dropdown_open, !socket.assigns[:timezone_dropdown_open])}
-
-      :close_timezone_dropdown ->
-        Process.send_after(self(), :close_dropdown, 150)
-        {:noreply, socket}
-    end
+    EventHandlers.handle_timezone_events(socket, event, data, callbacks)
   end
 
   defp handle_month_navigation_events(socket, event) do
@@ -270,7 +230,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Live do
         {:noreply, Helpers.mark_field_touched(socket, data)}
 
       :submit ->
-        handle_booking_submission(socket, data)
+        BookingFlow.submit_booking(socket, data, &transition_to/3)
 
       :back_step ->
         handle_state_transition(socket, :booking, :schedule)
@@ -291,15 +251,8 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Live do
   end
 
   # Helpers to reduce nesting
-  defp maybe_assign_meeting_type(socket, duration_str) do
-    if socket.assigns[:username_context] && socket.assigns[:organizer_user_id] do
-      case Demo.find_by_duration_string(socket.assigns[:organizer_user_id], duration_str) do
-        nil -> socket
-        meeting_type -> assign(socket, :meeting_type, meeting_type)
-      end
-    else
-      socket
-    end
+  defp maybe_assign_meeting_type(socket, duration) do
+    LiveHelpers.maybe_assign_meeting_type(socket, duration)
   end
 
   # State machine implementation
@@ -309,6 +262,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Live do
 
     socket
     |> SchedulingInit.assign_base_state()
+    |> assign(:theme_id, "1")
     |> assign(:duration, nil)
     |> assign(:meeting_type, nil)
     |> assign(:current_year, today.year)
@@ -317,129 +271,38 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Live do
     |> assign(:availability_status, :not_loaded)
     |> assign(:availability_task, nil)
     |> assign(:availability_task_ref, nil)
-    |> Helpers.setup_form_state()
+    |> Helpers.setup_form_state(%{}, as: :booking)
     |> assign(:client_ip, nil)
     |> assign(:submission_token, nil)
     |> assign(:meeting_types, [])
   end
 
   defp handle_param_updates(socket, params) do
-    socket
-    |> maybe_assign_from_params(:duration, params["duration"])
-    |> maybe_assign_from_params(:selected_date, params["date"])
-    |> maybe_assign_from_params(:selected_time, params["time"])
-    |> maybe_assign_from_params(:reschedule_meeting_uid, params["reschedule_meeting_uid"])
-    |> assign(:is_rescheduling, params["reschedule_meeting_uid"] != nil)
-    |> handle_confirmation_params(params)
+    LiveHelpers.handle_param_updates(socket, params)
   end
-
-  defp handle_confirmation_params(socket, params) do
-    if socket.assigns[:live_action] == :confirmation do
-      socket
-      |> assign(:name, URI.decode(params["name"] || "Guest"))
-      |> assign(:email, params["email"] || "")
-      |> assign(:meeting_uid, params["meeting_uid"] || "")
-    else
-      socket
-    end
-  end
-
-  defp maybe_assign_from_params(socket, _key, nil), do: socket
-  defp maybe_assign_from_params(socket, key, value), do: assign(socket, key, value)
 
   defp setup_initial_state(socket, initial_state, params) do
-    if initial_state in [:overview, :schedule, :booking, :confirmation] do
-      socket
-      |> assign(:current_state, initial_state)
-      |> handle_state_entry(initial_state, params)
-    else
-      socket
-    end
+    LiveHelpers.setup_initial_state(socket, initial_state, params, &handle_state_entry/3)
   end
 
   defp handle_state_entry(socket, :schedule, params) do
-    # Validate duration against meeting types if username context
-    socket =
-      if socket.assigns[:username_context] && params["duration"] do
-        case Demo.find_by_duration_string(
-               socket.assigns[:organizer_user_id],
-               params["duration"]
-             ) do
-          nil ->
-            socket
-            |> put_flash(:error, "Invalid meeting duration")
-            |> redirect(to: "/#{socket.assigns[:username_context]}")
-
-          meeting_type ->
-            assign(socket, :meeting_type, meeting_type)
-        end
-      else
-        socket
-      end
-
-    # Set up calendar
-    timezone = socket.assigns[:user_timezone] || Profiles.get_default_timezone()
-
-    {current_year, current_month} =
-      case DateTime.now(timezone) do
-        {:ok, dt} -> {dt.year, dt.month}
-        _ -> {Date.utc_today().year, Date.utc_today().month}
-      end
-
-    socket =
-      socket
-      |> assign(:current_year, current_year)
-      |> assign(:current_month, current_month)
-      |> assign(:duration, params["duration"] || socket.assigns[:selected_duration])
-
-    # Trigger month availability fetch in background
-    Helpers.fetch_month_availability_async(socket)
+    LiveHelpers.handle_schedule_entry(socket, params)
   end
 
-  defp handle_state_entry(socket, :booking, _params) do
-    # Set up form and rate limiting
-    client_ip = ClientIP.get(socket)
-    submission_token = Base.encode64(:crypto.strong_rand_bytes(16))
-
-    # Pre-fill form if rescheduling
-    reschedule_uid = socket.assigns[:reschedule_meeting_uid]
-
-    form_data =
-      if reschedule_uid do
-        case Validation.get_meeting_for_reschedule(reschedule_uid) do
-          {:ok, meeting} ->
-            %{
-              "name" => meeting.attendee_name,
-              "email" => meeting.attendee_email,
-              "message" => meeting.attendee_message || ""
-            }
-
-          _ ->
-            %{"name" => "", "email" => "", "message" => ""}
-        end
-      else
-        %{"name" => "", "email" => "", "message" => ""}
-      end
-
-    socket
-    |> Helpers.setup_form_state(form_data)
-    |> assign(:client_ip, client_ip)
-    |> assign(:submission_token, submission_token)
-    |> assign(:submission_processed, false)
+  defp handle_state_entry(socket, :booking, params) do
+    LiveHelpers.handle_booking_entry(socket, params)
   end
 
   defp handle_state_entry(socket, _state, _params), do: socket
 
   # Event handlers
   defp handle_state_transition(socket, current_state, next_state) do
-    case validate_state_transition(socket, current_state, next_state) do
-      :ok ->
-        socket = transition_to(socket, next_state, %{})
-        {:noreply, socket}
+    callbacks = %{
+      validate_state_transition: &validate_state_transition/3,
+      transition_to: &transition_to/3
+    }
 
-      {:error, reason} ->
-        {:noreply, put_flash(socket, :error, reason)}
-    end
+    EventHandlers.handle_state_transition(socket, current_state, next_state, callbacks)
   end
 
   defp transition_to(socket, new_state, _params) do
@@ -461,27 +324,6 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Live do
       |> assign(:calendar_error, nil)
 
     send(self(), {:load_slots, date})
-    {:noreply, socket}
-  end
-
-  defp handle_timezone_change(socket, data) do
-    EventHandlers.handle_timezone_change(socket, data, TimezoneHandlerComponent)
-  end
-
-  defp handle_timezone_search(socket, params) do
-    search_term =
-      case params do
-        %{"search" => term} -> term
-        %{"value" => term} -> term
-        %{"_target" => ["search"], "search" => term} -> term
-        _ -> ""
-      end
-
-    socket =
-      socket
-      |> assign(:timezone_search, search_term)
-      |> assign(:timezone_dropdown_open, true)
-
     {:noreply, socket}
   end
 
@@ -510,6 +352,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Live do
       |> assign(:selected_date, nil)
       |> assign(:selected_time, nil)
       |> assign(:available_slots, [])
+      |> assign(:month_availability_map, nil)
       |> assign(:availability_status, :not_loaded)
 
     # Trigger availability refresh for new month
@@ -518,28 +361,6 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Live do
 
   defp handle_form_validation(socket, booking_params) do
     BookingFlow.handle_form_validation(socket, booking_params)
-  end
-
-  defp handle_booking_submission(socket, booking_params) do
-    # Keep form assignment/local validation here to preserve behavior
-    case FormValidation.validate_booking_form(booking_params) do
-      {:ok, sanitized_params} ->
-        form = to_form(sanitized_params)
-        socket = socket |> assign(:form, form) |> assign(:validation_errors, [])
-        BookingFlow.process_booking_submission(socket, &transition_to/3)
-
-      {:error, errors} ->
-        {:ok, sanitized_params} = FormValidation.sanitize_booking_params(booking_params)
-        form = to_form(sanitized_params)
-
-        socket =
-          socket
-          |> assign(:form, form)
-          |> assign(:validation_errors, errors)
-          |> put_flash(:error, "Please correct the errors below.")
-
-        {:noreply, socket}
-    end
   end
 
   # Template rendering - delegates to theme-specific step components

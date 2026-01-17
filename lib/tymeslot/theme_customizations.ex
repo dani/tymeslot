@@ -236,7 +236,7 @@ defmodule Tymeslot.ThemeCustomizations do
   """
   @spec get_defaults(theme_id()) :: map()
   def get_defaults(theme_id) do
-    alias TymeslotWeb.Themes.Shared.Customization.Capability
+    alias Tymeslot.ThemeCustomizations.Capability
     Capability.get_capability_defaults(theme_id)
   end
 
@@ -246,22 +246,11 @@ defmodule Tymeslot.ThemeCustomizations do
   """
   @spec generate_theme_css(theme_id(), customization_input()) :: String.t()
   def generate_theme_css(theme_id, customization) do
-    alias TymeslotWeb.Themes.Shared.Customization.Capability
-    alias TymeslotWeb.Themes.Shared.Customization.Helpers
+    alias Tymeslot.ThemeCustomizations.Capability
 
     customization_map = to_map(customization)
 
-    capability_css = Capability.generate_css(theme_id, customization_map)
-
-    fallback_css =
-      case customization do
-        %ThemeCustomizationSchema{} = schema -> Helpers.generate_custom_css(schema)
-        _ -> ""
-      end
-
-    [capability_css, fallback_css]
-    |> Enum.filter(&(is_binary(&1) and &1 != ""))
-    |> Enum.join("\n")
+    Capability.generate_css(theme_id, customization_map)
   end
 
   # New orchestrator functions for component interface

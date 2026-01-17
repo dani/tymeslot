@@ -69,7 +69,7 @@ defmodule TymeslotWeb.Live.Themes.AvailabilityRefinementTest do
 
       # Use a unique duration to ensure cache isolation
       unique_duration = 30
-      unique_duration_str = "#{unique_duration}min"
+      slug = "refinement-chat"
 
       stub(Tymeslot.CalendarMock, :get_events_for_range_fresh, fn _user_id, _start, _end ->
         {:ok,
@@ -83,7 +83,7 @@ defmodule TymeslotWeb.Live.Themes.AvailabilityRefinementTest do
       end)
 
       {:ok, view, _html} =
-        live(conn, ~p"/#{profile.username}/schedule/#{unique_duration_str}?timezone=#{timezone}")
+        live(conn, ~p"/#{profile.username}/#{slug}?timezone=#{timezone}")
 
       # If target_date is in the next month, we might need to navigate
       if target_date.month != today.month do
@@ -128,7 +128,7 @@ defmodule TymeslotWeb.Live.Themes.AvailabilityRefinementTest do
         )
       end)
 
-      _meeting_type = insert(:meeting_type, user: user, duration_minutes: 30, is_active: true)
+      _meeting_type = insert(:meeting_type, user: user, name: "30 Minutes", duration_minutes: 30, is_active: true)
       insert(:calendar_integration, user: user, is_active: true)
 
       now_in_tz = DateTime.shift_zone!(DateTime.utc_now(), timezone)
@@ -136,7 +136,7 @@ defmodule TymeslotWeb.Live.Themes.AvailabilityRefinementTest do
       today_str = Date.to_string(today_in_tz)
 
       {:ok, view, _html} =
-        live(conn, ~p"/#{profile.username}/schedule/30min?timezone=#{timezone}")
+        live(conn, ~p"/#{profile.username}/30-minutes?timezone=#{timezone}")
 
       # Since business hours are 00:00-01:00 and we are in GMT-14,
       # today should be disabled as long as it's past 01:00 in that timezone.

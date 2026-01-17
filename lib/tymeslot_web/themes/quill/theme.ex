@@ -75,9 +75,10 @@ defmodule TymeslotWeb.Themes.Quill.Theme do
   def initial_state_for_action(live_action) do
     case live_action do
       :index -> :overview
+      :overview -> :overview
       :schedule -> :schedule
-      :book -> :booking
-      :thank_you -> :confirmation
+      :booking -> :booking
+      :confirmation -> :confirmation
       _ -> :overview
     end
   end

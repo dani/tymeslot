@@ -4,8 +4,6 @@ defmodule TymeslotWeb.Themes.Rhythm.Meeting.Reschedule do
   """
   use Phoenix.Component
 
-  import TymeslotWeb.Themes.Shared.Customization.Helpers
-
   alias Phoenix.LiveView.JS
   alias TymeslotWeb.Themes.Rhythm.Scheduling.Wrapper
 
@@ -17,7 +15,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Meeting.Reschedule do
     ~H"""
     <Wrapper.rhythm_wrapper
       theme_customization={@theme_customization}
-      custom_css={generate_custom_css(@theme_customization)}
+      custom_css={@custom_css}
     >
       <!-- Scheduling Box with Glass Effect -->
       <div class="scheduling-box">

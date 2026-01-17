@@ -52,7 +52,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.BookingComponent do
       <.page_layout
         show_steps={true}
         current_step={3}
-        duration={@duration}
+        slug={@duration}
         username_context={@username_context}
       >
         <div class="container flex-1 flex flex-col">
@@ -74,11 +74,11 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.BookingComponent do
                   >
                     <%= if @organizer_profile do %>
                       {gettext("You're booking a %{duration} meeting with %{name}", 
-                        duration: TimezoneUtils.format_duration(@duration), 
+                        duration: if(@meeting_type, do: LocalizationHelpers.format_duration(@meeting_type.duration_minutes), else: TimezoneUtils.format_duration(@duration)), 
                         name: get_organizer_name(@organizer_profile, @username_context))}
                     <% else %>
                       {gettext("You're booking a %{duration} meeting", 
-                        duration: TimezoneUtils.format_duration(@duration))}
+                        duration: if(@meeting_type, do: LocalizationHelpers.format_duration(@meeting_type.duration_minutes), else: TimezoneUtils.format_duration(@duration)))}
                     <% end %>
                   </p>
 
@@ -87,7 +87,9 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.BookingComponent do
                   </p>
 
                   <.form
+                    :let={f}
                     for={@form}
+                    as={:booking}
                     phx-change="validate"
                     phx-submit="submit"
                     phx-target={@myself}
@@ -95,7 +97,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.BookingComponent do
                     class="space-y-2"
                   >
                     <.form_field
-                      form={@form}
+                      form={f}
                       field={:name}
                       label={gettext("Your Name")}
                       placeholder={gettext("John Doe")}
@@ -108,7 +110,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.BookingComponent do
                     />
 
                     <.form_field
-                      form={@form}
+                      form={f}
                       field={:email}
                       label={gettext("Email Address")}
                       type="email"
@@ -122,7 +124,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.BookingComponent do
                     />
 
                     <.form_textarea
-                      form={@form}
+                      form={f}
                       field={:message}
                       label={gettext("Additional Message (Optional)")}
                       placeholder={gettext("Let me know what you'd like to discuss...")}

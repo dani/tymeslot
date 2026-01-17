@@ -29,7 +29,7 @@ defmodule TymeslotWeb.Live.Themes.ThemeBookingFlowTest do
 
   @themes %{
     "1" => %{name: "quill", duration_selector: "30min"},
-    "2" => %{name: "rhythm", duration_selector: "30"}
+    "2" => %{name: "rhythm", duration_selector: "30min"}
   }
 
   describe "theme booking flow (feature-level)" do
@@ -174,7 +174,7 @@ defmodule TymeslotWeb.Live.Themes.ThemeBookingFlowTest do
       {:ok, view, _html} =
         live(
           conn,
-          ~p"/#{profile.username}/schedule/30min/book?date=#{past_date}&time=#{time}&timezone=#{timezone}"
+          ~p"/#{profile.username}/30-minutes/book?date=#{past_date}&time=#{time}&timezone=#{timezone}"
         )
 
       # Submit form
@@ -220,7 +220,7 @@ defmodule TymeslotWeb.Live.Themes.ThemeBookingFlowTest do
 
       # We use schedule route to see generated slots
       {:ok, view, _html} =
-        live(conn, ~p"/#{profile.username}/schedule/30min?date=#{dst_date}&timezone=#{timezone}")
+        live(conn, ~p"/#{profile.username}/30-minutes?date=#{dst_date}&timezone=#{timezone}")
 
       # Wait for slots to load
       wait_until(fn -> has_element?(view, "button[data-testid='time-slot']") end)
@@ -284,7 +284,7 @@ defmodule TymeslotWeb.Live.Themes.ThemeBookingFlowTest do
           )
 
         {:ok, view, _html} =
-          live(conn, ~p"/#{profile.username}/schedule/30min?timezone=#{timezone}")
+          live(conn, ~p"/#{profile.username}/30-minutes?timezone=#{timezone}")
 
         target_date = next_business_day(Date.utc_today())
         date_str = Date.to_string(target_date)
@@ -359,7 +359,7 @@ defmodule TymeslotWeb.Live.Themes.ThemeBookingFlowTest do
 
         # Direct link to booking page must be resilient to refresh/deep-link.
         {:ok, view, _html} =
-          live(conn, ~p"/#{profile.username}/schedule/30min/book?timezone=#{timezone}")
+          live(conn, ~p"/#{profile.username}/30-minutes/book?timezone=#{timezone}")
 
         wait_until(fn -> has_element?(view, "form[data-testid='booking-form']") end)
       end
@@ -454,14 +454,14 @@ defmodule TymeslotWeb.Live.Themes.ThemeBookingFlowTest do
       {:ok, view1, _html} =
         live(
           conn,
-          ~p"/#{profile.username}/schedule/30min/book?date=#{date}&time=#{time}&timezone=#{timezone}"
+          ~p"/#{profile.username}/30-minutes/book?date=#{date}&time=#{time}&timezone=#{timezone}"
         )
 
       # 2. Start second booking (different attendee)
       {:ok, view2, _html} =
         live(
           conn,
-          ~p"/#{profile.username}/schedule/30min/book?date=#{date}&time=#{time}&timezone=#{timezone}"
+          ~p"/#{profile.username}/30-minutes/book?date=#{date}&time=#{time}&timezone=#{timezone}"
         )
 
       # Submit first
@@ -486,20 +486,10 @@ defmodule TymeslotWeb.Live.Themes.ThemeBookingFlowTest do
     end
   end
 
-  defp submit_booking_form(view, "1", %{name: name, email: email, message: message}) do
+  defp submit_booking_form(view, _theme_id, %{name: name, email: email, message: message}) do
     view
-    |> form("form[phx-submit='submit']", %{
+    |> form("form[data-testid='booking-form']", %{
       "booking" => %{"name" => name, "email" => email, "message" => message}
-    })
-    |> render_submit()
-  end
-
-  defp submit_booking_form(view, "2", %{name: name, email: email, message: message}) do
-    view
-    |> form("form[phx-submit='submit_booking']", %{
-      "name" => name,
-      "email" => email,
-      "message" => message
     })
     |> render_submit()
   end

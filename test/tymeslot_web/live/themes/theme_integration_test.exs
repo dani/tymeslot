@@ -1,11 +1,12 @@
 defmodule TymeslotWeb.Live.Themes.ThemeIntegrationTest do
-  use TymeslotWeb.ConnCase, async: true
+  use TymeslotWeb.ConnCase, async: false
 
   import Phoenix.LiveViewTest
   import Tymeslot.Factory
 
   alias Ecto.Changeset
   alias Tymeslot.Repo
+  alias Tymeslot.TestMocks
 
   @moduledoc """
   Tests that themes actually work for booking meetings.
@@ -14,6 +15,9 @@ defmodule TymeslotWeb.Live.Themes.ThemeIntegrationTest do
 
   describe "theme booking flow" do
     setup do
+      Mox.set_mox_global()
+      TestMocks.setup_calendar_mocks()
+
       # Create a user with meeting types
       user = insert(:user)
       profile = insert(:profile, user: user, username: "testuser")
@@ -71,7 +75,7 @@ defmodule TymeslotWeb.Live.Themes.ThemeIntegrationTest do
 
       # Should not crash, should show something
       assert view
-      assert html =~ "Schedule"
+      assert html =~ profile.username or has_element?(view, "[data-testid='duration-option']")
     end
 
     test "invalid theme falls back gracefully", %{conn: conn} do
@@ -82,6 +86,18 @@ defmodule TymeslotWeb.Live.Themes.ThemeIntegrationTest do
 
       # Should not crash
       assert {:ok, _view, _html} = live(conn, ~p"/#{profile.username}")
+    end
+
+    test "shows readiness error when no calendar integration is connected", %{conn: conn} do
+      user = insert(:user)
+
+      profile =
+        insert(:profile, user: user, username: "no-calendar", booking_theme: "1")
+
+      {:ok, _view, html} = live(conn, ~p"/#{profile.username}")
+
+      message = Tymeslot.Scheduling.LinkAccessPolicy.reason_to_message(:no_calendar)
+      assert html =~ message
     end
   end
 

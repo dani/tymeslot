@@ -78,8 +78,6 @@ defmodule TymeslotWeb.Themes.Rhythm.Theme do
       :overview -> :overview
       :schedule -> :schedule
       :booking -> :booking
-      :book -> :booking
-      :thank_you -> :confirmation
       :confirmation -> :confirmation
       _ -> :overview
     end

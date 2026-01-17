@@ -29,7 +29,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ConfirmationComponent d
       <.page_layout
         show_steps={true}
         current_step={4}
-        duration={@duration}
+        slug={@duration}
         username_context={@username_context}
       >
         <div class="container flex-1 flex flex-col">

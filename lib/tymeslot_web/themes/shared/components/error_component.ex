@@ -1,6 +1,6 @@
-defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ErrorComponent do
+defmodule TymeslotWeb.Themes.Shared.Components.ErrorComponent do
   @moduledoc """
-  Quill theme error component for scheduling page readiness issues.
+  Shared error component for scheduling page readiness issues.
   """
   use TymeslotWeb, :live_component
 
@@ -32,7 +32,14 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ErrorComponent do
             <CoreComponents.info_box variant={:error}>
               {@message}
             </CoreComponents.info_box>
-            <p class="text-sm" style="color: rgba(255,255,255,0.85);">
+
+            <%= if assigns[:reason] do %>
+              <p class="mt-4 text-xs font-mono uppercase tracking-wider text-white/50">
+                Reason code: {inspect(@reason)}
+              </p>
+            <% end %>
+
+            <p class="text-sm mt-6" style="color: rgba(255,255,255,0.85);">
               If you are the organizer, please connect a calendar in your dashboard.
             </p>
           </div>

@@ -7,95 +7,74 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Live do
   4. Confirmation (thank you page)
   """
   use TymeslotWeb, :live_view
+  require Logger
 
-  alias Tymeslot.Demo
-  alias Tymeslot.Themes.Theme
-  alias TymeslotWeb.Helpers.ClientIP
-  alias TymeslotWeb.Live.Scheduling.Handlers.BookingSubmissionHandlerComponent
+  alias TymeslotWeb.Live.Scheduling.Helpers
 
   alias TymeslotWeb.Live.Scheduling.Handlers.TimezoneHandlerComponent
 
-  alias TymeslotWeb.Live.Scheduling.Helpers
-  alias TymeslotWeb.Live.Scheduling.ThemeUtils
-  alias TymeslotWeb.Themes.Shared.{EventHandlers, InfoHandlers, SchedulingInit}
+  alias TymeslotWeb.Themes.Rhythm.Scheduling.StateMachine
+  alias TymeslotWeb.Themes.Shared.BookingFlow
 
-  require Logger
+  alias TymeslotWeb.Themes.Rhythm.Scheduling.Components.{
+    BookingComponent,
+    ConfirmationComponent,
+    OverviewComponent,
+    ScheduleComponent
+  }
+
+  alias TymeslotWeb.Themes.Rhythm.Scheduling.Wrapper, as: RhythmThemeWrapper
+
+  alias TymeslotWeb.Themes.Shared.{
+    EventHandlers,
+    InfoHandlers,
+    LiveHelpers,
+    PathHandlers,
+    SchedulingInit
+  }
+
+  alias TymeslotWeb.Themes.Shared.Components.ErrorComponent
 
   @impl true
   def mount(params, _session, socket) do
-    # Determine initial state based on live_action
-    initial_state = Theme.get_initial_state("2", socket.assigns[:live_action])
+    # Determine initial state from route
+    initial_state = StateMachine.determine_initial_state(socket.assigns[:live_action])
 
-    Logger.debug(
-      "Rhythm theme mounting with live_action: #{inspect(socket.assigns[:live_action])}, initial_state: #{inspect(initial_state)}"
-    )
-
-    # Initialize state first
     socket =
-      socket
-      |> assign_initial_state()
-      |> ThemeUtils.assign_user_timezone(params)
-      |> ThemeUtils.assign_theme()
+      LiveHelpers.mount_scheduling_view(
+        socket,
+        params,
+        initial_state,
+        &assign_initial_state/1,
+        &setup_initial_state/3
+      )
 
-    # Then handle username context (which sets meeting_types)
-    socket = Helpers.handle_username_resolution(socket, params["username"])
-
-    # Apply deep-link params (duration) before setting initial state
-    case maybe_assign_duration_from_params(socket, params) do
-      {:redirect, socket} ->
-        {:ok, socket}
-
-      {:ok, socket} ->
-        # Finally setup initial state - override with correct state
-        socket = setup_initial_state(socket, initial_state || :overview, params)
-
-        # Pre-fetch month availability regardless of initial state so it's ready for the schedule step
-        socket = Helpers.fetch_month_availability_async(socket)
-
-        {:ok, socket}
-    end
+    {:ok, socket}
   end
 
   @impl true
   def handle_params(params, _url, socket) do
     # Handle URL changes (back/forward navigation)
-    new_state = Theme.get_initial_state("2", socket.assigns[:live_action])
+    new_state = StateMachine.determine_initial_state(socket.assigns[:live_action])
 
-    case maybe_assign_duration_from_params(socket, params) do
-      {:redirect, socket} ->
-        {:noreply, socket}
-
-      {:ok, socket} ->
-        socket = transition_to(socket, new_state, params)
-        {:noreply, socket}
-    end
+    LiveHelpers.handle_scheduling_params(
+      socket,
+      params,
+      new_state,
+      &handle_param_updates/2,
+      &handle_state_entry/3
+    )
   end
 
   # Info handlers
   @impl true
-  def handle_info({:step_event, step, event, data} = msg, socket) do
-    Logger.debug("RhythmSchedulingLive handle_info received step_event: #{inspect(msg)}")
-
+  def handle_info({:step_event, step, event, data}, socket) do
     case step do
-      :overview ->
-        handle_overview_events(socket, event, data)
-
-      :schedule ->
-        handle_schedule_events(socket, event, data)
-
-      :booking ->
-        handle_booking_events(socket, event, data)
-
-      :confirmation ->
-        handle_confirmation_events(socket, event, data)
-
-      # Handle legacy state
-      :schedule_and_book ->
-        handle_overview_events(socket, event, data)
-
-      _ ->
-        Logger.debug("Unknown step in handle_info: #{inspect(step)}")
-        {:noreply, socket}
+      :overview -> handle_overview_events(socket, event, data)
+      :schedule -> handle_schedule_events(socket, event, data)
+      :booking -> handle_booking_events(socket, event, data)
+      :confirmation -> handle_confirmation_events(socket, event, data)
+      _ -> {:noreply, socket}
     end
   end
 
@@ -146,144 +125,104 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Live do
     EventHandlers.handle_change_locale(socket, locale, PathHandlers)
   end
 
-  @impl true
-  def handle_event(_event, _params, socket) do
-    # Fallback for any other events
-    {:noreply, socket}
+  # Step-specific event handlers
+  defp handle_overview_events(socket, event, data) do
+    callbacks = %{
+      maybe_assign_meeting_type: &maybe_assign_meeting_type/2,
+      validate_state_transition: &validate_state_transition/3,
+      transition_to: &transition_to/3
+    }
+
+    EventHandlers.handle_overview_events(socket, event, data, callbacks)
   end
 
-  # Handle overview slide events
-  defp handle_overview_events(socket, event, data) do
-    Logger.debug("RhythmSchedulingLive handle_overview_events called with data: #{inspect(data)}")
+  defp handle_schedule_events(socket, event, data) do
+    cond do
+      event in [:select_date, :select_time] ->
+        handle_schedule_selection_events(socket, event, data)
 
-    case event do
-      :select_duration ->
-        Logger.debug("Processing select_duration event with data: #{inspect(data)}")
+      event in [
+        :change_timezone,
+        :search_timezone,
+        :toggle_timezone_dropdown,
+        :close_timezone_dropdown
+      ] ->
+        handle_timezone_events(socket, event, data)
 
-        # Data is a map with duration key
-        duration = Map.get(data, :duration)
+      event in [:prev_week, :next_week] ->
+        handle_week_navigation_events(socket, event)
 
-        socket =
-          socket
-          |> update_socket_for_duration(duration)
-          # Trigger availability refresh when duration changes
-          |> Helpers.fetch_month_availability_async()
+      event in [:back_step, :next_step] ->
+        handle_schedule_navigation_events(socket, event)
 
-        {:noreply, socket}
-
-      :next_step ->
-        Logger.debug("Processing next_step event, transitioning to :schedule")
-        socket = transition_to(socket, :schedule, %{})
-        {:noreply, socket}
-
-      _ ->
-        Logger.debug("Unknown event in handle_overview_events: #{inspect(event)}")
+      true ->
         {:noreply, socket}
     end
   end
 
-  # Handle schedule slide events
-  defp handle_schedule_events(socket, event, data) do
+  defp handle_schedule_selection_events(socket, event, data) do
     case event do
       :select_date ->
         handle_schedule_date_selection(socket, data)
 
       :select_time ->
-        handle_schedule_time_selection(socket, data)
+        new_time = if socket.assigns[:selected_time] == data, do: nil, else: data
+        {:noreply, assign(socket, :selected_time, new_time)}
+    end
+  end
 
-      :change_timezone ->
-        handle_timezone_change(socket, data)
+  defp handle_timezone_events(socket, event, data) do
+    callbacks = %{
+      timezone_handler_component: TimezoneHandlerComponent,
+      handle_timezone_search: &EventHandlers.handle_timezone_search/2
+    }
 
-      :toggle_timezone_dropdown ->
-        handle_timezone_dropdown_toggle(socket)
+    EventHandlers.handle_timezone_events(socket, event, data, callbacks)
+  end
 
-      :close_timezone_dropdown ->
-        handle_timezone_dropdown_close(socket)
+  defp handle_week_navigation_events(socket, event) do
+    case event do
+      :prev_week ->
+        {:noreply, handle_week_navigation(socket, :prev)}
+
+      :next_week ->
+        {:noreply, handle_week_navigation(socket, :next)}
+    end
+  end
+
+  defp handle_schedule_navigation_events(socket, event) do
+    case event do
+      :back_step ->
+        handle_state_transition(socket, :schedule, :overview)
 
       :next_step ->
-        handle_schedule_next_step(socket)
-
-      :prev_step ->
-        handle_schedule_prev_step(socket)
-
-      _ ->
-        {:noreply, socket}
+        handle_state_transition(socket, :schedule, :booking)
     end
   end
 
-  defp handle_schedule_time_selection(socket, data) do
-    # Extract time from data map
-    time = Map.get(data, :time)
-    socket = assign(socket, :selected_time, time)
-    {:noreply, socket}
-  end
-
-  defp handle_timezone_dropdown_toggle(socket) do
-    current_state = socket.assigns[:timezone_dropdown_open] || false
-    socket = assign(socket, :timezone_dropdown_open, !current_state)
-    {:noreply, socket}
-  end
-
-  defp handle_timezone_dropdown_close(socket) do
-    socket = assign(socket, :timezone_dropdown_open, false)
-    {:noreply, socket}
-  end
-
-  defp handle_schedule_next_step(socket) do
-    socket = transition_to(socket, :booking, %{})
-    {:noreply, socket}
-  end
-
-  defp handle_schedule_prev_step(socket) do
-    socket = transition_to(socket, :overview, %{})
-    {:noreply, socket}
-  end
-
-  defp handle_schedule_date_selection(socket, data) do
-    # Extract date from data map
-    date = Map.get(data, :date)
-
-    socket =
-      socket
-      |> assign(:selected_date, date)
-      |> assign(:selected_time, nil)
-      |> assign(:loading_slots, true)
-      |> assign(:calendar_error, nil)
-
-    # Only load slots if date is not nil
-    if date do
-      send(self(), {:load_slots, date})
-    end
-
-    {:noreply, socket}
-  end
-
-  # Handle booking slide events
   defp handle_booking_events(socket, event, data) do
     case event do
-      :submit_booking ->
-        # Process the booking through the orchestrator
-        process_booking_submission(socket, data)
+      :validate ->
+        BookingFlow.handle_form_validation(socket, data)
 
-      :prev_step ->
-        socket = transition_to(socket, :schedule, %{})
-        {:noreply, socket}
+      :field_blur ->
+        {:noreply, Helpers.mark_field_touched(socket, data)}
+
+      :submit ->
+        BookingFlow.submit_booking(socket, data, &transition_to/3)
+
+      :back_step ->
+        handle_state_transition(socket, :booking, :schedule)
 
       _ ->
         {:noreply, socket}
     end
   end
 
-  # Handle confirmation slide events
   defp handle_confirmation_events(socket, event, _data) do
     case event do
       :schedule_another ->
-        path =
-          if socket.assigns[:username_context],
-            do: "/#{socket.assigns[:username_context]}",
-            else: "/"
-
-        {:noreply, push_navigate(socket, to: path)}
+        {:noreply, transition_to(socket, :overview, %{})}
 
       _ ->
         {:noreply, socket}
@@ -291,297 +230,141 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Live do
   end
 
   # Helpers to reduce nesting
-  defp update_socket_for_duration(socket, duration) do
-    socket
-    |> assign(:selected_duration, duration)
-    |> assign(:duration, "#{duration}min")
-    |> maybe_assign_meeting_type("#{duration}min")
+  defp maybe_assign_meeting_type(socket, duration) do
+    LiveHelpers.maybe_assign_meeting_type(socket, duration)
   end
 
-  defp maybe_assign_meeting_type(socket, duration_str) do
-    if socket.assigns[:username_context] && socket.assigns[:organizer_user_id] do
-      case Demo.find_by_duration_string(socket.assigns[:organizer_user_id], duration_str) do
-        nil ->
-          Logger.debug("No meeting type found for duration: #{duration_str}")
-          socket
-
-        meeting_type ->
-          Logger.debug("Found meeting type: #{inspect(meeting_type)}")
-          assign(socket, :meeting_type, meeting_type)
-      end
-    else
-      Logger.debug("No username context or organizer_user_id")
-      socket
-    end
-  end
-
-  defp get_meeting_type_id(socket) do
-    case socket.assigns[:meeting_type] do
-      %{id: id} -> id
-      _ -> nil
-    end
-  end
-
-  defp process_booking_submission(socket, form_data) do
-    Logger.debug("Processing booking submission with form_data: #{inspect(form_data)}")
-
-    Logger.debug(
-      "Socket assigns - selected_time: #{inspect(socket.assigns[:selected_time])}, selected_date: #{inspect(socket.assigns[:selected_date])}, duration: #{inspect(socket.assigns[:selected_duration])}"
-    )
-
-    socket =
-      socket
-      |> assign(:validation_errors, [])
-      |> assign(:attendee_name, form_data["name"])
-      |> assign(:attendee_email, form_data["email"])
-      |> assign(:attendee_message, form_data["message"])
-      |> assign(:submitting, true)
-      |> assign(:submission_processed, true)
-
-    params = %{
-      form_data: form_data,
-      meeting_params: %{
-        organizer_user_id: socket.assigns[:organizer_user_id],
-        date: socket.assigns[:selected_date],
-        time: socket.assigns[:selected_time],
-        duration: socket.assigns[:selected_duration],
-        user_timezone: socket.assigns[:user_timezone],
-        meeting_type_id: get_meeting_type_id(socket)
-      }
-    }
-
-    Logger.debug("Booking params being sent to orchestrator: #{inspect(params)}")
-
-    opts = [
-      is_rescheduling: Map.get(socket.assigns, :is_rescheduling, false),
-      reschedule_uid: Map.get(socket.assigns, :reschedule_meeting_uid),
-      client_ip: ClientIP.get(socket)
-    ]
-
-    orchestrator = Demo.get_orchestrator(socket)
-    handle_booking(socket, orchestrator, form_data, {params, opts})
-  end
-
-  defp handle_booking(socket, orchestrator, form_data, {params, opts}) do
-    case orchestrator.submit_booking(params, opts) do
-      {:ok, meeting} -> handle_booking_success(socket, meeting, form_data)
-      {:error, errors} when is_list(errors) -> handle_booking_validation_errors(socket, errors)
-      {:error, reason} -> handle_booking_error(socket, reason)
-    end
-  end
-
-  defp handle_booking_success(socket, meeting, form_data) do
-    {:ok, socket} =
-      BookingSubmissionHandlerComponent.handle_booking_success(
-        socket,
-        meeting,
-        form_data
-      )
-
-    socket =
-      socket
-      |> assign(:name, form_data["name"])
-      |> assign(:email, form_data["email"])
-      |> assign(:submitting, false)
-      |> transition_to(:confirmation, %{})
-
-    {:noreply, socket}
-  end
-
-  defp handle_booking_validation_errors(socket, errors) do
-    Logger.error("Validation errors occurred: #{inspect(errors)}")
-
-    socket =
-      socket
-      |> assign(:validation_errors, errors)
-      |> assign(:submitting, false)
-      |> assign(:submission_processed, false)
-      |> clear_flash()
-
-    {:noreply, socket}
-  end
-
-  defp handle_booking_error(socket, reason) do
-    Logger.error("Booking submission failed with reason: #{inspect(reason)}")
-
-    {:error, error_socket} =
-      BookingSubmissionHandlerComponent.handle_booking_error(socket, reason)
-
-    {:noreply, error_socket}
-  end
+  # State machine implementation
 
   defp assign_initial_state(socket) do
-    existing_customization = Map.get(socket.assigns, :theme_customization)
-    existing_custom_css = Map.get(socket.assigns, :custom_css, "")
-    existing_has_custom = Map.get(socket.assigns, :has_custom_theme, false)
-
     today = Date.utc_today()
+    week_start = Date.beginning_of_week(today, :monday)
 
     socket
     |> SchedulingInit.assign_base_state()
+    |> assign(:theme_id, "2")
     |> assign(:duration, nil)
     |> assign(:meeting_type, nil)
-    |> assign(:attendee_name, nil)
-    |> assign(:attendee_email, nil)
-    |> assign(:attendee_message, nil)
-    |> assign(:validation_errors, [])
-    |> assign(:has_custom_theme, existing_has_custom)
-    |> assign(:theme_customization, existing_customization)
-    |> assign(:custom_css, existing_custom_css)
     |> assign(:current_year, today.year)
     |> assign(:current_month, today.month)
+    |> assign(:current_week_start, week_start)
     |> assign(:month_availability_map, nil)
     |> assign(:availability_status, :not_loaded)
     |> assign(:availability_task, nil)
     |> assign(:availability_task_ref, nil)
+    |> Helpers.setup_form_state(%{}, as: :booking)
+    |> assign(:client_ip, nil)
+    |> assign(:submission_token, nil)
     |> assign(:meeting_types, [])
   end
 
-  defp maybe_assign_duration_from_params(socket, %{"duration" => duration_param})
-       when is_binary(duration_param) do
-    case parse_duration_minutes(duration_param) do
-      {:ok, minutes} ->
-        socket = update_socket_for_duration(socket, minutes)
-
-        if socket.assigns[:username_context] &&
-             socket.assigns[:organizer_user_id] &&
-             is_nil(socket.assigns[:meeting_type]) do
-          {:redirect,
-           socket
-           |> put_flash(:error, "Invalid meeting duration")
-           |> redirect(to: "/#{socket.assigns[:username_context]}")}
-        else
-          {:ok, socket}
-        end
-
-      :error ->
-        {:ok, socket}
-    end
+  defp handle_param_updates(socket, params) do
+    LiveHelpers.handle_param_updates(socket, params)
   end
 
-  defp maybe_assign_duration_from_params(socket, _params), do: {:ok, socket}
-
-  defp parse_duration_minutes(duration_param) do
-    cond do
-      String.match?(duration_param, ~r/^\d+min$/) ->
-        minutes =
-          duration_param
-          |> String.replace_suffix("min", "")
-          |> String.to_integer()
-
-        {:ok, minutes}
-
-      String.match?(duration_param, ~r/^\d+$/) ->
-        {:ok, String.to_integer(duration_param)}
-
-      true ->
-        :error
-    end
+  defp setup_initial_state(socket, initial_state, params) do
+    LiveHelpers.setup_initial_state(socket, initial_state, params, &handle_state_entry/3)
   end
 
-  defp setup_initial_state(socket, initial_state, _params) do
-    socket = assign(socket, :current_state, initial_state)
+  defp handle_state_entry(socket, :schedule, params) do
+    LiveHelpers.handle_schedule_entry(socket, params)
+  end
 
-    if initial_state == :schedule do
-      Helpers.fetch_month_availability_async(socket)
-    else
-      socket
-    end
+  defp handle_state_entry(socket, :booking, params) do
+    LiveHelpers.handle_booking_entry(socket, params)
+  end
+
+  defp handle_state_entry(socket, _state, _params), do: socket
+
+  # Event handlers
+  defp handle_state_transition(socket, current_state, next_state) do
+    callbacks = %{
+      validate_state_transition: &validate_state_transition/3,
+      transition_to: &transition_to/3
+    }
+
+    EventHandlers.handle_state_transition(socket, current_state, next_state, callbacks)
   end
 
   defp transition_to(socket, new_state, _params) do
-    socket = assign(socket, :current_state, new_state)
+    socket
+    |> assign(:current_state, new_state)
+    |> handle_state_entry(new_state, %{})
+  end
 
-    if new_state == :schedule do
-      Helpers.fetch_month_availability_async(socket)
-    else
+  defp validate_state_transition(socket, current_state, next_state) do
+    StateMachine.validate_state_transition(socket, current_state, next_state)
+  end
+
+  defp handle_schedule_date_selection(socket, date) do
+    socket =
       socket
+      |> assign(:selected_date, date)
+      |> assign(:selected_time, nil)
+      |> assign(:loading_slots, true)
+      |> assign(:calendar_error, nil)
+
+    if date do
+      send(self(), {:load_slots, date})
+    end
+
+    {:noreply, socket}
+  end
+
+  defp handle_week_navigation(socket, direction) do
+    offset = if direction == :next, do: 7, else: -7
+    new_week_start = Date.add(socket.assigns.current_week_start, offset)
+
+    # Use the middle of the week as a reference for which month's availability to fetch
+    # This ensures we usually have availability for most days shown
+    reference_date = Date.add(new_week_start, 3)
+
+    if socket.assigns.current_month != reference_date.month or
+         socket.assigns.current_year != reference_date.year do
+      socket
+      |> assign(:current_week_start, new_week_start)
+      |> assign(:current_month, reference_date.month)
+      |> assign(:current_year, reference_date.year)
+      |> assign(:month_availability_map, nil)
+      |> assign(:availability_status, :not_loaded)
+      |> Helpers.fetch_month_availability_async()
+    else
+      assign(socket, :current_week_start, new_week_start)
     end
   end
 
-  # ... existing handle_timezone_change ...
-
-  defp handle_timezone_change(socket, data) do
-    EventHandlers.handle_timezone_change(socket, data, TimezoneHandlerComponent)
-  end
-
-  # Template rendering - uses slides component for main flow, confirmation for final step
+  # Template rendering - delegates to theme-specific step components
   @impl true
   def render(assigns) do
-    Logger.debug(
-      "Rhythm theme rendering with current_state: #{inspect(assigns.current_state)}, selected_duration: #{inspect(assigns[:selected_duration])}"
-    )
-
     ~H"""
-    <TymeslotWeb.Themes.Rhythm.Scheduling.Wrapper.rhythm_wrapper
-      custom_css={@custom_css}
-      theme_customization={@theme_customization}
+    <RhythmThemeWrapper.rhythm_wrapper
+      custom_css={assigns[:custom_css]}
+      theme_customization={assigns[:theme_customization]}
       locale={assigns[:locale]}
       language_dropdown_open={assigns[:language_dropdown_open]}
     >
       <%= if assigns[:scheduling_error_message] do %>
-        <div class="h-[70vh] flex items-center justify-center px-4">
-          <div
-            class="text-center w-full max-w-lg mx-auto p-6 md:p-8 rounded-xl shadow-xl"
-            style="background: rgba(0,0,0,0.65); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,0.25);"
-          >
-            <svg
-              class="w-12 h-12 mx-auto mb-4 text-white"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 9v2m0 4h.01M4.93 4.93l14.14 14.14M12 2a10 10 0 100 20 10 10 0 000-20z"
-              />
-            </svg>
-            <h1 class="text-2xl md:text-3xl font-semibold mb-3" style="color: #ffffff;">
-              We can’t show this scheduling page yet
-            </h1>
-            <p class="mb-3" style="color: rgba(255,255,255,0.95);">{@scheduling_error_message}</p>
-            <p class="text-sm" style="color: rgba(255,255,255,0.85);">
-              If you are the organizer, please connect a calendar in your dashboard.
-            </p>
-          </div>
-        </div>
+        <.live_component
+          module={ErrorComponent}
+          id="scheduling-error"
+          message={@scheduling_error_message}
+          reason={assigns[:scheduling_error_reason]}
+        />
       <% else %>
-        <%= case @current_state do %>
+        <%= case assigns.current_state do %>
           <% :overview -> %>
-            <.live_component
-              module={TymeslotWeb.Themes.Rhythm.Scheduling.Components.OverviewComponent}
-              id="rhythm-overview"
-              {assigns}
-            />
+            <.live_component module={OverviewComponent} id="overview-step" {assigns} />
           <% :schedule -> %>
-            <.live_component
-              module={TymeslotWeb.Themes.Rhythm.Scheduling.Components.ScheduleComponent}
-              id="rhythm-schedule"
-              {assigns}
-            />
+            <.live_component module={ScheduleComponent} id="schedule-step" {assigns} />
           <% :booking -> %>
-            <.live_component
-              module={TymeslotWeb.Themes.Rhythm.Scheduling.Components.BookingComponent}
-              id="rhythm-booking"
-              {assigns}
-            />
+            <.live_component module={BookingComponent} id="booking-step" {assigns} />
           <% :confirmation -> %>
-            <.live_component
-              module={TymeslotWeb.Themes.Rhythm.Scheduling.Components.ConfirmationComponent}
-              id="confirmation-step"
-              {assigns}
-            />
+            <.live_component module={ConfirmationComponent} id="confirmation-step" {assigns} />
           <% _ -> %>
-            <.live_component
-              module={TymeslotWeb.Themes.Rhythm.Scheduling.Components.OverviewComponent}
-              id="rhythm-overview"
-              {assigns}
-            />
+            <.live_component module={OverviewComponent} id="overview-step" {assigns} />
         <% end %>
       <% end %>
-    </TymeslotWeb.Themes.Rhythm.Scheduling.Wrapper.rhythm_wrapper>
+    </RhythmThemeWrapper.rhythm_wrapper>
     """
   end
 end

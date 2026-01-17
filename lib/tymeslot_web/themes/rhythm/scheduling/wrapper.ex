@@ -13,6 +13,13 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Wrapper do
   """
   @spec rhythm_wrapper(map()) :: Phoenix.LiveView.Rendered.t()
   def rhythm_wrapper(assigns) do
+    # Check if video background is active
+    has_video_background =
+      assigns[:theme_customization] &&
+        get_background_type(assigns[:theme_customization]) == "video"
+
+    assigns = assign(assigns, :has_video_background, has_video_background)
+
     ~H"""
     <div class="rhythm-theme-wrapper theme-2">
       <!-- Render custom CSS if available -->
@@ -26,7 +33,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Wrapper do
 
     <!-- Render background based on type -->
       <%= cond do %>
-        <% @theme_customization && @theme_customization.background_type == "video" -> %>
+        <% @has_video_background -> %>
           <div class="video-background-container" id="rhythm-video-container" phx-hook="RhythmVideo">
             <video
               id="rhythm-background-video-1"
@@ -37,16 +44,15 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Wrapper do
               class="video-background-video active"
               preload="metadata"
             >
-              <%= if @theme_customization.background_video_path do %>
-                <% sanitized_path = sanitize_path(@theme_customization.background_video_path) %>
-                <source
-                  src={"/uploads/#{sanitized_path}"}
-                  type="video/mp4"
-                />
+              <% background_video_path = get_background_video_path(@theme_customization) %>
+              <%= if background_video_path do %>
+                <% sanitized_path = sanitize_path(background_video_path) %>
+                <source src={"/uploads/#{sanitized_path}"} type="video/mp4" />
               <% else %>
                 <!-- Handle preset videos -->
-                <%= if @theme_customization.background_value && String.starts_with?(@theme_customization.background_value, "preset:") do %>
-                  <% preset_id = @theme_customization.background_value %>
+                <% background_value = get_background_value(@theme_customization) %>
+                <%= if background_value && String.starts_with?(background_value, "preset:") do %>
+                  <% preset_id = background_value %>
                   <% preset =
                     Tymeslot.DatabaseSchemas.ThemeCustomizationSchema.video_presets()[preset_id] %>
                   <%= if preset do %>
@@ -64,16 +70,15 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Wrapper do
               class="video-background-video inactive"
               preload="metadata"
             >
-              <%= if @theme_customization.background_video_path do %>
-                <% sanitized_path = sanitize_path(@theme_customization.background_video_path) %>
-                <source
-                  src={"/uploads/#{sanitized_path}"}
-                  type="video/mp4"
-                />
+              <% background_video_path = get_background_video_path(@theme_customization) %>
+              <%= if background_video_path do %>
+                <% sanitized_path = sanitize_path(background_video_path) %>
+                <source src={"/uploads/#{sanitized_path}"} type="video/mp4" />
               <% else %>
                 <!-- Handle preset videos -->
-                <%= if @theme_customization.background_value && String.starts_with?(@theme_customization.background_value, "preset:") do %>
-                  <% preset_id = @theme_customization.background_value %>
+                <% background_value = get_background_value(@theme_customization) %>
+                <%= if background_value && String.starts_with?(background_value, "preset:") do %>
+                  <% preset_id = background_value %>
                   <% preset =
                     Tymeslot.DatabaseSchemas.ThemeCustomizationSchema.video_presets()[preset_id] %>
                   <%= if preset do %>
@@ -83,8 +88,9 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Wrapper do
               <% end %>
             </video>
           </div>
-        <% @theme_customization && @theme_customization.background_type in ["gradient", "color", "image"] -> %>
-          <div class="video-background-container" style={get_wrapper_style(assigns)}></div>
+        <% assigns[:theme_customization] && get_background_type(assigns[:theme_customization]) in ["gradient", "color", "image"] -> %>
+          <div class="video-background-container" style={get_background_style(assigns[:theme_customization])}>
+          </div>
         <% true -> %>
           <!-- Default gradient background -->
           <div class="video-background-container"></div>
@@ -108,14 +114,5 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Wrapper do
       </div>
     </div>
     """
-  end
-
-  # Private helpers
-
-  defp get_wrapper_style(assigns) do
-    case assigns[:theme_customization] do
-      nil -> ""
-      customization -> get_background_style(customization)
-    end
   end
 end

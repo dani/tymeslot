@@ -48,7 +48,7 @@ defmodule TymeslotWeb.Live.Themes.ConcurrencyStressTest do
       {:ok, []}
     end)
 
-    {:ok, view, _html} = live(conn, ~p"/#{profile.username}/schedule/30min")
+    {:ok, view, _html} = live(conn, ~p"/#{profile.username}/30-minutes")
 
     # Click 'next_month' rapidly 2 times (to avoid hitting max advance booking days)
     # Each click should trigger a new task and cancel the previous one
@@ -99,7 +99,7 @@ defmodule TymeslotWeb.Live.Themes.ConcurrencyStressTest do
       {:error, :service_unavailable}
     end)
 
-    {:ok, view, _html} = live(conn, ~p"/#{profile.username}/schedule/30min")
+    {:ok, view, _html} = live(conn, ~p"/#{profile.username}/30-minutes")
 
     # Wait for async task to complete and flash to appear
     wait_until(fn ->

@@ -52,8 +52,30 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
     end
   end
 
-  defdelegate setup_form_state(socket, form_data \\ %{}), to: FormSystem
+  defdelegate setup_form_state(socket, form_data \\ %{}, opts \\ []), to: FormSystem
   defdelegate assign_form_errors(socket, errors), to: FormSystem
+
+  @doc """
+  Returns a CSS class if the field has errors.
+  """
+  @spec field_error_class(Phoenix.HTML.Form.t(), atom()) :: String.t()
+  def field_error_class(form, field) do
+    if Enum.any?(get_field_errors(form, field)), do: "error", else: ""
+  end
+
+  @doc """
+  Gets error messages for a specific field from the form.
+  """
+  @spec get_field_errors(Phoenix.HTML.Form.t(), atom()) :: [String.t()]
+  def get_field_errors(form, field) do
+    case form[field] do
+      %{errors: errors} when is_list(errors) ->
+        Enum.map(errors, fn {msg, _opts} -> msg end)
+
+      _ ->
+        []
+    end
+  end
 
   @doc """
   Marks a form field as touched.
@@ -86,12 +108,14 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
   Validates if form is complete and valid.
   """
   @spec form_valid?(Phoenix.HTML.Form.t()) :: boolean()
-  def form_valid?(form) do
-    case FormValidation.validate_booking_form(form.source) do
+  def form_valid?(%{source: source}) when is_map(source) do
+    case FormValidation.validate_booking_form(source) do
       {:ok, _} -> true
       {:error, _} -> false
     end
   end
+
+  def form_valid?(_), do: false
 
   @doc """
   Gets available slots for a specific date.
@@ -341,10 +365,11 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
     ref = make_ref()
 
     duration_minutes =
-      case socket.assigns[:duration] do
-        duration when is_integer(duration) -> duration
-        duration when is_binary(duration) -> parse_duration_minutes(duration)
-        _ -> 30
+      cond do
+        mt = socket.assigns[:meeting_type] -> mt.duration_minutes
+        is_integer(socket.assigns[:duration]) -> socket.assigns[:duration]
+        is_binary(socket.assigns[:duration]) -> parse_duration_minutes(socket.assigns[:duration])
+        true -> 30
       end
 
     case get_month_availability(
@@ -379,10 +404,11 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
     organizer_profile = socket.assigns.organizer_profile
 
     duration_minutes =
-      case socket.assigns[:duration] do
-        duration when is_integer(duration) -> duration
-        duration when is_binary(duration) -> parse_duration_minutes(duration)
-        _ -> 30
+      cond do
+        mt = socket.assigns[:meeting_type] -> mt.duration_minutes
+        is_integer(socket.assigns[:duration]) -> socket.assigns[:duration]
+        is_binary(socket.assigns[:duration]) -> parse_duration_minutes(socket.assigns[:duration])
+        true -> 30
       end
 
     task =

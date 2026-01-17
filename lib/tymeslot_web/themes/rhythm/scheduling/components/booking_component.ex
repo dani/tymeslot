@@ -1,7 +1,7 @@
 defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.BookingComponent do
   @moduledoc """
   Rhythm theme component for the booking/contact form step.
-  Extracted from the monolithic RhythmSlidesComponent to improve separation of concerns.
+  Updated to use form struct and shared patterns.
   """
   use TymeslotWeb, :live_component
   use Gettext, backend: TymeslotWeb.Gettext
@@ -9,45 +9,38 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.BookingComponent do
   alias Tymeslot.Demo
   alias Tymeslot.Profiles
   alias Tymeslot.Utils.TimezoneUtils
+  alias TymeslotWeb.Live.Scheduling.Helpers
   alias TymeslotWeb.Themes.Shared.LocalizationHelpers
 
   @impl true
   def update(assigns, socket) do
     filtered_assigns = Map.drop(assigns, [:flash, :socket])
-
-    {:ok,
-     socket
-     |> assign(filtered_assigns)
-     |> assign_new(:attendee_name, fn -> "" end)
-     |> assign_new(:attendee_email, fn -> "" end)
-     |> assign_new(:attendee_message, fn -> "" end)
-     |> assign_new(:validation_errors, fn -> [] end)
-     |> assign_new(:submitting, fn -> false end)}
+    {:ok, assign(socket, filtered_assigns)}
   end
 
   @impl true
-  def handle_event("validate_booking", params, socket) do
-    socket =
-      socket
-      |> assign(:attendee_name, params["name"] || "")
-      |> assign(:attendee_email, params["email"] || "")
-      |> assign(:attendee_message, params["message"] || "")
-      |> assign(:validation_errors, [])
-
+  def handle_event("validate", %{"booking" => booking_params}, socket) do
+    send(self(), {:step_event, :booking, :validate, booking_params})
     {:noreply, socket}
   end
 
   @impl true
-  def handle_event("submit_booking", params, socket) do
+  def handle_event("field_blur", %{"field" => field_name}, socket) do
+    send(self(), {:step_event, :booking, :field_blur, field_name})
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("submit", %{"booking" => booking_params}, socket) do
     # Set submitting state immediately for instant UI feedback
     socket = assign(socket, :submitting, true)
-    send(self(), {:step_event, :booking, :submit_booking, params})
+    send(self(), {:step_event, :booking, :submit, booking_params})
     {:noreply, socket}
   end
 
   @impl true
   def handle_event("prev_slide", _params, socket) do
-    send(self(), {:step_event, :booking, :prev_step, %{}})
+    send(self(), {:step_event, :booking, :back_step, nil})
     {:noreply, socket}
   end
 
@@ -74,11 +67,17 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.BookingComponent do
                   <div class="organizer-name-full">
                     {Profiles.display_name(@organizer_profile) || ""}
                   </div>
-                  <div class="meeting-duration">{gettext("%{duration} minutes", duration: @selected_duration)}</div>
+                  <div class="meeting-duration">
+                    <%= if @meeting_type do %>
+                      {LocalizationHelpers.format_duration(@meeting_type.duration_minutes)}
+                    <% else %>
+                      {LocalizationHelpers.format_duration(@duration)}
+                    <% end %>
+                  </div>
                 </div>
               </div>
             </div>
-            
+
     <!-- Meeting Summary -->
             <div class="meeting-summary compact">
               <div class="summary-row">
@@ -95,20 +94,28 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.BookingComponent do
                     <div class="summary-value">
                       {TimezoneUtils.format_timezone(@user_timezone || "America/New_York")}
                     </div>
-                    <div class="summary-label">{LocalizationHelpers.format_duration(@selected_duration)} {gettext("meeting")}</div>
+                    <div class="summary-label">
+                      <%= if @meeting_type do %>
+                        {LocalizationHelpers.format_duration(@meeting_type.duration_minutes)} {gettext("meeting")}
+                      <% else %>
+                        {LocalizationHelpers.format_duration(@selected_duration)} {gettext("meeting")}
+                      <% end %>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-            
+
     <!-- Contact Form -->
-            <form
-              phx-submit="submit_booking"
-              phx-change="validate_booking"
+            <.form
+              for={@form}
+              phx-submit="submit"
+              phx-change="validate"
               phx-target={@myself}
               data-testid="booking-form"
               class="booking-form"
               style="flex: 1;"
+              as={:booking}
             >
               <div class="form-group compact">
                 <label for="name" class="form-group label">
@@ -117,12 +124,15 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.BookingComponent do
                 <input
                   type="text"
                   id="name"
-                  name="name"
-                  class={["form-input", error_class(assigns[:validation_errors], :name)]}
+                  name="booking[name]"
+                  class={["form-input", Helpers.field_error_class(@form, :name)]}
                   placeholder={gettext("enter_full_name")}
-                  value={assigns[:attendee_name] || ""}
+                  value={@form[:name].value || ""}
+                  phx-blur="field_blur"
+                  phx-value-field="name"
+                  phx-target={@myself}
                 />
-                <%= if error = get_error(assigns[:validation_errors], :name) do %>
+                <%= for error <- Helpers.get_field_errors(@form, :name) do %>
                   <span
                     class="error-message"
                     style="color: #ef4444; font-size: 0.8rem; margin-top: 2px; display: block; opacity: 0.9;"
@@ -139,12 +149,15 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.BookingComponent do
                 <input
                   type="email"
                   id="email"
-                  name="email"
-                  class={["form-input", error_class(assigns[:validation_errors], :email)]}
+                  name="booking[email]"
+                  class={["form-input", Helpers.field_error_class(@form, :email)]}
                   placeholder={gettext("enter_email")}
-                  value={assigns[:attendee_email] || ""}
+                  value={@form[:email].value || ""}
+                  phx-blur="field_blur"
+                  phx-value-field="email"
+                  phx-target={@myself}
                 />
-                <%= if error = get_error(assigns[:validation_errors], :email) do %>
+                <%= for error <- Helpers.get_field_errors(@form, :email) do %>
                   <span
                     class="error-message"
                     style="color: #ef4444; font-size: 0.8rem; margin-top: 2px; display: block; opacity: 0.9;"
@@ -160,12 +173,15 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.BookingComponent do
                 </label>
                 <textarea
                   id="message"
-                  name="message"
+                  name="booking[message]"
                   rows="4"
-                  class={["form-textarea", error_class(assigns[:validation_errors], :message)]}
+                  class={["form-textarea", Helpers.field_error_class(@form, :message)]}
                   placeholder={gettext("add_details")}
-                ><%= assigns[:attendee_message] || "" %></textarea>
-                <%= if error = get_error(assigns[:validation_errors], :message) do %>
+                  phx-blur="field_blur"
+                  phx-value-field="message"
+                  phx-target={@myself}
+                >{@form[:message].value || ""}</textarea>
+                <%= for error <- Helpers.get_field_errors(@form, :message) do %>
                   <span
                     class="error-message"
                     style="color: #ef4444; font-size: 0.8rem; margin-top: 2px; display: block; opacity: 0.9;"
@@ -174,7 +190,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.BookingComponent do
                   </span>
                 <% end %>
               </div>
-              
+
     <!-- Navigation -->
               <div class="slide-actions horizontal">
                 <button
@@ -183,7 +199,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.BookingComponent do
                   phx-click="prev_slide"
                   phx-target={@myself}
                   data-testid="back-step"
-                  disabled={assigns[:submitting]}
+                  disabled={@submitting}
                   style="flex: 1;"
                 >
                   ← {gettext("back")}
@@ -192,10 +208,10 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.BookingComponent do
                   type="submit"
                   class="submit-button"
                   data-testid="submit-booking"
-                  disabled={assigns[:submitting]}
+                  disabled={@submitting || !Helpers.form_valid?(@form)}
                   style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.5rem;"
                 >
-                  <%= if assigns[:submitting] do %>
+                  <%= if @submitting do %>
                     <svg
                       class="animate-spin h-4 w-4"
                       xmlns="http://www.w3.org/2000/svg"
@@ -220,37 +236,15 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.BookingComponent do
                     </svg>
                     <span>{gettext("Verifying...")}</span>
                   <% else %>
-                    {gettext("submit")}
+                    {if @is_rescheduling, do: gettext("reschedule_meeting"), else: gettext("submit")}
                   <% end %>
                 </button>
               </div>
-            </form>
+            </.form>
           </div>
         </div>
       </div>
     </div>
     """
-  end
-
-  # Helpers
-  defp get_error(nil, _field), do: nil
-  defp get_error([], _field), do: nil
-
-  defp get_error(errors, field) when is_list(errors) do
-    case Keyword.get(errors, field) do
-      nil -> nil
-      error -> error
-    end
-  end
-
-  defp error_class(nil, _field), do: ""
-  defp error_class([], _field), do: ""
-
-  defp error_class(errors, field) when is_list(errors) do
-    if Keyword.has_key?(errors, field) do
-      "error"
-    else
-      ""
-    end
   end
 end

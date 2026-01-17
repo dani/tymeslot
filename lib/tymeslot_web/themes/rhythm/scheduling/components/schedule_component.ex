@@ -16,15 +16,14 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ScheduleComponent do
   def update(assigns, socket) do
     filtered_assigns = Map.drop(assigns, [:flash, :socket])
 
+    # Initial week calculation only if not already set by parent
     today = Date.utc_today()
     week_start = Date.beginning_of_week(today, :monday)
 
     {:ok,
      socket
      |> assign(filtered_assigns)
-     |> assign_new(:current_week_start, fn -> week_start end)
-     |> assign_new(:timezone_dropdown_open, fn -> false end)
-     |> assign_new(:timezone_search, fn -> "" end)}
+     |> assign_new(:current_week_start, fn -> week_start end)}
   end
 
   @impl true
@@ -36,14 +35,14 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ScheduleComponent do
       |> assign(:selected_date, new_date)
       |> assign(:selected_time, nil)
 
-    send(self(), {:step_event, :schedule, :select_date, %{date: new_date}})
+    send(self(), {:step_event, :schedule, :select_date, new_date})
     {:noreply, socket}
   end
 
   @impl true
   def handle_event("select_time", %{"time" => time}, socket) do
     new_time = if socket.assigns[:selected_time] == time, do: nil, else: time
-    send(self(), {:step_event, :schedule, :select_time, %{time: new_time}})
+    send(self(), {:step_event, :schedule, :select_time, new_time})
     {:noreply, assign(socket, :selected_time, new_time)}
   end
 
@@ -65,46 +64,37 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ScheduleComponent do
 
   @impl true
   def handle_event("close_timezone_dropdown", _params, socket) do
-    {:noreply, assign(socket, :timezone_dropdown_open, false)}
+    send(self(), {:step_event, :schedule, :close_timezone_dropdown, nil})
+    {:noreply, socket}
   end
 
   @impl true
   def handle_event("search_timezone", params, socket) do
-    search_term =
-      case params do
-        %{"search" => term} -> term
-        %{"value" => term} -> term
-        %{"_target" => ["search"], "search" => term} -> term
-        _ -> ""
-      end
-
-    {:noreply,
-     socket
-     |> assign(:timezone_search, search_term)
-     |> assign(:timezone_dropdown_open, true)}
+    send(self(), {:step_event, :schedule, :search_timezone, params})
+    {:noreply, socket}
   end
 
   @impl true
   def handle_event("prev_week", _params, socket) do
-    new_week_start = Date.add(socket.assigns[:current_week_start], -7)
-    {:noreply, assign(socket, :current_week_start, new_week_start)}
+    send(self(), {:step_event, :schedule, :prev_week, nil})
+    {:noreply, socket}
   end
 
   @impl true
   def handle_event("next_week", _params, socket) do
-    new_week_start = Date.add(socket.assigns[:current_week_start], 7)
-    {:noreply, assign(socket, :current_week_start, new_week_start)}
+    send(self(), {:step_event, :schedule, :next_week, nil})
+    {:noreply, socket}
   end
 
   @impl true
   def handle_event("prev_slide", _params, socket) do
-    send(self(), {:step_event, :schedule, :prev_step, %{}})
+    send(self(), {:step_event, :schedule, :back_step, nil})
     {:noreply, socket}
   end
 
   @impl true
   def handle_event("next_slide", _params, socket) do
-    send(self(), {:step_event, :schedule, :next_step, %{}})
+    send(self(), {:step_event, :schedule, :next_step, nil})
     {:noreply, socket}
   end
 
@@ -131,7 +121,13 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ScheduleComponent do
                   <div class="organizer-name-full">
                     {Profiles.display_name(@organizer_profile) || ""}
                   </div>
-                  <div class="meeting-duration">{gettext("%{duration} minutes", duration: @selected_duration)}</div>
+                  <div class="meeting-duration">
+                    <%= if @meeting_type do %>
+                      {LocalizationHelpers.format_duration(@meeting_type.duration_minutes)}
+                    <% else %>
+                      {LocalizationHelpers.format_duration(@selected_duration)}
+                    <% end %>
+                  </div>
                 </div>
               </div>
               <!-- Timezone Selector -->

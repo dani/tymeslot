@@ -27,25 +27,32 @@ defmodule TymeslotWeb.Themes.Shared.PathHandlers do
   defp do_get_base_path(:overview, username, _socket), do: "/#{username}"
 
   defp do_get_base_path(:schedule, username, socket) do
-    duration = socket.assigns[:duration] || socket.assigns[:selected_duration]
-    if duration, do: "/#{username}/schedule/#{duration}", else: "/#{username}"
+    slug =
+      socket.assigns[:duration] || socket.assigns[:selected_duration]
+      |> Tymeslot.MeetingTypes.normalize_duration_slug()
+
+    if slug, do: "/#{username}/#{slug}", else: "/#{username}"
   end
 
   defp do_get_base_path(:booking, username, socket) do
-    duration = socket.assigns[:duration] || socket.assigns[:selected_duration]
-    if duration, do: "/#{username}/schedule/#{duration}/book", else: "/#{username}"
+    slug =
+      socket.assigns[:duration] || socket.assigns[:selected_duration]
+      |> Tymeslot.MeetingTypes.normalize_duration_slug()
+
+    if slug, do: "/#{username}/#{slug}/book", else: "/#{username}"
   end
 
-  defp do_get_base_path(:confirmation, username, _socket), do: "/#{username}/schedule/thank-you"
+  defp do_get_base_path(:confirmation, username, _socket), do: "/#{username}/thank-you"
   defp do_get_base_path(_, username, _socket), do: "/#{username}"
 
   defp build_query_params(socket, locale) do
+    slug =
+      socket.assigns[:duration] || socket.assigns[:selected_duration]
+      |> Tymeslot.MeetingTypes.normalize_duration_slug()
+
     %{"locale" => locale}
     |> maybe_put_query_param("theme", socket.assigns[:theme_id])
-    |> maybe_put_query_param(
-      "duration",
-      socket.assigns[:duration] || socket.assigns[:selected_duration]
-    )
+    |> maybe_put_query_param("slug", slug)
   end
 
   defp maybe_put_query_param(params, _key, nil), do: params

@@ -414,12 +414,7 @@ defmodule TymeslotWeb.Themes.Core.Dispatcher do
 
   defp assign_theme_customization_data(socket, profile, theme_id) do
     if profile do
-      socket = ThemeCustomizationHelpers.assign_theme_customization(socket, profile, theme_id)
-
-      custom_css =
-        ThemeCustomizationHelpers.generate_custom_css(socket.assigns[:theme_customization])
-
-      assign(socket, :custom_css, custom_css)
+      ThemeCustomizationHelpers.assign_theme_customization(socket, profile, theme_id)
     else
       socket
     end

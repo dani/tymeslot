@@ -119,7 +119,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ScheduleComponent do
       <.page_layout
         show_steps={true}
         current_step={2}
-        duration={@duration}
+        slug={@duration}
         username_context={@username_context}
       >
         <div class="container flex-1 flex flex-col">
@@ -148,7 +148,11 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ScheduleComponent do
                       <p
                         class="text-base md:text-lg font-medium text-glass-primary"
                       >
-                        {gettext("Duration: %{duration}", duration: TimezoneUtils.format_duration(@duration))}
+                        <%= if @meeting_type do %>
+                          {gettext("Duration: %{duration}", duration: LocalizationHelpers.format_duration(@meeting_type.duration_minutes))}
+                        <% else %>
+                          {gettext("Duration: %{duration}", duration: TimezoneUtils.format_duration(@duration))}
+                        <% end %>
                       </p>
                     </div>
 
