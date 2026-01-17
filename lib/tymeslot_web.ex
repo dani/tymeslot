@@ -66,6 +66,11 @@ defmodule TymeslotWeb do
         plug TymeslotWeb.Plugs.SecurityHeadersPlug
       end
 
+      pipeline :webhook do
+        plug TymeslotWeb.Plugs.StripeWebhookPlug
+        plug :accepts, ["json"]
+      end
+
       pipeline :require_authenticated_user do
         plug TymeslotWeb.Plugs.RequireAuthPlug
       end

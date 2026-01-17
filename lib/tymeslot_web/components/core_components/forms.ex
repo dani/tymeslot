@@ -13,23 +13,18 @@ defmodule TymeslotWeb.Components.CoreComponents.Forms do
   attr :type, :string, default: "text"
   attr :placeholder, :string, default: ""
   attr :required, :boolean, default: false
-  attr :touched_fields, :list, default: []
+  attr :touched_fields, :any, default: []
   attr :rest, :global
 
   @spec form_field(map()) :: Phoenix.LiveView.Rendered.t()
   def form_field(assigns) do
-    field_errors =
-      if assigns.field in assigns.touched_fields do
-        Keyword.get_values(assigns.form.errors, assigns.field)
-      else
-        []
-      end
+    field_errors = get_field_errors(assigns.form, assigns.field, assigns.touched_fields)
 
     assigns = assign(assigns, :field_errors, field_errors)
 
     ~H"""
     <div class="form-field">
-      <label for={@field} class="form-field__label">
+      <label for={Phoenix.HTML.Form.input_id(@form, @field)} class="form-field__label">
         {@label}
         <%= if @required do %>
           <span class="text-red-500">*</span>
@@ -38,8 +33,8 @@ defmodule TymeslotWeb.Components.CoreComponents.Forms do
 
       <input
         type={@type}
-        id={@field}
-        name={"booking[#{@field}]"}
+        id={Phoenix.HTML.Form.input_id(@form, @field)}
+        name={Phoenix.HTML.Form.input_name(@form, @field)}
         value={Phoenix.HTML.Form.input_value(@form, @field)}
         placeholder={@placeholder}
         class={[
@@ -63,23 +58,18 @@ defmodule TymeslotWeb.Components.CoreComponents.Forms do
   attr :placeholder, :string, default: ""
   attr :rows, :integer, default: 4
   attr :required, :boolean, default: false
-  attr :touched_fields, :list, default: []
+  attr :touched_fields, :any, default: []
   attr :rest, :global
 
   @spec form_textarea(map()) :: Phoenix.LiveView.Rendered.t()
   def form_textarea(assigns) do
-    field_errors =
-      if assigns.field in assigns.touched_fields do
-        Keyword.get_values(assigns.form.errors, assigns.field)
-      else
-        []
-      end
+    field_errors = get_field_errors(assigns.form, assigns.field, assigns.touched_fields)
 
     assigns = assign(assigns, :field_errors, field_errors)
 
     ~H"""
     <div class="form-field">
-      <label for={@field} class="form-field__label">
+      <label for={Phoenix.HTML.Form.input_id(@form, @field)} class="form-field__label">
         {@label}
         <%= if @required do %>
           <span class="text-red-500">*</span>
@@ -87,8 +77,8 @@ defmodule TymeslotWeb.Components.CoreComponents.Forms do
       </label>
 
       <textarea
-        id={@field}
-        name={"booking[#{@field}]"}
+        id={Phoenix.HTML.Form.input_id(@form, @field)}
+        name={Phoenix.HTML.Form.input_name(@form, @field)}
         placeholder={@placeholder}
         rows={@rows}
         class={[
@@ -118,5 +108,19 @@ defmodule TymeslotWeb.Components.CoreComponents.Forms do
       </div>
     <% end %>
     """
+  end
+
+  defp get_field_errors(form, field, touched_fields) do
+    if field in touched_fields do
+      form.errors
+      |> Keyword.get_values(field)
+      |> Enum.map(fn
+        {msg, _opts} -> msg
+        msg when is_binary(msg) -> msg
+        other -> inspect(other)
+      end)
+    else
+      []
+    end
   end
 end

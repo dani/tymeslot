@@ -29,7 +29,7 @@ defmodule TymeslotWeb.Components.CoreComponents do
   slot :inner_block, required: true
   attr :show_steps, :boolean, default: false
   attr :current_step, :integer, default: 1
-  attr :duration, :string, default: nil
+  attr :slug, :string, default: nil
   attr :username_context, :string, default: nil
   attr :theme_customization, :any, default: nil
   attr :has_custom_theme, :boolean, default: false
@@ -143,7 +143,7 @@ defmodule TymeslotWeb.Components.CoreComponents do
   attr :type, :string, default: "text"
   attr :placeholder, :string, default: ""
   attr :required, :boolean, default: false
-  attr :touched_fields, :list, default: []
+  attr :touched_fields, :any, default: []
   attr :rest, :global
   @spec form_field(map()) :: Phoenix.LiveView.Rendered.t()
   def form_field(assigns), do: Forms.form_field(assigns)
@@ -157,7 +157,7 @@ defmodule TymeslotWeb.Components.CoreComponents do
   attr :placeholder, :string, default: ""
   attr :rows, :integer, default: 4
   attr :required, :boolean, default: false
-  attr :touched_fields, :list, default: []
+  attr :touched_fields, :any, default: []
   attr :rest, :global
   @spec form_textarea(map()) :: Phoenix.LiveView.Rendered.t()
   def form_textarea(assigns), do: Forms.form_textarea(assigns)

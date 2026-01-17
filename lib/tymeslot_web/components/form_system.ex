@@ -14,10 +14,13 @@ defmodule TymeslotWeb.Components.FormSystem do
   @doc """
   Sets up form state with initial data and validation tracking.
   """
-  @spec setup_form_state(Phoenix.LiveView.Socket.t(), map()) :: Phoenix.LiveView.Socket.t()
-  def setup_form_state(socket, form_data \\ %{}) do
+  @spec setup_form_state(Phoenix.LiveView.Socket.t(), map(), keyword()) ::
+          Phoenix.LiveView.Socket.t()
+  def setup_form_state(socket, form_data \\ %{}, opts \\ []) do
+    as = Keyword.get(opts, :as)
+
     socket
-    |> assign(:form, to_form(form_data))
+    |> assign(:form, to_form(form_data, as: as))
     |> assign(:touched_fields, MapSet.new())
     |> assign(:validation_errors, %{})
     |> assign(:saving, false)

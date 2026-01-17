@@ -169,6 +169,14 @@ defmodule TymeslotWeb.Components.SiteComponents do
                 Contact
               </.link>
             <% end %>
+            <%= if Tymeslot.Infrastructure.Config.saas_mode?() do %>
+              <.link
+                navigate="/dashboard/subscription"
+                class="text-gray-400 hover:text-turquoise-400 transition-colors"
+              >
+                Pro Plan
+              </.link>
+            <% end %>
             <%= if privacy_url = Application.get_env(:tymeslot, :privacy_policy_url) do %>
               <.link
                 navigate={privacy_url}

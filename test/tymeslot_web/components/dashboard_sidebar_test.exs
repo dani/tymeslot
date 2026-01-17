@@ -22,7 +22,6 @@ defmodule TymeslotWeb.Components.DashboardSidebarTest do
     assert html =~ "Video"
     assert html =~ "Theme"
     assert html =~ "Meetings"
-    assert html =~ "Payment"
 
     # Check exactly one active link, and it's the overview link
     active_links = Floki.find(doc, "a.dashboard-nav-link--active")
@@ -41,8 +40,7 @@ defmodule TymeslotWeb.Components.DashboardSidebarTest do
       calendar: "/dashboard/calendar",
       video: "/dashboard/video",
       theme: "/dashboard/theme",
-      meetings: "/dashboard/meetings",
-      payment: "/dashboard/payment"
+      meetings: "/dashboard/meetings"
     }
 
     for {action, expected_href} <- action_to_path do

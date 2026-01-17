@@ -1,0 +1,151 @@
+defmodule TymeslotWeb.Plugs.StripeWebhookPlug do
+  @moduledoc """
+  A plug to verify and process Stripe webhook requests.
+  """
+
+  require Logger
+
+  @behaviour Plug
+
+  alias Plug.Conn
+  alias Tymeslot.Payments.Errors.WebhookError
+  alias Tymeslot.Payments.Webhooks.IdempotencyCache
+  alias Tymeslot.Payments.Webhooks.Security.{DevelopmentMode, SignatureVerifier}
+  
+  # Test helper function - kept for backward compatibility with tests
+  @doc false
+  @spec stripe_webhook_secret() :: String.t() | nil
+  def stripe_webhook_secret do
+    Application.get_env(:stripity_stripe, :webhook_secret) ||
+      Application.get_env(:tymeslot, :stripe_webhook_secret) ||
+      System.get_env("STRIPE_WEBHOOK_SECRET")
+  end
+
+  @spec init(keyword()) :: keyword()
+  def init(opts), do: opts
+
+  @spec call(Plug.Conn.t(), keyword()) :: Plug.Conn.t()
+  def call(conn, _opts) do
+    Logger.info("StripeWebhookPlug processing webhook", path: conn.request_path)
+    process_webhook(conn)
+  end
+
+  @spec process_webhook(Plug.Conn.t()) :: Plug.Conn.t()
+  defp process_webhook(conn) do
+    # Read the body first
+    with {:ok, raw_body, conn} <- read_body_once(conn),
+         {:ok, event} <- verify_webhook(conn, raw_body),
+         {:ok, :not_processed} <- check_idempotency(event_id(event)) do
+      Logger.info("Stripe webhook validated successfully: #{event_type(event)}")
+      Conn.assign(conn, :stripe_event, event)
+    else
+      {:ok, :already_processed} ->
+        Logger.info("Skipping already processed webhook")
+
+        conn
+        |> Conn.send_resp(200, "")
+        |> Conn.halt()
+
+      {:error, error} ->
+        # Log detailed error information
+        log_error(error, conn)
+        handle_error(conn, error)
+    end
+  end
+
+  @spec verify_webhook(Plug.Conn.t(), binary()) ::
+          {:ok, map()} | {:error, WebhookError.SignatureError.t()}
+  defp verify_webhook(conn, raw_body) do
+    # Try development mode first if allowed
+    case DevelopmentMode.verify_if_allowed(raw_body) do
+      {:ok, event} ->
+        {:ok, event}
+
+      {:error, :not_allowed} ->
+        # Production path: require signature
+        with {:ok, signature} <- get_stripe_signature(conn) do
+          SignatureVerifier.verify(raw_body, signature)
+        end
+
+      {:error, _} = error ->
+        error
+    end
+  end
+
+  defp event_id(event), do: Map.get(event, :id) || Map.get(event, "id")
+  defp event_type(event), do: Map.get(event, :type) || Map.get(event, "type")
+
+  # Use the cached body from WebhookBodyCachePlug
+  @spec read_body_once(Plug.Conn.t()) :: {:ok, binary(), Plug.Conn.t()}
+  defp read_body_once(conn) do
+    case conn.assigns[:raw_body] do
+      nil ->
+        Logger.warning(
+          "No cached raw body found - WebhookBodyCachePlug may not be configured properly"
+        )
+
+        # Fallback to reading body directly (this will likely fail after Plug.Parsers)
+        case Conn.read_body(conn, []) do
+          {:ok, body, conn} ->
+            {:ok, body, conn}
+
+          {:error, :already_read} ->
+            {:ok, "", conn}
+
+          {:error, reason} ->
+            Logger.error("Failed to read body: #{inspect(reason)}")
+            {:ok, "", conn}
+        end
+
+      raw_body when is_binary(raw_body) ->
+        {:ok, raw_body, conn}
+
+      _ ->
+        Logger.error("Invalid raw_body in assigns: #{inspect(conn.assigns[:raw_body])}")
+        {:ok, "", conn}
+    end
+  end
+
+  @spec get_stripe_signature(Plug.Conn.t()) ::
+          {:ok, String.t()} | {:error, WebhookError.SignatureError.t()}
+  defp get_stripe_signature(conn) do
+    case Conn.get_req_header(conn, "stripe-signature") do
+      [signature | _] ->
+        Logger.debug("Stripe signature found")
+        {:ok, signature}
+
+      _ ->
+        Logger.error("Missing Stripe signature header")
+
+        {:error,
+         %WebhookError.SignatureError{
+           reason: :missing_signature,
+           message: "Missing Stripe signature header"
+         }}
+    end
+  end
+
+  # Use ETS-based cache for idempotency checking
+  @spec check_idempotency(String.t()) :: {:ok, :not_processed | :already_processed}
+  defp check_idempotency(event_id) do
+    IdempotencyCache.check_idempotency(event_id)
+  end
+
+  @spec handle_error(Plug.Conn.t(), WebhookError.SignatureError.t()) :: Plug.Conn.t()
+  defp handle_error(conn, %WebhookError.SignatureError{} = error) do
+    conn
+    |> Conn.put_resp_content_type("application/json")
+    |> Conn.send_resp(400, Jason.encode!(%{error: error.reason, message: error.message}))
+    |> Conn.halt()
+  end
+
+  @spec log_error(Tymeslot.Payments.Errors.WebhookError.SignatureError.t(), Plug.Conn.t()) :: :ok
+  defp log_error(error, conn) do
+    Logger.error("StripeWebhookPlug error",
+      error: inspect(error),
+      path: conn.request_path
+    )
+
+    :ok
+  end
+end

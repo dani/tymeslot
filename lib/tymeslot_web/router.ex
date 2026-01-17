@@ -12,6 +12,16 @@ defmodule TymeslotWeb.Router do
   end
 
   # =============================================================================
+  # Webhook Routes
+  # =============================================================================
+
+  scope "/webhooks", TymeslotWeb do
+    pipe_through :webhook
+
+    post "/stripe", StripeWebhookController, :webhook
+  end
+
+  # =============================================================================
   # Core Root Route
   # =============================================================================
 
@@ -84,7 +94,6 @@ defmodule TymeslotWeb.Router do
       live "/dashboard/theme", DashboardLive, :theme
       live "/dashboard/meetings", DashboardLive, :meetings
       live "/dashboard/embed", DashboardLive, :embed
-      live "/dashboard/payment", DashboardLive, :payment
     end
   end
 
@@ -137,9 +146,9 @@ defmodule TymeslotWeb.Router do
         TymeslotWeb.Hooks.ClientInfoHook
       ] do
       live "/:username", Themes.Core.Dispatcher, :overview
-      live "/:username/schedule/:duration", Themes.Core.Dispatcher, :schedule
-      live "/:username/schedule/:duration/book", Themes.Core.Dispatcher, :booking
-      live "/:username/schedule/thank-you", Themes.Core.Dispatcher, :confirmation
+      live "/:username/thank-you", Themes.Core.Dispatcher, :confirmation
+      live "/:username/:slug", Themes.Core.Dispatcher, :schedule
+      live "/:username/:slug/book", Themes.Core.Dispatcher, :booking
     end
   end
 
