@@ -402,6 +402,7 @@ defmodule Tymeslot.Workers.EmailWorker do
       "send_reminder_emails" -> ["meeting_id", "reminder_value", "reminder_unit"]
       "send_reschedule_request" -> ["meeting_id"]
       "send_contact_form" -> ["sender_name", "sender_email", "subject", "message"]
+      "send_support_request" -> ["sender_name", "sender_email", "subject", "message"]
       "send_email_verification" -> ["user_id", "verification_url"]
       "send_password_reset" -> ["user_id", "reset_url"]
       "send_email_change_verification" -> ["user_id", "new_email", "verification_url"]

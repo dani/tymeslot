@@ -176,6 +176,44 @@ defmodule Tymeslot.Emails.Templates.AppointmentConfirmationOrganizerTest do
       assert email.text_body =~ "reminder"
     end
 
+    test "text body shows reminder message when reminders_enabled is true" do
+      details = build_appointment_details(%{reminders_enabled: true, reminder_time: "30 minutes"})
+
+      email =
+        AppointmentConfirmationOrganizer.confirmation_email("organizer@example.com", details)
+
+      assert email.text_body =~ "Set a reminder"
+      assert email.text_body =~ "30 minutes"
+    end
+
+    test "text body shows no reminders message when reminders_enabled is false" do
+      details = build_appointment_details(%{reminders_enabled: false})
+
+      email =
+        AppointmentConfirmationOrganizer.confirmation_email("organizer@example.com", details)
+
+      assert email.text_body =~ "No reminder emails are scheduled"
+    end
+
+    test "text body defaults to reminders enabled when reminders_enabled is nil" do
+      # When reminders_enabled is nil, it should default to true
+      # But we need reminder_time to be present for the message to show
+      details =
+        build_appointment_details(%{
+          reminders_enabled: nil,
+          reminder_time: "15 minutes"
+        })
+
+      email =
+        AppointmentConfirmationOrganizer.confirmation_email("organizer@example.com", details)
+
+      # Should default to showing reminder message (reminders enabled)
+      # Note: The function uses Map.get with default true, so nil becomes true
+      assert email.text_body =~ "Set a reminder"
+      assert email.text_body =~ "15 minutes"
+      refute email.text_body =~ "No reminder emails are scheduled"
+    end
+
     test "handles optional attendee fields gracefully" do
       details =
         build_appointment_details(%{

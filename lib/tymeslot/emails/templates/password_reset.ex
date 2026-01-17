@@ -2,42 +2,34 @@ defmodule Tymeslot.Emails.Templates.PasswordReset do
   @moduledoc """
   Email template for password reset requests.
   """
-  alias Tymeslot.Emails.Shared.{Components, SharedHelpers, Styles, TemplateHelper}
+  alias Tymeslot.Emails.Shared.{Components, SharedHelpers, TemplateHelper}
 
   @spec render(map(), String.t()) :: String.t()
   def render(user, reset_url) do
+    user_display_name = SharedHelpers.sanitize_for_email(user.name || user.email)
+
     mjml_content = """
-    #{Components.title_section("Securely reset your password")}
+    #{Components.title_section("Reset Your Password", emoji: "🔒", align: "center")}
 
-    <mj-text font-size="16px" color="#{Styles.text_color(:secondary)}" line-height="24px" padding-bottom="24px">
-      Hi #{SharedHelpers.sanitize_for_email(user.name || user.email)},
-    </mj-text>
+    #{Components.centered_text("Hi #{user_display_name},")}
 
-    <mj-text font-size="16px" color="#{Styles.text_color(:secondary)}" line-height="24px" padding-bottom="24px">
-      It happens to the best of us! Click the button below to choose a new password and regain access to your account.
-    </mj-text>
+    #{Components.centered_text("It happens to the best of us! Click the button below to choose a new password and regain access to your account.", padding: "0 0 20px 0")}
 
-    #{Components.action_button("Set New Password", reset_url)}
+    #{Components.action_button("Set New Password", reset_url, color: "primary", full_width: true)}
 
-    <mj-text font-size="14px" color="#{Styles.text_color(:secondary)}" padding-top="24px" line-height="20px">
-      This link is valid for the next 2 hours.
-    </mj-text>
+    #{Components.system_footer_note("This link is valid for the next 2 hours.")}
 
-    <mj-text font-size="14px" color="#{Styles.text_color(:secondary)}" padding-top="16px" line-height="20px">
-      If you didn't request this change, your account is still secure—you can simply delete this email.
-    </mj-text>
+    #{Components.system_footer_note("If you didn't request this change, your account is still secure—you can simply delete this email.")}
 
-    #{Components.divider()}
+    #{Components.divider(margin: "32px 0")}
 
-    <mj-text font-size="12px" color="#{Styles.text_color(:muted)}" line-height="18px">
-      If the button doesn't work, copy and paste this link into your browser:
-      <br />
-      <a href="#{reset_url}" style="color: #14b8a6; text-decoration: underline;">
-        #{reset_url}
-      </a>
-    </mj-text>
+    #{Components.troubleshooting_link(reset_url)}
     """
 
-    TemplateHelper.compile_system_template(mjml_content, "Account Security")
+    TemplateHelper.compile_system_template(
+      mjml_content,
+      "Account Security",
+      "Instructions to reset your Tymeslot password."
+    )
   end
 end

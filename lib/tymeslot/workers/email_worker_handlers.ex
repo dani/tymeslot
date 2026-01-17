@@ -34,6 +34,9 @@ defmodule Tymeslot.Workers.EmailWorkerHandlers do
       "send_contact_form" ->
         handle_contact_form(args)
 
+      "send_support_request" ->
+        handle_support_request(args)
+
       "send_email_verification" ->
         handle_email_verification(args)
 
@@ -325,38 +328,51 @@ defmodule Tymeslot.Workers.EmailWorkerHandlers do
   end
 
   defp handle_contact_form(args) do
+    handle_form_submission(args, "contact form", fn name, email, subj, msg ->
+      email_service_module().send_contact_form(name, email, subj, msg)
+    end)
+  end
+
+  defp handle_support_request(args) do
+    handle_form_submission(args, "support request", fn name, email, subj, msg ->
+      email_service_module().send_support_request(name, email, subj, msg)
+    end)
+  end
+
+  defp handle_form_submission(args, type, send_fn) do
     required = ["sender_name", "sender_email", "subject", "message"]
-    missing = Enum.reject(required, &Map.has_key?(args, &1))
 
-    if missing != [] do
-      Logger.error("Contact form email missing required fields", missing: missing)
-      {:discard, "Missing required fields: #{Enum.join(missing, ", ")}"}
-    else
-      sender_name = Map.fetch!(args, "sender_name")
-      sender_email = Map.fetch!(args, "sender_email")
-      subject = Map.fetch!(args, "subject")
-      message = Map.fetch!(args, "message")
+    case Tymeslot.Infrastructure.ValidationHelpers.validate_required_fields(args, required) do
+      {:ok, _} ->
+        sender_name = Map.fetch!(args, "sender_name")
+        sender_email = Map.fetch!(args, "sender_email")
+        subject = Map.fetch!(args, "subject")
+        message = Map.fetch!(args, "message")
 
-      Logger.info("Sending contact form email", sender_email: sender_email, subject: subject)
+        Logger.info("Sending #{type} email", sender_email: sender_email, subject: subject)
 
-      case email_service_module().send_contact_form(sender_name, sender_email, subject, message) do
-        {:ok, _result} ->
-          Logger.info("Contact form email sent successfully",
-            sender_email: sender_email,
-            subject: subject
-          )
+        case send_fn.(sender_name, sender_email, subject, message) do
+          {:ok, _result} ->
+            Logger.info("#{type} email sent successfully",
+              sender_email: sender_email,
+              subject: subject
+            )
 
-          :ok
+            :ok
 
-        {:error, reason} ->
-          Logger.error("Failed to send contact form email",
-            sender_email: sender_email,
-            subject: subject,
-            error: inspect(reason)
-          )
+          {:error, reason} ->
+            Logger.error("Failed to send #{type} email",
+              sender_email: sender_email,
+              subject: subject,
+              error: inspect(reason)
+            )
 
-          {:error, reason}
-      end
+            {:error, reason}
+        end
+
+      {:error, errors} ->
+        Logger.error("#{type} email missing required fields", errors: errors)
+        {:discard, "Missing required fields: #{inspect(Map.keys(errors))}"}
     end
   end
 

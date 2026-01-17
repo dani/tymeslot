@@ -31,51 +31,68 @@ defmodule Tymeslot.Emails.Shared.Styles do
   - Dark mode support using `@media (prefers-color-scheme: dark)` and utility classes.
   """
 
-  # Color palette - aligned with design system (turquoise theme)
+  # ============================================================================
+  # COLOR PALETTE - 2026 Glass Morphism Theme
+  # ============================================================================
+
+  # Primary Colors - Turquoise Gradient Theme
   # var(--color-primary-500)
   @primary_color "#14b8a6"
   # var(--color-primary-600)
   @primary_hover "#0d9488"
+  @primary_dark "#0f766e"
+
+  # Semantic Colors
   # var(--color-success)
   @success_color "#10b981"
   @success_hover "#059669"
+  @success_light "#d1fae5"
   # var(--color-error)
   @danger_color "#ef4444"
   @danger_hover "#dc2626"
+  @danger_light "#fee2e2"
   # var(--color-warning)
   @warning_color "#f59e0b"
-  # Using primary turquoise for info instead of blue
+  @warning_light "#fef3c7"
+  # Using primary turquoise for info
   @info_color "#14b8a6"
+  @info_light "#ccfbf1"
 
+  # Text Colors - Enhanced hierarchy
   # var(--color-text-primary)
   @text_primary "#18181b"
   # var(--color-text-secondary)
   @text_secondary "#52525b"
-  # Additional commonly used text colors
   @text_muted "#71717a"
   @text_light "#a1a1aa"
   @text_dark "#3f3f46"
   @text_subtle "#9ca3af"
 
+  # Background Colors - Layered depth system
   # var(--color-bg-secondary)
   @background_light "#fafafa"
   # var(--color-bg-primary)
   @background_white "#ffffff"
-  # Additional background colors
   @background_gray "#f3f4f6"
   @background_slate "#f8fafc"
-  @background_blue_light "#eef2ff"
+
+  # Status backgrounds (lighter, more modern)
+  @background_blue_light "#eff6ff"
   @background_red_light "#fef2f2"
   @background_yellow_light "#fffbeb"
   @background_green_light "#f0fdf4"
+  @background_turquoise_subtle "#f0fdfa"
 
+  # Border Colors - Softer, more refined
   # var(--color-border-light)
   @border_color "#e4e4e7"
-  # Additional border colors
   @border_gray "#e5e7eb"
-  @border_red "#fecaca"
-  @border_yellow "#f59e0b"
+  @border_subtle "#f0f0f1"
   @border_light_gray "#e4e4e7"
+
+  # Accent borders
+  @border_red "#fecaca"
+  @border_yellow "#fde68a"
 
   # Calendar and component specific colors
   @calendar_bg_light "#f8f9fa"
@@ -103,8 +120,13 @@ defmodule Tymeslot.Emails.Shared.Styles do
   @info_text_dark "#3730a3"
   @success_text_green "#166534"
 
-  # Typography - Aligned with design tokens and Inter font
+  # ============================================================================
+  # TYPOGRAPHY - Inter Font System (2026)
+  # ============================================================================
+
   @font_family "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+
+  # Font sizes - Refined scale
   @font_size_xs "12px"
   @font_size_sm "14px"
   @font_size_base "16px"
@@ -114,26 +136,35 @@ defmodule Tymeslot.Emails.Shared.Styles do
   @font_size_2xl "24px"
   @font_size_3xl "30px"
 
-  # Spacing
+  # ============================================================================
+  # SPACING - Harmonious scale
+  # ============================================================================
+
   @spacing_0 "0"
-  @spacing_xs "5px"
-  @spacing_sm "10px"
-  @spacing_md "15px"
-  @spacing_lg "20px"
-  @spacing_xl "30px"
-  @spacing_2xl "40px"
+  @spacing_xs "4px"
+  @spacing_sm "8px"
+  @spacing_md "12px"
+  @spacing_lg "16px"
+  @spacing_xl "24px"
+  @spacing_2xl "32px"
 
-  # Common padding combinations
-  @padding_xs "6px"
-  @padding_sm "8px"
-  @padding_base "12px"
-  @padding_md "16px"
-  @padding_lg "20px"
-  @padding_xl "24px"
-  @padding_2xl "32px"
+  # Padding presets
+  @padding_xs "4px"
+  @padding_sm "6px"
+  @padding_base "10px"
+  @padding_md "14px"
+  @padding_lg "16px"
+  @padding_xl "20px"
+  @padding_2xl "28px"
 
-  # Components - Aligned with modern design
-  @button_radius "10px"
+  # ============================================================================
+  # COMPONENTS - Modern UI Elements
+  # ============================================================================
+
+  # Border radius - Softer, more rounded (2026 trend)
+  @button_radius "12px"
+  @card_radius "16px"
+  @badge_radius "20px"
 
   @doc "Get button color based on type"
   @spec button_color(String.t()) :: String.t()
@@ -170,9 +201,12 @@ defmodule Tymeslot.Emails.Shared.Styles do
   def alert_border_color("info"), do: @info_color
   def alert_border_color(_), do: @border_color
 
-  @doc "Button padding"
-  @spec button_padding() :: String.t()
-  def button_padding, do: "16px 32px"
+  @doc "Button padding - More generous for modern feel"
+  @spec button_padding(atom()) :: String.t()
+  def button_padding(:large), do: "18px 36px"
+  def button_padding(:medium), do: "14px 28px"
+  def button_padding(:small), do: "10px 20px"
+  def button_padding(_), do: "16px 32px"
 
   @doc "Button font size"
   @spec button_font_size() :: String.t()
@@ -181,6 +215,14 @@ defmodule Tymeslot.Emails.Shared.Styles do
   @doc "Button border radius"
   @spec button_radius() :: String.t()
   def button_radius, do: @button_radius
+
+  @doc "Card border radius"
+  @spec card_radius() :: String.t()
+  def card_radius, do: @card_radius
+
+  @doc "Badge border radius"
+  @spec badge_radius() :: String.t()
+  def badge_radius, do: @badge_radius
 
   @doc "Table attributes for MJML"
   @spec table_attributes() :: String.t()
@@ -224,16 +266,28 @@ defmodule Tymeslot.Emails.Shared.Styles do
     "color: #{@text_secondary}; text-decoration: none;"
   end
 
-  @doc "Get minimal mobile styles - let MJML handle most responsive behavior"
+  @doc "Get modern mobile styles with enhanced responsive behavior"
   @spec mobile_styles() :: String.t()
   def mobile_styles do
     """
+    /* ====================================================================
+       MOBILE RESPONSIVE STYLES (480px and below)
+       ==================================================================== */
     @media only screen and (max-width: 480px) {
-      /* Minimal overrides for mobile - MJML handles most responsiveness */
       .hide-mobile { display: none !important; }
       .show-mobile { display: block !important; }
 
-      /* Table adjustments for better mobile reading */
+      /* Typography adjustments */
+      .mobile-heading {
+        font-size: 24px !important;
+        line-height: 1.3 !important;
+      }
+      .mobile-text {
+        font-size: 15px !important;
+        line-height: 1.5 !important;
+      }
+
+      /* Table adjustments for stacked layout */
       .responsive-table td {
         display: block !important;
         width: 100% !important;
@@ -248,18 +302,67 @@ defmodule Tymeslot.Emails.Shared.Styles do
       }
       .responsive-table tr {
         display: block !important;
-        padding: 12px 0 !important;
+        padding: 14px 0 !important;
         border-bottom: 1px solid #e4e4e7 !important;
+      }
+
+      /* Button adjustments */
+      .mobile-button {
+        width: 100% !important;
+        padding: 16px 24px !important;
+      }
+
+      /* Card spacing */
+      .mobile-card {
+        margin: 12px 0 !important;
+        padding: 16px !important;
       }
     }
 
-    /* Dark mode compatibility - ensure readability */
+    /* ====================================================================
+       DARK MODE STYLES (Enhanced for 2026)
+       ==================================================================== */
     @media (prefers-color-scheme: dark) {
-      .force-white-bg {
+      /* Core backgrounds */
+      .dark-bg-primary {
+        background-color: #09090b !important;
+      }
+      .dark-bg-secondary {
+        background-color: #18181b !important;
+      }
+      .dark-bg-card {
+        background-color: #27272a !important;
+        border-color: #3f3f46 !important;
+      }
+
+      /* Text colors */
+      .dark-text-primary {
+        color: #fafafa !important;
+      }
+      .dark-text-secondary {
+        color: #a1a1aa !important;
+      }
+      .dark-text-muted {
+        color: #71717a !important;
+      }
+
+      /* Keep light theme for email body (better compatibility) */
+      .force-light-bg {
         background-color: #ffffff !important;
       }
       .force-light-text {
         color: #18181b !important;
+      }
+
+      /* Dark mode accent adjustments */
+      .dark-border {
+        border-color: #3f3f46 !important;
+      }
+
+      /* Maintain button visibility in dark mode */
+      .dark-button-primary {
+        background-color: #14b8a6 !important;
+        color: #ffffff !important;
       }
     }
     """
@@ -271,62 +374,130 @@ defmodule Tymeslot.Emails.Shared.Styles do
     """
     <mj-attributes>
       <mj-all font-family="#{@font_family}" />
-      <mj-text font-size="#{@font_size_md}" line-height="1.6" color="#{@text_primary}" />
+      <mj-text font-size="#{@font_size_md}" line-height="1.6" color="#{@text_primary}" padding="0" />
       <mj-section padding="0" />
       <mj-column padding="0" />
-      <mj-button font-family="#{@font_family}" />
+      <mj-button font-family="#{@font_family}" padding="0" />
       <mj-table font-family="#{@font_family}" />
     </mj-attributes>
     """
   end
 
-  @doc "Get CSS styles for email head section"
+  @doc "Get CSS styles for email head section - 2026 edition"
   @spec email_css_styles() :: String.t()
   def email_css_styles do
     """
     <mj-style>
-      .gradient-bg {
-        background: linear-gradient(135deg, #{@primary_color} 0%, #{@primary_hover} 100%);
+      /* ================================================================
+         MODERN DESIGN UTILITIES (2026)
+         ================================================================ */
+
+      /* Gradient backgrounds */
+      .gradient-primary {
+        background: linear-gradient(135deg, #{@primary_color} 0%, #{@primary_hover} 100%) !important;
       }
 
-      .glass-bg {
-        background: rgba(255, 255, 255, 0.7);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.3);
+      .gradient-accent {
+        background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%) !important;
       }
 
-      .shadow-sm {
-        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      .gradient-subtle {
+        background: linear-gradient(180deg, #{@background_white} 0%, #{@background_light} 100%) !important;
       }
 
-      .shadow-md {
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      /* Glass morphism hint (email-safe version) */
+      .glass-card {
+        background: #{@background_white};
+        border: 1px solid #{@border_subtle};
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04),
+                    0 0 4px rgba(20, 184, 166, 0.03);
       }
 
-      .shadow-glass {
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08), 0 0 8px rgba(20, 184, 166, 0.05);
+      /* Modern shadows */
+      .shadow-soft {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
       }
 
+      .shadow-medium {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      }
+
+      .shadow-strong {
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      }
+
+      .shadow-glow {
+        box-shadow: 0 4px 16px rgba(20, 184, 166, 0.15);
+      }
+
+      /* Status badges */
+      .badge {
+        display: inline-block;
+        padding: 6px 14px;
+        border-radius: #{@badge_radius};
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+      }
+
+      .badge-turquoise {
+        background-color: #{@info_light};
+        color: #{@primary_dark};
+      }
+
+      .badge-success {
+        background-color: #{@success_light};
+        color: #065f46;
+      }
+
+      .badge-warning {
+        background-color: #{@warning_light};
+        color: #92400e;
+      }
+
+      .badge-danger {
+        background-color: #{@danger_light};
+        color: #991b1b;
+      }
+
+      /* Link styles */
       a {
         color: #{@info_color};
         text-decoration: none;
+        transition: color 0.2s ease;
       }
 
       a:hover {
-        text-decoration: underline;
         color: #{@primary_hover};
+        text-decoration: none;
       }
 
-      .button-primary:hover {
-        background-color: #{@primary_hover} !important;
+      /* Card styles */
+      .card {
+        background: #{@background_white};
+        border-radius: #{@card_radius};
+        overflow: hidden;
       }
 
-      .button-success:hover {
-        background-color: #{@success_hover} !important;
+      .card-border {
+        border: 1px solid #{@border_color};
       }
 
-      .button-danger:hover {
-        background-color: #{@danger_hover} !important;
+      /* Status indicators */
+      .status-dot {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin-right: 6px;
+      }
+
+      .status-dot-success {
+        background-color: #{@success_color};
+      }
+
+      .status-dot-warning {
+        background-color: #{@warning_color};
       }
 
       #{mobile_styles()}
@@ -336,10 +507,10 @@ defmodule Tymeslot.Emails.Shared.Styles do
 
   @doc "Section padding presets"
   @spec section_padding(:small | :medium | :large | :xlarge) :: String.t()
-  def section_padding(:small), do: "#{@spacing_sm} #{@spacing_lg}"
-  def section_padding(:medium), do: "#{@spacing_md} #{@spacing_lg}"
-  def section_padding(:large), do: "#{@spacing_lg} #{@spacing_lg}"
-  def section_padding(:xlarge), do: "#{@spacing_xl} #{@spacing_lg}"
+  def section_padding(:small), do: "#{@spacing_xs} #{@spacing_lg}"
+  def section_padding(:medium), do: "#{@spacing_sm} #{@spacing_lg}"
+  def section_padding(:large), do: "#{@spacing_md} #{@spacing_lg}"
+  def section_padding(:xlarge), do: "#{@spacing_lg} #{@spacing_lg}"
 
   # Font size getters
   @spec font_size(:xs | :sm | :base | :md | :lg | :xl | :"2xl" | :"3xl") :: String.t()
@@ -371,6 +542,7 @@ defmodule Tymeslot.Emails.Shared.Styles do
           | :red_light
           | :yellow_light
           | :green_light
+          | :turquoise_subtle
         ) :: String.t()
   def background_color(:white), do: @background_white
   def background_color(:light), do: @background_light
@@ -380,6 +552,7 @@ defmodule Tymeslot.Emails.Shared.Styles do
   def background_color(:red_light), do: @background_red_light
   def background_color(:yellow_light), do: @background_yellow_light
   def background_color(:green_light), do: @background_green_light
+  def background_color(:turquoise_subtle), do: @background_turquoise_subtle
 
   # Spacing getters
   @spec spacing(0 | :xs | :sm | :md | :lg | :xl | :"2xl") :: String.t()
@@ -402,12 +575,13 @@ defmodule Tymeslot.Emails.Shared.Styles do
   def padding(:"2xl"), do: @padding_2xl
 
   # Border color getters
-  @spec border_color(:default | :gray | :red | :yellow | :light_gray) :: String.t()
+  @spec border_color(:default | :gray | :red | :yellow | :light_gray | :subtle) :: String.t()
   def border_color(:default), do: @border_color
   def border_color(:gray), do: @border_gray
   def border_color(:red), do: @border_red
   def border_color(:yellow), do: @border_yellow
   def border_color(:light_gray), do: @border_light_gray
+  def border_color(:subtle), do: @border_subtle
 
   # Calendar component colors
   @spec calendar_color(:bg_light | :button_white | :text_muted) :: String.t()

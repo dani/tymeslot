@@ -88,6 +88,9 @@ defmodule Tymeslot.Emails.Shared.CalendarComponents do
   """
   @spec attendee_info_section(map()) :: String.t()
   def attendee_info_section(attendee) do
+    safe_name = SharedHelpers.sanitize_for_email(attendee.name)
+    safe_email = SharedHelpers.sanitize_for_email(attendee.email)
+
     """
     <mj-section padding="0 0 24px 0">
       <mj-column>
@@ -101,12 +104,12 @@ defmodule Tymeslot.Emails.Shared.CalendarComponents do
         <mj-table #{Styles.table_attributes()} css-class="responsive-table">
           <tr style="#{Styles.table_row_style()}">
             <td style="#{Styles.table_label_style()}">Name:</td>
-            <td style="#{Styles.table_value_style()}">#{attendee.name}</td>
+            <td style="#{Styles.table_value_style()}">#{safe_name}</td>
           </tr>
           <tr style="#{Styles.table_row_style()}">
             <td style="#{Styles.table_label_style()}">Email:</td>
             <td style="#{Styles.table_value_style()}">
-              <a href="mailto:#{attendee.email}" style="color: #{Styles.component_color(:link)}; font-weight: 600; text-decoration: none;">#{attendee.email}</a>
+              <a href="mailto:#{safe_email}" style="color: #{Styles.component_color(:link)}; font-weight: 600; text-decoration: none;">#{safe_email}</a>
             </td>
           </tr>
           #{if attendee[:phone], do: phone_row(attendee.phone), else: ""}
@@ -121,10 +124,12 @@ defmodule Tymeslot.Emails.Shared.CalendarComponents do
   # Private helper functions
 
   defp phone_row(phone) do
+    safe_phone = SharedHelpers.sanitize_for_email(phone)
+
     """
     <tr style="#{Styles.table_row_style()}">
       <td style="#{Styles.table_label_style()}">Phone:</td>
-      <td style="#{Styles.table_value_style()}">#{phone}</td>
+      <td style="#{Styles.table_value_style()}">#{safe_phone}</td>
     </tr>
     """
   end
@@ -139,10 +144,12 @@ defmodule Tymeslot.Emails.Shared.CalendarComponents do
   end
 
   defp timezone_row(timezone) do
+    safe_timezone = SharedHelpers.sanitize_for_email(timezone)
+
     """
     <tr style="#{Styles.table_row_style()}">
       <td style="#{Styles.table_label_style()}">Timezone:</td>
-      <td style="#{Styles.table_value_style()}">#{timezone}</td>
+      <td style="#{Styles.table_value_style()}">#{safe_timezone}</td>
     </tr>
     """
   end

@@ -3,7 +3,7 @@ defmodule Tymeslot.Emails.Shared.TemplateHelper do
   Helper functions for standardized template compilation and organizer details generation.
   """
 
-  alias Tymeslot.Emails.Shared.{AvatarHelper, MjmlEmail}
+  alias Tymeslot.Emails.Shared.{AvatarHelper, Layouts, MjmlEmail}
 
   @doc """
   Standardized function to create organizer details for email templates.
@@ -36,17 +36,21 @@ defmodule Tymeslot.Emails.Shared.TemplateHelper do
   @spec compile_template(String.t(), map()) :: String.t()
   def compile_template(mjml_content, organizer_details) do
     mjml_content
-    |> MjmlEmail.base_mjml_template(organizer_details)
+    |> Layouts.transactional_layout(organizer_details)
     |> MjmlEmail.compile_mjml()
   end
 
   @doc """
   Compiles MJML content for system emails into HTML.
   """
-  @spec compile_system_template(String.t(), String.t()) :: String.t()
-  def compile_system_template(mjml_content, title \\ "Tymeslot") do
-    organizer_details = build_system_organizer_details(title)
-    compile_template(mjml_content, organizer_details)
+  @spec compile_system_template(String.t(), String.t(), String.t() | nil) :: String.t()
+  def compile_system_template(mjml_content, title \\ "Tymeslot", preview \\ nil) do
+    # Only include preview in opts if it's not nil, so system_layout can use its default
+    opts = [title: title] ++ if preview, do: [preview: preview], else: []
+    
+    mjml_content
+    |> Layouts.system_layout(opts)
+    |> MjmlEmail.compile_mjml()
   end
 
   @doc """

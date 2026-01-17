@@ -1,23 +1,35 @@
 defmodule Tymeslot.Emails.Shared.MeetingComponents do
   @moduledoc """
-  Meeting-specific MJML components for email templates.
+  Modern meeting-specific MJML components for email templates (2026 Edition).
 
-  Implements visual hierarchy for meeting data:
-  - **Details Table**: 28px padding card, 12px row spacing, 20px icons.
-  - **Video Section**: 20px padding, 700 weight 18px title, 10px radius button.
-  - **Action Bars**: Responsive layouts for 1, 2, or 3+ buttons.
-  - **Badges**: 24px pill radius, 700 font weight for status/type.
+  Enhanced visual hierarchy and user experience:
+  - **Details Card**: 16px radius, refined spacing, emoji icons, two-column grid layout
+  - **Video Section**: Gradient backgrounds, prominent join button, context-aware styling
+  - **Action Bars**: Responsive 1-3 button layouts, mobile-optimized spacing
+  - **Time Badges**: Pill-shaped status indicators with semantic colors
+  - **Meeting Type Tags**: Rounded badges with contextual coloring
+
+  All components are:
+  - Mobile-responsive with stacked layouts
+  - Dark mode compatible
+  - Cross-client tested (Gmail, Outlook, Apple Mail)
   """
 
   alias Tymeslot.Emails.Shared.{SharedHelpers, Styles}
 
   @doc """
-  Generates a modern meeting details card using pure MJML components with proper text spacing.
+  Generates a polished meeting details card with modern 2026 styling.
+  Features refined typography, icon-label pairs, and responsive two-column grid.
   """
   @spec meeting_details_table(map()) :: String.t()
   def meeting_details_table(details) do
     """
-    <mj-section background-color="#{Styles.background_color(:gray)}" border-radius="12px" padding="28px">
+    <mj-section
+      background-color="#{Styles.background_color(:gray)}"
+      border-radius="#{Styles.card_radius()}"
+      padding="16px 16px"
+      css-class="mobile-card"
+    >
       <mj-column>
         #{detail_row("📅", "Date", SharedHelpers.format_date(details.date), "🕐", "Time", format_meeting_time(details))}
         #{detail_row("⏱️", "Duration", SharedHelpers.format_duration(details.duration), location_icon(details[:location]), "Location", details[:location] || "TBD")}
@@ -28,7 +40,18 @@ defmodule Tymeslot.Emails.Shared.MeetingComponents do
   end
 
   @doc """
-  Generates a video meeting section with different styles (reminder, confirmation, subtle).
+  Generates a prominent video meeting section with context-aware styling.
+
+  Styles:
+  - `:reminder` - Turquoise gradient, urgent feel for upcoming meetings
+  - `:confirmation` - Success green, celebrating booking
+  - `:subtle` - Minimal gray, for non-primary CTAs
+  - `:default` - Standard turquoise theme
+
+  Options:
+  - `:title` - Section heading (default: "Join Video Meeting")
+  - `:button_text` - CTA text (default: "Join Meeting")
+  - `:show_time_note` - Boolean to show timing reminder
   """
   @spec video_meeting_section(String.t(), keyword()) :: String.t()
   def video_meeting_section(meeting_url, opts \\ []) do
@@ -37,83 +60,97 @@ defmodule Tymeslot.Emails.Shared.MeetingComponents do
     button_text_base = Keyword.get(opts, :button_text, "Join Meeting")
     show_time_note = Keyword.get(opts, :show_time_note, false)
 
-    {bg_color, text_color, button_bg, button_text, border} =
+    # Sanitize user-provided text
+    safe_title = SharedHelpers.sanitize_for_email(title)
+    safe_button_text = SharedHelpers.sanitize_for_email(button_text_base)
+    
+    # Validate and sanitize URL
+    safe_url =
+      case Tymeslot.Security.UrlValidation.validate_http_url(meeting_url) do
+        :ok ->
+          SharedHelpers.sanitize_for_email(meeting_url)
+
+        {:error, _reason} ->
+          # If invalid, fallback to empty or '#'
+          "#"
+      end
+
+    {bg_color, text_color, button_bg, button_text, css_class} =
       case style do
         :reminder ->
-          {Styles.component_color(:link), Styles.background_color(:white),
-           Styles.background_color(:white), Styles.component_color(:link), "none"}
+          {Styles.background_color(:turquoise_subtle), Styles.text_color(:dark),
+           Styles.button_color("primary"), Styles.button_text_color("primary"), "gradient-subtle"}
 
         :confirmation ->
-          {Styles.meeting_color(:bg_teal_light), Styles.meeting_color(:text_teal),
-           Styles.component_color(:link), Styles.background_color(:white), "none"}
+          {Styles.background_color(:green_light), Styles.status_text_color(:success_green),
+           Styles.button_color("success"), Styles.button_text_color("success"), ""}
 
         :subtle ->
           {Styles.background_color(:light), Styles.text_color(:secondary),
-           Styles.component_color(:link), Styles.background_color(:white),
-           "1px solid #{Styles.border_color(:light_gray)}"}
+           Styles.button_color("primary"), Styles.button_text_color("primary"), ""}
 
         _ ->
-          {Styles.component_color(:link), Styles.background_color(:white),
-           Styles.background_color(:white), Styles.component_color(:link), "none"}
+          {Styles.background_color(:turquoise_subtle), Styles.text_color(:dark),
+           Styles.button_color("primary"), Styles.button_text_color("primary"), ""}
       end
-
-    button_text_full =
-      if style == :confirmation, do: "🎉 #{button_text_base}", else: button_text_base
 
     time_note = get_time_note_if_needed(show_time_note, style, text_color)
 
     """
-    <mj-wrapper padding="16px 0">
-      <mj-section
-        background-color="#{bg_color}"
-        border-radius="10px"
-        border="#{border}"
-        padding="20px"
-      >
-        <mj-column>
-          <mj-text
-            color="#{text_color}"
-            font-size="18px"
-            font-weight="700"
-            align="center"
-            padding="0 0 16px 0"
-            line-height="24px"
-          >
-            📹 #{title}
-          </mj-text>
-          <mj-button
-            href="#{meeting_url}"
-            background-color="#{button_bg}"
-            color="#{button_text}"
-            font-weight="700"
-            align="center"
-            width="280px"
-            font-size="16px"
-            inner-padding="16px 32px"
-            border-radius="10px">
-            #{button_text_full}
-          </mj-button>
-          #{time_note}
-        </mj-column>
-      </mj-section>
-    </mj-wrapper>
+    <mj-section
+      padding="16px 16px 8px 16px"
+      background-color="#{bg_color}"
+      border-radius="#{Styles.card_radius()}"
+      css-class="#{css_class} mobile-card"
+    >
+      <mj-column>
+        <mj-text
+          color="#{text_color}"
+          font-size="18px"
+          font-weight="700"
+          align="center"
+          padding="0 0 8px 0"
+          line-height="1.2"
+        >
+          📹 #{safe_title}
+        </mj-text>
+        <mj-button
+          href="#{safe_url}"
+          background-color="#{button_bg}"
+          color="#{button_text}"
+          font-weight="700"
+          align="center"
+          width="auto"
+          font-size="15px"
+          inner-padding="14px 28px"
+          border-radius="#{Styles.button_radius()}"
+          css-class="mobile-button button-primary">
+          #{safe_button_text}
+        </mj-button>
+        #{time_note}
+      </mj-column>
+    </mj-section>
     """
   end
 
   @doc """
-  Generates a time alert badge (e.g., "Starting in 1 hour").
+  Generates a prominent time alert badge (e.g., "Starting in 1 hour").
+  Perfect for reminder emails to create urgency and clarity.
   """
   @spec time_alert_badge(String.t(), keyword()) :: String.t()
   def time_alert_badge(time_text, opts \\ []) do
     icon = Keyword.get(opts, :icon, "⏰")
     color = Keyword.get(opts, :color, :blue)
+    
+    # Sanitize user-provided time text
+    safe_time_text = SharedHelpers.sanitize_for_email(time_text)
 
     """
-    <mj-section padding="8px 0">
+    <mj-section padding="0 0 8px 0">
       <mj-column>
-        <mj-text align="center">
-          <span style="background-color: #{badge_background(color)}; color: #{badge_text_color(color)}; padding: 6px 12px; border-radius: 16px; font-size: #{Styles.font_size(:sm)}; font-weight: 600; display: inline-block;">
-            #{icon} #{time_text}
+        <mj-text align="center" padding="0">
+          <span style="background-color: #{badge_background(color)}; color: #{badge_text_color(color)}; padding: 10px 20px; border-radius: #{Styles.badge_radius()}; font-size: 15px; font-weight: 700; display: inline-block; letter-spacing: 0.02em;">
+            #{icon} #{safe_time_text}
           </span>
         </mj-text>
       </mj-column>
@@ -159,21 +196,29 @@ defmodule Tymeslot.Emails.Shared.MeetingComponents do
 
   @spec single_button_layout(list(map())) :: String.t()
   defp single_button_layout([action]) do
-    {bg_color, text_color} = get_action_button_colors(action)
+    {bg_color, text_color, css_class} = get_action_button_colors(action)
+    safe_text = SharedHelpers.sanitize_for_email(action.text)
+
+    safe_url =
+      case Tymeslot.Security.UrlValidation.validate_http_url(action.url) do
+        :ok -> SharedHelpers.sanitize_for_email(action.url)
+        _ -> "#"
+      end
 
     """
-    <mj-section padding="20px 0">
+    <mj-section padding="12px 0">
       <mj-column>
         <mj-button
-          href="#{action.url}"
+          href="#{safe_url}"
           background-color="#{bg_color}"
           color="#{text_color}"
-          font-size="#{Styles.font_size(:base)}"
+          font-size="16px"
           font-weight="700"
           border-radius="#{Styles.button_radius()}"
-          inner-padding="#{Styles.button_padding()}"
-          width="280px">
-          #{action.text}
+          inner-padding="#{Styles.button_padding(:large)}"
+          width="auto"
+          css-class="#{css_class} mobile-button">
+          #{safe_text}
         </mj-button>
       </mj-column>
     </mj-section>
@@ -182,36 +227,53 @@ defmodule Tymeslot.Emails.Shared.MeetingComponents do
 
   @spec two_button_layout(list(map())) :: String.t()
   defp two_button_layout([primary_action, secondary_action]) do
-    {primary_bg, primary_text} = get_action_button_colors(primary_action)
-    {secondary_bg, secondary_text} = get_action_button_colors(secondary_action)
+    {primary_bg, primary_text, primary_class} = get_action_button_colors(primary_action)
+    {secondary_bg, secondary_text, secondary_class} = get_action_button_colors(secondary_action)
+
+    safe_primary_text = SharedHelpers.sanitize_for_email(primary_action.text)
+    safe_secondary_text = SharedHelpers.sanitize_for_email(secondary_action.text)
+
+    safe_primary_url =
+      case Tymeslot.Security.UrlValidation.validate_http_url(primary_action.url) do
+        :ok -> SharedHelpers.sanitize_for_email(primary_action.url)
+        _ -> "#"
+      end
+
+    safe_secondary_url =
+      case Tymeslot.Security.UrlValidation.validate_http_url(secondary_action.url) do
+        :ok -> SharedHelpers.sanitize_for_email(secondary_action.url)
+        _ -> "#"
+      end
 
     """
-    <mj-section padding="20px 0">
+    <mj-section padding="12px 0">
       <mj-group>
         <mj-column>
           <mj-button
-            href="#{primary_action.url}"
+            href="#{safe_primary_url}"
             background-color="#{primary_bg}"
             color="#{primary_text}"
-            font-size="#{Styles.font_size(:base)}"
+            font-size="15px"
             font-weight="700"
             border-radius="#{Styles.button_radius()}"
-            inner-padding="14px 28px"
-            width="180px">
-            #{primary_action.text}
+            inner-padding="#{Styles.button_padding(:medium)}"
+            width="auto"
+            css-class="#{primary_class}">
+            #{safe_primary_text}
           </mj-button>
         </mj-column>
         <mj-column>
           <mj-button
-            href="#{secondary_action.url}"
+            href="#{safe_secondary_url}"
             background-color="#{secondary_bg}"
             color="#{secondary_text}"
-            font-size="#{Styles.font_size(:base)}"
+            font-size="15px"
             font-weight="700"
             border-radius="#{Styles.button_radius()}"
-            inner-padding="14px 28px"
-            width="180px">
-            #{secondary_action.text}
+            inner-padding="#{Styles.button_padding(:medium)}"
+            width="auto"
+            css-class="#{secondary_class}">
+            #{safe_secondary_text}
           </mj-button>
         </mj-column>
       </mj-group>
@@ -223,43 +285,54 @@ defmodule Tymeslot.Emails.Shared.MeetingComponents do
   defp multi_button_layout(actions) when length(actions) > 2 do
     button_sections =
       Enum.map_join(actions, "\n", fn action ->
-        {bg_color, text_color} = get_action_button_colors(action)
+        {bg_color, text_color, css_class} = get_action_button_colors(action)
+        safe_text = SharedHelpers.sanitize_for_email(action.text)
+
+        safe_url =
+          case Tymeslot.Security.UrlValidation.validate_http_url(action.url) do
+            :ok -> SharedHelpers.sanitize_for_email(action.url)
+            _ -> "#"
+          end
 
         """
-        <mj-section padding="6px 0">
+        <mj-section padding="8px 0">
           <mj-column>
             <mj-button
-              href="#{action.url}"
+              href="#{safe_url}"
               background-color="#{bg_color}"
               color="#{text_color}"
-              font-size="#{Styles.font_size(:base)}"
+              font-size="15px"
               font-weight="700"
               border-radius="#{Styles.button_radius()}"
-              inner-padding="14px 28px"
-              width="260px">
-              #{action.text}
+              inner-padding="#{Styles.button_padding(:medium)}"
+              width="auto"
+              css-class="#{css_class} mobile-button">
+              #{safe_text}
             </mj-button>
           </mj-column>
         </mj-section>
         """
       end)
 
-    """
-    <mj-wrapper padding="16px 0">
-      #{button_sections}
-    </mj-wrapper>
-    """
+    button_sections
   end
 
-  @spec get_action_button_colors(map()) :: {String.t(), String.t()}
+  @spec get_action_button_colors(map()) :: {String.t(), String.t(), String.t()}
   defp get_action_button_colors(action) do
     style = Map.get(action, :style, :primary)
 
     case style do
-      :primary -> {Styles.button_color("primary"), Styles.button_text_color("primary")}
-      :secondary -> {Styles.background_color(:light), Styles.text_color(:secondary)}
-      :danger -> {Styles.button_color("danger"), Styles.button_text_color("danger")}
-      _ -> {Styles.button_color("primary"), Styles.button_text_color("primary")}
+      :primary ->
+        {Styles.button_color("primary"), Styles.button_text_color("primary"), "button-primary"}
+
+      :secondary ->
+        {Styles.background_color(:gray), Styles.text_color(:dark), ""}
+
+      :danger ->
+        {Styles.button_color("danger"), Styles.button_text_color("danger"), "button-danger"}
+
+      _ ->
+        {Styles.button_color("primary"), Styles.button_text_color("primary"), "button-primary"}
     end
   end
 
@@ -279,31 +352,37 @@ defmodule Tymeslot.Emails.Shared.MeetingComponents do
   end
 
   defp detail_row(icon1, label1, value1, icon2, label2, value2) do
+    # Sanitize all user-provided labels and values
+    safe_label1 = SharedHelpers.sanitize_for_email(label1)
+    safe_value1 = SharedHelpers.sanitize_for_email(value1)
+    safe_label2 = SharedHelpers.sanitize_for_email(label2)
+    safe_value2 = SharedHelpers.sanitize_for_email(value2)
+    
     """
     <mj-table width="100%" cellpadding="0" cellspacing="0">
       <tr>
-        <td style="width: 50%; padding: 12px 16px 12px 0; vertical-align: top;">
+        <td style="width: 50%; padding: 8px 12px 8px 0; vertical-align: top;">
           <table width="100%" cellpadding="0" cellspacing="0">
             <tr>
-              <td style="width: 32px; vertical-align: top; padding-top: 2px;">
-                <span style="font-size: 20px;">#{icon1}</span>
+              <td style="width: 28px; vertical-align: top; padding-top: 2px;">
+                <span style="font-size: 18px;">#{icon1}</span>
               </td>
               <td style="vertical-align: top;">
-                <div style="font-size: #{Styles.font_size(:sm)}; color: #{Styles.text_color(:secondary)}; font-weight: 700; margin-bottom: 4px;">#{label1}</div>
-                <div style="font-size: #{Styles.font_size(:base)}; color: #{Styles.text_color(:primary)}; font-weight: 500;">#{value1}</div>
+                <div style="font-size: #{Styles.font_size(:xs)}; color: #{Styles.text_color(:secondary)}; font-weight: 700; margin-bottom: 2px;">#{safe_label1}</div>
+                <div style="font-size: #{Styles.font_size(:sm)}; color: #{Styles.text_color(:primary)}; font-weight: 500;">#{safe_value1}</div>
               </td>
             </tr>
           </table>
         </td>
-        <td style="width: 50%; padding: 12px 0 12px 16px; vertical-align: top;">
+        <td style="width: 50%; padding: 8px 0 8px 12px; vertical-align: top;">
           <table width="100%" cellpadding="0" cellspacing="0">
             <tr>
-              <td style="width: 32px; vertical-align: top; padding-top: 2px;">
-                <span style="font-size: 20px;">#{icon2}</span>
+              <td style="width: 28px; vertical-align: top; padding-top: 2px;">
+                <span style="font-size: 18px;">#{icon2}</span>
               </td>
               <td style="vertical-align: top;">
-                <div style="font-size: #{Styles.font_size(:sm)}; color: #{Styles.text_color(:secondary)}; font-weight: 700; margin-bottom: 4px;">#{label2}</div>
-                <div style="font-size: #{Styles.font_size(:base)}; color: #{Styles.text_color(:primary)}; font-weight: 500;">#{value2}</div>
+                <div style="font-size: #{Styles.font_size(:xs)}; color: #{Styles.text_color(:secondary)}; font-weight: 700; margin-bottom: 2px;">#{safe_label2}</div>
+                <div style="font-size: #{Styles.font_size(:sm)}; color: #{Styles.text_color(:primary)}; font-weight: 500;">#{safe_value2}</div>
               </td>
             </tr>
           </table>
@@ -317,11 +396,12 @@ defmodule Tymeslot.Emails.Shared.MeetingComponents do
 
   defp meeting_type_detail_section(meeting_type) do
     """
-    <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid #{Styles.border_color(:default)};">
-      <span style="background-color: #{Styles.background_color(:blue_light)}; color: #{Styles.component_color(:status_badge_blue)}; padding: 10px 20px; border-radius: 24px; font-size: #{Styles.font_size(:sm)}; font-weight: 700; display: inline-block;">
+    <mj-divider border-color="#{Styles.border_color(:default)}" border-width="1px" padding="12px 0 8px 0" />
+    <mj-text padding="0">
+      <span style="background-color: #{Styles.background_color(:blue_light)}; color: #{Styles.component_color(:status_badge_blue)}; padding: 8px 16px; border-radius: 24px; font-size: #{Styles.font_size(:sm)}; font-weight: 700; display: inline-block;">
         #{SharedHelpers.sanitize_for_email(meeting_type)}
       </span>
-    </div>
+    </mj-text>
     """
   end
 

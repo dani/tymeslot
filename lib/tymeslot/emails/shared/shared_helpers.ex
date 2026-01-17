@@ -184,6 +184,35 @@ defmodule Tymeslot.Emails.Shared.SharedHelpers do
   end
 
   @doc """
+  Returns the brand logo as a Base64 data URI.
+  This ensures the logo is always displayed in email clients without needing
+  to fetch it from a (potentially unreachable) development server.
+  """
+  @spec get_logo_data_uri() :: String.t()
+  def get_logo_data_uri do
+    case :ets.lookup(:tymeslot_email_assets, :logo_data_uri) do
+      [{:logo_data_uri, data_uri}] ->
+        data_uri
+
+      [] ->
+        path = Path.join([:code.priv_dir(:tymeslot), "static", "images", "brand", "logo-with-text.svg"])
+
+        data_uri =
+          case File.read(path) do
+            {:ok, content} ->
+              encoded = Base.encode64(content)
+              "data:image/svg+xml;base64,#{encoded}"
+
+            _ ->
+              ""
+          end
+
+        :ets.insert(:tymeslot_email_assets, {:logo_data_uri, data_uri})
+        data_uri
+    end
+  end
+
+  @doc """
   Sanitizes text for email display.
   """
   @spec sanitize_for_email(String.t() | nil) :: String.t()

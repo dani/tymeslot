@@ -154,6 +154,48 @@ defmodule Tymeslot.Emails.Templates.AppointmentConfirmationAttendeeTest do
       assert email.text_body =~ details.organizer_name
     end
 
+    test "text body handles nil reminders_summary gracefully" do
+      details = build_appointment_details(%{reminders_summary: nil})
+      email = AppointmentConfirmationAttendee.confirmation_email("attendee@example.com", details)
+
+      # Should not contain "nil" string
+      refute email.text_body =~ "nil"
+      # Should still be valid email
+      assert String.length(email.text_body) > 100
+    end
+
+    test "text body includes reminders_summary when provided" do
+      details =
+        build_appointment_details(%{
+          reminders_summary: "I'll send you a reminder 1 hour before our appointment."
+        })
+
+      email = AppointmentConfirmationAttendee.confirmation_email("attendee@example.com", details)
+
+      assert email.text_body =~ "reminder 1 hour"
+    end
+
+    test "HTML body includes reminders_summary when provided" do
+      details =
+        build_appointment_details(%{
+          reminders_summary: "Reminder scheduled for 30 minutes before"
+        })
+
+      email = AppointmentConfirmationAttendee.confirmation_email("attendee@example.com", details)
+
+      assert email.html_body =~ "Reminder scheduled"
+    end
+
+    test "HTML body handles nil reminders_summary gracefully" do
+      details = build_appointment_details(%{reminders_summary: nil})
+      email = AppointmentConfirmationAttendee.confirmation_email("attendee@example.com", details)
+
+      # Should not contain "nil" string
+      refute email.html_body =~ "nil"
+      # Should still be valid email
+      assert String.length(email.html_body) > 1000
+    end
+
     test "handles optional organizer fields gracefully" do
       details =
         build_appointment_details(%{

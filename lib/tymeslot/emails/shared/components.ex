@@ -32,6 +32,10 @@ defmodule Tymeslot.Emails.Shared.Components do
   defdelegate alert_box(type, message, opts \\ []), to: UiComponents
   defdelegate divider(opts \\ []), to: UiComponents
   defdelegate title_section(title, opts \\ []), to: UiComponents
+  defdelegate section_title(text, opts \\ []), to: UiComponents
+  defdelegate centered_text(text, opts \\ []), to: UiComponents
+  defdelegate system_footer_note(text), to: UiComponents
+  defdelegate troubleshooting_link(url), to: UiComponents
   defdelegate quick_info_grid(items), to: UiComponents
   defdelegate preparation_checklist(items, opts \\ []), to: UiComponents
   defdelegate footer_actions(actions), to: UiComponents
@@ -42,4 +46,6 @@ defmodule Tymeslot.Emails.Shared.Components do
 
   # Content Components delegation
   defdelegate attendee_message_box(message), to: ContentComponents
+  defdelegate contact_details_card(title, email, rows), to: ContentComponents
+  defdelegate message_content_card(title, message), to: ContentComponents
 end

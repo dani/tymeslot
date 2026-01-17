@@ -18,35 +18,18 @@ defmodule Tymeslot.Emails.Templates.AppointmentCancellation do
     mjml_content = """
     #{Components.alert_box("error",
     "Hi #{appointment_details.attendee_name}, I wanted to let you know that our appointment has been cancelled.",
-    title: "❌ Meeting Cancelled")}
-    <mj-section padding="20px 0 10px 0">
-      <mj-column>
-        <mj-text font-size="16px" font-weight="600" padding-bottom="10px">
-          Meeting with #{appointment_details.organizer_name}
-        </mj-text>
-      </mj-column>
-    </mj-section>
+    icon: "✕",
+    title: "Meeting Cancelled")}
+
+    #{Components.section_title("Meeting with #{appointment_details.organizer_name}", padding: "24px 0 16px 0")}
+
     #{Components.meeting_details_table(%{date: appointment_details.date, start_time: appointment_details.start_time, duration: appointment_details.duration, location: appointment_details.location, meeting_type: appointment_details.meeting_type})}
-    <!-- Action Section -->
-    <mj-section padding="8px 0">
-      <mj-column>
-        <mj-text font-size="14px" align="center" padding="0 0 10px 0" css-class="mobile-text">
-          Would you like to schedule a new appointment?
-        </mj-text>
-        #{Components.action_button("Schedule New Appointment", SharedHelpers.get_app_url(), color: "primary")}
-      </mj-column>
-    </mj-section>
-    <!-- Note -->
-    <mj-section padding="0 0 12px 0">
-      <mj-column>
-        <mj-text align="center" font-size="13px" color="#52525b" css-class="mobile-text">
-          This time slot is now available for booking again.
-        </mj-text>
-        <mj-text align="center" font-size="13px" color="#52525b" padding-top="6px" css-class="mobile-text">
-          If you have any questions, please don't hesitate to reach out.
-        </mj-text>
-      </mj-column>
-    </mj-section>
+
+    #{Components.centered_text("Would you like to schedule a new appointment?", padding: "24px 0 8px 0")}
+    #{Components.action_button("Schedule New Appointment", SharedHelpers.get_app_url(), color: "primary", full_width: true)}
+
+    #{Components.system_footer_note("This time slot is now available for booking again.")}
+    #{Components.system_footer_note("If you have any questions, please don't hesitate to reach out.")}
     """
 
     organizer_details = TemplateHelper.build_organizer_details(appointment_details)
@@ -66,26 +49,15 @@ defmodule Tymeslot.Emails.Templates.AppointmentCancellation do
     mjml_content = """
     #{Components.alert_box("error",
     "The appointment with #{appointment_details.attendee_name} has been cancelled.",
-    title: "❌ Meeting Cancelled")}
-    <mj-section padding="20px 0 10px 0">
-      <mj-column>
-        <mj-text font-size="16px" font-weight="600" padding-bottom="10px">
-          Meeting with #{appointment_details.attendee_name}
-        </mj-text>
-      </mj-column>
-    </mj-section>
+    icon: "✕",
+    title: "Meeting Cancelled")}
+
+    #{Components.section_title("Meeting with #{appointment_details.attendee_name}", padding: "24px 0 16px 0")}
+
     #{Components.meeting_details_table(%{date: appointment_details.date, start_time: appointment_details.start_time_owner_tz, duration: appointment_details.duration, location: appointment_details.location, meeting_type: appointment_details.meeting_type})}
-    <!-- Note -->
-    <mj-section padding="12px 0">
-      <mj-column>
-        <mj-text align="center" font-size="13px" color="#52525b" css-class="mobile-text">
-          Your calendar has been updated to reflect this cancellation.
-        </mj-text>
-        <mj-text align="center" font-size="13px" color="#52525b" padding-top="6px" css-class="mobile-text">
-          The attendee has been notified of the cancellation.
-        </mj-text>
-      </mj-column>
-    </mj-section>
+
+    #{Components.system_footer_note("Your calendar has been updated to reflect this cancellation.")}
+    #{Components.system_footer_note("The attendee has been notified of the cancellation.")}
     """
 
     organizer_details = TemplateHelper.build_organizer_details(appointment_details)

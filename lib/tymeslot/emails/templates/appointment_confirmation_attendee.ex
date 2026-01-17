@@ -10,7 +10,6 @@ defmodule Tymeslot.Emails.Templates.AppointmentConfirmationAttendee do
     Components,
     MjmlEmail,
     SharedHelpers,
-    Styles,
     TemplateHelper,
     TextBodyHelper
   }
@@ -28,27 +27,31 @@ defmodule Tymeslot.Emails.Templates.AppointmentConfirmationAttendee do
     }
 
     mjml_content = """
-    #{Components.title_section("✨ Appointment Confirmed!",
-    subtitle: "Hi #{appointment_details.attendee_name}, I'm looking forward to our meeting. I've blocked the time on my calendar and will be ready for you.")}
+    #{Components.title_section("Appointment Confirmed!",
+    emoji: "✓",
+    subtitle: "Hi #{appointment_details.attendee_name}, I'm looking forward to our meeting. I've blocked the time on my calendar and will be ready for you.",
+    align: "left")}
+
     #{Components.meeting_details_table(meeting_details)}
+
     #{if appointment_details.attendee_video_url do
       Components.video_meeting_section(appointment_details.attendee_video_url,
       style: :confirmation,
-      role: "attendee")
+      title: "Ready to Join?",
+      button_text: "Join Video Meeting")
     end}
-    <mj-text font-size="#{Styles.font_size(:base)}" color="#{Styles.text_color(:secondary)}" padding="#{Styles.padding(:md)} 0 #{Styles.padding(:xs)} 0" align="center">
-      Need to make changes?
-    </mj-text>
-    #{Components.meeting_actions_bar([%{text: "Reschedule", url: appointment_details.reschedule_url, style: :secondary}, %{text: "Cancel", url: appointment_details.cancel_url, style: :danger}])}
+
+    #{Components.section_title("Need to make changes?")}
+
+    #{Components.meeting_actions_bar([%{text: "Reschedule", url: appointment_details.reschedule_url, style: :secondary}, %{text: "Cancel Appointment", url: appointment_details.cancel_url, style: :danger}])}
+
     #{if appointment_details.organizer_contact_info do
-      """
-      <mj-text font-size="#{Styles.font_size(:base)}" color="#{Styles.text_color(:secondary)}" padding="#{Styles.padding(:lg)} 0" align="center">
-        Questions? #{appointment_details.organizer_contact_info}
-      </mj-text>
-      """
+      Components.centered_text("Questions? #{appointment_details.organizer_contact_info}", font_size: "15px", padding: "12px 0 8px 0")
     end}
-    #{Components.alert_box("info",
-    "⏰ I'll send you a reminder #{appointment_details.reminder_time || "24 hours"} before our appointment")}
+
+    #{if appointment_details.reminders_summary do
+      Components.alert_box("info", appointment_details.reminders_summary, icon: "⏰", title: "Reminders Scheduled")
+    end}
     """
 
     organizer_details = TemplateHelper.build_organizer_details(appointment_details)
@@ -85,7 +88,7 @@ defmodule Tymeslot.Emails.Templates.AppointmentConfirmationAttendee do
     #{meeting_details}#{video_section}
     #{action_links}
     #{if appointment_details.organizer_contact_info, do: "\nQUESTIONS?\n#{appointment_details.organizer_contact_info}\n"}
-    I'll send you a reminder #{appointment_details.reminder_time || "24 hours"} before our appointment.
+    #{if appointment_details.reminders_summary, do: "\n#{appointment_details.reminders_summary}\n", else: ""}
 
     Looking forward to meeting you!
     #{appointment_details.organizer_name}

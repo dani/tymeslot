@@ -17,21 +17,20 @@ defmodule Tymeslot.Emails.Templates.AppointmentConfirmationOrganizer do
   @spec confirmation_email(String.t(), map()) :: Swoosh.Email.t()
   def confirmation_email(organizer_email, appointment_details) do
     mjml_content = """
-    #{Components.title_section("🎉 New Appointment Booked!",
-    subtitle: "#{appointment_details.attendee_name} has scheduled a meeting with you.")}
+    #{Components.title_section("New Appointment Booked!",
+    emoji: "🎉",
+    subtitle: "#{appointment_details.attendee_name} has scheduled a meeting with you.",
+    align: "left")}
+
     #{Components.attendee_info_section(%{name: appointment_details.attendee_name, email: appointment_details.attendee_email, notes: appointment_details.attendee_message})}
-    <mj-section padding="20px 0">
-      <mj-column>
-        <mj-text font-size="16px" font-weight="600" padding-bottom="10px">
-          Meeting Details
-        </mj-text>
-        #{Components.meeting_details_table(%{date: appointment_details.date, start_time: appointment_details.start_time_owner_tz, duration: appointment_details.duration, location: appointment_details.location, meeting_type: appointment_details.meeting_type, video_url: Map.get(appointment_details, :meeting_url), video_url_role: "host"})}
-      </mj-column>
-    </mj-section>
-    <mj-text font-size="14px" color="#52525b" padding="16px 0 6px 0" align="center">
-      Need to make changes?
-    </mj-text>
-    #{Components.meeting_actions_bar([%{text: "Reschedule", url: appointment_details.reschedule_url, style: :secondary}, %{text: "Cancel", url: appointment_details.cancel_url, style: :danger}])}
+
+    #{Components.section_title("Meeting Details", padding: "16px 0 16px 0")}
+
+    #{Components.meeting_details_table(%{date: appointment_details.date, start_time: appointment_details.start_time_owner_tz, duration: appointment_details.duration, location: appointment_details.location, meeting_type: appointment_details.meeting_type, video_url: Map.get(appointment_details, :meeting_url), video_url_role: "host"})}
+
+    #{Components.section_title("Need to make changes?")}
+
+    #{Components.meeting_actions_bar([%{text: "Reschedule", url: appointment_details.reschedule_url, style: :secondary}, %{text: "Cancel Appointment", url: appointment_details.cancel_url, style: :danger}])}
     """
 
     organizer_details = TemplateHelper.build_organizer_details(appointment_details)
@@ -73,10 +72,28 @@ defmodule Tymeslot.Emails.Templates.AppointmentConfirmationOrganizer do
     - Review any relevant materials
     - Prepare an agenda if needed
     - Test video/audio setup if virtual
-    - Set a reminder #{appointment_details.default_reminder_time || "15 minutes"} before
+    #{organizer_reminder_line(appointment_details)}
 
     Best,
     #{appointment_details.organizer_name}
     """
+  end
+
+  defp organizer_reminder_line(appointment_details) do
+    # Default to reminders being enabled if the flag is not explicitly false
+    # Map.get returns nil if key exists with nil value, so we need explicit nil check
+    reminders_enabled = 
+      case Map.get(appointment_details, :reminders_enabled) do
+        nil -> true  # Default to enabled when not set
+        false -> false
+        true -> true
+        _ -> true  # Any other value defaults to enabled
+      end
+    
+    if reminders_enabled do
+      "- Set a reminder #{appointment_details.reminder_time || "15 minutes"} before"
+    else
+      "- No reminder emails are scheduled for this appointment"
+    end
   end
 end

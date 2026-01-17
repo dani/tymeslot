@@ -178,24 +178,31 @@ defmodule Tymeslot.Emails.AppointmentBuilderTest do
       assert result.allow_contact == true
     end
 
-    test "includes reminder time with default fallback" do
-      %{user: user} = create_user_with_profile()
-      meeting = insert_meeting_for_user(user, %{start_offset: 3600, duration: 3600})
-
-      result = AppointmentBuilder.from_meeting(meeting)
-
-      # Should have default reminder time
-      assert result.reminder_time == "30 minutes"
-      assert result.default_reminder_time == "30 minutes"
-    end
-
-    test "uses custom reminder time when provided" do
+    test "includes reminder time from meeting reminders" do
       %{user: user} = create_user_with_profile()
 
       meeting =
         insert_meeting_for_user(user, %{
           start_offset: 3600,
           duration: 3600,
+          reminders: [%{value: 30, unit: "minutes"}]
+        })
+
+      result = AppointmentBuilder.from_meeting(meeting)
+
+      assert result.reminder_time == "30 minutes"
+      assert result.default_reminder_time == "30 minutes"
+      assert result.reminders_enabled == true
+    end
+
+    test "uses legacy reminder time fields when no reminder list exists" do
+      %{user: user} = create_user_with_profile()
+
+      meeting =
+        insert_meeting_for_user(user, %{
+          start_offset: 3600,
+          duration: 3600,
+          reminders: [],
           reminder_time: "1 hour",
           default_reminder_time: "15 minutes"
         })
@@ -203,7 +210,28 @@ defmodule Tymeslot.Emails.AppointmentBuilderTest do
       result = AppointmentBuilder.from_meeting(meeting)
 
       assert result.reminder_time == "1 hour"
-      assert result.default_reminder_time == "15 minutes"
+      assert result.default_reminder_time == "1 hour"
+      assert result.reminders_enabled == true
+    end
+
+    test "handles meetings with no reminders configured" do
+      %{user: user} = create_user_with_profile()
+
+      meeting =
+        insert_meeting_for_user(user, %{
+          start_offset: 3600,
+          duration: 3600,
+          reminders: [],
+          reminder_time: nil,
+          default_reminder_time: nil
+        })
+
+      result = AppointmentBuilder.from_meeting(meeting)
+
+      assert result.reminders_enabled == false
+      assert result.reminder_time == nil
+      assert result.default_reminder_time == nil
+      assert result.reminders_summary == "No reminder emails are scheduled for this appointment."
     end
 
     test "converts times to organizer timezone" do
@@ -322,6 +350,16 @@ defmodule Tymeslot.Emails.AppointmentBuilderTest do
       result = AppointmentBuilder.from_meeting(meeting)
 
       assert result.time_until_friendly == "in 30 minutes"
+    end
+
+    test "uses reminder interval when provided" do
+      %{user: user} = create_user_with_profile()
+      meeting = insert_meeting_for_user(user, %{start_offset: 3600, duration: 3600})
+
+      result = AppointmentBuilder.from_meeting(meeting, %{value: 1, unit: "hours"})
+
+      assert result.time_until == "1 hour"
+      assert result.time_until_friendly == "in 1 hour"
     end
   end
 end

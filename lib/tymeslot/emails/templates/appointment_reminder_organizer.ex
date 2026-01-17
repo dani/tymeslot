@@ -22,30 +22,24 @@ defmodule Tymeslot.Emails.Templates.AppointmentReminderOrganizer do
     <!-- Quick Info -->
     #{Components.quick_info_grid([%{label: "Time", value: TimezoneHelper.format_time_owner_tz(appointment_details)}, %{label: "Duration", value: "#{appointment_details.duration} min"}, %{label: "Location", value: appointment_details.location || "Virtual"}])}
     <!-- Attendee Info -->
-    <mj-section padding="10px 0 0 0">
+    <mj-section padding="10px 0 0 0" background-color="#fafafa" border-radius="6px">
       <mj-column>
-        <mj-section background-color="#fafafa" border-radius="6px" padding="10px">
-          <mj-column>
-            <mj-text font-size="13px" font-weight="600" padding="0 0 4px 0" css-class="mobile-text">
-              #{appointment_details.attendee_name}
-            </mj-text>
-            <mj-text font-size="12px" color="#52525b" line-height="16px" css-class="mobile-text">
-              #{appointment_details.attendee_email}
-            </mj-text>
-          </mj-column>
-        </mj-section>
-        #{Components.attendee_message_box(appointment_details[:attendee_message])}
+        <mj-text font-size="13px" font-weight="600" padding="0 0 4px 0" css-class="mobile-text">
+          #{appointment_details.attendee_name}
+        </mj-text>
+        <mj-text font-size="12px" color="#52525b" line-height="16px" css-class="mobile-text">
+          #{appointment_details.attendee_email}
+        </mj-text>
       </mj-column>
     </mj-section>
+    #{Components.attendee_message_box(appointment_details[:attendee_message])}
     #{if Map.get(appointment_details, :meeting_url) do
       Components.video_meeting_section(appointment_details.meeting_url,
       style: :reminder,
       role: "organizer")
     end}
     <!-- Quick Actions -->
-    <mj-text align="center" font-size="11px" color="#52525b" padding="10px 0 6px 0" css-class="mobile-text">
-      Quick actions:
-    </mj-text>
+    #{Components.centered_text("Quick actions:", font_size: "11px", color: "#52525b", padding: "10px 0 6px 0")}
     #{Components.meeting_actions_bar([%{text: "Reschedule", url: appointment_details.reschedule_url, style: :secondary}, %{text: "Cancel", url: appointment_details.cancel_url, style: :danger}])}
     """
 

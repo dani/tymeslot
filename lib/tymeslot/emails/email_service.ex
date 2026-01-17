@@ -414,6 +414,28 @@ defmodule Tymeslot.Emails.EmailService do
   end
 
   @doc """
+  Sends a support request email.
+  """
+  @spec send_support_request(String.t(), String.t(), String.t(), String.t()) ::
+          {:ok, any()} | {:error, any()}
+  def send_support_request(name, from_email, subject, message) do
+    template = Application.get_env(:tymeslot, :support_request_template)
+
+    if template && Code.ensure_loaded?(template) do
+      Logger.info("Sending support request email",
+        from: from_email,
+        subject: subject
+      )
+
+      email = template.support_request_email(name, from_email, subject, message)
+      deliver(email)
+    else
+      Logger.warning("SupportRequest template not available (SaaS app not loaded)")
+      {:error, :support_request_not_available}
+    end
+  end
+
+  @doc """
   Sends a reschedule request email.
   """
   @spec send_reschedule_request(map()) :: {:ok, any()} | {:error, any()}

@@ -122,78 +122,84 @@ defmodule Tymeslot.Emails.AppointmentBuilder do
 
   defp reminder_details(meeting, reminder_interval) do
     case ReminderUtils.normalize_reminder(reminder_interval) do
-      {:ok, %{value: value, unit: unit}} ->
-        reminder_label = ReminderUtils.format_reminder_label(value, unit)
-
-        %{
-          reminder_time: reminder_label,
-          default_reminder_time: reminder_label,
-          time_until: reminder_label,
-          time_until_friendly: "in #{reminder_label}",
-          reminders_enabled: true,
-          reminders_summary: "Reminder #{reminder_label} before the appointment."
-        }
+      {:ok, reminder} ->
+        build_reminder_details_from_interval(reminder)
 
       _ ->
-        reminders = ReminderUtils.normalize_reminders(Map.get(meeting, :reminders))
-
-        case reminders do
-          [] ->
-            case legacy_reminder_label(meeting) do
-              nil ->
-                %{
-                  reminder_time: nil,
-                  default_reminder_time: nil,
-                  time_until: nil,
-                  time_until_friendly: nil,
-                  reminders_enabled: false,
-                  reminders_summary: "No reminder emails are scheduled for this appointment."
-                }
-
-              legacy_label ->
-                %{
-                  reminder_time: legacy_label,
-                  default_reminder_time: legacy_label,
-                  time_until: legacy_label,
-                  time_until_friendly: "in #{legacy_label}",
-                  reminders_enabled: true,
-                  reminders_summary:
-                    "I'll send you a reminder #{legacy_label} before our appointment."
-                }
-            end
-
-          [reminder] ->
-            reminder_label = ReminderUtils.format_reminder_label(reminder.value, reminder.unit)
-
-            %{
-              reminder_time: reminder_label,
-              default_reminder_time: reminder_label,
-              time_until: reminder_label,
-              time_until_friendly: "in #{reminder_label}",
-              reminders_enabled: true,
-              reminders_summary:
-                "I'll send you a reminder #{reminder_label} before our appointment."
-            }
-
-          reminder_list ->
-            closest =
-              Enum.min_by(reminder_list, fn %{value: value, unit: unit} ->
-                ReminderUtils.reminder_interval_seconds(value, unit)
-              end)
-
-            reminder_label = ReminderUtils.format_reminder_label(closest.value, closest.unit)
-
-            %{
-              reminder_time: reminder_label,
-              default_reminder_time: reminder_label,
-              time_until: reminder_label,
-              time_until_friendly: "in #{reminder_label}",
-              reminders_enabled: true,
-              reminders_summary:
-                "You'll receive #{length(reminder_list)} reminders before the appointment."
-            }
-        end
+        meeting
+        |> Map.get(:reminders)
+        |> ReminderUtils.normalize_reminders()
+        |> handle_normalized_reminders(meeting)
     end
+  end
+
+  defp build_reminder_details_from_interval(%{value: value, unit: unit}) do
+    reminder_label = ReminderUtils.format_reminder_label(value, unit)
+
+    %{
+      reminder_time: reminder_label,
+      default_reminder_time: reminder_label,
+      time_until: reminder_label,
+      time_until_friendly: "in #{reminder_label}",
+      reminders_enabled: true,
+      reminders_summary: "Reminder #{reminder_label} before the appointment."
+    }
+  end
+
+  defp handle_normalized_reminders([], meeting) do
+    case legacy_reminder_label(meeting) do
+      nil ->
+        %{
+          reminder_time: nil,
+          default_reminder_time: nil,
+          time_until: nil,
+          time_until_friendly: nil,
+          reminders_enabled: false,
+          reminders_summary: "No reminder emails are scheduled for this appointment."
+        }
+
+      legacy_label ->
+        %{
+          reminder_time: legacy_label,
+          default_reminder_time: legacy_label,
+          time_until: legacy_label,
+          time_until_friendly: "in #{legacy_label}",
+          reminders_enabled: true,
+          reminders_summary: "I'll send you a reminder #{legacy_label} before our appointment."
+        }
+    end
+  end
+
+  defp handle_normalized_reminders([reminder], _meeting) do
+    reminder_label = ReminderUtils.format_reminder_label(reminder.value, reminder.unit)
+
+    %{
+      reminder_time: reminder_label,
+      default_reminder_time: reminder_label,
+      time_until: reminder_label,
+      time_until_friendly: "in #{reminder_label}",
+      reminders_enabled: true,
+      reminders_summary: "I'll send you a reminder #{reminder_label} before our appointment."
+    }
+  end
+
+  defp handle_normalized_reminders(reminder_list, _meeting) do
+    closest =
+      Enum.min_by(reminder_list, fn %{value: value, unit: unit} ->
+        ReminderUtils.reminder_interval_seconds(value, unit)
+      end)
+
+    reminder_label = ReminderUtils.format_reminder_label(closest.value, closest.unit)
+
+    %{
+      reminder_time: reminder_label,
+      default_reminder_time: reminder_label,
+      time_until: reminder_label,
+      time_until_friendly: "in #{reminder_label}",
+      reminders_enabled: true,
+      reminders_summary:
+        "You'll receive #{length(reminder_list)} reminders before the appointment."
+    }
   end
 
   defp format_location(meeting) do
@@ -214,9 +220,16 @@ defmodule Tymeslot.Emails.AppointmentBuilder do
 
   defp convert_to_timezone(datetime, timezone) do
     case DateTime.shift_zone(datetime, timezone) do
-      {:ok, shifted} -> shifted
-      # Fallback to original if conversion fails
-      {:error, _} -> datetime
+      {:ok, shifted} ->
+        shifted
+
+      {:error, reason} ->
+        Logger.error("Timezone conversion failed for #{timezone}",
+          reason: inspect(reason),
+          datetime: datetime
+        )
+
+        datetime
     end
   end
 

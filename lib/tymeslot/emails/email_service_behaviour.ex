@@ -32,5 +32,7 @@ defmodule Tymeslot.Emails.EmailServiceBehaviour do
               {{:ok, any()} | {:error, any()}, {:ok, any()} | {:error, any()}}
   @callback send_contact_form(String.t(), String.t(), String.t(), String.t()) ::
               {:ok, any()} | {:error, any()}
+  @callback send_support_request(String.t(), String.t(), String.t(), String.t()) ::
+              {:ok, any()} | {:error, any()}
   @callback send_reschedule_request(map()) :: {:ok, any()} | {:error, any()}
 end
