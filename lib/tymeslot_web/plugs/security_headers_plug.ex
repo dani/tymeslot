@@ -148,22 +148,23 @@ defmodule TymeslotWeb.Plugs.SecurityHeadersPlug do
 
   defp csp_header(frame_ancestors) do
     script_src =
-      "'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://www.gstatic.com"
+      "'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://www.gstatic.com https://js.stripe.com"
 
-    connect_src = "'self' wss: https://www.google.com https://accounts.google.com"
+    connect_src =
+      "'self' wss: https://www.google.com https://accounts.google.com https://api.stripe.com"
 
     Enum.join(
       [
         "default-src 'self'",
-        # Phoenix LiveView requires unsafe-inline, reCAPTCHA requires Google domains
+        # Phoenix LiveView requires unsafe-inline, reCAPTCHA + Stripe require external domains
         "script-src #{script_src}",
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "img-src 'self' data: https:",
         "font-src 'self' data: https://fonts.gstatic.com",
-        # Allow connections to reCAPTCHA and Google services
+        # Allow connections to reCAPTCHA, Google services, and Stripe
         "connect-src #{connect_src}",
-        # Allow reCAPTCHA frames from Google
-        "frame-src 'self' https://www.google.com https://accounts.google.com",
+        # Allow reCAPTCHA and Stripe frames
+        "frame-src 'self' https://www.google.com https://accounts.google.com https://js.stripe.com https://hooks.stripe.com",
         "frame-ancestors #{frame_ancestors}",
         "base-uri 'self'",
         "form-action 'self'"

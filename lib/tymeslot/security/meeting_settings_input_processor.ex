@@ -8,6 +8,7 @@ defmodule Tymeslot.Security.MeetingSettingsInputProcessor do
 
   alias Tymeslot.DatabaseSchemas.MeetingTypeSchema
   alias Tymeslot.Security.{SecurityLogger, UniversalSanitizer}
+  alias Tymeslot.Utils.ReminderUtils
 
   @doc """
   Validates meeting type form input (name, duration, description, icon, mode).
@@ -30,7 +31,8 @@ defmodule Tymeslot.Security.MeetingSettingsInputProcessor do
       {:icon, params["icon"]},
       {:meeting_mode, params["meeting_mode"]},
       {:calendar_integration_id, params["calendar_integration_id"]},
-      {:target_calendar_id, params["target_calendar_id"]}
+      {:target_calendar_id, params["target_calendar_id"]},
+      {:reminder_config, params["reminder_config"]}
     ]
 
     case run_validations(validations, metadata) do
@@ -45,15 +47,22 @@ defmodule Tymeslot.Security.MeetingSettingsInputProcessor do
   end
 
   defp run_validations(validations, metadata) do
-    Enum.reduce_while(validations, {:ok, %{}}, fn {field, value}, {:ok, acc} ->
-      case validate_field(field, value, metadata) do
-        {:ok, sanitized} ->
-          {:cont, {:ok, Map.put(acc, Atom.to_string(field), sanitized)}}
+    {sanitized_acc, error_acc} =
+      Enum.reduce(validations, {%{}, %{}}, fn {field, value}, {s_acc, e_acc} ->
+        case validate_field(field, value, metadata) do
+          {:ok, sanitized} ->
+            {Map.put(s_acc, Atom.to_string(field), sanitized), e_acc}
 
-        {:error, err} ->
-          {:halt, {:error, err}}
-      end
-    end)
+          {:error, err} ->
+            {s_acc, Map.merge(e_acc, err)}
+        end
+      end)
+
+    if error_acc == %{} do
+      {:ok, sanitized_acc}
+    else
+      {:error, error_acc}
+    end
   end
 
   defp validate_field(:name, v, m), do: validate_meeting_name(v, m)
@@ -63,6 +72,7 @@ defmodule Tymeslot.Security.MeetingSettingsInputProcessor do
   defp validate_field(:meeting_mode, v, m), do: validate_meeting_mode(v, m)
   defp validate_field(:calendar_integration_id, v, m), do: validate_calendar_integration_id(v, m)
   defp validate_field(:target_calendar_id, v, m), do: validate_target_calendar_id(v, m)
+  defp validate_field(:reminder_config, v, m), do: validate_reminder_config(v, m)
 
   defp log_validation_result(status, metadata, errors \\ nil) do
     event_name = "meeting_type_form_validation_#{status}"
@@ -85,7 +95,7 @@ defmodule Tymeslot.Security.MeetingSettingsInputProcessor do
   Returns {:ok, sanitized_value} | {:error, %{field => message}}
   """
   @spec validate_meeting_type_field(
-          :name | :duration | :description | :icon | :meeting_mode,
+          :name | :duration | :description | :icon | :meeting_mode | :reminder_config,
           any(),
           keyword()
         ) ::
@@ -134,6 +144,15 @@ defmodule Tymeslot.Security.MeetingSettingsInputProcessor do
     case validate_meeting_mode(value, metadata) do
       {:ok, sanitized} -> {:ok, sanitized}
       {:error, %{meeting_mode: _} = err} -> {:error, err}
+    end
+  end
+
+  def validate_meeting_type_field(:reminder_config, value, opts) do
+    metadata = Keyword.get(opts, :metadata, %{})
+
+    case validate_reminder_config(value, metadata) do
+      {:ok, sanitized} -> {:ok, sanitized}
+      {:error, err} -> {:error, err}
     end
   end
 
@@ -414,13 +433,17 @@ defmodule Tymeslot.Security.MeetingSettingsInputProcessor do
 
   defp validate_calendar_integration_id(id, _metadata) do
     case id do
-      id when is_integer(id) -> {:ok, id}
+      id when is_integer(id) ->
+        {:ok, id}
+
       id when is_binary(id) ->
         case Integer.parse(id) do
           {int, ""} -> {:ok, int}
           _ -> {:error, %{calendar_integration: "Invalid calendar account selected"}}
         end
-      _ -> {:error, %{calendar_integration: "Invalid calendar account format"}}
+
+      _ ->
+        {:error, %{calendar_integration: "Invalid calendar account format"}}
     end
   end
 
@@ -433,6 +456,65 @@ defmodule Tymeslot.Security.MeetingSettingsInputProcessor do
 
   defp validate_target_calendar_id(_, _metadata) do
     {:error, %{target_calendar: "Invalid target calendar format"}}
+  end
+
+  defp validate_reminder_config(nil, _metadata), do: {:ok, []}
+  defp validate_reminder_config("", _metadata), do: {:ok, []}
+
+  defp validate_reminder_config(reminder_config, _metadata) do
+    with {:ok, reminders} <- parse_and_normalize_reminders(reminder_config),
+         :ok <- validate_reminders_policy(reminders) do
+      {:ok, reminders}
+    else
+      {:error, message} -> {:error, %{reminder_config: message}}
+    end
+  end
+
+  defp parse_and_normalize_reminders(reminders) when is_binary(reminders) do
+    case Jason.decode(reminders) do
+      {:ok, decoded} -> parse_and_normalize_reminders(decoded)
+      _ -> {:error, "Invalid reminder settings format"}
+    end
+  end
+
+  defp parse_and_normalize_reminders(reminders) when is_map(reminders) do
+    reminders
+    |> Map.values()
+    |> parse_and_normalize_reminders()
+  end
+
+  defp parse_and_normalize_reminders(reminders) when is_list(reminders) do
+    results = Enum.map(reminders, &ReminderUtils.normalize_reminder_string_keys/1)
+
+    if Enum.any?(results, &match?({:error, _}, &1)) do
+      {:error, "Reminder settings must include valid values and units"}
+    else
+      {:ok, Enum.map(results, fn {:ok, reminder} -> reminder end)}
+    end
+  end
+
+  defp parse_and_normalize_reminders(_), do: {:error, "Invalid reminder settings format"}
+
+  defp validate_reminders_policy(reminders) do
+    cond do
+      length(reminders) > 3 ->
+        {:error, "You can configure up to 3 reminders"}
+
+      ReminderUtils.duplicate_reminders?(reminders) ->
+        {:error, "Reminder settings must be unique"}
+
+      Enum.any?(reminders, &reminder_exceeds_max?/1) ->
+        {:error, "Reminders cannot be set for more than 1 year in advance"}
+
+      true ->
+        :ok
+    end
+  end
+
+  # Max reminder: 1 year (365 days)
+  defp reminder_exceeds_max?(%{value: v, unit: u}) do
+    seconds = ReminderUtils.reminder_interval_seconds(v, u)
+    seconds > 365 * 24 * 60 * 60
   end
 
   defp validate_numeric_range(value_str, min, max, field_name) do
