@@ -129,7 +129,7 @@ defmodule Tymeslot.DatabaseQueries.VideoIntegrationQueries do
   Toggles the active status of an integration.
   """
   @spec toggle_active(VideoIntegrationSchema.t()) ::
-    {:ok, VideoIntegrationSchema.t()} | {:error, Ecto.Changeset.t()}
+          {:ok, VideoIntegrationSchema.t()} | {:error, Ecto.Changeset.t()}
   def toggle_active(%VideoIntegrationSchema{} = integration) do
     integration
     |> Changeset.change(%{is_active: !integration.is_active})

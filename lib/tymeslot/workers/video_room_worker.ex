@@ -273,8 +273,10 @@ defmodule Tymeslot.Workers.VideoRoomWorker do
     categorized_error = categorize_error(reason)
 
     # If integration is missing or inactive, discard without retries (send emails if requested)
-    if categorized_error in [{:error, :video_integration_missing},
-                             {:error, :video_integration_inactive}] do
+    if categorized_error in [
+         {:error, :video_integration_missing},
+         {:error, :video_integration_inactive}
+       ] do
       if send_emails, do: send_fallback_emails(meeting_id)
 
       discard_reason =

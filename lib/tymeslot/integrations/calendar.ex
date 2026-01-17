@@ -419,7 +419,8 @@ defmodule Tymeslot.Integrations.Calendar do
   @doc """
   Delete an event with optional target integration or meeting context.
   """
-  @spec delete_event(String.t(), pos_integer() | MeetingSchema.t() | nil) :: :ok | {:error, term()}
+  @spec delete_event(String.t(), pos_integer() | MeetingSchema.t() | nil) ::
+          :ok | {:error, term()}
   def delete_event(uid, context \\ nil) do
     calendar_module().delete_event(uid, context)
   end
@@ -433,7 +434,10 @@ defmodule Tymeslot.Integrations.Calendar do
   @doc """
   Returns the booking calendar integration info for a user or meeting type (id and path) used for event creation.
   """
-  @spec get_booking_integration_info(pos_integer() | Tymeslot.DatabaseSchemas.MeetingTypeSchema.t()) ::
+  @spec get_booking_integration_info(
+          pos_integer()
+          | Tymeslot.DatabaseSchemas.MeetingTypeSchema.t()
+        ) ::
           {:ok, %{integration_id: pos_integer(), calendar_path: String.t()}} | {:error, term()}
   def get_booking_integration_info(context) do
     calendar_module().get_booking_integration_info(context)
@@ -470,11 +474,12 @@ defmodule Tymeslot.Integrations.Calendar do
   @doc """
   Discover calendars and update the integration with merged selection state.
   Persists the updated calendar_list to the database.
-  
+
   Preserves existing selection state if discovery returns empty but integration
   previously had calendars selected, to prevent accidental data loss.
   """
-  @spec update_integration_with_discovery(map()) :: {:ok, CalendarIntegrationSchema.t()} | {:error, term()}
+  @spec update_integration_with_discovery(map()) ::
+          {:ok, CalendarIntegrationSchema.t()} | {:error, term()}
   def update_integration_with_discovery(integration) do
     with {:ok, refreshed_integration} <- refresh_integration(integration),
          {:ok, merged} <- discover_calendars_with_selection(refreshed_integration) do
