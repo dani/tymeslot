@@ -30,7 +30,8 @@ defmodule Tymeslot.DatabaseQueries.MeetingQueriesTest do
         insert(:meeting,
           start_time: DateTime.add(now, 30, :minute),
           status: "confirmed",
-          reminder_email_sent: false
+          reminder_email_sent: false,
+          reminders: nil
         )
 
       # Should not appear: too far in future
@@ -59,6 +60,33 @@ defmodule Tymeslot.DatabaseQueries.MeetingQueriesTest do
 
       assert length(meetings) == 1
       assert hd(meetings).id == meeting_needing_reminder.id
+    end
+  end
+
+  describe "append_reminder_sent/3" do
+    test "atomically appends reminder and avoids duplicates" do
+      meeting = insert(:meeting, reminders_sent: [])
+
+      # First append
+      {:ok, updated} = MeetingQueries.append_reminder_sent(meeting, 30, "minutes")
+      assert updated.reminders_sent == [%{"value" => 30, "unit" => "minutes"}]
+      assert updated.reminder_email_sent == true
+
+      # Duplicate append (should be idempotent due to CASE @> guard)
+      {:ok, updated2} = MeetingQueries.append_reminder_sent(updated, 30, "minutes")
+      assert updated2.reminders_sent == [%{"value" => 30, "unit" => "minutes"}]
+
+      # Second unique append
+      {:ok, updated3} = MeetingQueries.append_reminder_sent(updated2, 1, "hours")
+      assert %{"value" => 1, "unit" => "hours"} in updated3.reminders_sent
+      assert length(updated3.reminders_sent) == 2
+    end
+
+    test "handles nil reminders_sent" do
+      meeting = insert(:meeting, reminders_sent: nil)
+
+      {:ok, updated} = MeetingQueries.append_reminder_sent(meeting, 30, "minutes")
+      assert updated.reminders_sent == [%{"value" => 30, "unit" => "minutes"}]
     end
   end
 

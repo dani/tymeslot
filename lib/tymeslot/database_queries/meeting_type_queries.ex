@@ -152,6 +152,7 @@ defmodule Tymeslot.DatabaseQueries.MeetingTypeQueries do
             allow_video: false,
             calendar_integration_id: calendar_integration_id,
             target_calendar_id: target_calendar_id,
+            reminder_config: [%{value: 30, unit: "minutes"}],
             inserted_at: now,
             updated_at: now
           },
@@ -166,6 +167,7 @@ defmodule Tymeslot.DatabaseQueries.MeetingTypeQueries do
             allow_video: false,
             calendar_integration_id: calendar_integration_id,
             target_calendar_id: target_calendar_id,
+            reminder_config: [%{value: 30, unit: "minutes"}],
             inserted_at: now,
             updated_at: now
           }
@@ -221,7 +223,8 @@ defmodule Tymeslot.DatabaseQueries.MeetingTypeQueries do
             duration_minutes: 15,
             icon: "hero-bolt",
             sort_order: 0,
-            allow_video: false
+            allow_video: false,
+            reminder_config: [%{value: 30, unit: "minutes"}]
           },
           %{
             user_id: user_id,
@@ -230,7 +233,8 @@ defmodule Tymeslot.DatabaseQueries.MeetingTypeQueries do
             duration_minutes: 30,
             icon: "hero-rocket-launch",
             sort_order: 1,
-            allow_video: false
+            allow_video: false,
+            reminder_config: [%{value: 30, unit: "minutes"}]
           }
         ],
         fn type -> MapSet.member?(existing_names, type.name) end

@@ -295,7 +295,9 @@ defmodule Tymeslot.Meetings do
 
     # Use the specific video integration ID stored in the meeting if available
     with {:ok, meeting_context} <-
-           video_module().create_meeting_room(user_id, integration_id: meeting.video_integration_id),
+           video_module().create_meeting_room(user_id,
+             integration_id: meeting.video_integration_id
+           ),
          {:ok, video_room_attrs} <- build_video_room_attrs(meeting, meeting_context),
          {:ok, updated_meeting} <- update_meeting_with_video_room(meeting, video_room_attrs) do
       # After attaching the video room, update the calendar event so Google/other calendars

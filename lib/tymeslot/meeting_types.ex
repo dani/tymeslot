@@ -99,29 +99,53 @@ defmodule Tymeslot.MeetingTypes do
   end
 
   @doc """
+  Finds a meeting type by its slug (derived from name).
+  """
+  @spec find_by_slug(integer(), String.t()) :: Ecto.Schema.t() | nil
+  def find_by_slug(user_id, slug) do
+    Enum.find(get_active_meeting_types(user_id), fn mt ->
+      to_slug(mt) == slug
+    end)
+  end
+
+  @doc """
+  Converts meeting type to slug format used in URLs.
+  """
+  @spec to_slug(Ecto.Schema.t()) :: String.t()
+  def to_slug(meeting_type) do
+    meeting_type.name
+    |> String.downcase()
+    |> String.replace(~r/[^a-z0-9]+/, "-")
+    |> String.trim("-")
+  end
+
+  @doc """
   Converts meeting type to duration string format used in URLs.
   """
   @spec to_duration_string(Ecto.Schema.t()) :: String.t()
   def to_duration_string(meeting_type) do
-    "#{meeting_type.duration_minutes}min"
+    to_slug(meeting_type)
   end
 
   @doc """
-  Finds a meeting type by duration string.
+  Normalizes duration inputs into the slug format used in URLs.
+  """
+  @spec normalize_duration_slug(String.t() | nil) :: String.t() | nil
+  def normalize_duration_slug(nil), do: nil
+
+  def normalize_duration_slug(duration) when is_binary(duration) do
+    case Regex.run(~r/^(\d+)min$/, duration) do
+      [_, minutes] -> "#{minutes}-minutes"
+      _ -> duration
+    end
+  end
+
+  @doc """
+  Finds a meeting type by duration string (now deprecated in favor of find_by_slug).
   """
   @spec find_by_duration_string(integer(), String.t()) :: Ecto.Schema.t() | nil
-  def find_by_duration_string(user_id, duration_string) do
-    duration_minutes =
-      case Regex.run(~r/^(\d+)min$/, duration_string) do
-        [_, minutes] -> String.to_integer(minutes)
-        _ -> nil
-      end
-
-    if duration_minutes do
-      Enum.find(get_active_meeting_types(user_id), &(&1.duration_minutes == duration_minutes))
-    else
-      nil
-    end
+  def find_by_duration_string(user_id, slug) do
+    find_by_slug(user_id, slug)
   end
 
   @doc """
