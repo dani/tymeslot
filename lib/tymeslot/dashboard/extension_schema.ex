@@ -66,7 +66,7 @@ defmodule Tymeslot.Dashboard.ExtensionSchema do
           action: atom()
         }
 
-  @type validation_error :: {atom(), String.t()}
+  @type validation_error :: {integer() | atom(), String.t()}
 
   @required_fields [:id, :label, :icon, :path, :action]
 
@@ -86,7 +86,7 @@ defmodule Tymeslot.Dashboard.ExtensionSchema do
       iex> ExtensionSchema.validate_all([
       ...>   %{id: :test, label: "Test", icon: :invalid, path: "/test", action: :test}
       ...> ])
-      {:error, [{:test, "Invalid icon :invalid. Must be one of: ..."}]}
+      {:error, [{0, "Invalid icon :invalid. Must be one of: ..."}]}
   """
   @spec validate_all([map()]) :: :ok | {:error, [validation_error()]}
   def validate_all(extensions) when is_list(extensions) do
@@ -167,14 +167,16 @@ defmodule Tymeslot.Dashboard.ExtensionSchema do
 
   defp validate_field_types(errors, extension) do
     type_errors =
-      [
-        validate_type(extension, :id, :atom),
-        validate_type(extension, :label, :string),
-        validate_type(extension, :icon, :atom),
-        validate_type(extension, :path, :string),
-        validate_type(extension, :action, :atom)
-      ]
-      |> Enum.reject(&is_nil/1)
+      Enum.reject(
+        [
+          validate_type(extension, :id, :atom),
+          validate_type(extension, :label, :string),
+          validate_type(extension, :icon, :atom),
+          validate_type(extension, :path, :string),
+          validate_type(extension, :action, :atom)
+        ],
+        &is_nil/1
+      )
 
     errors ++ type_errors
   end
@@ -182,7 +184,7 @@ defmodule Tymeslot.Dashboard.ExtensionSchema do
   defp validate_type(extension, field, expected_type) do
     case Map.get(extension, field) do
       nil ->
-        nil
+        "Field :#{field} is required and cannot be nil"
 
       value ->
         valid =
@@ -301,12 +303,11 @@ defmodule Tymeslot.Dashboard.ExtensionSchema do
   @doc """
   Formats validation errors into a human-readable string.
   """
+  @spec format_errors([validation_error() | String.t()]) :: String.t()
   def format_errors(errors) do
-    errors
-    |> Enum.map(fn
+    Enum.map_join(errors, "\n", fn
       {index, error} -> "  Extension ##{index}: #{error}"
       error -> "  #{error}"
     end)
-    |> Enum.join("\n")
   end
 end

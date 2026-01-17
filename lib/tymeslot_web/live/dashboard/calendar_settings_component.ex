@@ -75,7 +75,9 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
 
     cond do
       failures == 0 ->
-        Flash.info("All #{successes} calendar#{if successes != 1, do: "s", else: ""} refreshed successfully")
+        Flash.info(
+          "All #{successes} calendar#{if successes != 1, do: "s", else: ""} refreshed successfully"
+        )
 
       successes > 0 ->
         Flash.error(
@@ -195,16 +197,23 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
   def handle_event("toggle_integration", %{"id" => id}, socket) do
     user_id = socket.assigns.current_user.id
 
-    case Calendar.toggle_integration(to_int!(id), user_id) do
-      {:ok, _integration} ->
-        Flash.info("Calendar status updated")
+    case parse_int(id) do
+      {:ok, int_id} ->
+        case Calendar.toggle_integration(int_id, user_id) do
+          {:ok, _integration} ->
+            Flash.info("Calendar status updated")
 
-        # Notify parent LiveView that integration status has changed
-        send(self(), {:integration_updated, :calendar})
-        {:noreply, load_integrations(socket)}
+            # Notify parent LiveView that integration status has changed
+            send(self(), {:integration_updated, :calendar})
+            {:noreply, load_integrations(socket)}
 
-      {:error, reason} ->
-        Flash.error("Failed to update calendar status: #{inspect(reason)}")
+          {:error, reason} ->
+            Flash.error("Failed to update calendar status: #{inspect(reason)}")
+            {:noreply, socket}
+        end
+
+      :error ->
+        Flash.error("Invalid calendar ID")
         {:noreply, socket}
     end
   end
@@ -341,45 +350,58 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
   end
 
   def handle_event("test_connection", %{"id" => id}, socket) do
-    socket = assign(socket, :testing_integration_id, to_int!(id))
+    case parse_int(id) do
+      {:ok, int_id} ->
+        socket = assign(socket, :testing_integration_id, int_id)
 
-    case Calendar.get_integration(to_int!(id), socket.assigns.current_user.id) do
-      {:ok, integration} ->
-        case Calendar.test_connection(integration) do
-          {:ok, message} ->
-            Flash.info(message)
-            {:noreply, assign(socket, :testing_integration_id, nil)}
+        case Calendar.get_integration(int_id, socket.assigns.current_user.id) do
+          {:ok, integration} ->
+            case Calendar.test_connection(integration) do
+              {:ok, message} ->
+                Flash.info(message)
+                {:noreply, assign(socket, :testing_integration_id, nil)}
 
-          {:error, reason} ->
-            Flash.error("Connection test failed: #{inspect(reason)}")
+              {:error, reason} ->
+                Flash.error("Connection test failed: #{inspect(reason)}")
+                {:noreply, assign(socket, :testing_integration_id, nil)}
+            end
+
+          {:error, :not_found} ->
+            Flash.error("Integration not found")
             {:noreply, assign(socket, :testing_integration_id, nil)}
         end
 
-      {:error, :not_found} ->
-        Flash.error("Integration not found")
-        {:noreply, assign(socket, :testing_integration_id, nil)}
+      :error ->
+        Flash.error("Invalid calendar ID")
+        {:noreply, socket}
     end
   end
 
   def handle_event("upgrade_google_scope", %{"id" => id}, socket) do
     user_id = socket.assigns.current_user.id
-    integration_id = to_int!(id)
 
-    case Calendar.initiate_google_scope_upgrade(user_id, integration_id) do
-      {:ok, authorization_url} ->
-        send(self(), {:external_redirect, authorization_url})
-        {:noreply, socket}
+    case parse_int(id) do
+      {:ok, int_id} ->
+        case Calendar.initiate_google_scope_upgrade(user_id, int_id) do
+          {:ok, authorization_url} ->
+            send(self(), {:external_redirect, authorization_url})
+            {:noreply, socket}
 
-      {:error, :invalid_provider} ->
-        Flash.error("Integration is not a Google Calendar")
-        {:noreply, socket}
+          {:error, :invalid_provider} ->
+            Flash.error("Integration is not a Google Calendar")
+            {:noreply, socket}
 
-      {:error, :not_found} ->
-        Flash.error("Integration not found")
-        {:noreply, socket}
+          {:error, :not_found} ->
+            Flash.error("Integration not found")
+            {:noreply, socket}
 
-      {:error, error_message} when is_binary(error_message) ->
-        Flash.error(error_message)
+          {:error, error_message} when is_binary(error_message) ->
+            Flash.error(error_message)
+            {:noreply, socket}
+        end
+
+      :error ->
+        Flash.error("Invalid calendar ID")
         {:noreply, socket}
     end
   end
@@ -563,10 +585,8 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
   end
 
   # Small utility for ID parsing
-  defp to_int!(id) when is_binary(id), do: String.to_integer(id)
-  defp to_int!(id) when is_integer(id), do: id
-
   defp parse_int(id) when is_integer(id), do: {:ok, id}
+
   defp parse_int(id) when is_binary(id) do
     case Integer.parse(id) do
       {int, ""} -> {:ok, int}

@@ -116,6 +116,19 @@ defmodule Tymeslot.Dashboard.ExtensionSchemaTest do
       assert {:error, errors} = ExtensionSchema.validate(extension)
       assert Enum.any?(errors, &String.contains?(&1, "Field :action must be a atom"))
     end
+
+    test "rejects extension with nil required fields" do
+      extension = %{
+        id: nil,
+        label: "Test",
+        icon: :home,
+        path: "/test",
+        action: :test
+      }
+
+      assert {:error, errors} = ExtensionSchema.validate(extension)
+      assert Enum.any?(errors, &String.contains?(&1, "Field :id is required and cannot be nil"))
+    end
   end
 
   describe "validate_all/1" do
@@ -190,7 +203,7 @@ defmodule Tymeslot.Dashboard.ExtensionSchemaTest do
       assert {:error, errors} = ExtensionSchema.validate_all(extensions)
 
       # Check that errors are indexed
-      error_indices = Enum.map(errors, fn {index, _} -> index end) |> Enum.uniq()
+      error_indices = Enum.uniq(Enum.map(errors, fn {index, _} -> index end))
       assert 0 in error_indices
       assert 1 in error_indices
       refute 2 in error_indices

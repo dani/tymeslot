@@ -619,6 +619,7 @@ defmodule TymeslotWeb.DashboardLive do
   defp component_for_action(:theme), do: ThemeSettingsComponent
   defp component_for_action(:meetings), do: BookingsManagementComponent
   defp component_for_action(:embed), do: EmbedSettingsComponent
+
   defp component_for_action(action) do
     # Check dynamic components registered via configuration (e.g., by SaaS)
     components = Application.get_env(:tymeslot, :dashboard_action_components, %{})
