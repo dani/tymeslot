@@ -1,60 +1,33 @@
 defmodule Tymeslot.Availability.BusinessHoursTest do
+  @moduledoc """
+  Tests for the BusinessHours module.
+  """
+
   use ExUnit.Case, async: true
   alias Tymeslot.Availability.BusinessHours
 
-  describe "create_datetime_safe/3" do
-    test "handles standard time correctly" do
-      date = ~D[2024-06-01]
-      time = ~T[12:00:00]
-      timezone = "Europe/London"
-
-      dt = BusinessHours.create_datetime_safe(date, time, timezone)
-      assert dt.year == 2024
-      assert dt.month == 6
-      assert dt.day == 1
-      assert dt.hour == 12
-      assert dt.time_zone == "Europe/London"
+  describe "business_day?" do
+    test "returns true for weekdays (default)" do
+      # Monday to Friday
+      assert BusinessHours.business_day?(~D[2026-01-12])
+      assert BusinessHours.business_day?(~D[2026-01-13])
+      assert BusinessHours.business_day?(~D[2026-01-14])
+      assert BusinessHours.business_day?(~D[2026-01-15])
+      assert BusinessHours.business_day?(~D[2026-01-16])
     end
 
-    test "handles spring forward gap (non-existing time)" do
-      # In Europe/London, 2024-03-31 01:00:00 moved to 02:00:00
-      # 01:30:00 does not exist
-      date = ~D[2024-03-31]
-      time = ~T[01:30:00]
-      timezone = "Europe/London"
-
-      dt = BusinessHours.create_datetime_safe(date, time, timezone)
-
-      # Should shift forward by 1 hour
-      assert dt.hour == 2
-      assert dt.minute == 30
-      assert dt.time_zone == "Europe/London"
+    test "returns false for weekends (default)" do
+      # Saturday and Sunday
+      refute BusinessHours.business_day?(~D[2026-01-17])
+      refute BusinessHours.business_day?(~D[2026-01-18])
     end
+  end
 
-    test "handles fall back ambiguity (repeated time)" do
-      # In Europe/London, 2024-10-27 02:00:00 moved back to 01:00:00
-      # 01:30:00 occurs twice
-      date = ~D[2024-10-27]
-      time = ~T[01:30:00]
-      timezone = "Europe/London"
-
-      dt = BusinessHours.create_datetime_safe(date, time, timezone)
-
-      # Should pick the first occurrence (BST)
-      assert dt.hour == 1
-      assert dt.minute == 30
-      assert dt.zone_abbr == "BST"
-      assert dt.time_zone == "Europe/London"
-    end
-
-    test "falls back to UTC for invalid timezone" do
-      date = ~D[2024-01-01]
-      time = ~T[12:00:00]
-      timezone = "Invalid/Timezone"
-
-      dt = BusinessHours.create_datetime_safe(date, time, timezone)
-      assert dt.time_zone == "Etc/UTC"
-      assert dt.hour == 12
+  describe "business_hours_range" do
+    test "returns default range" do
+      {start_time, end_time} = BusinessHours.business_hours_range()
+      assert start_time == ~T[11:00:00]
+      assert end_time == ~T[19:30:00]
     end
   end
 end

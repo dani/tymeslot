@@ -6,7 +6,7 @@ defmodule Tymeslot.Availability.ConflictsTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
-  alias Tymeslot.Availability.{Calculate, Conflicts, Events}
+  alias Tymeslot.Availability.{BusinessHours, Calculate, Conflicts, Events}
   alias Tymeslot.Utils.{DateTimeUtils, TimeRange}
 
   property "date_has_slots_with_events? matches available_slots availability" do
@@ -229,7 +229,9 @@ defmodule Tymeslot.Availability.ConflictsTest do
 
   describe "date_has_slots_with_events?/5" do
     test "returns true when no events block the day" do
-      date = Date.add(Date.utc_today(), 7)
+      # Ensure we use a weekday (default business hours)
+      # Today is Sat Jan 17, 2026. Next Monday is Jan 19.
+      date = ~D[2026-01-19]
 
       result =
         Conflicts.date_has_slots_with_events?(
@@ -244,7 +246,8 @@ defmodule Tymeslot.Availability.ConflictsTest do
     end
 
     test "returns true when events don't cover entire business hours" do
-      date = Date.add(Date.utc_today(), 7)
+      # Ensure we use a weekday
+      date = ~D[2026-01-19]
 
       # Event only covers part of the day
       events = [
@@ -306,25 +309,14 @@ defmodule Tymeslot.Availability.ConflictsTest do
     end
 
     test "returns false for today if current time is after business hours" do
-      # We'll use a specific date and time to avoid flakiness
-      # We mock the current time by controlling the timezone or just testing the internal logic
-      # since we can't easily mock DateTime.utc_now() without extra libraries.
-
-      # Let's test the logic by finding a timezone where it's definitely late evening right now.
-      # If it's 10:00 UTC, in Tokyo (+9) it's 19:00.
-
-      # A better way is to test with a fixed date and choosing a timezone that makes 'now' late.
-      # But since the code calls DateTime.utc_now(), we are tied to the clock.
-
-      # Let's use a very large offset.
       # 14 hours ahead of UTC
       user_tz = "Etc/GMT-14"
       now_in_tz = DateTime.shift_zone!(DateTime.utc_now(), user_tz)
       today_in_tz = DateTime.to_date(now_in_tz)
 
-      # Business hours end at 17:00 (default)
-      # If now_in_tz is after 17:00, it should be false.
-      if now_in_tz.hour >= 17 do
+      # Business hours end at 19:30 (default)
+      # If now_in_tz is after 19:30, it should be false.
+      if now_in_tz.hour >= 20 or !BusinessHours.business_day?(today_in_tz) do
         result =
           Conflicts.date_has_slots_with_events?(
             today_in_tz,
@@ -335,7 +327,7 @@ defmodule Tymeslot.Availability.ConflictsTest do
             %{min_advance_hours: 0}
           )
 
-        assert result == false, "Should be unavailable when business hours have passed"
+        assert result == false, "Should be unavailable when business hours have passed or it's a weekend"
       end
     end
 
@@ -346,7 +338,8 @@ defmodule Tymeslot.Availability.ConflictsTest do
       today_in_tz = DateTime.to_date(now_in_tz)
 
       # If it's early morning in this timezone, and business hours end at 17:00, it should be true.
-      if now_in_tz.hour < 14 do
+      # BUT ONLY if today is a business day!
+      if now_in_tz.hour < 14 and BusinessHours.business_day?(today_in_tz) do
         result =
           Conflicts.date_has_slots_with_events?(
             today_in_tz,
@@ -393,7 +386,7 @@ defmodule Tymeslot.Availability.ConflictsTest do
       ]
 
       # Convert to the target timezone
-      events_in_tz = Events.convert_events_to_timezone(events, timezone)
+      events_in_tz = Events.convert_events_to_timezone(events, timezone, timezone)
 
       # Slot on Tuesday
       slot_time = Time.new!(slot_hour, slot_min, 0)

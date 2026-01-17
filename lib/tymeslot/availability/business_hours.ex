@@ -6,6 +6,7 @@ defmodule Tymeslot.Availability.BusinessHours do
   """
 
   alias Tymeslot.Availability.WeeklySchedule
+  alias Tymeslot.Utils.DateTimeUtils
 
   # Fallback business hours configuration (for backwards compatibility)
   @fallback_start_time ~T[11:00:00]
@@ -137,33 +138,6 @@ defmodule Tymeslot.Availability.BusinessHours do
 
   # Private functions
 
-  @spec create_datetime_safe(Date.t(), Time.t(), String.t()) :: DateTime.t()
-  def create_datetime_safe(date, time, timezone) do
-    case DateTime.new(date, time, timezone) do
-      {:ok, datetime} ->
-        datetime
-
-      {:ambiguous, first, _second} ->
-        # In case of ambiguity (e.g. DST fall back), use the first occurrence
-        first
-
-      {:gap, _, _} ->
-        # Time is in a DST gap (spring forward). Shift forward by 1 hour.
-        naive = NaiveDateTime.new!(date, time)
-        shifted = NaiveDateTime.add(naive, 3600, :second)
-
-        case DateTime.from_naive(shifted, timezone) do
-          {:ok, dt} -> dt
-          {:ambiguous, first, _} -> first
-          _ -> DateTime.new!(date, time, "Etc/UTC")
-        end
-
-      {:error, _reason} ->
-        # Fallback to UTC if timezone is invalid
-        DateTime.new!(date, time, "Etc/UTC")
-    end
-  end
-
   defp convert_business_hours_to_user_timezone(
          date,
          start_time,
@@ -172,8 +146,8 @@ defmodule Tymeslot.Availability.BusinessHours do
          user_timezone
        ) do
     # Create datetime range in owner's timezone
-    owner_start = create_datetime_safe(date, start_time, owner_timezone)
-    owner_end = create_datetime_safe(date, end_time, owner_timezone)
+    owner_start = DateTimeUtils.create_datetime_safe(date, start_time, owner_timezone)
+    owner_end = DateTimeUtils.create_datetime_safe(date, end_time, owner_timezone)
 
     # Convert to user's timezone
     with {:ok, user_start} <- DateTime.shift_zone(owner_start, user_timezone),

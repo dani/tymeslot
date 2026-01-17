@@ -18,11 +18,7 @@ defmodule Tymeslot.Availability.Conflicts do
     max_advance_booking_days = Map.get(config, :max_advance_booking_days, 90)
 
     # Get current time in the same timezone as the slots
-    current_time =
-      case DateTime.now(timezone) do
-        {:ok, dt} -> dt
-        _ -> DateTime.shift_zone!(DateTime.utc_now(), "Etc/UTC")
-      end
+    current_time = get_current_time(timezone)
 
     Enum.filter(all_slots, fn slot ->
       # Parse the slot time and create datetime
@@ -31,7 +27,12 @@ defmodule Tymeslot.Availability.Conflicts do
       slot_end = DateTime.add(slot_start, duration_minutes, :minute)
 
       # Check all booking constraints
-      meets_booking_constraints?(slot_start, current_time, min_advance_hours, max_advance_booking_days) and
+      meets_booking_constraints?(
+        slot_start,
+        current_time,
+        min_advance_hours,
+        max_advance_booking_days
+      ) and
         no_event_conflict?(slot_start, slot_end, events, buffer_minutes)
     end)
   end
@@ -63,11 +64,7 @@ defmodule Tymeslot.Availability.Conflicts do
     profile_id = Map.get(config, :profile_id)
 
     # Get current time in user timezone
-    current_time =
-      case DateTime.now(user_timezone) do
-        {:ok, dt} -> dt
-        _ -> DateTime.shift_zone!(DateTime.utc_now(), "Etc/UTC")
-      end
+    current_time = get_current_time(user_timezone)
 
     minimum_booking_time = DateTime.add(current_time, min_advance_hours * 60, :minute)
     relevant_events = filter_events_for_date_window(events_in_user_tz, date)
@@ -233,5 +230,12 @@ defmodule Tymeslot.Availability.Conflicts do
         end
       end
     end)
+  end
+
+  defp get_current_time(timezone) do
+    case DateTime.now(timezone) do
+      {:ok, dt} -> dt
+      _ -> DateTime.shift_zone!(DateTime.utc_now(), "Etc/UTC")
+    end
   end
 end

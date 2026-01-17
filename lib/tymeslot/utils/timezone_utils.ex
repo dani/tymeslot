@@ -401,9 +401,13 @@ defmodule Tymeslot.Utils.TimezoneUtils do
   end
 
   @doc """
-  Formats duration string for display.
+  Formats duration string or integer for display.
   """
   @spec format_duration(term()) :: String.t()
+  def format_duration(duration) when is_integer(duration) do
+    format_minutes(duration)
+  end
+
   def format_duration(duration_string) when is_binary(duration_string) do
     case Regex.run(~r/^(\d+)min$/, duration_string) do
       [_, minutes_str] ->

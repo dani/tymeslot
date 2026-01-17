@@ -4,7 +4,7 @@ defmodule Tymeslot.Availability.Calculate do
   Combines business hours, time slots, and conflict detection.
   """
 
-  alias Tymeslot.Availability.{BusinessHours, Conflicts, TimeSlots, WeeklySchedule}
+  alias Tymeslot.Availability.{BusinessHours, Conflicts, Events, TimeSlots, WeeklySchedule}
 
   @doc """
   Calculates available time slots for a specific date.
@@ -30,7 +30,8 @@ defmodule Tymeslot.Availability.Calculate do
         events,
         config \\ %{}
       ) do
-    # Enforce 24-hour limit on duration
+    # Enforce limits on duration
+    duration_minutes = max(duration_minutes, 1)
     duration_minutes = min(duration_minutes, 1440)
     profile_id = Map.get(config, :profile_id)
 
@@ -77,7 +78,8 @@ defmodule Tymeslot.Availability.Calculate do
       {:ok, []}
     else
       # Convert events to user timezone once
-      events_in_user_tz = Conflicts.convert_events_to_timezone(events, user_timezone)
+      events_in_user_tz =
+        Events.convert_events_to_timezone(events, owner_timezone, user_timezone)
 
       all_available_slots =
         Enum.flat_map(business_hours_windows, fn window ->
@@ -166,10 +168,9 @@ defmodule Tymeslot.Availability.Calculate do
     max_booking_date = Date.add(today, max_advance_booking_days)
 
     # Convert events to user timezone once
-    events_in_user_tz = Conflicts.convert_events_to_timezone(events, user_timezone)
+    events_in_user_tz = Events.convert_events_to_timezone(events, owner_timezone, user_timezone)
 
-    # Read profile_id and duration once (if present)
-    profile_id = Map.get(config, :profile_id)
+    # Read duration once (if present)
     duration_minutes = Map.get(config, :duration_minutes, 30)
 
     # Check each date in the month
@@ -182,7 +183,6 @@ defmodule Tymeslot.Availability.Calculate do
 
         has_slots =
           not is_outside_range and
-            business_day?(date, profile_id) and
             Conflicts.date_has_slots_with_events?(
               date,
               owner_timezone,
@@ -365,8 +365,4 @@ defmodule Tymeslot.Availability.Calculate do
       _ -> []
     end
   end
-
-  # Helper to determine if a date is a business day based on optional profile_id
-  defp business_day?(date, nil), do: BusinessHours.business_day?(date)
-  defp business_day?(date, profile_id), do: BusinessHours.business_day?(date, profile_id)
 end
