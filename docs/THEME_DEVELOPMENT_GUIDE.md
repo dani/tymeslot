@@ -8,11 +8,11 @@ The theme system uses a centralized registry pattern that eliminates magic strin
 
 ### Key Components
 
-1. **Theme Registry** (`Tymeslot.Themes.Registry`) - Central source of truth for all themes
-2. **Theme Module** (`Tymeslot.Themes.Theme`) - Backward-compatible facade
-3. **Shared Components** (`TymeslotWeb.Live.Scheduling.Themes.Shared.*`) - Optional reusable components
-4. **Theme Customization** - User-configurable colors, backgrounds, and styles
-5. **Preset Assets** - Pre-defined backgrounds (images/videos) that users can choose from
+1. **Theme Registry** (`TymeslotWeb.Themes.Core.Registry`) - Central source of truth for all themes
+2. **Theme Behaviour** (`TymeslotWeb.Themes.Core.Behaviour`) - Interface that all themes must implement
+3. **Shared Context** (`TymeslotWeb.Themes.Shared.*`) - Shared helpers, handlers, and components
+4. **Capability System** (`Tymeslot.ThemeCustomizations.Capability`) - Capability-based customization logic
+5. **Dispatcher & Loader** - Systems for dynamically loading and dispatching theme actions
 
 ## Quick Start
 
@@ -21,14 +21,11 @@ The theme system uses a centralized registry pattern that eliminates magic strin
 ```elixir
 # This previews what files would be created (doesn't actually create them)
 Tymeslot.ThemeTestHelpers.generate_theme_skeleton("aurora", "Aurora Theme")
-
-# Copy the returned content to create your theme files manually
-# The helper returns a map with file paths and their contents
 ```
 
 ### 2. Register Your Theme
 
-Add to `lib/tymeslot/themes/registry.ex`:
+Add to `apps/tymeslot/lib/tymeslot_web/themes/core/registry.ex`:
 
 ```elixir
 aurora: %{
@@ -36,37 +33,76 @@ aurora: %{
   key: :aurora,
   name: "Aurora", 
   description: "Beautiful northern lights theme",
-  module: TymeslotWeb.Themes.AuroraTheme,
+  module: TymeslotWeb.Themes.Aurora.Theme,
   css_file: "/assets/scheduling-theme-aurora.css",
-  # ... other required fields
+  preview_image: "/images/themes/aurora-preview.png",
+  features: %{
+    supports_video_background: true,
+    supports_image_background: true,
+    supports_gradient_background: true,
+    supports_custom_colors: true,
+    flow_type: :multi_step,
+    step_count: 4
+  },
+  status: :active
 }
 ```
 
 ### 3. Implement Required Functions
 
-Your theme module must implement these behaviors:
+Your theme module must implement the `TymeslotWeb.Themes.Core.Behaviour`:
 
 ```elixir
-defmodule TymeslotWeb.Themes.AuroraTheme do
-  @behaviour TymeslotWeb.Themes.ThemeBehaviour
+defmodule TymeslotWeb.Themes.Aurora.Theme do
+  @behaviour TymeslotWeb.Themes.Core.Behaviour
   
   # Define your theme states (typically 4 steps)
+  @impl true
   def states do
     %{
-      overview: %{step: 1, next: :calendar},
-      calendar: %{step: 2, next: :booking_form, prev: :overview},
-      booking_form: %{step: 3, next: :confirmation, prev: :calendar},
+      overview: %{step: 1, next: :schedule, prev: nil},
+      schedule: %{step: 2, next: :booking, prev: :overview},
+      booking: %{step: 3, next: :confirmation, prev: :schedule},
       confirmation: %{step: 4, prev: nil}
     }
   end
   
-  def css_file, do: "/css/themes/scheduling-theme-aurora.css"
-  def components, do: %{overview: AuroraOverviewComponent}
-  def live_view_module, do: AuroraSchedulingLive
+  @impl true
+  def css_file, do: "/assets/scheduling-theme-aurora.css"
+  
+  @impl true
+  def components do
+    %{
+      overview: Aurora.OverviewComponent,
+      schedule: Aurora.ScheduleComponent,
+      booking: Aurora.BookingComponent,
+      confirmation: Aurora.ConfirmationComponent
+    }
+  end
+  
+  @impl true
+  def live_view_module, do: TymeslotWeb.Themes.Aurora.Scheduling.Live
+  
+  @impl true
   def theme_config, do: %{name: "Aurora", description: "Beautiful theme"}
+  
+  @impl true
   def validate_theme, do: :ok
+  
+  @impl true
   def initial_state_for_action(_), do: :overview
+  
+  @impl true
   def supports_feature?(_), do: true
+
+  @impl true
+  def render_meeting_action(assigns, action) do
+    case action do
+      :reschedule -> Aurora.Meeting.Reschedule.render(assigns)
+      :cancel -> Aurora.Meeting.Cancel.render(assigns)
+      :cancel_confirmed -> Aurora.Meeting.CancelConfirmed.render(assigns)
+    end
+  end
 end
 ```
 
@@ -152,164 +188,139 @@ Each theme's main CSS file (`theme.css`) follows this pattern:
 - Smooth transitions
 - Accessibility features
 
-## Using Shared Components
+## Using Shared Logic and Helpers
 
-The theme system provides optional shared components that you can use to speed up development:
+The theme system provides centralized handlers and helpers in `TymeslotWeb.Themes.Shared.*` to ensure consistency and reduce duplication.
 
-### Theme Layout
+### LiveHelpers
+
+`TymeslotWeb.Themes.Shared.LiveHelpers` provides common mounting and parameter handling logic:
 
 ```elixir
-# In your theme component
-import TymeslotWeb.Live.Scheduling.Themes.Shared.ThemeLayout
+defmodule TymeslotWeb.Themes.MyTheme.Scheduling.Live do
+  use TymeslotWeb, :live_view
+  import TymeslotWeb.Themes.Shared.LiveHelpers
 
-def render(assigns) do
-  ~H"""
-  <.theme_layout 
-    theme_id={@theme_id}
-    theme_customization={@theme_customization}
-    custom_css={@custom_css}
-  >
-    <div class="my-theme-content">
-      <!-- Your theme-specific content -->
-    </div>
-  </.theme_layout>
-  """
+  @impl true
+  def mount(params, session, socket) do
+    socket = mount_scheduling_view(socket, params, :overview, &assign_initial_state/1, &setup_initial_state/3)
+    {:ok, socket}
+  end
+
+  @impl true
+  def handle_params(params, _url, socket) do
+    handle_scheduling_params(socket, params, :overview, &handle_param_updates/2, &handle_state_entry/3)
+  end
 end
 ```
 
-### Theme Helpers
+### EventHandlers
+
+`TymeslotWeb.Themes.Shared.EventHandlers` handles common UI events:
 
 ```elixir
-# Import shared helpers
-import TymeslotWeb.Live.Scheduling.Themes.Shared.ThemeHelpers
+@impl true
+def handle_event("change_locale", %{"locale" => locale}, socket) do
+  EventHandlers.handle_change_locale(socket, locale, PathHandlers)
+end
 
-# Use helper functions
-format_duration(30)  # "30 minutes"
-format_date(date, :full)  # "Wednesday, March 15, 2024"
-theme_supports?("1", :video_background)  # true
+@impl true
+def handle_event("step_event", %{"step" => "overview", "event" => event, "data" => data}, socket) do
+  EventHandlers.handle_overview_events(socket, String.to_existing_atom(event), data, callbacks(socket))
+end
 ```
 
-### Theme Assets
+### InfoHandlers
+
+`TymeslotWeb.Themes.Shared.InfoHandlers` handles async tasks like availability fetching:
 
 ```elixir
-# Optimized asset loading
-alias TymeslotWeb.Themes.ThemeAssets
+@impl true
+def handle_info({:fetch_available_slots, date, duration, timezone}, socket) do
+  InfoHandlers.handle_fetch_available_slots(socket, date, duration, timezone)
+end
 
-# Generate versioned URLs with caching
-ThemeAssets.versioned_asset_url("/css/my-theme.css")
-
-# Generate preload tags for performance
-ThemeAssets.preload_tags(theme_id)
-
-# Get theme CSS file path
-ThemeAssets.theme_css_file(theme_id)
-
-# Generate theme-specific asset paths
-ThemeAssets.theme_asset_path(theme_id, "images/background.jpg")
+@impl true
+def handle_info({ref, {:ok, availability_map}}, socket) when is_reference(ref) do
+  InfoHandlers.handle_availability_ok(socket, ref, availability_map)
+end
 ```
 
-The ThemeAssets module provides centralized asset management with:
-- Versioning for cache busting
-- Preload tag generation for performance
-- Theme-specific asset path resolution
-- Consistent asset URL handling
+### LocalizationHelpers
+
+Always use `TymeslotWeb.Themes.Shared.LocalizationHelpers` for formatting dates, times, and durations to ensure they respect the user's locale:
+
+```elixir
+alias TymeslotWeb.Themes.Shared.LocalizationHelpers
+
+# Result: "Wednesday, 15 March 2024 at 14:30 EST"
+LocalizationHelpers.format_booking_datetime(@date, @time, @timezone)
+
+# Result: "30 minutes" or "1 hour"
+LocalizationHelpers.format_duration("30min")
+```
+
+### PathHandlers
+
+Use `TymeslotWeb.Themes.Shared.PathHandlers` for internal navigation to preserve locale and theme settings:
+
+```elixir
+# Build a path that includes ?locale=... and ?theme=...
+back_path = PathHandlers.build_path_with_locale(socket, socket.assigns.locale)
+```
+
+## CSS Architecture
+
+Themes use a **modular CSS architecture** located in `assets/css/scheduling/themes/`.
+
+### Shared Utilities
+- `assets/css/scheduling/shared/reset.css`
+- `assets/css/scheduling/shared/variables.css`
+- `assets/css/scheduling/shared/utilities.css`
+
+### Theme Structure
+Each theme should have its own directory with a `theme.css` entry point and a `modules/` subdirectory for specific styles (foundation, components, responsive, etc.).
+
+## Theme Customization & Capabilities
+
+Themes define their capabilities in the registry, which are then used by the `Tymeslot.ThemeCustomizations.Capability` module to provide valid customization options.
+
+### Supported Features
+- `supports_video_background`
+- `supports_image_background`
+- `supports_gradient_background`
+- `supports_custom_colors`
+
+The capability system automatically generates the necessary CSS variables based on these flags and user selections.
+
+## Meeting Management Integration
+
+Each theme must implement `render_meeting_action/2` to provide its own UI for:
+- `:reschedule`
+- `:cancel`
+- `:cancel_confirmed`
+
+These components should reside in `lib/tymeslot_web/themes/[theme_name]/meeting/`.
 
 ## Common Patterns
 
-### Step Component Pattern (Recommended)
+### Modular LiveView
+Keep the theme LiveView thin by using:
+1. **StateMachine**: To manage state transitions and validation.
+2. **Wrapper**: A functional component that provides the common layout (background, language switcher, etc.).
+3. **Step Components**: Separate LiveComponents for `overview`, `schedule`, `booking`, and `confirmation`.
 
-To keep theme modules small and maintainable, split your scheduling UI into step components and keep the LiveView thin. Each theme should implement:
-
-- A LiveView that orchestrates states (overview, schedule, booking, confirmation)
-- Separate components for each step
-- Small handler modules for complex logic (e.g., state machine, booking flow)
-
-Example mapping:
-
-```elixir
-%{
-  overview: MyTheme.Scheduling.Components.OverviewComponent,
-  schedule: MyTheme.Scheduling.Components.ScheduleComponent,
-  booking: MyTheme.Scheduling.Components.BookingComponent,
-  confirmation: MyTheme.Scheduling.Components.ConfirmationComponent
-}
-```
-
-The LiveView decides which component to render based on @current_state; components emit events back via send(self(), {:step_event, step, event, data}).
-
-### Simple Theme Structure
-
-```elixir
-# Minimal working theme (must have all 4 states)
-defmodule SimpleTheme do
-  def states do
-    %{
-      overview: %{step: 1, next: :calendar},
-      calendar: %{step: 2, next: :booking_form, prev: :overview},
-      booking_form: %{step: 3, next: :confirmation, prev: :calendar},
-      confirmation: %{step: 4}
-    }
-  end
-  
-  def components do
-    %{
-      overview: SimpleOverviewComponent,
-      calendar: SimpleCalendarComponent,
-      booking_form: SimpleBookingFormComponent,
-      confirmation: SimpleConfirmationComponent
-    }
-  end
-  
-  def live_view_module, do: SimpleSchedulingLive
-  # ... other required callbacks
-end
-```
-
-### LiveView Implementation
-
-```elixir
-defmodule SimpleSchedulingLive do
-  use TymeslotWeb, :live_view
-  
-  def mount(params, _session, socket) do
-    # Use existing helpers for data loading
-    socket = assign_user_data(socket, params)
-    {:ok, socket}
-  end
-  
-  def render(assigns) do
-    ~H"""
-    <div class="simple-theme">
-      <%= live_component(@components[@current_state], assigns) %>
-    </div>
-    """
-  end
-end
-```
-
-## Logic Extraction for Larger Themes
-
-When logic grows, extract it into small, testable modules:
-
-- State machine: TymeslotWeb.Themes.Quill.Scheduling.StateMachine
-  - determine_initial_state/1
-  - can_navigate_to_step?/2
-  - validate_state_transition/3
-- Booking flow: TymeslotWeb.Themes.Quill.Scheduling.BookingFlow
-  - handle_form_validation/2
-  - process_booking_submission/2 (accepts a transition function)
-
-Keep the LiveView as the orchestrator (assigns and transitions), and components as pure UI wrappers that emit events.
 
 ## Theme Customization System
 
 ### Background Options
 
-Themes can offer users three types of backgrounds:
+Themes can offer users four types of backgrounds:
 
-1. **Gradients** - CSS gradients defined in code
-2. **Preset Images/Videos** - Pre-defined options stored in `/priv/static/`
-3. **Custom Uploads** - User-uploaded images or videos
+1. **Gradients** - CSS gradients defined in `ThemeCustomizationSchema.gradient_presets/0`
+2. **Solid Colors** - User-selected hex colors
+3. **Preset Images/Videos** - Pre-defined options stored in `/priv/static/`
+4. **Custom Uploads** - User-uploaded images or videos
 
 ### Preset Assets Structure
 
@@ -317,485 +328,106 @@ Preset assets are organized in the static directory:
 
 ```
 priv/static/
-├── images/themes/backgrounds/   # Preset background images
-│   ├── light-green-thumbnail.jpg
-│   ├── leaves-thumbnail.jpg
-│   ├── blue-wave-thumbnail.jpg
-│   ├── space-thumbnail.jpg
+├── images/ui/backgrounds/       # Preset background images
+│   ├── artistic-studio.webp
+│   ├── ocean-sunset.webp
 │   └── ...
-└── videos/                      # Preset background videos
-    ├── blue-wave-desktop.webm   # Desktop WebM (best quality)
-    ├── blue-wave-desktop.mp4    # Desktop MP4 (fallback)
-    ├── blue-wave-mobile.mp4     # Mobile optimized
-    ├── blue-wave-low.mp4        # Low bandwidth
-    ├── blue-wave-thumbnail.jpg  # Video thumbnail
-    ├── dancing-girl-*           # Multi-quality variants
-    ├── leaves-*                 # Multi-quality variants
-    ├── light-green-*            # Multi-quality variants
-    ├── space-*                  # Multi-quality variants
-    └── rhythm-background-*      # Theme-specific videos
+├── videos/backgrounds/          # Preset background videos
+│   ├── blue-wave-desktop.webm   # Desktop WebM
+│   ├── blue-wave-desktop.mp4    # Desktop MP4
+│   ├── blue-wave-mobile.mp4     # Mobile optimized
+│   ├── blue-wave-low.mp4        # Low bandwidth
+│   └── ...
+└── images/ui/posters/           # Video posters (thumbnails)
+    ├── blue-wave-thumbnail.jpg
+    └── rhythm-background-poster.webp
 ```
-
-**Note**: Video assets now support multiple quality levels (desktop.webm, desktop.mp4, mobile.mp4, low.mp4) with thumbnails.
 
 ### Defining Presets
 
-Presets are now defined in `database_schemas/theme_customization_schema.ex` with multi-quality video support.
-
-### Storage Pattern
-
-- **Presets**: Stored as `"preset:preset-name"` (e.g., `"preset:blue-wave"`, `"preset:rhythm-default"`, `"preset:leaves"`)
-- **Custom Uploads**: Stored as file paths (e.g., `"/uploads/user123/bg.jpg"`)
-
-This allows the system to distinguish between preset and custom backgrounds.
+Presets are defined in `database_schemas/theme_customization_schema.ex`.
 
 **Available Video Presets**:
-- `"preset:rhythm-default"` - Default Rhythm theme video
-- `"preset:blue-wave"` - Blue wave animation
-- `"preset:dancing-girl"` - Dancing silhouette
-- `"preset:leaves"` - Autumn leaves
-- `"preset:light-green"` - Light green abstract
-- `"preset:space"` - Space animation
+- `"preset:rhythm-default"`
+- `"preset:blue-wave"`
+- `"preset:dancing-girl"`
+- `"preset:leaves"`
+- `"preset:light-green"`
+- `"preset:space"`
 
-### Theme Defaults
-
-Set appropriate defaults for your theme:
-
-```elixir
-defp get_theme_defaults(theme_id) do
-  case theme_id do
-    "1" -> # Quill theme (glassmorphism)
-      %{
-        color_scheme: "default", 
-        background_type: "gradient",
-        background_value: "gradient_turquoise"
-      }
-    "2" -> # Rhythm theme (video backgrounds)
-      %{
-        color_scheme: "default",
-        background_type: "video", 
-        background_value: "preset:rhythm-default"  # Use actual preset names
-      }
-  end
-end
-```
-
-## Meeting Management Theme Components
-
-Themes can provide custom interfaces for meeting management operations (reschedule, cancel, etc.):
-
-### Directory Structure
-
-```
-lib/tymeslot_web/live/meeting_management/themes/
-├── quill/
-│   ├── cancel_component.ex      # Cancellation UI for Quill theme
-│   └── reschedule_component.ex  # Reschedule UI for Quill theme
-└── rhythm/
-    ├── cancel_component.ex      # Cancellation UI for Rhythm theme
-    └── reschedule_component.ex  # Reschedule UI for Rhythm theme
-```
-
-### Implementation Example
-
-```elixir
-defmodule TymeslotWeb.Live.MeetingManagement.Themes.Quill.CancelComponent do
-  use TymeslotWeb, :live_component
-  
-  def render(assigns) do
-    ~H"""
-    <div class="quill-cancel-container">
-      <!-- Theme-specific cancellation UI -->
-      <.button phx-click="cancel_meeting" class="quill-cancel-btn">
-        Cancel Meeting
-      </.button>
-    </div>
-    """
-  end
-end
-```
-
-### Using Theme Components in Meeting Management
-
-The system automatically loads the appropriate theme component based on the user's selected theme:
-
-```elixir
-# In your meeting management LiveView
-def get_theme_component(theme_id, action) do
-  case {theme_id, action} do
-    {"1", :cancel} -> TymeslotWeb.Live.MeetingManagement.Themes.Quill.CancelComponent
-    {"2", :cancel} -> TymeslotWeb.Live.MeetingManagement.Themes.Rhythm.CancelComponent
-    # ... other mappings
-  end
-end
-```
+**Available Image Presets**:
+- `"preset:artistic-studio"`
+- `"preset:ocean-sunset"`
+- `"preset:elegant-still-life"`
 
 ## Advanced Video Features
 
-### Video Crossfading
+### Video Container Rendering
 
-For themes with video backgrounds, the system supports smooth crossfading between multiple videos:
-
-```elixir
-# Using the video helpers for crossfading
-alias TymeslotWeb.Themes.VideoHelpers
-
-# Render crossfading video backgrounds
-def render_crossfading_videos(assigns) do
-  ~H"""
-  <div class="video-container">
-    <%= VideoHelpers.render_crossfading_videos(@video_urls, @current_index) %>
-  </div>
-  """
-end
-
-# Video helper functions available:
-VideoHelpers.get_video_sources(video_preset)  # Get multi-quality sources
-VideoHelpers.render_video_element(video_url, options)  # Render optimized video
-VideoHelpers.supports_video_background?(theme_id)  # Check theme support
-```
-
-### Multi-Quality Video System
-
-The video system automatically selects the best quality based on:
-- Device type (desktop vs mobile)
-- Connection speed
-- Battery status
-- Data saver preferences
+For themes with video backgrounds, use `TymeslotWeb.Themes.Shared.Customization.Video` to render an optimized video container:
 
 ```elixir
-# Video quality variants (automatically handled)
-%{
-  desktop_webm: "/videos/backgrounds/theme-video-desktop.webm",  # Best quality
-  desktop_mp4: "/videos/backgrounds/theme-video-desktop.mp4",    # Fallback
-  mobile: "/videos/backgrounds/theme-video-mobile.mp4",          # Mobile optimized
-  low: "/videos/backgrounds/theme-video-low.mp4",                # Low bandwidth
-  thumbnail: "/videos/thumbnails/theme-video-thumbnail.jpg"     # Preview image
-}
-```
+alias TymeslotWeb.Themes.Shared.Customization.Video
 
-### Performance Optimizations
-
-The video system includes built-in optimizations:
-- **Lazy loading**: Videos load only when needed
-- **Connection-aware**: Adapts to network conditions
-- **Battery-conscious**: Pauses on low battery
-- **Reduced motion**: Respects accessibility preferences
-- **Preloading**: Strategic preloading for smooth transitions
-
-## Error Handling & Rate Limiting
-
-### File Upload Error Handling
-
-The theme customization system includes comprehensive error handling:
-
-```elixir
-# Rate limiting for file uploads (5 uploads per 10 minutes)
-case check_file_upload_rate_limit(user_id) do
-  :ok -> process_upload(socket)
-  {:error, :rate_limited} -> 
-    put_flash(socket, :error, "Too many upload attempts. Please wait.")
-end
-```
-
-### Error Messages
-
-User-friendly error messages are provided for common issues:
-- File too large (5MB for images, 50MB for videos)
-- Invalid file type (only JPG, PNG, WebP for images; MP4, WebM for videos)
-- Upload failures (disk space, permissions, etc.)
-
-### Cleanup Considerations
-
-When users switch between presets and custom uploads:
-- Custom uploads should be cleaned up when replaced by presets
-- Preset selections don't require cleanup (they're shared assets)
-- Implement cleanup logic in background jobs to avoid blocking UI
-
-### UI Implementation
-
-The customization UI shows:
-
-1. **Current Background Display** - Shows what's actually saved (not what's being edited)
-2. **Background Type Selection** - Grid of options (Gradient, Color, Image, Video)
-3. **Preset Grid** - Visual grid of available presets with:
-   - Thumbnails/previews
-   - Names and descriptions
-   - Selection indicators
-4. **Upload Section** - Separate area for custom uploads with:
-   - Drag-and-drop file input
-   - Upload progress
-   - Warning when replacing existing uploads
-
-Example UI structure:
-```heex
-<div class="space-y-6">
-  <!-- Show preset options -->
-  <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-    <%= for {preset_id, preset} <- @video_presets do %>
-      <button phx-click="select_preset_video" phx-value-video={preset_id}>
-        <!-- Preset preview -->
-      </button>
-    <% end %>
-  </div>
-  
-  <!-- Divider -->
-  <div class="relative">
-    <span class="px-2 bg-white text-gray-500">Or upload your own</span>
-  </div>
-  
-  <!-- Upload form -->
-  <form phx-submit="save_background_video">
-    <.live_file_input upload={@uploads.background_video} />
-  </form>
+# In your theme wrapper
+<div class="video-container">
+  <%= Video.render_video_container(@theme_key, assigns) %>
 </div>
 ```
 
-## Debugging Tips
+This helper automatically handles:
+- **Responsive Sources**: Loading different qualities based on screen size
+- **Crossfading**: Smooth transitions for themes that support it
+- **Fallbacks**: Displaying a gradient while the video is loading
 
-1. **Theme not loading?** Check it's registered in registry.ex
-2. **Page crashes?** Check browser console and server logs
-3. **CSS not applying?** Run `mix assets.deploy`
-4. **Theme not in tests?** Ensure it's registered with status: :active
-5. **Preset not showing?** Check:
-   - Image files exist in `/priv/static/images/ui/backgrounds/`
-   - Video files exist in `/priv/static/videos/backgrounds/` and thumbnails in `/priv/static/videos/thumbnails/`
-   - Preset is defined in `database_schemas/theme_customization_schema.ex`
-   - File names in preset definition match actual files
-   - Video presets include all quality variants (desktop.webm, desktop.mp4, mobile.mp4, low.mp4, thumbnail.jpg)
-6. **Custom upload failing?** Check:
-   - File size limits (5MB images, 50MB videos)
-   - File type restrictions
-   - Disk space and permissions
+### Multi-Quality Video System
 
-## Production Readiness
-
-Before releasing a theme, ensure it passes these checks:
-
-1. **Meeting Types Display**: All active meeting types must be visible
-2. **Edge Case Handling**: Works with no meetings, long names, etc.
-3. **Error States**: Doesn't crash when data is missing
-4. **Mobile Ready**: Has viewport meta tag and responsive design
-5. **Performance**: Loads quickly (under 5 seconds in tests)
-
-The production checklist test (`theme_production_checklist_test.exs`) verifies all of these automatically.
+The video system automatically selects the best quality based on the filename suffix:
+- `-desktop.webm`: Best quality for modern browsers
+- `-desktop.mp4`: Standard desktop quality
+- `-mobile.mp4`: Optimized for tablets and phones
+- `-low.mp4`: Low bandwidth fallback
 
 ## Multi-Lingual Support
 
 ### Overview
 
-Tymeslot booking pages support internationalization (i18n) with automatic browser language detection and a language switcher component.
+Tymeslot booking pages support internationalization (i18n) with automatic browser language detection.
 
 **Supported Languages:**
-- 🇬🇧 English (default & fallback)
-- 🇩🇪 German (Deutsch)
-- 🇺🇦 Ukrainian (Українська)
+- 🇬🇧 English (`en`)
+- 🇩🇪 German (`de`)
+- 🇺🇦 Ukrainian (`uk`)
 
-### Language Detection Priority
+### Language Switcher Integration
 
-The system detects user language in this order:
-1. Query parameter `?locale=de` (explicit user choice)
-2. Session storage (previous selection)
-3. Browser `Accept-Language` header
-4. Default fallback to English
-
-### Language Switcher Component
-
-The language switcher is automatically integrated into all themes via the theme wrapper:
+The language switcher is typically integrated via the theme's wrapper:
 
 ```heex
-<!-- In your theme wrapper (e.g., quill_wrapper or rhythm_wrapper) -->
-<%= if assigns[:locale] && assigns[:language_dropdown_open] != nil do %>
-  <div class="absolute top-6 right-6 z-50">
-    <.language_switcher
-      locale={@locale}
-      locales={TymeslotWeb.Themes.Shared.LocaleHandler.get_locales_with_metadata()}
-      dropdown_open={@language_dropdown_open}
-      theme="quill"
-    />
-  </div>
-<% end %>
+<.language_switcher
+  locale={@locale}
+  locales={TymeslotWeb.Themes.Shared.LocaleHandler.get_locales_with_metadata()}
+  dropdown_open={@language_dropdown_open}
+  theme={@theme_key}
+/>
 ```
 
-### Adding Translations to Your Theme
+### Path Generation & Localization
 
-#### 1. Use `gettext/1` for all user-facing strings
-
-Replace hardcoded strings with `gettext/1` calls:
+Always use `PathHandlers` for internal links to preserve the user's locale:
 
 ```elixir
-# Before
-<h1>Book a Meeting</h1>
-
-# After
-<h1>{gettext("book_meeting")}</h1>
+# Path with current locale and theme preserved
+path = PathHandlers.build_path_with_locale(socket, @locale)
 ```
 
-#### 2. For strings with interpolation
+Use `LocalizationHelpers` for all date and time formatting:
 
 ```elixir
-# With variables
-{gettext("You're booking a %{duration} meeting with %{name}", 
-  duration: @duration, 
-  name: @organizer_name)}
+# Localized: "Wednesday, 15 March 2024"
+LocalizationHelpers.format_date(@selected_date)
 ```
 
-#### 3. Add Event Handlers to Your LiveView
-
-```elixir
-@impl true
-def mount(params, _session, socket) do
-  socket =
-    socket
-    |> TymeslotWeb.Themes.Shared.LocaleHandler.assign_locale()
-    |> assign(:language_dropdown_open, false)
-    # ... rest of your mount logic
-end
-
-@impl true
-def handle_event("toggle_language_dropdown", _params, socket) do
-  {:noreply, assign(socket, :language_dropdown_open, !socket.assigns.language_dropdown_open)}
-end
-
-@impl true
-def handle_event("close_language_dropdown", _params, socket) do
-  {:noreply, assign(socket, :language_dropdown_open, false)}
-end
-
-@impl true
-def handle_event("change_locale", %{"locale" => locale}, socket) do
-  socket =
-    socket
-    |> TymeslotWeb.Themes.Shared.LocaleHandler.handle_locale_change(locale)
-    |> assign(:language_dropdown_open, false)
-
-  {:noreply, socket}
-end
-```
-
-#### 4. Add Translation Strings
-
-Translation files are located in `priv/gettext/{locale}/LC_MESSAGES/default.po`:
-- `en/LC_MESSAGES/default.po` - English
-- `de/LC_MESSAGES/default.po` - German
-- `uk/LC_MESSAGES/default.po` - Ukrainian
-
-Add your new strings to all three files.
-
-### Theme-Specific Styling
-
-Create language switcher styles for your theme:
-
-**File**: `assets/css/scheduling/themes/your-theme/modules/language-switcher.css`
-
-```css
-/* Language Switcher - Your Theme */
-.language-switcher-button-yourtheme {
-  /* Button styling that matches your theme */
-}
-
-.language-dropdown-yourtheme {
-  /* Dropdown styling that matches your theme */
-}
-
-.language-dropdown-item-yourtheme {
-  /* Dropdown item styling */
-}
-
-.language-dropdown-item-yourtheme.active {
-  /* Active item styling */
-}
-```
-
-Then import it in your theme's main CSS file:
-
-```css
-/* In your-theme/theme.css */
-@import "./modules/language-switcher.css";
-```
-
-### Date & Time Localization
-
-Use the `LocalizationHelpers` shared module for consistent date, time, and duration formatting across themes. This helper ensures that all formats respect the current locale and follow platform standards.
-
-```elixir
-alias TymeslotWeb.Themes.Shared.LocalizationHelpers
-
-# Format a booking date and time with timezone awareness
-# Result: "Wednesday, 15 March 2024 at 14:30 EST" (localized)
-LocalizationHelpers.format_booking_datetime(@selected_date, @selected_time, @user_timezone)
-
-# Group time slots by period (Morning, Afternoon, etc.) with translated labels
-# Result: [{"Morning", [slot1, ...]}, {"Afternoon", [slot2, ...]}, ...]
-LocalizationHelpers.group_slots_by_period(@available_slots)
-
-# Format meeting duration
-# Result: "30 minutes", "1 hour", etc. (localized)
-LocalizationHelpers.format_duration("30min")
-
-# Get translated month or weekday names
-LocalizationHelpers.get_month_name(3) # "March" in 'en', "März" in 'de'
-LocalizationHelpers.day_name_short(1)  # "MON" in 'en', "MO" in 'de'
-```
-
-### Path Generation
-
-Use `PathHandlers` to build consistent internal links that preserve the user's locale and theme selection.
-
-```elixir
-alias TymeslotWeb.Themes.Shared.PathHandlers
-
-# Build a path back to the schedule page from the booking form
-# This automatically includes ?locale=... and ?theme=... parameters
-back_path = PathHandlers.build_path_with_locale(socket, socket.assigns.locale)
-```
-
-### Shared Logic Extraction
-
-To reduce duplication, themes should delegate event and info handling to the shared handlers in `TymeslotWeb.Themes.Shared`:
-
-1.  **EventHandlers**: Handles common UI events like language dropdown toggling and locale changes.
-2.  **InfoHandlers**: Handles asynchronous tasks like slot fetching and availability updates.
-3.  **LocaleHandler**: Manages the socket-level locale state and Gettext synchronization.
-
-Example integration in a theme LiveView:
-
-```elixir
-defmodule TymeslotWeb.Themes.MyTheme.Scheduling.Live do
-  use TymeslotWeb, :live_view
-  alias TymeslotWeb.Themes.Shared.{EventHandlers, InfoHandlers, LocaleHandler, PathHandlers}
-
-  @impl true
-  def mount(params, session, socket) do
-    socket = 
-      socket
-      |> LocaleHandler.assign_locale()
-      |> assign(:language_dropdown_open, false)
-      # ...
-    {:ok, socket}
-  end
-
-  @impl true
-  def handle_event("change_locale", %{"locale" => locale}, socket) do
-    EventHandlers.handle_change_locale(socket, locale, PathHandlers)
-  end
-
-  @impl true
-  def handle_info({:fetch_available_slots, date, duration, timezone}, socket) do
-    InfoHandlers.handle_fetch_available_slots(socket, date, duration, timezone)
-  end
-end
-```
-
-### Best Practices
-
-1. **Don't assume language**: Use `gettext/1` for all visible text
-2. **Use Shared Helpers**: Always use `LocalizationHelpers` for dates/times to ensure consistency.
-3. **Preserve Context**: Always use `PathHandlers` for internal navigation to keep the user's language and theme settings.
-4. **Sanitize Customizations**: If your theme supports custom colors or backgrounds, ensure they are validated to prevent CSS injection. Use the `valid_color?` pattern from `Capability.ex`.
-5. **Test all locales**: Ensure your theme works in en, de, and uk
-6. **Respect layout**: German text is typically longer; ensure your design accommodates this
-7. **Keep translations updated**: When adding new features, add strings to all locale files
 
 ## Don't Over-Engineer
 
