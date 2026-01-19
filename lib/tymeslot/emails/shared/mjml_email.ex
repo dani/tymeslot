@@ -79,7 +79,9 @@ defmodule Tymeslot.Emails.Shared.MjmlEmail do
   @spec base_mjml_template(String.t(), map() | nil) :: String.t()
   def base_mjml_template(content, organizer_details \\ nil) do
     # Use provided organizer details or fall back to defaults
-    organizer_name = SharedHelpers.sanitize_for_email(organizer_details[:name] || fetch_from_name())
+    organizer_name =
+      SharedHelpers.sanitize_for_email(organizer_details[:name] || fetch_from_name())
+
     _organizer_email = organizer_details[:email] || fetch_from_email()
 
     organizer_avatar_url =

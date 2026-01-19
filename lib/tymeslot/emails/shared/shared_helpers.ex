@@ -196,7 +196,14 @@ defmodule Tymeslot.Emails.Shared.SharedHelpers do
         data_uri
 
       [] ->
-        path = Path.join([:code.priv_dir(:tymeslot), "static", "images", "brand", "logo-with-text.svg"])
+        path =
+          Path.join([
+            :code.priv_dir(:tymeslot),
+            "static",
+            "images",
+            "brand",
+            "logo-with-text.svg"
+          ])
 
         data_uri =
           case File.read(path) do

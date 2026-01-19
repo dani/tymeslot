@@ -31,7 +31,12 @@ defmodule Tymeslot.Emails.Shared.Layouts do
   @spec system_layout(String.t(), keyword()) :: String.t()
   def system_layout(content, opts \\ []) do
     title = SharedHelpers.sanitize_for_email(Keyword.get(opts, :title, "Tymeslot"))
-    preview = SharedHelpers.sanitize_for_email(Keyword.get(opts, :preview, "Important notification from Tymeslot"))
+
+    preview =
+      SharedHelpers.sanitize_for_email(
+        Keyword.get(opts, :preview, "Important notification from Tymeslot")
+      )
+
     logo_data_uri = SharedHelpers.get_logo_data_uri()
 
     """

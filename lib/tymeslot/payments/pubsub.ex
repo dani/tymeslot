@@ -39,9 +39,7 @@ defmodule Tymeslot.Payments.PubSub do
 
       Logger.info("Broadcasted payment_successful event for user_id=#{transaction.user_id}")
     else
-      Logger.warning(
-        "No PubSub server found, skipping payment_successful broadcast"
-      )
+      Logger.warning("No PubSub server found, skipping payment_successful broadcast")
     end
 
     :ok
@@ -145,9 +143,7 @@ defmodule Tymeslot.Payments.PubSub do
 
       Logger.info("Broadcasted subscription_successful event for user_id=#{transaction.user_id}")
     else
-      Logger.warning(
-        "No PubSub server found, skipping subscription_successful broadcast"
-      )
+      Logger.warning("No PubSub server found, skipping subscription_successful broadcast")
     end
 
     :ok
@@ -182,9 +178,7 @@ defmodule Tymeslot.Payments.PubSub do
 
       Logger.info("Broadcasted subscription_failed event for user_id=#{transaction.user_id}")
     else
-      Logger.warning(
-        "No PubSub server found, skipping subscription_failed broadcast"
-      )
+      Logger.warning("No PubSub server found, skipping subscription_failed broadcast")
     end
 
     :ok

@@ -438,7 +438,10 @@ defmodule TymeslotWeb.DashboardLive do
   end
 
   @impl true
-  @spec handle_info({:consume_avatar_upload, map(), map()} | {:consume_avatar_upload, map()}, Phoenix.LiveView.Socket.t()) ::
+  @spec handle_info(
+          {:consume_avatar_upload, map(), map()} | {:consume_avatar_upload, map()},
+          Phoenix.LiveView.Socket.t()
+        ) ::
           {:noreply, Phoenix.LiveView.Socket.t()}
   def handle_info({:consume_avatar_upload, profile, metadata}, socket) do
     do_consume_avatar_upload(profile, metadata, socket)
@@ -501,7 +504,11 @@ defmodule TymeslotWeb.DashboardLive do
 
   defp do_consume_avatar_upload(profile, metadata, socket) do
     results =
-      consume_uploaded_entries(socket, :avatar, &Profiles.consume_avatar_upload(profile, &1, &2, metadata))
+      consume_uploaded_entries(
+        socket,
+        :avatar,
+        &Profiles.consume_avatar_upload(profile, &1, &2, metadata)
+      )
 
     # Send the result back to the component
     send_update(TymeslotWeb.Dashboard.ProfileSettingsComponent,

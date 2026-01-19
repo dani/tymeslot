@@ -11,7 +11,8 @@ defmodule Tymeslot.Emails.Shared.AvatarHelper do
   """
   @spec generate_avatar_url(map() | keyword()) :: String.t()
   def generate_avatar_url(appointment_details) do
-    details = if is_list(appointment_details), do: Map.new(appointment_details), else: appointment_details
+    details =
+      if is_list(appointment_details), do: Map.new(appointment_details), else: appointment_details
 
     case Map.get(details, :organizer_avatar_url) do
       nil ->

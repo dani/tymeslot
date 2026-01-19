@@ -84,10 +84,12 @@ defmodule Tymeslot.Emails.Templates.AppointmentConfirmationOrganizer do
     # Map.get returns nil if key exists with nil value, so we need explicit nil check
     reminders_enabled =
       case Map.get(appointment_details, :reminders_enabled) do
-        nil -> true  # Default to enabled when not set
+        # Default to enabled when not set
+        nil -> true
         false -> false
         true -> true
-        _ -> true  # Any other value defaults to enabled
+        # Any other value defaults to enabled
+        _ -> true
       end
 
     if reminders_enabled do
