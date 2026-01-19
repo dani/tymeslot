@@ -105,3 +105,44 @@ export const ScrollReset = {
     }
   }
 };
+
+// Copy text to clipboard and show feedback
+export const CopyOnClick = {
+  mounted() {
+    this.el.addEventListener("click", () => {
+      const text = this.el.dataset.copyText;
+      if (!text) return;
+
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(() => {
+          this.showFeedback();
+        }).catch(err => {
+          console.error("Failed to copy:", err);
+          this.showFeedback("Failed to copy to clipboard");
+        });
+      } else {
+        // Fallback or error notification
+        this.showFeedback("Clipboard access unavailable");
+      }
+    });
+  },
+
+  showFeedback(message) {
+    // Dispatch a custom event that can be listened to for showing notifications
+    // This allows for zero-roundtrip feedback
+    const event = new CustomEvent("tymeslot:clip-copy", {
+      detail: { message: message || this.el.dataset.copyFeedback || "Copied to clipboard!" }
+    });
+    window.dispatchEvent(event);
+
+    // If there's a specific feedback element, show it
+    const feedbackId = this.el.dataset.feedbackId;
+    if (feedbackId) {
+      const feedbackEl = document.getElementById(feedbackId);
+      if (feedbackEl) {
+        feedbackEl.classList.remove("hidden");
+        setTimeout(() => feedbackEl.classList.add("hidden"), 2000);
+      }
+    }
+  }
+};

@@ -253,6 +253,43 @@ defmodule Tymeslot.Integrations.Calendar do
   # ---------------------------
 
   @doc """
+  Initiates an asynchronous calendar list refresh for an integration.
+  Discovers fresh calendars from the provider and updates the database.
+  Sends {:calendar_list_refreshed, component_id, integration_id, calendars} back to the caller.
+  """
+  @spec refresh_calendar_list_async(integration_id(), user_id(), String.t()) :: {:ok, pid()}
+  def refresh_calendar_list_async(integration_id, user_id, component_id) do
+    parent = self()
+    Logger.info("Starting async calendar list refresh", integration_id: integration_id, user_id: user_id)
+
+    Task.Supervisor.start_child(Tymeslot.TaskSupervisor, fn ->
+      case get_integration(integration_id, user_id) do
+        {:ok, integration} ->
+          case discover_calendars_for_integration(integration) do
+            {:ok, calendars} ->
+              Logger.info("Successfully discovered calendars", integration_id: integration_id, count: length(calendars))
+              # Update the integration's calendar_list in the database so it's persisted
+              update_integration(integration, %{calendar_list: calendars})
+
+              send(parent, {:calendar_list_refreshed, component_id, integration_id, calendars})
+
+            {:error, reason} ->
+              Logger.error("Failed to discover calendars", integration_id: integration_id, error: inspect(reason))
+              send(
+                parent,
+                {:calendar_list_refreshed, component_id, integration_id,
+                 integration.calendar_list}
+              )
+          end
+
+        {:error, reason} ->
+          Logger.error("Failed to find integration for calendar refresh", integration_id: integration_id, error: inspect(reason))
+          send(parent, {:calendar_list_refreshed, component_id, integration_id, []})
+      end
+    end)
+  end
+
+  @doc """
   Initiates Google Calendar OAuth flow and returns the authorization URL.
   """
   @spec initiate_google_oauth(user_id()) :: {:ok, String.t()} | {:error, String.t()}

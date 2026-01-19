@@ -63,6 +63,62 @@ window.addEventListener("phx:copy-to-clipboard", (e) => {
   }
 });
 
+// Handle client-side copy events
+window.addEventListener("tymeslot:clip-copy", (e) => {
+  const message = e.detail.message || "Copied to clipboard!";
+  const kind = e.detail.kind || "info";
+  
+  // Use a simple client-side toast for zero-roundtrip feedback
+  const container = document.getElementById("flash-group") || document.body;
+  const toast = document.createElement("div");
+  
+  // Style matching core_components/flash.ex
+  const isError = kind === "error" || message.toLowerCase().includes("fail") || message.toLowerCase().includes("unavailable");
+  
+  toast.className = `fixed top-4 right-4 z-[10060] w-80 sm:w-96 rounded-2xl p-5 shadow-2xl border-2 transition-all duration-500 transform translate-y-4 opacity-0 scale-95 cursor-pointer ${
+    isError 
+      ? "bg-red-50 border-red-100 text-red-900 shadow-red-500/10" 
+      : "bg-white border-turquoise-100 text-slate-900 shadow-turquoise-500/10"
+  }`;
+  
+  toast.innerHTML = `
+    <div class="relative z-10 flex items-start gap-4">
+      <div class="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center shadow-sm border ${
+        isError ? "bg-white border-red-100 text-red-500" : "bg-turquoise-50 border-turquoise-100 text-turquoise-600"
+      }">
+        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="${
+            isError 
+              ? "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" 
+              : "M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          }" />
+        </svg>
+      </div>
+      <div class="flex-1 min-w-0">
+        <p class="text-sm font-bold leading-relaxed">${message}</p>
+      </div>
+    </div>
+  `;
+
+  container.appendChild(toast);
+
+  // Animate in
+  setTimeout(() => {
+    toast.classList.remove("translate-y-4", "opacity-0", "scale-95");
+    toast.classList.add("translate-y-0", "opacity-100", "scale-100");
+  }, 20);
+
+  // Auto-remove helper
+  const removeToast = () => {
+    toast.classList.add("opacity-0", "translate-y-4", "scale-95");
+    toast.classList.remove("opacity-100", "translate-y-0", "scale-100");
+    setTimeout(() => toast.remove(), 500);
+  };
+
+  toast.addEventListener("click", removeToast);
+  setTimeout(removeToast, 5000);
+});
+
 // expose liveSocket on window for web console debug logs and latency simulation:
 // >> liveSocket.enableDebug()
 // >> liveSocket.enableLatencySim(1000)  // enabled for duration of browser session

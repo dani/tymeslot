@@ -42,7 +42,9 @@ defmodule Tymeslot.Application do
       # Start the Finch HTTP client for sending emails and external HTTP calls
       {Finch, name: Tymeslot.Finch},
       # Start token refresh lock manager
-      {Lock, []}
+      {Lock, []},
+      # Task Supervisor for async operations
+      {Task.Supervisor, name: Tymeslot.TaskSupervisor}
     ]
 
     # Additional children for non-test environments

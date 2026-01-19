@@ -77,7 +77,7 @@ defmodule TymeslotWeb.Components.DashboardSidebarTest do
     assert Floki.find(doc, "a.dashboard-nav-link[href='/testuser'][target='_blank']") != []
 
     # Copy link button is enabled
-    copy_btn = Floki.find(doc, "button[phx-click='copy_scheduling_link']")
+    copy_btn = Floki.find(doc, "button#copy-scheduling-link")
     assert length(copy_btn) == 1
     refute copy_btn |> List.first() |> Floki.attribute("disabled") |> Enum.any?()
   end

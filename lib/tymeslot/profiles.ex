@@ -9,6 +9,7 @@ defmodule Tymeslot.Profiles do
   alias Tymeslot.MeetingTypes
   alias Tymeslot.Security.FormValidation
   alias Tymeslot.Security.RateLimiter
+  alias Tymeslot.Security.SettingsInputProcessor
   alias Tymeslot.Themes.Theme
   alias Tymeslot.Utils.AvatarUtils
   alias TymeslotWeb.Helpers.UploadHandler
@@ -427,6 +428,35 @@ defmodule Tymeslot.Profiles do
       "privacy",
       "terms"
     ]
+  end
+
+  @doc """
+  Consumption callback for avatar upload.
+  Validates the upload using security policies before updating the profile.
+  """
+  @spec consume_avatar_upload(profile(), map(), map(), map()) ::
+          {:ok, profile()} | {:postpone, any()}
+  def consume_avatar_upload(profile, %{path: path}, entry, metadata) do
+    uploaded_entry = %{
+      "path" => path,
+      "client_name" => entry.client_name,
+      "size" => entry.client_size
+    }
+
+    case SettingsInputProcessor.validate_avatar_upload(uploaded_entry,
+           metadata: metadata
+         ) do
+      {:ok, validated_entry} ->
+        atom_entry = %{path: validated_entry["path"], client_name: validated_entry["client_name"]}
+
+        case update_avatar(profile, atom_entry) do
+          {:ok, updated_profile} -> {:ok, updated_profile}
+          {:error, reason} -> {:postpone, reason}
+        end
+
+      {:error, validation_error} ->
+        {:postpone, validation_error}
+    end
   end
 
   @doc """

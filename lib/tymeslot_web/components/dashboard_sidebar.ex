@@ -95,8 +95,12 @@ defmodule TymeslotWeb.Components.DashboardSidebar do
 
           <button
             :if={LinkAccessPolicy.can_link?(@profile, @integration_status)}
+            id="copy-scheduling-link"
             type="button"
-            phx-click="copy_scheduling_link"
+            phx-hook="CopyOnClick"
+            data-copy-text={"#{TymeslotWeb.Endpoint.url()}#{LinkAccessPolicy.scheduling_path(@profile)}"}
+            data-copy-feedback="Scheduling link copied to clipboard!"
+            data-feedback-id="copy-feedback"
             class="dashboard-nav-link px-4 py-4 rounded-2xl transition-all duration-300 bg-white border-2 border-slate-100 text-slate-700 hover:border-turquoise-400 hover:text-turquoise-700 hover:translate-x-0 shadow-sm hover:shadow-md group relative"
             title="Copy link to clipboard"
           >
@@ -109,6 +113,12 @@ defmodule TymeslotWeb.Components.DashboardSidebar do
               >
               </path>
             </svg>
+            <span
+              id="copy-feedback"
+              class="hidden absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded shadow-lg whitespace-nowrap"
+            >
+              Copied!
+            </span>
           </button>
           <button
             :if={!LinkAccessPolicy.can_link?(@profile, @integration_status)}

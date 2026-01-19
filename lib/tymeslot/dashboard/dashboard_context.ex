@@ -118,6 +118,19 @@ defmodule Tymeslot.Dashboard.DashboardContext do
   end
 
   @doc """
+  Gets dashboard data tailored for a specific LiveView action.
+  """
+  @spec get_data_for_action(atom(), integer(), String.t() | nil) :: map()
+  def get_data_for_action(action, user_id, user_email \\ nil) do
+    if action == :overview do
+      get_dashboard_data(user_id, user_email)
+    else
+      integration_status = get_integration_status(user_id)
+      %{integration_status: integration_status}
+    end
+  end
+
+  @doc """
   Gather meeting settings data for a user (meeting types and video integrations).
   """
   @spec get_meeting_settings_data(integer()) :: %{

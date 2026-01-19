@@ -146,11 +146,8 @@ defmodule TymeslotWeb.DashboardLive do
   alias Tymeslot.Integrations.Calendar
   alias Tymeslot.Profiles
   alias Tymeslot.Profiles.Timezone
-  alias Tymeslot.Scheduling.LinkAccessPolicy
-  alias Tymeslot.Security.{RateLimiter, SettingsInputProcessor}
+  alias Tymeslot.Security.RateLimiter
   alias TymeslotWeb.Components.DashboardLayout
-  alias TymeslotWeb.Endpoint
-  alias TymeslotWeb.Helpers.ClientIP
   alias TymeslotWeb.Helpers.PageTitles
   alias TymeslotWeb.Helpers.{ThemeUploadHelper, UploadConstraints}
   alias TymeslotWeb.Live.Dashboard.Shared.DashboardHelpers
@@ -251,22 +248,8 @@ defmodule TymeslotWeb.DashboardLive do
     """
   end
 
-  # Handle copy scheduling link event
-  @impl true
-  @spec handle_event(String.t(), map(), Phoenix.LiveView.Socket.t()) ::
-          {:noreply, Phoenix.LiveView.Socket.t()}
-  def handle_event("copy_scheduling_link", _params, socket) do
-    profile = socket.assigns.profile
-    path = LinkAccessPolicy.scheduling_path(profile)
-    url = "#{Endpoint.url()}#{path}"
-
-    {:noreply,
-     socket
-     |> push_event("copy-to-clipboard", %{text: url})
-     |> put_flash(:info, "Scheduling link copied to clipboard!")}
-  end
-
   # Handle avatar upload events when on settings page
+  @impl true
   @spec handle_event(String.t(), map(), Phoenix.LiveView.Socket.t()) ::
           {:noreply, Phoenix.LiveView.Socket.t()}
   def handle_event("validate_avatar", _params, socket) do
@@ -274,16 +257,13 @@ defmodule TymeslotWeb.DashboardLive do
     {:noreply, socket}
   end
 
+  @impl true
   @spec handle_event(String.t(), map(), Phoenix.LiveView.Socket.t()) ::
           {:noreply, Phoenix.LiveView.Socket.t()}
   def handle_event("upload_avatar", _params, socket) do
     if socket.assigns.live_action == :settings do
       # Get the metadata for security validation
-      metadata = %{
-        ip: ClientIP.get(socket),
-        user_agent: ClientIP.get_user_agent(socket),
-        user_id: socket.assigns.current_user.id
-      }
+      metadata = DashboardHelpers.get_security_metadata(socket)
 
       # Send message to consume the upload
       send(self(), {:consume_avatar_upload, socket.assigns.profile, metadata})
@@ -292,18 +272,21 @@ defmodule TymeslotWeb.DashboardLive do
     {:noreply, socket}
   end
 
+  @impl true
   @spec handle_event(String.t(), map(), Phoenix.LiveView.Socket.t()) ::
           {:noreply, Phoenix.LiveView.Socket.t()}
   def handle_event("validate_image", _params, socket) do
     {:noreply, socket}
   end
 
+  @impl true
   @spec handle_event(String.t(), map(), Phoenix.LiveView.Socket.t()) ::
           {:noreply, Phoenix.LiveView.Socket.t()}
   def handle_event("save_background_image", _params, socket) do
     {:noreply, maybe_handle_theme_upload(socket, :image)}
   end
 
+  @impl true
   @spec handle_event(String.t(), map(), Phoenix.LiveView.Socket.t()) ::
           {:noreply, Phoenix.LiveView.Socket.t()}
   def handle_event("validate_video", _params, socket) do
@@ -311,6 +294,7 @@ defmodule TymeslotWeb.DashboardLive do
     {:noreply, socket}
   end
 
+  @impl true
   @spec handle_event(String.t(), map(), Phoenix.LiveView.Socket.t()) ::
           {:noreply, Phoenix.LiveView.Socket.t()}
   def handle_event("save_background_video", _params, socket) do
@@ -410,31 +394,7 @@ defmodule TymeslotWeb.DashboardLive do
   @impl true
   def handle_info({:refresh_calendar_list, component_id, integration_id}, socket) do
     user_id = socket.assigns.current_user.id
-    parent = self()
-
-    Task.start(fn ->
-      case Calendar.get_integration(integration_id, user_id) do
-        {:ok, integration} ->
-          case Calendar.discover_calendars_for_integration(integration) do
-            {:ok, calendars} ->
-              # Update the integration's calendar_list in the database so it's persisted
-              Calendar.update_integration(integration, %{calendar_list: calendars})
-
-              send(parent, {:calendar_list_refreshed, component_id, integration_id, calendars})
-
-            {:error, _reason} ->
-              send(
-                parent,
-                {:calendar_list_refreshed, component_id, integration_id,
-                 integration.calendar_list}
-              )
-          end
-
-        {:error, _reason} ->
-          send(parent, {:calendar_list_refreshed, component_id, integration_id, []})
-      end
-    end)
-
+    Calendar.refresh_calendar_list_async(integration_id, user_id, component_id)
     {:noreply, socket}
   end
 
@@ -477,35 +437,25 @@ defmodule TymeslotWeb.DashboardLive do
     end
   end
 
-  @spec handle_info({:consume_avatar_upload, map(), map()}, Phoenix.LiveView.Socket.t()) ::
+  @impl true
+  @spec handle_info({:consume_avatar_upload, map(), map()} | {:consume_avatar_upload, map()}, Phoenix.LiveView.Socket.t()) ::
           {:noreply, Phoenix.LiveView.Socket.t()}
   def handle_info({:consume_avatar_upload, profile, metadata}, socket) do
-    uploaded_files =
-      consume_uploaded_entries(socket, :avatar, &process_avatar_entry(profile, &1, &2, metadata))
-
-    # Send the result back to the component
-    send_update(TymeslotWeb.Dashboard.ProfileSettingsComponent,
-      id: "settings",
-      avatar_upload_result: uploaded_files
-    )
-
-    {:noreply, socket}
+    do_consume_avatar_upload(profile, metadata, socket)
   end
 
-  @spec handle_info({:consume_avatar_upload, map()}, Phoenix.LiveView.Socket.t()) ::
-          {:noreply, Phoenix.LiveView.Socket.t()}
   def handle_info({:consume_avatar_upload, profile}, socket) do
-    uploaded_files =
-      consume_uploaded_entries(
-        socket,
-        :avatar,
-        &process_avatar_entry(profile, &1, &2, socket.assigns[:security_metadata])
-      )
+    do_consume_avatar_upload(profile, DashboardHelpers.get_security_metadata(socket), socket)
+  end
+
+  defp do_consume_avatar_upload(profile, metadata, socket) do
+    results =
+      consume_uploaded_entries(socket, :avatar, &Profiles.consume_avatar_upload(profile, &1, &2, metadata))
 
     # Send the result back to the component
     send_update(TymeslotWeb.Dashboard.ProfileSettingsComponent,
       id: "settings",
-      avatar_upload_result: uploaded_files
+      avatar_upload_result: results
     )
 
     {:noreply, socket}
@@ -558,23 +508,6 @@ defmodule TymeslotWeb.DashboardLive do
   def handle_info(_msg, socket) do
     # Silently ignore unhandled messages
     {:noreply, socket}
-  end
-
-  defp process_avatar_entry(profile, %{path: path}, entry, metadata) do
-    uploaded_entry = %{"path" => path, "client_name" => entry.client_name}
-
-    case SettingsInputProcessor.validate_avatar_upload(uploaded_entry, metadata: metadata) do
-      {:ok, validated_entry} ->
-        atom_entry = %{path: validated_entry["path"], client_name: validated_entry["client_name"]}
-
-        case Profiles.update_avatar(profile, atom_entry) do
-          {:ok, updated_profile} -> {:ok, updated_profile}
-          {:error, reason} -> {:postpone, reason}
-        end
-
-      {:error, validation_error} ->
-        {:postpone, validation_error}
-    end
   end
 
   # Private functions
@@ -670,32 +603,22 @@ defmodule TymeslotWeb.DashboardLive do
     user = socket.assigns.current_user
     user_id = if user, do: user.id, else: nil
     user_email = if user, do: user.email, else: nil
+    action = socket.assigns[:live_action]
 
-    if socket.assigns[:live_action] == :overview do
-      # Load full shared data for overview page
-      shared_data = DashboardContext.get_dashboard_data(user_id, user_email)
-      assign(socket, :shared_data, shared_data)
-    else
-      # For other pages, only load integration status for sidebar notifications
-      integration_status = DashboardContext.get_integration_status(user_id)
-      assign(socket, :shared_data, %{integration_status: integration_status})
-    end
+    shared_data = DashboardContext.get_data_for_action(action, user_id, user_email)
+    assign(socket, :shared_data, shared_data)
   end
 
   @spec load_section_specific_data(Phoenix.LiveView.Socket.t(), atom()) ::
           Phoenix.LiveView.Socket.t()
   defp load_section_specific_data(socket, action) do
-    case action do
-      :overview ->
-        # Load overview data if not already loaded
-        if socket.assigns[:shared_data] do
-          socket
-        else
-          load_shared_data(socket)
-        end
-
-      _ ->
-        socket
+    # Shared data is now consistently loaded in mount or handle_params via load_shared_data
+    # We only reload if action changed and data isn't sufficient
+    if socket.assigns[:shared_data] && action != :overview &&
+         Map.has_key?(socket.assigns.shared_data, :integration_status) do
+      socket
+    else
+      load_shared_data(socket)
     end
   end
 
