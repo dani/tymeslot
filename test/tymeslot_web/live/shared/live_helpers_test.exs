@@ -4,8 +4,6 @@ defmodule TymeslotWeb.Live.Shared.LiveHelpersTest do
   alias Tymeslot.Security.Token
   alias Tymeslot.TestFixtures
   alias TymeslotWeb.Live.Shared.LiveHelpers
-  import Phoenix.LiveView
-  import Phoenix.Component
 
   # Mock socket for testing
   defp mock_socket(assigns \\ %{}) do

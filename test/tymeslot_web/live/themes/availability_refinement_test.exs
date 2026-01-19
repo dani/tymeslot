@@ -68,7 +68,7 @@ defmodule TymeslotWeb.Live.Themes.AvailabilityRefinementTest do
       date_str = Date.to_string(target_date)
 
       # Use a unique duration to ensure cache isolation
-      unique_duration = 30
+      _unique_duration = 30
       slug = "refinement-chat"
 
       stub(Tymeslot.CalendarMock, :get_events_for_range_fresh, fn _user_id, _start, _end ->
@@ -147,16 +147,15 @@ defmodule TymeslotWeb.Live.Themes.AvailabilityRefinementTest do
 
       # Since business hours are 00:00-01:00 and we are in GMT-14,
       # today should be disabled as long as it's past 01:00 in that timezone.
-      # 01:00 GMT-14 is 11:00 previous day UTC.
-      # This test is now much more likely to run and pass.
-      if now_in_tz.hour >= 1 do
-        wait_until(fn ->
-          has_element?(
-            view,
-            "button[data-testid='calendar-day'][phx-value-date='#{today_str}'][disabled]"
-          )
-        end)
-      end
+      # However, with min_advance_hours (default 3), today should ALWAYS be disabled
+      # in this specific setup, even at 00:00.
+
+      wait_until(fn ->
+        has_element?(
+          view,
+          "button[data-testid='calendar-day'][phx-value-date='#{today_str}'][disabled]"
+        )
+      end)
     end
   end
 

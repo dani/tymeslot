@@ -1,12 +1,7 @@
 defmodule Tymeslot.Security.RateLimiterMultiWindowTest do
-  use Tymeslot.DataCase, async: true
+  use Tymeslot.DataCase, async: false
 
   alias Tymeslot.Security.RateLimiter
-
-  setup do
-    :ets.delete_all_objects(:rate_limiter_table)
-    :ok
-  end
 
   describe "signup multi-window limits (email + IP)" do
     test "blocks after 5 attempts in 10 minutes and IP bucket applies across emails" do

@@ -18,8 +18,7 @@ defmodule Tymeslot.Availability.GapLogicTest do
             segments <-
               list_of(tuple({integer(1..120), integer(1..120)}), min_length: 1, max_length: 5)
           ) do
-      # Use a specific future Monday to ensure it's a business day
-      date = ~D[2026-01-19]
+      date = get_safe_test_date()
       timezone = "UTC"
 
       business_start = DateTime.new!(date, @fallback_start, timezone)
@@ -73,10 +72,8 @@ defmodule Tymeslot.Availability.GapLogicTest do
 
   describe "specific gap cases" do
     setup do
-      # Use a specific future Monday to ensure it's a business day
-      # Jan 19, 2026 is a Monday (today is Jan 17, 2026)
       %{
-        date: ~D[2026-01-19],
+        date: get_safe_test_date(),
         timezone: "UTC",
         duration: 30,
         buffer: 10
@@ -169,5 +166,17 @@ defmodule Tymeslot.Availability.GapLogicTest do
       events,
       %{buffer_minutes: buffer, duration_minutes: duration, min_advance_hours: 0}
     )
+  end
+
+  defp get_safe_test_date do
+    # Get a date in the future that is a Monday (guaranteed business day)
+    # and far enough ahead to not be affected by current time/advance booking rules
+    Date.utc_today()
+    |> Date.add(30)
+    |> then(fn date ->
+      days_to_monday = 1 - Date.day_of_week(date)
+      days_to_monday = if days_to_monday <= 0, do: days_to_monday + 7, else: days_to_monday
+      Date.add(date, days_to_monday)
+    end)
   end
 end

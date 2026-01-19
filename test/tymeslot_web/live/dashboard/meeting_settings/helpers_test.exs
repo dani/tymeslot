@@ -1,7 +1,6 @@
 defmodule TymeslotWeb.Dashboard.MeetingSettings.HelpersTest do
   use TymeslotWeb.ConnCase, async: true
   alias TymeslotWeb.Dashboard.MeetingSettings.Helpers
-  import Phoenix.Component
 
   defp mock_socket(assigns \\ %{}) do
     %Phoenix.LiveView.Socket{

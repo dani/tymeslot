@@ -254,15 +254,12 @@ defmodule Tymeslot.Security.RateLimiter do
         ) :: :ok | {:error, :rate_limited, String.t()}
   def check_password_reset_rate_limit(email, ip) do
     downcased_email = String.downcase(email)
+    normalized_ip = normalize_ip(ip)
 
-    buckets =
-      maybe_add_ip_bucket(
-        [{"password_reset:email:#{downcased_email}", @password_reset_limits, "password reset"}],
-        "password_reset",
-        ip,
-        @password_reset_limits,
-        "password reset"
-      )
+    buckets = [
+      {"password_reset:email:#{downcased_email}", @password_reset_limits, "password reset"},
+      {"password_reset:ip:#{normalized_ip}", @password_reset_limits, "password reset"}
+    ]
 
     check_multi_bucket_limits(buckets)
   end
@@ -439,20 +436,6 @@ defmodule Tymeslot.Security.RateLimiter do
 
   defp normalize_ip(ip) when is_binary(ip), do: ip
   defp normalize_ip(other), do: to_string(other)
-
-  defp maybe_add_ip_bucket(buckets, bucket_prefix, ip, limits, operation)
-       when is_list(buckets) and is_binary(bucket_prefix) do
-    if ip_present?(ip) do
-      normalized_ip = normalize_ip(ip)
-      buckets ++ [{"#{bucket_prefix}:ip:#{normalized_ip}", limits, operation}]
-    else
-      buckets
-    end
-  end
-
-  defp ip_present?(ip) when is_tuple(ip), do: true
-  defp ip_present?(ip) when is_binary(ip), do: ip != ""
-  defp ip_present?(_), do: false
 
   defp check_multi_bucket_limits(buckets) do
     Enum.reduce_while(buckets, :ok, fn {bucket_base, limits, operation}, _ ->

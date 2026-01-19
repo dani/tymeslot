@@ -2,6 +2,7 @@ defmodule Tymeslot.Integrations.Calendar.CalDAV.ProviderTest do
   use ExUnit.Case, async: true
 
   import Mox
+  import ExUnit.CaptureLog
   alias Tymeslot.Infrastructure.CalendarCircuitBreaker
   alias Tymeslot.Integrations.Calendar.CalDAV.Provider
 
@@ -81,8 +82,10 @@ defmodule Tymeslot.Integrations.Calendar.CalDAV.ProviderTest do
       }
 
       # Will fail connection but validates structure
-      result = Provider.validate_config(config)
-      assert match?({:error, _}, result)
+      capture_log(fn ->
+        result = Provider.validate_config(config)
+        assert match?({:error, _}, result)
+      end)
     end
   end
 
@@ -141,8 +144,10 @@ defmodule Tymeslot.Integrations.Calendar.CalDAV.ProviderTest do
       }
 
       # Should fail immediately with econnrefused or similar, not time out
-      result = Provider.get_events(client)
-      assert match?({:error, _}, result) or match?({:ok, []}, result)
+      capture_log(fn ->
+        result = Provider.get_events(client)
+        assert match?({:error, _}, result) or match?({:ok, []}, result)
+      end)
     end
   end
 
@@ -159,9 +164,11 @@ defmodule Tymeslot.Integrations.Calendar.CalDAV.ProviderTest do
       start_time = DateTime.utc_now()
       end_time = DateTime.add(start_time, 3600, :second)
 
-      result = Provider.get_events(client, start_time, end_time)
-      # Should fail immediately
-      assert match?({:error, _}, result) or match?({:ok, []}, result)
+      capture_log(fn ->
+        result = Provider.get_events(client, start_time, end_time)
+        # Should fail immediately
+        assert match?({:error, _}, result) or match?({:ok, []}, result)
+      end)
     end
   end
 
@@ -181,8 +188,10 @@ defmodule Tymeslot.Integrations.Calendar.CalDAV.ProviderTest do
         end_time: DateTime.add(DateTime.utc_now(), 3600, :second)
       }
 
-      result = Provider.create_event(client, event_data)
-      assert match?({:error, _}, result)
+      capture_log(fn ->
+        result = Provider.create_event(client, event_data)
+        assert match?({:error, _}, result)
+      end)
     end
   end
 
@@ -204,8 +213,10 @@ defmodule Tymeslot.Integrations.Calendar.CalDAV.ProviderTest do
         end_time: DateTime.add(DateTime.utc_now(), 3600, :second)
       }
 
-      result = Provider.update_event(client, uid, event_data)
-      assert match?({:error, _}, result)
+      capture_log(fn ->
+        result = Provider.update_event(client, uid, event_data)
+        assert match?({:error, _}, result)
+      end)
     end
   end
 
@@ -221,8 +232,10 @@ defmodule Tymeslot.Integrations.Calendar.CalDAV.ProviderTest do
 
       uid = "test-event-123"
 
-      result = Provider.delete_event(client, uid)
-      assert match?({:error, _}, result)
+      capture_log(fn ->
+        result = Provider.delete_event(client, uid)
+        assert match?({:error, _}, result)
+      end)
     end
   end
 
@@ -235,8 +248,10 @@ defmodule Tymeslot.Integrations.Calendar.CalDAV.ProviderTest do
         calendar_paths: []
       }
 
-      result = Provider.test_connection(integration)
-      assert {:error, _message} = result
+      capture_log(fn ->
+        result = Provider.test_connection(integration)
+        assert {:error, _message} = result
+      end)
     end
 
     test "accepts options with metadata" do
@@ -249,8 +264,10 @@ defmodule Tymeslot.Integrations.Calendar.CalDAV.ProviderTest do
 
       opts = [metadata: %{ip: "192.168.1.1"}]
 
-      result = Provider.test_connection(integration, opts)
-      assert {:error, _message} = result
+      capture_log(fn ->
+        result = Provider.test_connection(integration, opts)
+        assert {:error, _message} = result
+      end)
     end
   end
 
@@ -264,8 +281,10 @@ defmodule Tymeslot.Integrations.Calendar.CalDAV.ProviderTest do
         provider: :caldav
       }
 
-      result = Provider.discover_calendars(client)
-      assert {:error, _message} = result
+      capture_log(fn ->
+        result = Provider.discover_calendars(client)
+        assert {:error, _message} = result
+      end)
     end
 
     test "accepts options with IP address for rate limiting" do
@@ -279,8 +298,10 @@ defmodule Tymeslot.Integrations.Calendar.CalDAV.ProviderTest do
 
       opts = [metadata: %{ip: "192.168.1.1"}]
 
-      result = Provider.discover_calendars(client, opts)
-      assert {:error, _message} = result
+      capture_log(fn ->
+        result = Provider.discover_calendars(client, opts)
+        assert {:error, _message} = result
+      end)
     end
   end
 end

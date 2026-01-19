@@ -327,8 +327,7 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
     socket.assigns[:organizer_user_id] &&
       socket.assigns[:organizer_profile] &&
       socket.assigns[:current_year] &&
-      socket.assigns[:current_month] &&
-      socket.assigns[:availability_status] != :loading
+      socket.assigns[:current_month]
   end
 
   @doc """
@@ -336,24 +335,29 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
   """
   @spec maybe_cancel_existing_task(Phoenix.LiveView.Socket.t()) :: Phoenix.LiveView.Socket.t()
   def maybe_cancel_existing_task(socket) do
-    if old_task = socket.assigns[:availability_task] do
-      duration =
-        case socket.assigns[:availability_fetch_start_time] do
-          nil -> "unknown"
-          start -> "#{System.monotonic_time() - start}ns"
-        end
+    socket =
+      if old_task = socket.assigns[:availability_task] do
+        duration =
+          case socket.assigns[:availability_fetch_start_time] do
+            nil -> "unknown"
+            start -> "#{System.monotonic_time() - start}ns"
+          end
 
-      Logger.debug(
-        "Cancelling previous availability fetch task due to user navigation (task was running for #{duration})",
-        user_id: socket.assigns.organizer_user_id,
-        month: socket.assigns.current_month,
-        year: socket.assigns.current_year
-      )
+        Logger.debug(
+          "Cancelling previous availability fetch task due to user navigation (task was running for #{duration})",
+          user_id: Map.get(socket.assigns, :organizer_user_id),
+          month: Map.get(socket.assigns, :current_month),
+          year: Map.get(socket.assigns, :current_year)
+        )
 
-      Task.shutdown(old_task, :brutal_kill)
-    end
+        Task.shutdown(old_task, :brutal_kill)
+        assign(socket, :availability_task, nil)
+      else
+        socket
+      end
 
-    socket
+    # Always clear the ref to ensure any pending messages (sync or async) are ignored
+    assign(socket, :availability_task_ref, nil)
   end
 
   @doc """
@@ -442,7 +446,8 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
           profile_id: organizer_profile.id,
           max_advance_booking_days: organizer_profile.advance_booking_days,
           min_advance_hours: organizer_profile.min_advance_hours,
-          buffer_minutes: organizer_profile.buffer_minutes
+          buffer_minutes: organizer_profile.buffer_minutes,
+          owner_timezone: organizer_profile.timezone
         }
 
         Calculate.get_calendar_days(user_timezone, year, month, config, availability_map)

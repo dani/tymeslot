@@ -228,11 +228,11 @@ defmodule Tymeslot.Availability.Calculate do
   @spec get_calendar_days(String.t(), integer(), integer(), map(), map() | atom() | nil) ::
           list(map())
   def get_calendar_days(user_timezone, year, month, config \\ %{}, availability_map \\ nil) do
-    # Get today in user's timezone
-    today =
+    # Get today and current time in user's timezone
+    {today, now} =
       case DateTime.now(user_timezone) do
-        {:ok, dt} -> DateTime.to_date(dt)
-        _ -> Date.utc_today()
+        {:ok, dt} -> {DateTime.to_date(dt), dt}
+        _ -> {Date.utc_today(), DateTime.utc_now()}
       end
 
     # Create date for the given year/month
@@ -244,10 +244,6 @@ defmodule Tymeslot.Availability.Calculate do
     days_before = if days_before == 7, do: 0, else: days_before
     first_display_date = Date.add(first_day, -days_before)
 
-    # Configuration
-    max_advance_booking_days = Map.get(config, :max_advance_booking_days, 90)
-    fallback_availability_fn = Map.get(config, :fallback_availability_fn)
-
     # Generate 42 days (6 weeks) for consistent calendar display
     Enum.map(0..41, fn offset ->
       date = Date.add(first_display_date, offset)
@@ -257,42 +253,7 @@ defmodule Tymeslot.Availability.Calculate do
 
       # Determine availability based on availability_map state
       {is_available, is_loading} =
-        cond do
-          # Past dates are never available
-          is_past ->
-            {false, false}
-
-          # Loading state: mark as loading
-          availability_map == :loading ->
-            {false, true}
-
-          # Real availability data provided: use it
-          is_map(availability_map) ->
-            real_available = Map.get(availability_map, date_string, false)
-            {real_available, false}
-
-          # If a custom fallback checker is provided, use it
-          is_function(fallback_availability_fn, 1) ->
-            {fallback_availability_fn.(date), false}
-
-          # Default: No availability map, use business hours logic
-          true ->
-            # Business logic for basic availability checks
-            profile_id = Map.get(config, :profile_id)
-
-            is_business_day =
-              if profile_id do
-                BusinessHours.business_day?(date, profile_id)
-              else
-                BusinessHours.business_day?(date)
-              end
-
-            is_future = Date.compare(date, today) != :lt
-            is_within_limit = Date.diff(date, today) <= max_advance_booking_days
-
-            business_hours_available = is_business_day && is_future && is_within_limit
-            {business_hours_available, false}
-        end
+        determine_availability(date, date_string, today, now, availability_map, config)
 
       %{
         date: date_string,
@@ -363,6 +324,89 @@ defmodule Tymeslot.Availability.Calculate do
       end)
     else
       _ -> []
+    end
+  end
+
+  defp determine_availability(date, date_string, today, now, availability_map, config) do
+    cond do
+      # Past dates are never available
+      Date.compare(date, today) == :lt ->
+        {false, false}
+
+      # Loading state: mark as loading
+      availability_map == :loading ->
+        {false, true}
+
+      # Real availability data provided: use it
+      is_map(availability_map) ->
+        {Map.get(availability_map, date_string, false), false}
+
+      # If a custom fallback checker is provided, use it
+      is_function(Map.get(config, :fallback_availability_fn), 1) ->
+        {config.fallback_availability_fn.(date), false}
+
+      # Default: No availability map, use business hours logic
+      true ->
+        {fallback_day_available?(date, today, now, config), false}
+    end
+  end
+
+  defp fallback_day_available?(date, today, now, config) do
+    profile_id = Map.get(config, :profile_id)
+    max_advance_booking_days = Map.get(config, :max_advance_booking_days, 90)
+
+    is_business_day =
+      if profile_id do
+        BusinessHours.business_day?(date, profile_id)
+      else
+        BusinessHours.business_day?(date)
+      end
+
+    is_future = Date.compare(date, today) == :gt
+    is_today = date == today
+    is_within_limit = Date.diff(date, today) <= max_advance_booking_days
+
+    # If it's today, we need to check if business hours have already passed
+    today_available =
+      if is_today and is_business_day do
+        check_today_fallback_availability(date, now, config)
+      else
+        false
+      end
+
+    (is_future or today_available) and is_business_day and is_within_limit
+  end
+
+  defp check_today_fallback_availability(date, now, config) do
+    profile_id = Map.get(config, :profile_id)
+    owner_timezone = Map.get(config, :owner_timezone, "Etc/UTC")
+    user_timezone = now.time_zone
+
+    result =
+      if profile_id do
+        BusinessHours.get_business_hours_in_timezone(
+          date,
+          profile_id,
+          owner_timezone,
+          user_timezone
+        )
+      else
+        BusinessHours.get_business_hours_in_timezone(
+          date,
+          owner_timezone,
+          user_timezone
+        )
+      end
+
+    case result do
+      {:ok, %{end_datetime: end_dt}} when not is_nil(end_dt) ->
+        # Today is available if current time is before business end time (minus min_advance_hours)
+        min_advance_hours = Map.get(config, :min_advance_hours, 0)
+        latest_start = DateTime.add(end_dt, -min_advance_hours * 60, :minute)
+        DateTime.compare(now, latest_start) != :gt
+
+      _ ->
+        false
     end
   end
 end

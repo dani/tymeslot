@@ -1,5 +1,5 @@
 defmodule Tymeslot.Auth.AuthenticationTest do
-  use Tymeslot.DataCase, async: true
+  use Tymeslot.DataCase, async: false
 
   @moduletag :auth
 
@@ -10,9 +10,6 @@ defmodule Tymeslot.Auth.AuthenticationTest do
 
   describe "authentication security" do
     test "consistent error messages prevent user enumeration" do
-      # Clear rate limits
-      :ets.delete_all_objects(:rate_limiter_table)
-
       # Non-existent user
       {:error, _, message1} = Authentication.authenticate_user("fake@example.com", "password")
 

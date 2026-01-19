@@ -1,6 +1,7 @@
 defmodule Tymeslot.Integrations.Calendar.Nextcloud.ProviderTest do
   use ExUnit.Case, async: true
 
+  import ExUnit.CaptureLog
   alias Tymeslot.Infrastructure.CalendarCircuitBreaker
   alias Tymeslot.Integrations.Calendar.Nextcloud.Provider
 
@@ -87,8 +88,10 @@ defmodule Tymeslot.Integrations.Calendar.Nextcloud.ProviderTest do
       }
 
       # Will fail connection test but URL structure is valid
-      result = Provider.validate_config(config)
-      assert match?({:error, _}, result)
+      capture_log(fn ->
+        result = Provider.validate_config(config)
+        assert match?({:error, _}, result)
+      end)
     end
 
     test "accepts standard Nextcloud URL" do
@@ -99,8 +102,10 @@ defmodule Tymeslot.Integrations.Calendar.Nextcloud.ProviderTest do
       }
 
       # Will fail connection test but URL structure is valid
-      result = Provider.validate_config(config)
-      assert match?({:error, _}, result)
+      capture_log(fn ->
+        result = Provider.validate_config(config)
+        assert match?({:error, _}, result)
+      end)
     end
   end
 
@@ -240,8 +245,10 @@ defmodule Tymeslot.Integrations.Calendar.Nextcloud.ProviderTest do
         provider: :nextcloud
       }
 
-      result = Provider.discover_calendars(client)
-      assert {:error, _message} = result
+      capture_log(fn ->
+        result = Provider.discover_calendars(client)
+        assert {:error, _message} = result
+      end)
     end
 
     test "accepts options for rate limiting" do
@@ -255,8 +262,10 @@ defmodule Tymeslot.Integrations.Calendar.Nextcloud.ProviderTest do
 
       opts = [metadata: %{ip: "10.0.0.1"}]
 
-      result = Provider.discover_calendars(client, opts)
-      assert {:error, _message} = result
+      capture_log(fn ->
+        result = Provider.discover_calendars(client, opts)
+        assert {:error, _message} = result
+      end)
     end
   end
 
@@ -270,9 +279,11 @@ defmodule Tymeslot.Integrations.Calendar.Nextcloud.ProviderTest do
         provider: :nextcloud
       }
 
-      result = Provider.get_events(client)
-      # May return error or empty list depending on circuit breaker state
-      assert match?({:error, _}, result) or match?({:ok, []}, result)
+      capture_log(fn ->
+        result = Provider.get_events(client)
+        # May return error or empty list depending on circuit breaker state
+        assert match?({:error, _}, result) or match?({:ok, []}, result)
+      end)
     end
   end
 
@@ -289,9 +300,11 @@ defmodule Tymeslot.Integrations.Calendar.Nextcloud.ProviderTest do
       start_time = DateTime.utc_now()
       end_time = DateTime.add(start_time, 86_400, :second)
 
-      result = Provider.get_events(client, start_time, end_time)
-      # May return error or empty list depending on circuit breaker state
-      assert match?({:error, _}, result) or match?({:ok, []}, result)
+      capture_log(fn ->
+        result = Provider.get_events(client, start_time, end_time)
+        # May return error or empty list depending on circuit breaker state
+        assert match?({:error, _}, result) or match?({:ok, []}, result)
+      end)
     end
   end
 
@@ -311,8 +324,10 @@ defmodule Tymeslot.Integrations.Calendar.Nextcloud.ProviderTest do
         end_time: DateTime.add(DateTime.utc_now(), 3600, :second)
       }
 
-      result = Provider.create_event(client, event_data)
-      assert match?({:error, _}, result)
+      capture_log(fn ->
+        result = Provider.create_event(client, event_data)
+        assert match?({:error, _}, result)
+      end)
     end
   end
 
@@ -334,8 +349,10 @@ defmodule Tymeslot.Integrations.Calendar.Nextcloud.ProviderTest do
         end_time: DateTime.add(DateTime.utc_now(), 3600, :second)
       }
 
-      result = Provider.update_event(client, uid, event_data)
-      assert match?({:error, _}, result)
+      capture_log(fn ->
+        result = Provider.update_event(client, uid, event_data)
+        assert match?({:error, _}, result)
+      end)
     end
   end
 
@@ -351,8 +368,10 @@ defmodule Tymeslot.Integrations.Calendar.Nextcloud.ProviderTest do
 
       uid = "nextcloud-event-123"
 
-      result = Provider.delete_event(client, uid)
-      assert match?({:error, _}, result)
+      capture_log(fn ->
+        result = Provider.delete_event(client, uid)
+        assert match?({:error, _}, result)
+      end)
     end
   end
 end

@@ -151,7 +151,7 @@ defmodule Tymeslot.Integrations.Calendar.CalDAV.Base do
   defp handle_propfind_error(%Mint.TransportError{reason: :timeout}), do: {:error, :timeout}
 
   defp handle_propfind_error(reason) do
-    Logger.error("CalDAV PROPFIND failed: #{inspect(reason)}")
+    Logger.debug("CalDAV PROPFIND network error: #{inspect(reason)}")
     {:error, :network_error}
   end
 
@@ -202,7 +202,7 @@ defmodule Tymeslot.Integrations.Calendar.CalDAV.Base do
         {:error, :timeout}
 
       {:error, reason} ->
-        Logger.error("CalDAV REPORT failed: #{inspect(reason)}")
+        Logger.debug("CalDAV REPORT network error: #{inspect(reason)}")
         {:error, :network_error}
     end
   end
@@ -225,7 +225,7 @@ defmodule Tymeslot.Integrations.Calendar.CalDAV.Base do
         handle_put_event_response(response)
 
       {:error, reason} ->
-        Logger.error("CalDAV PUT failed: #{inspect(reason)}")
+        Logger.debug("CalDAV PUT network error: #{inspect(reason)}")
         {:error, :network_error}
     end
   end
@@ -261,7 +261,7 @@ defmodule Tymeslot.Integrations.Calendar.CalDAV.Base do
         {:error, "Unexpected status: #{status}"}
 
       {:error, reason} ->
-        Logger.error("CalDAV DELETE failed: #{inspect(reason)}")
+        Logger.debug("CalDAV DELETE network error: #{inspect(reason)}")
         handle_put_event_error(reason)
     end
   end
@@ -313,7 +313,7 @@ defmodule Tymeslot.Integrations.Calendar.CalDAV.Base do
   end
 
   defp handle_put_event_error(reason) do
-    Logger.error("CalDAV PUT failed: #{inspect(reason)}")
+    Logger.debug("CalDAV PUT/DELETE network error: #{inspect(reason)}")
     {:error, :network_error}
   end
 

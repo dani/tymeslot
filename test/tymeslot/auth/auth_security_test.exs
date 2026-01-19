@@ -1,7 +1,7 @@
 defmodule Tymeslot.Auth.SecurityTest do
   @moduledoc false
 
-  use Tymeslot.DataCase, async: true
+  use Tymeslot.DataCase, async: false
 
   @moduletag :auth
 
@@ -15,9 +15,6 @@ defmodule Tymeslot.Auth.SecurityTest do
 
   describe "authentication security" do
     test "prevents brute force attacks through rate limiting" do
-      # Clear rate limits before test
-      :ets.delete_all_objects(:rate_limiter_table)
-
       user =
         insert(:user,
           password_hash: Password.hash_password("ValidPass123!")

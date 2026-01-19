@@ -1,8 +1,8 @@
 defmodule Tymeslot.Auth.ValidationTest do
   use Tymeslot.DataCase, async: true
 
-  alias Tymeslot.Auth.Validation
   alias Ecto.Changeset
+  alias Tymeslot.Auth.Validation
 
   describe "validate_login_input/1" do
     test "returns :ok when email and password are present" do

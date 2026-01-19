@@ -3,7 +3,6 @@ defmodule Tymeslot.Payments.PaymentModulesTest do
   use Tymeslot.DataCase, async: false
 
   alias Tymeslot.Payments.{ErrorHandler, PubSub}
-  alias Tymeslot.Payments.Errors.WebhookError
   alias Tymeslot.Payments.Errors.WebhookError.ProcessingError
   alias Tymeslot.Payments.Errors.WebhookError.SignatureError
   alias Tymeslot.Payments.Errors.WebhookError.ValidationError
