@@ -62,6 +62,17 @@ defmodule Tymeslot.Themes.Theme do
   end
 
   @doc """
+  Gets theme description by ID.
+  """
+  @spec get_description(term()) :: String.t()
+  def get_description(id) do
+    case get_theme(id) do
+      nil -> "A beautiful theme for your booking page."
+      theme -> theme.description
+    end
+  end
+
+  @doc """
   Validates if a theme ID is valid and theme is properly implemented.
   """
   @spec valid_theme_id?(term()) :: boolean()

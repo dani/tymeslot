@@ -250,6 +250,7 @@ defmodule TymeslotWeb.Components.MeetingComponents do
   """
   attr :duration, :string, required: true
   attr :title, :string, required: true
+  attr :badge, :string, default: nil
   attr :description, :string, required: true
   attr :icon, :string, required: true
   attr :selected, :boolean, default: false
@@ -277,7 +278,7 @@ defmodule TymeslotWeb.Components.MeetingComponents do
               class="inline-block px-2 py-0.5 text-xs font-semibold rounded-full"
               style="background: rgba(255,255,255,0.2); color: rgba(255,255,255,0.95); backdrop-filter: blur(10px);"
             >
-              {@duration}
+              {@badge || @duration}
             </span>
           </div>
           <p
@@ -537,10 +538,10 @@ defmodule TymeslotWeb.Components.MeetingComponents do
     base_style =
       if selected do
         case duration do
-          "15min" ->
+          d when d in ["15min", "15-minutes"] ->
             "background: linear-gradient(135deg, #4a1d6d 0%, #2d1b69 100%); box-shadow: 0 10px 30px rgba(74,29,109,0.4);"
 
-          "30min" ->
+          d when d in ["30min", "30-minutes"] ->
             "background: linear-gradient(135deg, #6a1b9a 0%, #4a148c 100%); box-shadow: 0 10px 30px rgba(106,27,154,0.4);"
 
           _ ->

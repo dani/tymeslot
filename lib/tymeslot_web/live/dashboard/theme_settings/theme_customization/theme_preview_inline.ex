@@ -1,4 +1,4 @@
-defmodule TymeslotWeb.Dashboard.ThemeCustomization.ThemePreviewInline do
+defmodule TymeslotWeb.Dashboard.ThemeSettings.ThemeCustomization.ThemePreviewInline do
   @moduledoc """
   Renders an inline preview of the full theme (colors + background) based on the
   current customization. CSS variables are scoped to this component only.

@@ -1,0 +1,345 @@
+defmodule TymeslotWeb.Dashboard.ThemeSettings.ThemeCustomizationComponent do
+  @moduledoc """
+  Theme customization component for advanced theme settings.
+  Allows users to customize colors and backgrounds for their booking page.
+
+  Assigns contract
+  - Required (passed in):
+    - profile: Tymeslot.DatabaseSchemas.ProfileSchema.t()
+    - theme_id: String.t()
+  - Provided/managed by this component (do not pass these in):
+    - customization: map with current customization state (see customization_t())
+    - presets: preset collections for color schemes and backgrounds (see presets_t())
+    - defaults: map of default values for the theme
+    - browsing_type: String.t() – which background category is currently browsed ("gradient" | "color" | "image" | "video")
+    - uploads: map() | nil – upload entries (managed by this component)
+    - parent_component: term() – reference to parent component for close actions (optional)
+  """
+  use TymeslotWeb, :live_component
+
+  alias Phoenix.LiveView.Socket
+  alias Tymeslot.Security.RateLimiter
+  alias Tymeslot.ThemeCustomizations
+  alias TymeslotWeb.Dashboard.ThemeSettings.ThemeCustomization.Components
+  alias TymeslotWeb.Helpers.ThemeUploadHelper
+  alias TymeslotWeb.Helpers.UploadConstraints
+  alias TymeslotWeb.Live.Shared.Flash
+
+  @typedoc "Preset collections used by the component"
+  @type presets_t :: %{
+          required(:color_schemes) => %{optional(String.t()) => map()},
+          required(:gradients) => %{
+            optional(String.t()) => %{
+              required(:name) => String.t(),
+              required(:value) => String.t()
+            }
+          },
+          required(:images) => %{
+            optional(String.t()) => %{
+              required(:name) => String.t(),
+              required(:file) => String.t(),
+              optional(:description) => String.t()
+            }
+          },
+          required(:videos) => %{
+            optional(String.t()) => %{
+              required(:name) => String.t(),
+              required(:file) => String.t(),
+              required(:thumbnail) => String.t(),
+              optional(:description) => String.t()
+            }
+          }
+        }
+
+  @typedoc "Customization map applied to the theme"
+  @type customization_t :: %{
+          required(:background_type) => String.t(),
+          optional(:background_value) => String.t() | nil,
+          optional(:background_image_path) => String.t() | nil,
+          optional(:background_video_path) => String.t() | nil,
+          optional(:color_scheme) => String.t()
+        }
+
+  @typedoc "Assigns contract for this component"
+  @type assigns_t :: %{
+          required(:profile) => Tymeslot.DatabaseSchemas.ProfileSchema.t(),
+          required(:theme_id) => String.t(),
+          required(:customization) => customization_t(),
+          required(:presets) => presets_t(),
+          required(:defaults) => map(),
+          required(:browsing_type) => String.t(),
+          optional(:uploads) => map() | nil,
+          optional(:parent_component) => term()
+        }
+
+  @impl true
+  @spec mount(Socket.t()) :: {:ok, Socket.t()}
+  def mount(socket) do
+    socket =
+      socket
+      |> assign(:uploading, false)
+      |> maybe_configure_uploads()
+
+    {:ok, socket}
+  end
+
+  @impl true
+  @spec update(map(), Socket.t()) :: {:ok, Socket.t()}
+  def update(%{consume_upload: type}, socket) do
+    # Handle async consumption from progress handlers
+    {:noreply, socket} =
+      case type do
+        :image -> handle_event("save_background_image", %{}, socket)
+        :video -> handle_event("save_background_video", %{}, socket)
+      end
+
+    {:ok, socket}
+  end
+
+  def update(assigns, socket) do
+    theme_id = assigns[:theme_id] || "1"
+
+    # Initialize customization data from the domain
+    %{
+      customization: customization,
+      original: _original_state,
+      presets: presets,
+      defaults: defaults
+    } = ThemeCustomizations.initialize_customization(assigns.profile.id, theme_id)
+
+    # Narrow assigns surface: expose a small, consistent contract
+    {:ok,
+     socket
+     |> assign(:id, assigns.id)
+     |> assign(:profile, assigns.profile)
+     |> assign(:parent_component, assigns[:parent_component])
+     |> assign(:theme_id, theme_id)
+     |> assign(:customization, customization)
+     |> assign(:presets, presets)
+     |> assign(:defaults, defaults)
+     |> assign_new(:browsing_type, fn -> customization.background_type end)}
+  end
+
+  @impl true
+  def render(assigns) do
+    ~H"""
+    <div class="space-y-8" phx-hook="AutoUpload" id="theme-customization-uploads">
+      <Components.toolbar
+        profile={@profile}
+        theme_id={@theme_id}
+        parent_component={@parent_component}
+      />
+
+      <Components.color_scheme_section
+        customization={@customization}
+        presets={@presets}
+        myself={@myself}
+      />
+
+      <Components.background_section
+        browsing_type={@browsing_type}
+        customization={@customization}
+        presets={@presets}
+        uploads={@uploads}
+        myself={@myself}
+      />
+    </div>
+    """
+  end
+
+  @impl true
+  @spec handle_event(String.t(), map(), Socket.t()) :: {:noreply, Socket.t()}
+  def handle_event("theme:select_color_scheme", %{"scheme" => scheme_id}, socket) do
+    case ThemeCustomizations.apply_color_scheme_change(
+           socket.assigns.profile.id,
+           socket.assigns.theme_id,
+           socket.assigns.customization,
+           scheme_id
+         ) do
+      {:ok, updated_customization} ->
+        {:noreply, assign(socket, :customization, updated_customization)}
+
+      {:error, reason} ->
+        Flash.error(reason)
+        {:noreply, socket}
+    end
+  end
+
+  def handle_event("theme:set_browsing_type", %{"type" => type}, socket) do
+    # Only update the browsing type - this is just UI navigation, not a selection
+    {:noreply, assign(socket, :browsing_type, type)}
+  end
+
+  def handle_event("theme:select_background", params, socket) do
+    type = params["type"]
+    value = params["id"] || params["value"]
+
+    case ThemeCustomizations.apply_background_change(
+           socket.assigns.profile.id,
+           socket.assigns.theme_id,
+           socket.assigns.customization,
+           type,
+           value
+         ) do
+      {:ok, updated_customization} ->
+        {:noreply,
+         socket
+         |> assign(:customization, updated_customization)
+         |> assign(:browsing_type, type)}
+
+      {:error, reason} ->
+        Flash.error(reason)
+        {:noreply, socket}
+    end
+  end
+
+  def handle_event("validate_image", _params, socket) do
+    if socket.assigns.uploads && socket.assigns.uploads[:background_image] &&
+         socket.assigns.uploads.background_image.entries != [] and
+         Enum.all?(
+           socket.assigns.uploads.background_image.entries,
+           &(&1.done? or &1.cancelled?)
+         ) do
+      {:noreply, process_image_upload(socket)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_event("save_background_image", _params, socket) do
+    {:noreply, maybe_handle_theme_upload(socket, :image)}
+  end
+
+  def handle_event("validate_video", _params, socket) do
+    if socket.assigns.uploads && socket.assigns.uploads[:background_video] &&
+         socket.assigns.uploads.background_video.entries != [] and
+         Enum.all?(
+           socket.assigns.uploads.background_video.entries,
+           &(&1.done? or &1.cancelled?)
+         ) do
+      {:noreply, process_video_upload(socket)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_event("save_background_video", _params, socket) do
+    {:noreply, maybe_handle_theme_upload(socket, :video)}
+  end
+
+  # Private functions
+
+  defp maybe_handle_theme_upload(socket, type) do
+    user_id = socket.assigns.profile.user_id
+
+    case RateLimiter.check_rate_limit("theme_upload:#{user_id}", 5, 600_000) do
+      :ok ->
+        case type do
+          :image -> process_image_upload(socket)
+          :video -> process_video_upload(socket)
+        end
+
+      {:error, :rate_limited} ->
+        Flash.error("Too many upload attempts. Please wait a few minutes and try again.")
+        socket
+    end
+  end
+
+  defp process_image_upload(socket) do
+    # Only consume if we have entries and they are all done/cancelled
+    if upload_ready?(socket, :background_image) do
+      case ThemeUploadHelper.process_background_image_upload(socket, socket.assigns.profile) do
+        {:ok, message} ->
+          handle_successful_upload(socket, message)
+
+        {:error, message} ->
+          Flash.error(message)
+          socket
+      end
+    else
+      socket
+    end
+  end
+
+  defp process_video_upload(socket) do
+    # Only consume if we have entries and they are all done/cancelled
+    if upload_ready?(socket, :background_video) do
+      case ThemeUploadHelper.process_background_video_upload(socket, socket.assigns.profile) do
+        {:ok, message} ->
+          handle_successful_upload(socket, message)
+
+        {:error, message} ->
+          Flash.error(message)
+          socket
+      end
+    else
+      socket
+    end
+  end
+
+  defp upload_ready?(socket, upload_key) do
+    case socket.assigns.uploads[upload_key] do
+      nil ->
+        false
+
+      %{entries: []} ->
+        false
+
+      %{entries: entries} ->
+        Enum.all?(entries, &(&1.done? or &1.cancelled?))
+    end
+  end
+
+  defp maybe_configure_uploads(socket) do
+    if socket.assigns[:uploads] && socket.assigns.uploads[:background_image] do
+      socket
+    else
+      img_exts = UploadConstraints.allowed_extensions(:image)
+      vid_exts = UploadConstraints.allowed_extensions(:video)
+
+      socket
+      |> allow_upload(:background_image,
+        accept: img_exts,
+        max_entries: 1,
+        max_file_size: UploadConstraints.max_file_size(:image),
+        auto_upload: true,
+        progress: &handle_theme_image_progress/3
+      )
+      |> allow_upload(:background_video,
+        accept: vid_exts,
+        max_entries: 1,
+        max_file_size: UploadConstraints.max_file_size(:video),
+        auto_upload: true,
+        progress: &handle_theme_video_progress/3
+      )
+    end
+  end
+
+  defp handle_theme_image_progress(_config, entry, socket) do
+    if entry.done? do
+      send_update(self(), __MODULE__, id: socket.assigns.id, consume_upload: :image)
+    end
+
+    {:noreply, socket}
+  end
+
+  defp handle_theme_video_progress(_config, entry, socket) do
+    if entry.done? do
+      send_update(self(), __MODULE__, id: socket.assigns.id, consume_upload: :video)
+    end
+
+    {:noreply, socket}
+  end
+
+  defp handle_successful_upload(socket, message) do
+    # Re-initialize customization to get the new paths
+    %{customization: customization} =
+      ThemeCustomizations.initialize_customization(
+        socket.assigns.profile.id,
+        socket.assigns.theme_id
+      )
+
+    Flash.info(message)
+    assign(socket, :customization, customization)
+  end
+end

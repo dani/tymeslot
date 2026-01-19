@@ -145,11 +145,8 @@ defmodule TymeslotWeb.DashboardLive do
   alias Tymeslot.Dashboard.DashboardContext
   alias Tymeslot.Integrations.Calendar
   alias Tymeslot.Profiles.Timezone
-  alias Tymeslot.Security.RateLimiter
   alias TymeslotWeb.Components.DashboardLayout
   alias TymeslotWeb.Helpers.PageTitles
-  alias TymeslotWeb.Helpers.{ThemeUploadHelper, UploadConstraints}
-  alias TymeslotWeb.Live.Dashboard.Shared.DashboardHelpers
   alias TymeslotWeb.Live.InitHelpers
 
   # Alias dashboard components to satisfy aliasing rules and improve maintainability
@@ -222,7 +219,6 @@ defmodule TymeslotWeb.DashboardLive do
       socket
       |> assign(:page_title, PageTitles.dashboard_title(action))
       |> load_section_specific_data(action)
-      |> maybe_configure_uploads(action)
 
     {:noreply, socket}
   end
@@ -238,8 +234,8 @@ defmodule TymeslotWeb.DashboardLive do
       integration_status={get_integration_status(assigns)}
     >
       <.flash_group flash={@flash} id="dashboard-flash-group" />
-      
-    <!-- Content -->
+
+      <!-- Content -->
       <div class="dashboard-content">
         {render_section(assigns)}
       </div>
@@ -247,59 +243,8 @@ defmodule TymeslotWeb.DashboardLive do
     """
   end
 
-  # Handle theme customization events
-  @impl true
-  @spec handle_event(String.t(), map(), Phoenix.LiveView.Socket.t()) ::
-          {:noreply, Phoenix.LiveView.Socket.t()}
-  def handle_event("validate_image", _params, socket) do
-    if socket.assigns.uploads.background_image.entries != [] and
-         Enum.all?(socket.assigns.uploads.background_image.entries, &(&1.done? or &1.cancelled?)) do
-      send(self(), {:consume_background_image_upload, socket.assigns.profile})
-    end
-
-    {:noreply, socket}
-  end
-
-  @impl true
-  @spec handle_event(String.t(), map(), Phoenix.LiveView.Socket.t()) ::
-          {:noreply, Phoenix.LiveView.Socket.t()}
-  def handle_event("save_background_image", _params, socket) do
-    {:noreply, maybe_handle_theme_upload(socket, :image)}
-  end
-
-  @impl true
-  @spec handle_event(String.t(), map(), Phoenix.LiveView.Socket.t()) ::
-          {:noreply, Phoenix.LiveView.Socket.t()}
-  def handle_event("validate_video", _params, socket) do
-    if socket.assigns.uploads.background_video.entries != [] and
-         Enum.all?(socket.assigns.uploads.background_video.entries, &(&1.done? or &1.cancelled?)) do
-      send(self(), {:consume_background_video_upload, socket.assigns.profile})
-    end
-
-    {:noreply, socket}
-  end
-
-  @impl true
-  @spec handle_event(String.t(), map(), Phoenix.LiveView.Socket.t()) ::
-          {:noreply, Phoenix.LiveView.Socket.t()}
-  def handle_event("save_background_video", _params, socket) do
-    {:noreply, maybe_handle_theme_upload(socket, :video)}
-  end
-
   # Handle events from child components
   @impl true
-  @spec handle_info({:theme_customization_opened, any()}, Phoenix.LiveView.Socket.t()) ::
-          {:noreply, Phoenix.LiveView.Socket.t()}
-  def handle_info({:theme_customization_opened, theme_id}, socket) do
-    {:noreply, assign(socket, :current_customization_theme_id, theme_id)}
-  end
-
-  @spec handle_info(:theme_customization_closed, Phoenix.LiveView.Socket.t()) ::
-          {:noreply, Phoenix.LiveView.Socket.t()}
-  def handle_info(:theme_customization_closed, socket) do
-    {:noreply, assign(socket, :current_customization_theme_id, nil)}
-  end
-
   @spec handle_info({:profile_updated, map()}, Phoenix.LiveView.Socket.t()) ::
           {:noreply, Phoenix.LiveView.Socket.t()}
   def handle_info({:profile_updated, profile}, socket) do
@@ -394,20 +339,6 @@ defmodule TymeslotWeb.DashboardLive do
     {:noreply, socket}
   end
 
-  @spec handle_info({:consume_background_video_upload, map()}, Phoenix.LiveView.Socket.t()) ::
-          {:noreply, Phoenix.LiveView.Socket.t()}
-  def handle_info({:consume_background_video_upload, profile}, socket) do
-    case ThemeUploadHelper.process_background_video_upload(socket, profile) do
-      {:ok, message} ->
-        send(self(), {:flash, {:info, message}})
-        {:noreply, socket}
-
-      {:error, message} ->
-        send(self(), {:flash, {:error, message}})
-        {:noreply, socket}
-    end
-  end
-
   # Handle calendar OAuth redirects directly in the parent LiveView
 
   # Neutral redirect message from the Video settings component
@@ -462,11 +393,6 @@ defmodule TymeslotWeb.DashboardLive do
       integration_status={@component_props[:integration_status]}
       client_ip={@component_props[:client_ip]}
       user_agent={@component_props[:user_agent]}
-      parent_uploads={
-        if @live_action == :theme && Map.has_key?(assigns, :uploads),
-          do: @uploads,
-          else: nil
-      }
     />
     """
   end
@@ -572,84 +498,4 @@ defmodule TymeslotWeb.DashboardLive do
       }
     end
   end
-
-  defp maybe_configure_uploads(socket, :settings) do
-    # No uploads needed here anymore, they are handled in ProfileSettingsComponent
-    socket
-  end
-
-  defp maybe_configure_uploads(socket, :theme) do
-    # Configure uploads for theme customization page
-    if socket.assigns[:uploads] && socket.assigns.uploads[:background_image] do
-      # Upload already configured, don't reconfigure
-      socket
-    else
-      img_exts = UploadConstraints.allowed_extensions(:image)
-      vid_exts = UploadConstraints.allowed_extensions(:video)
-
-      socket
-      |> allow_upload(:background_image,
-        accept: img_exts,
-        max_entries: 1,
-        max_file_size: UploadConstraints.max_file_size(:image),
-        auto_upload: true,
-        progress: &handle_theme_image_progress/3
-      )
-      |> allow_upload(:background_video,
-        accept: vid_exts,
-        max_entries: 1,
-        max_file_size: UploadConstraints.max_file_size(:video),
-        auto_upload: true,
-        progress: &handle_theme_video_progress/3
-      )
-    end
-  end
-
-  defp maybe_configure_uploads(socket, _action) do
-    # No uploads needed for other pages
-    socket
-  end
-
-  defp handle_theme_image_progress(_config, entry, socket) do
-    if entry.done? do
-      send(self(), {:consume_background_image_upload, socket.assigns.profile})
-    end
-
-    {:noreply, socket}
-  end
-
-  defp handle_theme_video_progress(_config, entry, socket) do
-    if entry.done? do
-      send(self(), {:consume_background_video_upload, socket.assigns.profile})
-    end
-
-    {:noreply, socket}
-  end
-
-  defp maybe_handle_theme_upload(socket, _type) when socket.assigns.live_action != :theme,
-    do: socket
-
-  defp maybe_handle_theme_upload(socket, type) do
-    user_id = socket.assigns.current_user.id
-
-    case RateLimiter.check_rate_limit("theme_upload:#{user_id}", 5, 600_000) do
-      :ok ->
-        send(self(), build_theme_upload_message(type, socket.assigns.profile))
-        socket
-
-      {:error, :rate_limited} ->
-        send(
-          self(),
-          {:flash, {:error, "Too many upload attempts. Please wait a few minutes and try again."}}
-        )
-
-        socket
-    end
-  end
-
-  defp build_theme_upload_message(:image, profile),
-    do: {:consume_background_image_upload, profile}
-
-  defp build_theme_upload_message(:video, profile),
-    do: {:consume_background_video_upload, profile}
 end

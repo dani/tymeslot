@@ -9,6 +9,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.OverviewComponent do
   alias Tymeslot.Demo
   alias Tymeslot.MeetingTypes
   alias Tymeslot.Profiles
+  alias TymeslotWeb.Themes.Shared.LocalizationHelpers
   import TymeslotWeb.Components.CoreComponents
   import TymeslotWeb.Components.MeetingComponents
 
@@ -93,6 +94,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.OverviewComponent do
                             <.duration_card
                               duration={slug}
                               title={meeting_type.name}
+                              badge={LocalizationHelpers.format_duration(meeting_type.duration_minutes)}
                               description={meeting_type.description}
                               icon={meeting_type.icon || "hero-clock"}
                               selected={assigns[:selected_duration] == slug}
@@ -104,6 +106,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.OverviewComponent do
                           <.duration_card
                             duration="15-minutes"
                             title="15 Minutes"
+                            badge={LocalizationHelpers.format_duration(15)}
                             description="Quick chat or brief consultation"
                             icon="hero-bolt"
                             selected={assigns[:selected_duration] == "15-minutes"}
@@ -113,6 +116,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.OverviewComponent do
                           <.duration_card
                             duration="30-minutes"
                             title="30 Minutes"
+                            badge={LocalizationHelpers.format_duration(30)}
                             description="In-depth discussion or detailed review"
                             icon="hero-rocket-launch"
                             selected={assigns[:selected_duration] == "30-minutes"}

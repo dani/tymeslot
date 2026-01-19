@@ -31,7 +31,7 @@ defmodule TymeslotWeb.Dashboard.Notifications.Modals do
         <%= if @mode == :create, do: "Create Webhook", else: "Edit Webhook" %>
       </:header>
 
-      <form phx-submit={@on_submit} phx-target={@myself}>
+      <form id="webhook-form-modal-form" phx-submit={@on_submit} phx-target={@myself}>
         <!-- Name Field -->
         <div class="space-y-2">
           <label class="block text-token-sm font-black text-tymeslot-900">Webhook Name *</label>

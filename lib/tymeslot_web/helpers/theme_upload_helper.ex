@@ -100,8 +100,7 @@ defmodule TymeslotWeb.Helpers.ThemeUploadHelper do
 
   @spec get_theme_id(Phoenix.LiveView.Socket.t()) :: String.t()
   defp get_theme_id(socket) do
-    socket.assigns[:current_customization_theme_id] ||
-      (socket.assigns[:component_props] && socket.assigns[:component_props][:theme_id]) ||
-      "1"
+    # Check for theme_id in child customization component or customization_theme_id in parent settings component
+    socket.assigns[:theme_id] || socket.assigns[:customization_theme_id] || "1"
   end
 end

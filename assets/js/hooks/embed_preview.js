@@ -13,7 +13,7 @@ export const EmbedPreview = {
       
       const script = document.createElement('script');
       script.id = 'tymeslot-embed-script';
-      script.src = `${embedScriptUrl}?v=${Date.now()}`;
+      script.src = embedScriptUrl;
       script.async = true;
       document.head.appendChild(script);
     }

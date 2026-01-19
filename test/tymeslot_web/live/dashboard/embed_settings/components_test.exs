@@ -1,0 +1,91 @@
+defmodule TymeslotWeb.Live.Dashboard.EmbedSettings.ComponentsTest do
+  use TymeslotWeb.ConnCase, async: true
+  import Phoenix.LiveViewTest
+  alias TymeslotWeb.Live.Dashboard.EmbedSettings.OptionsGrid
+  alias TymeslotWeb.Live.Dashboard.EmbedSettings.SecuritySection
+  alias TymeslotWeb.Live.Dashboard.EmbedSettings.LivePreview
+
+  describe "OptionsGrid component" do
+    test "renders all options" do
+      assigns = %{
+        selected_embed_type: "inline",
+        username: "testuser",
+        base_url: "https://tymeslot.com",
+        booking_url: "https://tymeslot.com/testuser",
+        myself: "myself"
+      }
+
+      html = render_component(&OptionsGrid.render/1, assigns)
+      assert html =~ "Inline Embed"
+      assert html =~ "Popup Modal"
+      assert html =~ "Direct Link"
+      assert html =~ "Floating Button"
+      assert html =~ "Recommended"
+    end
+  end
+
+  describe "SecuritySection component" do
+    test "renders when hidden" do
+      assigns = %{
+        show_security_section: false,
+        allowed_domains_str: "",
+        myself: "myself"
+      }
+
+      html = render_component(&SecuritySection.render/1, assigns)
+      assert html =~ "Security & Domain Control"
+      assert html =~ "Configure"
+      refute html =~ "Allowed Domains (Optional)"
+    end
+
+    test "renders when shown" do
+      assigns = %{
+        show_security_section: true,
+        allowed_domains_str: "example.com",
+        myself: "myself"
+      }
+
+      html = render_component(&SecuritySection.render/1, assigns)
+      assert html =~ "Hide"
+      assert html =~ "Allowed Domains (Optional)"
+      assert html =~ "example.com"
+      assert html =~ "Restricted"
+    end
+  end
+
+  describe "LivePreview component" do
+    test "renders readiness warning when not ready" do
+      assigns = %{
+        show_preview: true,
+        selected_embed_type: "inline",
+        username: "testuser",
+        base_url: "https://tymeslot.com",
+        embed_script_url: "/embed.js",
+        is_ready: false,
+        error_reason: :no_calendar,
+        myself: "myself"
+      }
+
+      html = render_component(&LivePreview.render/1, assigns)
+      assert html =~ "Link Deactivated"
+      assert html =~ "The organizer hasn’t connected a calendar yet."
+    end
+
+    test "renders preview container" do
+      assigns = %{
+        show_preview: true,
+        selected_embed_type: "inline",
+        username: "testuser",
+        base_url: "https://tymeslot.com",
+        embed_script_url: "/embed.js",
+        is_ready: true,
+        error_reason: nil,
+        myself: "myself"
+      }
+
+      html = render_component(&LivePreview.render/1, assigns)
+      assert html =~ "id=\"live-preview-container\""
+      assert html =~ "data-username=\"testuser\""
+    end
+  end
+end

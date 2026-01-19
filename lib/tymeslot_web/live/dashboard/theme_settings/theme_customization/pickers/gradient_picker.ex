@@ -1,4 +1,4 @@
-defmodule TymeslotWeb.Dashboard.ThemeCustomization.Pickers.GradientPicker do
+defmodule TymeslotWeb.Dashboard.ThemeSettings.ThemeCustomization.Pickers.GradientPicker do
   @moduledoc """
   Function component for selecting gradient backgrounds in theme customization.
   """

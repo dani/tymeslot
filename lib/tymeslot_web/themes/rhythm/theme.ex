@@ -46,8 +46,8 @@ defmodule TymeslotWeb.Themes.Rhythm.Theme do
   def theme_config do
     %{
       name: "Rhythm",
-      description: "Video background with 4-slide flow",
-      preview_image: "/images/themes/rhythm-preview.png",
+      description: "Modern sliding design with video background and a 4-slide booking flow.",
+      preview_image: "/images/ui/theme-previews/rhythm-theme-preview.webp",
       flow_steps: 4,
       design_system: :video_background,
       supports_duration_selection: true,

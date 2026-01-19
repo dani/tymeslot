@@ -1,0 +1,168 @@
+defmodule TymeslotWeb.Dashboard.BookingsManagementTest do
+  use TymeslotWeb.LiveCase, async: true
+
+  import Tymeslot.Factory
+  import Tymeslot.AuthTestHelpers
+  import Mox
+
+  alias Tymeslot.Repo
+  alias Tymeslot.DatabaseSchemas.MeetingSchema
+
+  setup :verify_on_exit!
+
+  setup %{conn: conn} do
+    user = insert(:user, onboarding_completed_at: DateTime.utc_now())
+    profile = insert(:profile, user: user)
+    
+    # Stub email notifications for meeting actions
+    stub(Tymeslot.EmailServiceMock, :send_cancellation_emails, fn _ -> {{:ok, nil}, {:ok, nil}} end)
+    stub(Tymeslot.EmailServiceMock, :send_reschedule_request, fn _ -> {:ok, nil} end)
+
+    conn = conn |> Plug.Test.init_test_session(%{}) |> fetch_session()
+    conn = log_in_user(conn, user)
+    {:ok, conn: conn, user: user, profile: profile}
+  end
+
+  describe "Meetings list" do
+    test "renders empty state when no meetings exist", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/dashboard/meetings")
+      assert render(view) =~ "No upcoming meetings"
+      assert render(view) =~ "Your upcoming appointments will appear here automatically"
+    end
+
+    test "renders upcoming meetings", %{conn: conn, user: user} do
+      _meeting = insert(:meeting, organizer_email: user.email, attendee_name: "John Doe")
+      {:ok, view, _html} = live(conn, ~p"/dashboard/meetings")
+
+      assert render(view) =~ "John Doe"
+      assert render(view) =~ "Scheduled"
+    end
+
+    test "renders in-progress meetings with join button", %{conn: conn, user: user} do
+      # Meeting started 5 minutes ago, ends in 25 minutes
+      _meeting = insert(:meeting,
+        organizer_email: user.email,
+        attendee_name: "Active Meeting",
+        meeting_url: "https://tymeslot.com/join/active",
+        start_time: DateTime.add(DateTime.utc_now(), -5, :minute),
+        end_time: DateTime.add(DateTime.utc_now(), 25, :minute)
+      )
+
+      {:ok, view, _html} = live(conn, ~p"/dashboard/meetings")
+
+      assert render(view) =~ "Active Meeting"
+      assert render(view) =~ "Join Meeting"
+      assert render(view) =~ "https://tymeslot.com/join/active"
+    end
+
+    test "filters meetings by status", %{conn: conn, user: user} do
+      insert(:meeting, organizer_email: user.email, attendee_name: "Upcoming Meeting")
+      insert(:meeting, organizer_email: user.email, attendee_name: "Cancelled Meeting", status: "cancelled")
+      insert(:meeting, organizer_email: user.email, attendee_name: "Past Meeting",
+        start_time: DateTime.add(DateTime.utc_now(), -1, :day),
+        end_time: DateTime.add(DateTime.utc_now(), -23, :hour))
+
+      {:ok, view, _html} = live(conn, ~p"/dashboard/meetings")
+
+      # Default is upcoming
+      assert render(view) =~ "Upcoming Meeting"
+      refute render(view) =~ "Cancelled Meeting"
+      refute render(view) =~ "Past Meeting"
+
+      # Switch to past
+      view |> element("button", "Past") |> render_click()
+      assert render(view) =~ "Past Meeting"
+      refute render(view) =~ "Upcoming Meeting"
+
+      # Switch to cancelled
+      view |> element("button", "Cancelled") |> render_click()
+      assert render(view) =~ "Cancelled Meeting"
+      refute render(view) =~ "Upcoming Meeting"
+    end
+  end
+
+  describe "Meeting actions" do
+    test "cancels a meeting", %{conn: conn, user: user} do
+      meeting = insert(:meeting, organizer_email: user.email, attendee_name: "To Cancel")
+      {:ok, view, _html} = live(conn, ~p"/dashboard/meetings")
+
+      assert render(view) =~ "To Cancel"
+
+      # Open cancel modal
+      view |> element("#cancel-meeting-#{meeting.id}") |> render_click()
+      assert render(view) =~ "Are you sure you want to cancel"
+
+      # Confirm cancellation
+      view |> element("button", "Cancel Meeting") |> render_click()
+
+      assert render(view) =~ "Meeting cancelled successfully"
+      assert render(view) =~ "No upcoming meetings"
+
+      updated_meeting = Repo.get(MeetingSchema, meeting.id)
+      assert updated_meeting.status == "cancelled"
+    end
+
+    test "sends reschedule request", %{conn: conn, user: user} do
+      meeting = insert(:meeting, organizer_email: user.email, attendee_name: "To Reschedule")
+      {:ok, view, _html} = live(conn, ~p"/dashboard/meetings")
+
+      assert render(view) =~ "To Reschedule"
+
+      # Open reschedule modal
+      view |> element("button", "Reschedule") |> render_click()
+      assert render(view) =~ "Send a reschedule request"
+
+      # Confirm reschedule request
+      view |> element("button", "Send Request") |> render_click()
+
+      assert render(view) =~ "Reschedule request sent to To Reschedule"
+
+      updated_meeting = Repo.get(MeetingSchema, meeting.id)
+      assert updated_meeting.status == "reschedule_requested"
+    end
+
+    test "allows cancelling a meeting with reschedule_requested status", %{conn: conn, user: user} do
+      meeting = insert(:meeting,
+        organizer_email: user.email,
+        attendee_name: "Reschedule Then Cancel",
+        status: "reschedule_requested"
+      )
+      {:ok, view, _html} = live(conn, ~p"/dashboard/meetings")
+
+      assert render(view) =~ "Reschedule Then Cancel"
+      assert render(view) =~ "Reschedule Requested"
+
+      # Should see and be able to click Cancel
+      view |> element("#cancel-meeting-#{meeting.id}") |> render_click()
+      assert render(view) =~ "Are you sure you want to cancel"
+
+      view |> element("button", "Cancel Meeting") |> render_click()
+
+      assert render(view) =~ "Meeting cancelled successfully"
+      updated_meeting = Repo.get(MeetingSchema, meeting.id)
+      assert updated_meeting.status == "cancelled"
+    end
+  end
+
+  describe "Pagination" do
+    test "loads more meetings", %{conn: conn, user: user} do
+      # Insert 25 meetings (per_page is 20)
+      for i <- 1..25 do
+        insert(:meeting, organizer_email: user.email, attendee_name: "Meeting #{i}",
+          start_time: DateTime.add(DateTime.utc_now(), i, :hour))
+      end
+
+      {:ok, view, _html} = live(conn, ~p"/dashboard/meetings")
+
+      # Should see "Load more meetings" button
+      assert has_element?(view, "button", "Load more meetings")
+
+      # Click load more
+      view |> element("button", "Load more meetings") |> render_click()
+
+      # Should see more meetings (last one should be there now)
+      assert render(view) =~ "Meeting 25"
+      refute has_element?(view, "button", "Load more meetings")
+    end
+  end
+end

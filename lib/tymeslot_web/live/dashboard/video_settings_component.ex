@@ -15,7 +15,6 @@ defmodule TymeslotWeb.Dashboard.VideoSettingsComponent do
   alias TymeslotWeb.Components.Icons.ProviderIcon
   alias TymeslotWeb.Components.UI.StatusSwitch
   alias TymeslotWeb.Helpers.IntegrationProviders
-  alias TymeslotWeb.Live.Dashboard.Shared.DashboardHelpers
   require Logger
 
   @impl true

@@ -4,7 +4,6 @@ defmodule TymeslotWeb.Dashboard.ProfileSettings.AvatarUploadComponent do
   alias Tymeslot.Profiles
   alias Tymeslot.Utils.ChangesetUtils
   alias TymeslotWeb.Components.CoreComponents
-  alias TymeslotWeb.Live.Dashboard.Shared.DashboardHelpers
 
   @impl true
   def update(assigns, socket) do

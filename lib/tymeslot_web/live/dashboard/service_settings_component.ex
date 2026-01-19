@@ -315,7 +315,7 @@ defmodule TymeslotWeb.Dashboard.ServiceSettingsComponent do
               parent_myself={@myself}
             />
           </div>
-          
+
     <!-- Scheduling Settings -->
           <div class="animate-in fade-in duration-700">
             <.live_component
@@ -327,7 +327,7 @@ defmodule TymeslotWeb.Dashboard.ServiceSettingsComponent do
             />
           </div>
         </div>
-        
+
     <!-- Delete Meeting Type Modal -->
         <DeleteMeetingTypeModal.delete_meeting_type_modal
           show={@show_delete_meeting_type_modal}
@@ -335,12 +335,10 @@ defmodule TymeslotWeb.Dashboard.ServiceSettingsComponent do
           myself={@myself}
         />
       <% end %>
-      
+
     <!-- Add spacing after content to prevent flush bottom -->
       <div class="pb-8"></div>
     </div>
     """
   end
-
-  # Meeting type form moved to TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm
 end

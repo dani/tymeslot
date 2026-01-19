@@ -7,15 +7,14 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
 
   require Logger
 
-  alias Ecto.Changeset
   alias Phoenix.LiveView.JS
   alias Tymeslot.Security.WebhookInputProcessor
   alias Tymeslot.Webhooks
   alias Tymeslot.Webhooks.Security, as: WebhookSecurity
   alias TymeslotWeb.Components.Icons.IconComponents
   alias TymeslotWeb.Dashboard.Notifications.Components
+  alias TymeslotWeb.Dashboard.Notifications.Helpers, as: NotificationHelpers
   alias TymeslotWeb.Dashboard.Notifications.Modals
-  alias TymeslotWeb.Live.Dashboard.Shared.DashboardHelpers
 
   @impl true
   @spec mount(Phoenix.LiveView.Socket.t()) :: {:ok, Phoenix.LiveView.Socket.t()}
@@ -86,51 +85,30 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
   end
 
   def handle_event("validate_field", %{"field" => field, "value" => value}, socket) do
-    form_values = Map.put(socket.assigns.form_values, field, value)
-    socket = assign(socket, :form_values, form_values)
+    metadata = NotificationHelpers.get_security_metadata(socket)
 
-    metadata = get_security_metadata(socket)
+    updated_errors =
+      NotificationHelpers.validate_field(
+        socket.assigns.form_values,
+        socket.assigns.form_errors,
+        field,
+        value,
+        metadata
+      )
 
-    case WebhookInputProcessor.validate_webhook_form(form_values, metadata: metadata) do
-      {:ok, _sanitized} ->
-        {:noreply, assign(socket, :form_errors, %{})}
-
-      {:error, errors} ->
-        field_atom = String.to_existing_atom(field)
-        field_error = Map.get(errors, field_atom)
-        current_errors = socket.assigns.form_errors
-
-        updated_errors =
-          if field_error do
-            Map.put(current_errors, field_atom, field_error)
-          else
-            Map.delete(current_errors, field_atom)
-          end
-
-        {:noreply, assign(socket, :form_errors, updated_errors)}
-    end
-  rescue
-    ArgumentError ->
-      {:noreply, socket}
+    {:noreply,
+     socket
+     |> assign(:form_values, Map.put(socket.assigns.form_values, field, value))
+     |> assign(:form_errors, updated_errors)}
   end
 
   def handle_event("toggle_event", %{"event" => event}, socket) do
-    current_events = Map.get(socket.assigns.form_values, "events", [])
-
-    new_events =
-      if event in current_events do
-        List.delete(current_events, event)
-      else
-        [event | current_events]
-      end
-
-    form_values = Map.put(socket.assigns.form_values, "events", new_events)
-
+    form_values = NotificationHelpers.toggle_event(socket.assigns.form_values, event)
     {:noreply, assign(socket, :form_values, form_values)}
   end
 
   def handle_event("create_webhook", %{"webhook" => params}, socket) do
-    metadata = get_security_metadata(socket)
+    metadata = NotificationHelpers.get_security_metadata(socket)
 
     case WebhookInputProcessor.validate_webhook_form(params, metadata: metadata) do
       {:ok, sanitized} ->
@@ -138,7 +116,7 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
 
         case Webhooks.create_webhook(user_id, sanitized) do
           {:ok, _webhook} ->
-            send(self(), {:flash, {:info, "Webhook created successfully"}})
+            Flash.info("Webhook created successfully")
 
             {:noreply,
              socket
@@ -148,8 +126,8 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
              |> load_webhooks()}
 
           {:error, changeset} ->
-            errors = extract_changeset_errors(changeset)
-            send(self(), {:flash, {:error, "Failed to create webhook"}})
+            errors = NotificationHelpers.format_changeset_errors(changeset)
+            Flash.error("Failed to create webhook")
             {:noreply, assign(socket, :form_errors, errors)}
         end
 
@@ -160,7 +138,7 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
 
   def handle_event("show_edit_modal", %{"id" => id}, socket) do
     user_id = socket.assigns.current_user.id
-    webhook_id = parse_id(id)
+    webhook_id = NotificationHelpers.parse_id(id)
 
     case Webhooks.get_webhook(webhook_id, user_id) do
       {:ok, webhook} ->
@@ -177,7 +155,7 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
          })}
 
       {:error, _} ->
-        send(self(), {:flash, {:error, "Webhook not found"}})
+        Flash.error("Webhook not found")
         {:noreply, socket}
     end
   end
@@ -197,13 +175,13 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
         {:noreply, socket}
 
       webhook ->
-        metadata = get_security_metadata(socket)
+        metadata = NotificationHelpers.get_security_metadata(socket)
 
         case WebhookInputProcessor.validate_webhook_form(params, metadata: metadata) do
           {:ok, sanitized} ->
             case Webhooks.update_webhook(webhook, sanitized) do
               {:ok, _webhook} ->
-                send(self(), {:flash, {:info, "Webhook updated successfully"}})
+                Flash.info("Webhook updated successfully")
 
                 {:noreply,
                  socket
@@ -214,8 +192,8 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
                  |> load_webhooks()}
 
               {:error, changeset} ->
-                errors = extract_changeset_errors(changeset)
-                send(self(), {:flash, {:error, "Failed to update webhook"}})
+                errors = NotificationHelpers.format_changeset_errors(changeset)
+                Flash.error("Failed to update webhook")
                 {:noreply, assign(socket, :form_errors, errors)}
             end
 
@@ -229,7 +207,7 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
     {:noreply,
      socket
      |> ModalHook.show_modal(:delete)
-     |> assign(:webhook_to_delete, parse_id(id))}
+     |> assign(:webhook_to_delete, NotificationHelpers.parse_id(id))}
   end
 
   def handle_event("hide_delete_modal", _params, socket) do
@@ -251,7 +229,7 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
           {:ok, webhook} ->
             case Webhooks.delete_webhook(webhook) do
               {:ok, _} ->
-                send(self(), {:flash, {:info, "Webhook deleted successfully"}})
+                Flash.info("Webhook deleted successfully")
 
                 {:noreply,
                  socket
@@ -260,12 +238,12 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
                  |> load_webhooks()}
 
               {:error, _} ->
-                send(self(), {:flash, {:error, "Failed to delete webhook"}})
+                Flash.error("Failed to delete webhook")
                 {:noreply, socket}
             end
 
           {:error, _} ->
-            send(self(), {:flash, {:error, "Webhook not found"}})
+            Flash.error("Webhook not found")
             {:noreply, socket}
         end
     end
@@ -273,29 +251,29 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
 
   def handle_event("toggle_webhook", %{"id" => id}, socket) do
     user_id = socket.assigns.current_user.id
-    webhook_id = parse_id(id)
+    webhook_id = NotificationHelpers.parse_id(id)
 
     case Webhooks.get_webhook(webhook_id, user_id) do
       {:ok, webhook} ->
         case Webhooks.toggle_webhook(webhook) do
           {:ok, _} ->
-            send(self(), {:flash, {:info, "Webhook status updated"}})
+            Flash.info("Webhook status updated")
             {:noreply, load_webhooks(socket)}
 
           {:error, _} ->
-            send(self(), {:flash, {:error, "Failed to update webhook status"}})
+            Flash.error("Failed to update webhook status")
             {:noreply, socket}
         end
 
       {:error, _} ->
-        send(self(), {:flash, {:error, "Webhook not found"}})
+        Flash.error("Webhook not found")
         {:noreply, socket}
     end
   end
 
   def handle_event("test_connection", %{"id" => id}, socket) do
     user_id = socket.assigns.current_user.id
-    webhook_id = parse_id(id)
+    webhook_id = NotificationHelpers.parse_id(id)
 
     socket = assign(socket, :testing_connection, webhook_id)
 
@@ -303,22 +281,22 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
       {:ok, webhook} ->
         case Webhooks.test_webhook_connection(webhook.url, webhook.secret) do
           :ok ->
-            send(self(), {:flash, {:info, "Webhook test successful! Check your endpoint."}})
+            Flash.info("Webhook test successful! Check your endpoint.")
             {:noreply, assign(socket, :testing_connection, nil)}
 
           {:error, reason} ->
-            send(self(), {:flash, {:error, "Test failed: #{reason}"}})
+            Flash.error("Test failed: #{reason}")
             {:noreply, assign(socket, :testing_connection, nil)}
         end
 
       {:error, _} ->
-        send(self(), {:flash, {:error, "Webhook not found"}})
+        Flash.error("Webhook not found")
         {:noreply, assign(socket, :testing_connection, nil)}
     end
   end
 
   def handle_event("show_deliveries", %{"id" => id}, socket) do
-    webhook_id = parse_id(id)
+    webhook_id = NotificationHelpers.parse_id(id)
     user_id = socket.assigns.current_user.id
 
     case Webhooks.get_webhook(webhook_id, user_id) do
@@ -334,7 +312,7 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
          |> assign(:delivery_stats, stats)}
 
       {:error, _} ->
-        send(self(), {:flash, {:error, "Webhook not found"}})
+        Flash.error("Webhook not found")
         {:noreply, socket}
     end
   end
@@ -471,24 +449,9 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
 
   # Private functions
 
-  defp parse_id(id) when is_integer(id), do: id
-  defp parse_id(id) when is_binary(id), do: String.to_integer(id)
-
   defp load_webhooks(socket) do
     user_id = socket.assigns.current_user.id
     webhooks = Webhooks.list_webhooks(user_id)
     assign(socket, :webhooks, webhooks)
-  end
-
-  defp get_security_metadata(socket) do
-    DashboardHelpers.get_security_metadata(socket)
-  end
-
-  defp extract_changeset_errors(changeset) do
-    Changeset.traverse_errors(changeset, fn {msg, opts} ->
-      Enum.reduce(opts, msg, fn {key, value}, acc ->
-        String.replace(acc, "%{#{key}}", to_string(value))
-      end)
-    end)
   end
 end

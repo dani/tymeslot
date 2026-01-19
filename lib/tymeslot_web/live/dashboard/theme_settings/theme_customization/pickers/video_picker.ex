@@ -1,49 +1,72 @@
-defmodule TymeslotWeb.Dashboard.ThemeCustomization.Pickers.ImagePicker do
+defmodule TymeslotWeb.Dashboard.ThemeSettings.ThemeCustomization.Pickers.VideoPicker do
   @moduledoc """
-  Function component for selecting or uploading image backgrounds in theme customization.
+  Function component for selecting or uploading video backgrounds in theme customization.
   """
   use TymeslotWeb, :html
 
   @doc """
-  Renders the image picker.
-  Expects assigns: customization, presets, parent_uploads, myself
+  Renders the video picker.
+  Expects assigns: customization, presets, uploads, myself
   """
-  @spec image_picker(map()) :: Phoenix.LiveView.Rendered.t()
-  def image_picker(assigns) do
+  @spec video_picker(map()) :: Phoenix.LiveView.Rendered.t()
+  def video_picker(assigns) do
     ~H"""
     <div class="space-y-10">
       <div>
         <p class="text-token-sm font-black text-tymeslot-400 uppercase tracking-widest mb-6">Choose from our collection</p>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          <%= for {image_id, image} <- @presets.images do %>
+          <%= for {video_id, video} <- @presets.videos do %>
             <button
               type="button"
               class={[
-                "group/image relative flex flex-col rounded-token-2xl overflow-hidden border-4 transition-all duration-500",
-                if(@customization.background_value == image_id,
+                "group/video relative flex flex-col rounded-token-2xl overflow-hidden border-4 transition-all duration-500",
+                if(@customization.background_value == video_id,
                   do: "border-turquoise-400 shadow-2xl shadow-turquoise-500/20 scale-[1.02]",
                   else: "border-white hover:border-turquoise-200 hover:shadow-xl hover:shadow-tymeslot-200/50"
                 )
               ]}
               phx-click="theme:select_background"
-              phx-value-type="image"
-              phx-value-id={image_id}
+              phx-value-type="video"
+              phx-value-id={video_id}
               phx-target={@myself}
             >
-              <div class="aspect-video relative overflow-hidden">
+              <div
+                class="aspect-video bg-tymeslot-900 relative overflow-hidden video-hover-container"
+                onmouseenter="this.querySelector('.video-preview').currentTime=0; this.querySelector('.video-preview').play().catch(()=>{});"
+                onmouseleave="this.querySelector('.video-preview').pause();"
+              >
                 <img
-                  src={"/images/ui/backgrounds/#{image.file}"}
-                  alt={image.name}
-                  class="w-full h-full object-cover transition-transform duration-700 group-hover/image:scale-110"
-                  onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                  src={"/videos/thumbnails/#{video.thumbnail}"}
+                  alt={video.name}
+                  class="video-thumbnail w-full h-full object-cover absolute inset-0 z-10 transition-transform duration-700 group-hover/video:scale-110"
+                  onerror="this.style.display='none'; this.parentElement.querySelector('.fallback-thumbnail').style.display='flex';"
                 />
-                <div class="absolute inset-0 bg-gradient-to-br from-tymeslot-100 to-tymeslot-200 items-center justify-center hidden">
-                  <svg class="w-12 h-12 text-tymeslot-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                <video
+                  src={"/videos/backgrounds/#{video.file}"}
+                  class="video-preview w-full h-full object-cover absolute inset-0 opacity-0"
+                  muted
+                  loop
+                  playsinline
+                  preload="metadata"
+                >
+                </video>
+                <div class="fallback-thumbnail absolute inset-0 bg-gradient-to-br from-tymeslot-800 to-tymeslot-900 items-center justify-center hidden z-10">
+                  <svg class="w-12 h-12 text-tymeslot-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <%= if @customization.background_value == image_id do %>
-                  <div class="absolute top-3 right-3 w-8 h-8 bg-turquoise-500 text-white rounded-full flex items-center justify-center shadow-lg animate-in zoom-in z-10">
+                <div class="absolute inset-0 bg-black/0 group-hover/video:bg-black/20 transition-all duration-300 flex items-center justify-center z-20 pointer-events-none">
+                  <div class="opacity-0 group-hover/video:opacity-100 scale-150 group-hover/video:scale-100 transition-all duration-500">
+                    <div class="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-2xl">
+                      <svg class="w-6 h-6 text-white fill-current" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+                <%= if @customization.background_value == video_id do %>
+                  <div class="absolute top-3 right-3 w-8 h-8 bg-turquoise-500 text-white rounded-full flex items-center justify-center shadow-lg animate-in zoom-in z-30">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
                     </svg>
@@ -52,13 +75,13 @@ defmodule TymeslotWeb.Dashboard.ThemeCustomization.Pickers.ImagePicker do
               </div>
               <div class={[
                 "p-5 text-left transition-colors",
-                if(@customization.background_value == image_id,
+                if(@customization.background_value == video_id,
                   do: "bg-turquoise-50",
                   else: "bg-white"
                 )
               ]}>
-                <p class="text-token-base font-black text-tymeslot-900 tracking-tight">{image.name}</p>
-                <p class="text-token-xs text-tymeslot-500 font-bold uppercase tracking-widest mt-1">{image.description}</p>
+                <p class="text-token-base font-black text-tymeslot-900 tracking-tight">{video.name}</p>
+                <p class="text-xs text-tymeslot-500 font-bold uppercase tracking-widest mt-1">{video.description}</p>
               </div>
             </button>
           <% end %>
@@ -76,32 +99,33 @@ defmodule TymeslotWeb.Dashboard.ThemeCustomization.Pickers.ImagePicker do
 
       <div class="bg-tymeslot-50 p-8 rounded-[2rem] border-2 border-tymeslot-100 border-dashed">
         <form
-          id="theme-background-image-form"
-          phx-submit="save_background_image"
-          phx-change="validate_image"
+          id="theme-background-video-form"
+          phx-submit="save_background_video"
+          phx-change="validate_video"
+          phx-target={@myself}
           data-auto-upload="true"
           class="flex flex-col items-center gap-6"
         >
           <div class="w-full max-w-md">
-            <%= if @parent_uploads && @parent_uploads[:background_image] do %>
+            <%= if @uploads && @uploads[:background_video] do %>
               <div class="relative group/upload">
                 <.live_file_input
-                  upload={@parent_uploads.background_image}
+                  upload={@uploads.background_video}
                   class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
                 />
                 <div class="btn-secondary w-full py-4 flex items-center justify-center gap-3">
                   <svg class="w-5 h-5 text-turquoise-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                   </svg>
-                  <span>Select Image</span>
+                  <span>Select Video</span>
                 </div>
               </div>
             <% else %>
               <div class="btn-secondary w-full opacity-50 cursor-not-allowed py-4">Upload not available</div>
             <% end %>
 
-            <%= if @parent_uploads && @parent_uploads[:background_image] do %>
-              <%= for err <- upload_errors(@parent_uploads.background_image) do %>
+            <%= if @uploads && @uploads[:background_video] do %>
+              <%= for err <- upload_errors(@uploads.background_video) do %>
                 <div class="mt-4 p-3 bg-red-50 border border-red-100 rounded-token-xl text-red-600 text-xs font-bold flex items-center gap-2 animate-in slide-in-from-top-1">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -110,13 +134,13 @@ defmodule TymeslotWeb.Dashboard.ThemeCustomization.Pickers.ImagePicker do
                 </div>
               <% end %>
 
-              <%= for entry <- @parent_uploads.background_image.entries do %>
+              <%= for entry <- @uploads.background_video.entries do %>
                 <div class="mt-6 p-4 bg-white rounded-token-2xl border-2 border-tymeslot-100 shadow-sm animate-in zoom-in">
                   <div class="flex items-center justify-between mb-2">
-                    <span class="text-tymeslot-700 font-black text-token-xs uppercase tracking-wider truncate mr-4">
+                    <span class="text-tymeslot-700 font-black text-xs uppercase tracking-wider truncate mr-4">
                       {entry.client_name}
                     </span>
-                    <span class="text-turquoise-600 font-black text-token-xs">{entry.progress}%</span>
+                    <span class="text-turquoise-600 font-black text-xs">{entry.progress}%</span>
                   </div>
                   <div class="bg-tymeslot-100 rounded-full h-2 overflow-hidden shadow-inner">
                     <div
@@ -125,7 +149,7 @@ defmodule TymeslotWeb.Dashboard.ThemeCustomization.Pickers.ImagePicker do
                     ></div>
                   </div>
 
-                  <%= for err <- upload_errors(@parent_uploads.background_image, entry) do %>
+                  <%= for err <- upload_errors(@uploads.background_video, entry) do %>
                     <div class="mt-2 p-3 bg-red-50 border border-red-100 rounded-token-xl text-red-600 text-xs font-bold flex items-center gap-2 animate-in slide-in-from-top-1">
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -136,21 +160,21 @@ defmodule TymeslotWeb.Dashboard.ThemeCustomization.Pickers.ImagePicker do
                 </div>
               <% end %>
             <% end %>
-            <button type="submit" id="theme-image-submit-btn" class="hidden">
-              Upload Image
+            <button type="submit" id="theme-video-submit-btn" class="hidden">
+              Upload Video
             </button>
           </div>
           
-          <p class="text-[10px] font-black text-tymeslot-400 uppercase tracking-[0.2em]">JPG, PNG or WebP. Max 5MB.</p>
+          <p class="text-[10px] font-black text-tymeslot-400 uppercase tracking-[0.2em]">MP4 or WebM. Max 20MB.</p>
         </form>
 
-        <%= if @customization.background_image_path && @customization.background_value == "custom" do %>
+        <%= if @customization.background_video_path && @customization.background_value == "custom" do %>
           <div class="mt-8 p-4 bg-amber-50 border border-amber-100 rounded-token-2xl flex items-center gap-3">
             <svg class="w-5 h-5 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
             </svg>
             <p class="text-token-sm font-bold text-amber-800">
-              You have a custom image. Selecting a preset will remove it.
+              You have a custom video. Selecting a preset will remove it.
             </p>
           </div>
         <% end %>

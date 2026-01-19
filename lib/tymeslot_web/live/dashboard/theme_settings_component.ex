@@ -9,7 +9,8 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsComponent do
   alias Tymeslot.Scheduling.LinkAccessPolicy
   alias Tymeslot.Security.ThemeInputProcessor
   alias Tymeslot.Themes.Theme
-  alias TymeslotWeb.Dashboard.ThemeCustomizationComponent
+  alias TymeslotWeb.Dashboard.ThemeSettings.ThemeCustomizationComponent
+  alias TymeslotWeb.Dashboard.ThemeSettings.ThemePreview
   alias TymeslotWeb.Live.Dashboard.Shared.DashboardHelpers
 
   @impl true
@@ -19,13 +20,15 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsComponent do
 
   @impl true
   def update(assigns, socket) do
-    {:ok,
-     socket
-     |> assign(assigns)
-     |> assign(:themes, Theme.theme_options())
-     |> assign_new(:show_customization, fn -> false end)
-     |> assign_new(:customization_theme_id, fn -> nil end)
-     |> assign_new(:customization_timestamp, fn -> nil end)}
+    socket =
+      socket
+      |> assign(assigns)
+      |> assign(:themes, Theme.theme_options())
+      |> assign_new(:show_customization, fn -> false end)
+      |> assign_new(:customization_theme_id, fn -> nil end)
+      |> assign_new(:customization_timestamp, fn -> nil end)
+
+    {:ok, socket}
   end
 
   @impl true
@@ -40,14 +43,10 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsComponent do
             profile={@profile}
             theme_id={@customization_theme_id}
             parent_component={@myself}
-            parent_uploads={@parent_uploads}
           />
         </div>
       <% else %>
-        <.section_header
-          icon={:paint_brush}
-          title="Choose Your Style"
-        />
+        <.section_header icon={:paint_brush} title="Choose Your Style" />
 
         <div class="-mt-8 mb-16 max-w-2xl">
           <p class="text-xl text-tymeslot-500 font-medium leading-relaxed animate-in fade-in slide-in-from-top-4 duration-700 delay-100">
@@ -62,8 +61,10 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsComponent do
                 class={[
                   "card-glass p-0 overflow-hidden cursor-pointer transition-all duration-500 border-2",
                   if(@profile.booking_theme == theme_id,
-                    do: "glass-gradient border-turquoise-400 shadow-2xl shadow-turquoise-500/20 ring-4 ring-turquoise-50",
-                    else: "border-tymeslot-50 hover:border-turquoise-200 hover:shadow-xl hover:shadow-tymeslot-200/50"
+                    do:
+                      "glass-gradient border-turquoise-400 shadow-2xl shadow-turquoise-500/20 ring-4 ring-turquoise-50",
+                    else:
+                      "border-tymeslot-50 hover:border-turquoise-200 hover:shadow-xl hover:shadow-tymeslot-200/50"
                   )
                 ]}
                 phx-click="select_theme"
@@ -71,16 +72,24 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsComponent do
                 phx-target={@myself}
               >
                 <div class="booking-flow-preview h-64 relative overflow-hidden">
-                  <.theme_preview theme_id={theme_id} />
-                  
-                  <div class="absolute inset-0 bg-gradient-to-t from-tymeslot-900/60 via-transparent to-transparent opacity-60 group-hover/theme:opacity-40 transition-opacity"></div>
-                  
+                  <ThemePreview.render theme_id={theme_id} />
+
+                  <div class="absolute inset-0 bg-gradient-to-t from-tymeslot-900/60 via-transparent to-transparent opacity-60 group-hover/theme:opacity-40 transition-opacity">
+                  </div>
+
                   <div class="absolute bottom-6 left-6 right-6 flex items-center justify-between">
-                    <h3 class="text-token-2xl font-black text-white tracking-tight drop-shadow-md">{theme_name}</h3>
+                    <h3 class="text-token-2xl font-black text-white tracking-tight drop-shadow-md">
+                      {theme_name}
+                    </h3>
                     <%= if @profile.booking_theme == theme_id do %>
                       <div class="flex items-center gap-2 bg-turquoise-500 text-white px-4 py-1.5 rounded-full text-token-xs font-black uppercase tracking-wider shadow-lg">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="3"
+                            d="M5 13l4 4L19 7"
+                          />
                         </svg>
                         Current Style
                       </div>
@@ -93,16 +102,23 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsComponent do
                   >
                     <div class="w-12 h-12 bg-white/20 rounded-token-2xl flex items-center justify-center mb-3">
                       <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2.5"
+                          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                        />
                       </svg>
                     </div>
-                    <span class="text-white font-black text-token-xs uppercase tracking-widest">Connect Calendar to Preview</span>
+                    <span class="text-white font-black text-token-xs uppercase tracking-widest">
+                      Connect Calendar to Preview
+                    </span>
                   </div>
                 </div>
 
                 <div class="p-8">
                   <p class="text-tymeslot-600 font-medium leading-relaxed line-clamp-2">
-                    {theme_description(theme_id)}
+                    {Theme.get_description(theme_id)}
                   </p>
                 </div>
               </div>
@@ -115,8 +131,18 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsComponent do
                     onclick={"window.open('#{LinkAccessPolicy.scheduling_path(@profile)}?theme=#{theme_id}', '_blank')"}
                   >
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2.5"
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2.5"
+                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                      />
                     </svg>
                     Live Preview
                   </button>
@@ -128,7 +154,12 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsComponent do
                     title="Connect Calendar to Preview"
                   >
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2.5"
+                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                      />
                     </svg>
                     Live Preview
                   </button>
@@ -141,7 +172,12 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsComponent do
                   phx-target={@myself}
                 >
                   <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2.5"
+                      d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
+                    />
                   </svg>
                   Customize Style
                 </button>
@@ -157,14 +193,18 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsComponent do
             </svg>
           </div>
           <div class="relative z-10">
-            <h4 class="text-token-2xl font-black text-tymeslot-900 tracking-tight mb-2">More Styles Coming Soon</h4>
+            <h4 class="text-token-2xl font-black text-tymeslot-900 tracking-tight mb-2">
+              More Styles Coming Soon
+            </h4>
             <p class="text-tymeslot-500 font-medium text-token-lg mb-6">
               Our design team is busy crafting new themes to help you express your unique professional style.
             </p>
             <div class="flex gap-2">
               <div class="w-2 h-2 bg-turquoise-400 rounded-full animate-bounce"></div>
-              <div class="w-2 h-2 bg-turquoise-400 rounded-full animate-bounce [animation-delay:0.2s]"></div>
-              <div class="w-2 h-2 bg-turquoise-400 rounded-full animate-bounce [animation-delay:0.4s]"></div>
+              <div class="w-2 h-2 bg-turquoise-400 rounded-full animate-bounce [animation-delay:0.2s]">
+              </div>
+              <div class="w-2 h-2 bg-turquoise-400 rounded-full animate-bounce [animation-delay:0.4s]">
+              </div>
             </div>
           </div>
         </div>
@@ -175,8 +215,6 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsComponent do
 
   @impl true
   def handle_event("show_customization", %{"theme" => theme_id}, socket) do
-    send(self(), {:theme_customization_opened, theme_id})
-
     {:noreply,
      socket
      |> assign(:show_customization, true)
@@ -185,8 +223,6 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsComponent do
   end
 
   def handle_event("close_customization", _params, socket) do
-    send(self(), :theme_customization_closed)
-
     {:noreply,
      socket
      |> assign(:show_customization, false)
@@ -215,103 +251,6 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsComponent do
       {:error, _validation_errors} ->
         {:noreply, put_flash(socket, :error, "Invalid theme selection")}
     end
-  end
-
-  defp theme_description("1") do
-    "Glass morphism design with elegant transparency effects and a 4-step booking flow."
-  end
-
-  defp theme_description("2") do
-    "Modern sliding design with video background and a 4-slide booking flow."
-  end
-
-  defp theme_description(_) do
-    "A beautiful theme for your booking page."
-  end
-
-  defp theme_preview(assigns) do
-    ~H"""
-    <%= case @theme_id do %>
-      <% "1" -> %>
-        <div class="w-full h-full bg-tymeslot-100 rounded-token-lg overflow-hidden">
-          <img
-            src="/images/ui/theme-previews/quill-theme-preview.webp"
-            alt="Quill Theme Preview - Glass morphism booking flow"
-            class="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'"
-          />
-          <!-- Fallback content when image fails to load -->
-          <div
-            class="w-full h-full bg-gradient-to-br from-purple-100 to-teal-100 flex items-center justify-center"
-            style="display: none;"
-          >
-            <div class="text-center p-4">
-              <div class="w-12 h-12 bg-teal-500 rounded-token-lg mx-auto mb-3 flex items-center justify-center">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                  />
-                </svg>
-              </div>
-              <p class="text-token-sm font-semibold text-tymeslot-700">Quill Theme</p>
-              <p class="text-token-xs text-tymeslot-600">Glass morphism flow</p>
-            </div>
-          </div>
-        </div>
-      <% "2" -> %>
-        <div class="w-full h-full bg-tymeslot-100 rounded-token-lg overflow-hidden">
-          <img
-            src="/images/ui/theme-previews/rhythm-theme-preview.webp"
-            alt="Rhythm Theme Preview - Video background sliding flow"
-            class="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'"
-          />
-          <!-- Fallback content when image fails to load -->
-          <div
-            class="w-full h-full bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center"
-            style="display: none;"
-          >
-            <div class="text-center p-4">
-              <div class="w-12 h-12 bg-purple-500 rounded-token-lg mx-auto mb-3 flex items-center justify-center">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M7 4v16l13-8L7 4z"
-                  />
-                </svg>
-              </div>
-              <p class="text-token-sm font-semibold text-tymeslot-700">Rhythm Theme</p>
-              <p class="text-token-xs text-tymeslot-600">Video sliding flow</p>
-            </div>
-          </div>
-        </div>
-      <% _ -> %>
-        <div class="w-full h-full bg-tymeslot-100 flex items-center justify-center rounded-token-lg">
-          <div class="text-center text-tymeslot-500">
-            <svg class="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="1"
-                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2 2v12a2 2 0 002 2z"
-              />
-            </svg>
-            <div class="text-token-sm">Theme Preview</div>
-          </div>
-        </div>
-    <% end %>
-    """
   end
 
   # Helper function to get security metadata

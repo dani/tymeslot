@@ -7,7 +7,7 @@ defmodule TymeslotWeb.Components.Dashboard.Meetings.CancelMeetingModal do
 
   alias Phoenix.LiveView.JS
   alias TymeslotWeb.Components.CoreComponents
-  alias TymeslotWeb.Live.Dashboard.Meetings.Helpers
+  alias TymeslotWeb.Components.Dashboard.Meetings.Helpers
 
   @doc """
   Renders a cancel meeting confirmation modal.

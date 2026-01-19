@@ -8,8 +8,8 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Helpers do
   alias Tymeslot.Profiles
   alias Tymeslot.Utils.ChangesetUtils
   alias Tymeslot.Utils.FormHelpers
-  alias TymeslotWeb.Live.Dashboard.Shared.DashboardHelpers
   alias TymeslotWeb.Live.Shared.Flash
+  alias TymeslotWeb.Live.Dashboard.Shared.DashboardHelpers
 
   @doc """
   Resets the form state to initial values.

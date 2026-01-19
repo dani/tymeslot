@@ -40,8 +40,17 @@ defmodule Tymeslot.DatabaseQueries.MeetingQueries do
   defp with_status(query, status), do: from(m in query, where: m.status == ^status)
 
   @doc false
-  # Private helper: filter upcoming meetings strictly after the provided timestamp.
-  defp upcoming(query, now), do: from(m in query, where: m.start_time > ^now)
+  defp without_status(query, nil), do: query
+  defp without_status(query, ""), do: query
+
+  defp without_status(query, status) when is_list(status),
+    do: from(m in query, where: m.status not in ^status)
+
+  defp without_status(query, status), do: from(m in query, where: m.status != ^status)
+
+  @doc false
+  # Private helper: filter upcoming meetings (not yet ended).
+  defp upcoming(query, now), do: from(m in query, where: m.end_time > ^now)
 
   @doc false
   # Private helper: filter past meetings strictly before the provided timestamp.
@@ -678,8 +687,11 @@ defmodule Tymeslot.DatabaseQueries.MeetingQueries do
   def list_meetings_for_user_paginated_cursor(user_email, opts \\ []) do
     after_start = Keyword.get(opts, :after_start)
     after_id = Keyword.get(opts, :after_id)
-    limit = Keyword.get(opts, :per_page, 20)
+    per_page = Keyword.get(opts, :per_page, 20)
+    # Fetch one extra item to determine if there's a next page
+    limit = per_page + 1
     status = Keyword.get(opts, :status)
+    exclude_status = Keyword.get(opts, :exclude_status)
     time_filter = Keyword.get(opts, :time_filter)
 
     now = DateTime.utc_now()
@@ -687,6 +699,7 @@ defmodule Tymeslot.DatabaseQueries.MeetingQueries do
     Meeting
     |> for_user_email(user_email)
     |> with_status(status)
+    |> without_status(exclude_status)
     |> apply_time_filter(time_filter, now)
     |> order_by_start_desc_id_desc()
     |> cursor_after(after_start, after_id)

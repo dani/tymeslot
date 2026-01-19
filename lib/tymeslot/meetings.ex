@@ -624,6 +624,7 @@ defmodule Tymeslot.Meetings do
   def list_user_meetings_cursor_page(user_email, opts \\ []) do
     per_page = Keyword.get(opts, :per_page, 20)
     status = Keyword.get(opts, :status)
+    exclude_status = Keyword.get(opts, :exclude_status)
     time_filter = Keyword.get(opts, :time_filter)
     cursor = Keyword.get(opts, :after)
 
@@ -633,6 +634,7 @@ defmodule Tymeslot.Meetings do
           list_user_meetings_internal(user_email,
             per_page: per_page,
             status: status,
+            exclude_status: exclude_status,
             time_filter: time_filter
           )
 
@@ -643,6 +645,7 @@ defmodule Tymeslot.Meetings do
           list_user_meetings_internal(user_email,
             per_page: per_page,
             status: status,
+            exclude_status: exclude_status,
             time_filter: time_filter,
             after_start: after_start,
             after_id: after_id
@@ -658,6 +661,7 @@ defmodule Tymeslot.Meetings do
   defp list_user_meetings_internal(user_email, opts) do
     per_page = Keyword.get(opts, :per_page, 20)
     status = Keyword.get(opts, :status)
+    exclude_status = Keyword.get(opts, :exclude_status)
     time_filter = Keyword.get(opts, :time_filter)
     after_start = Keyword.get(opts, :after_start)
     after_id = Keyword.get(opts, :after_id)
@@ -665,6 +669,7 @@ defmodule Tymeslot.Meetings do
     MeetingQueries.list_meetings_for_user_paginated_cursor(user_email,
       per_page: per_page,
       status: status,
+      exclude_status: exclude_status,
       time_filter: time_filter,
       after_start: after_start,
       after_id: after_id
@@ -693,6 +698,30 @@ defmodule Tymeslot.Meetings do
     end
   end
 
+  @doc """
+  High-level function to list meetings for a user based on a filter string.
+  Commonly used in the dashboard.
+  """
+  @spec list_user_meetings_by_filter(integer(), String.t(), keyword()) ::
+          {:ok, CursorPage.t()} | {:error, term()}
+  def list_user_meetings_by_filter(user_id, filter, opts \\ []) do
+    per_page = Keyword.get(opts, :per_page, 20)
+    after_cursor = Keyword.get(opts, :after)
+
+    query_opts =
+      case filter do
+        "upcoming" -> [time_filter: :upcoming, exclude_status: "cancelled"]
+        "past" -> [time_filter: :past, exclude_status: "cancelled"]
+        "cancelled" -> [status: "cancelled"]
+        _ -> []
+      end
+
+    query_opts = Keyword.merge(query_opts, per_page: per_page)
+    query_opts = if after_cursor, do: Keyword.put(query_opts, :after, after_cursor), else: query_opts
+
+    list_user_meetings_cursor_page_by_id(user_id, query_opts)
+  end
+
   defp decode_cursor_opt(nil), do: :no_cursor
   defp decode_cursor_opt(""), do: :no_cursor
 
@@ -701,7 +730,12 @@ defmodule Tymeslot.Meetings do
   end
 
   defp build_cursor_page(items, per_page) do
-    has_more = length(items) == per_page
+    {items, has_more} =
+      if length(items) > per_page do
+        {Enum.drop(items, -1), true}
+      else
+        {items, false}
+      end
 
     next_cursor =
       case List.last(items) do
@@ -716,6 +750,31 @@ defmodule Tymeslot.Meetings do
       page_size: per_page,
       has_more: has_more
     }
+  end
+
+  @doc """
+  Gets a single meeting by ID.
+  Returns {:ok, meeting} or {:error, :not_found}.
+  """
+  @spec get_meeting(String.t() | integer()) :: {:ok, MeetingSchema.t()} | {:error, :not_found}
+  def get_meeting(id) do
+    case MeetingQueries.get_meeting(id) do
+      {:ok, meeting} -> {:ok, meeting}
+      _ -> {:error, :not_found}
+    end
+  end
+
+  @doc """
+  Gets a single meeting by ID for a specific user.
+  Returns {:ok, meeting} or {:error, :not_found}.
+  """
+  @spec get_meeting_for_user(String.t() | integer(), String.t()) ::
+          {:ok, MeetingSchema.t()} | {:error, :not_found}
+  def get_meeting_for_user(id, user_email) do
+    case MeetingQueries.get_meeting_for_user(id, user_email) do
+      {:ok, meeting} -> {:ok, meeting}
+      _ -> {:error, :not_found}
+    end
   end
 
   @doc """

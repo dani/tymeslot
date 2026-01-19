@@ -5,7 +5,6 @@ defmodule TymeslotWeb.Dashboard.ProfileSettings.UsernameFormComponent do
   alias Tymeslot.Profiles
   alias Tymeslot.Security.SettingsInputProcessor
   alias Tymeslot.Utils.ChangesetUtils
-  alias TymeslotWeb.Live.Dashboard.Shared.DashboardHelpers
 
   @impl true
   def update(assigns, socket) do

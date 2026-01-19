@@ -5,7 +5,6 @@ defmodule TymeslotWeb.Dashboard.ProfileSettings.TimezoneFormComponent do
   alias Tymeslot.Security.SettingsInputProcessor
   alias Tymeslot.Utils.TimezoneUtils
   alias TymeslotWeb.Components.TimezoneDropdown
-  alias TymeslotWeb.Live.Dashboard.Shared.DashboardHelpers
 
   @impl true
   def update(assigns, socket) do

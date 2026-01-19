@@ -1,5 +1,7 @@
-defmodule TymeslotWeb.Live.Dashboard.Meetings.Helpers do
-  @moduledoc false
+defmodule TymeslotWeb.Components.Dashboard.Meetings.Helpers do
+  @moduledoc """
+  Helpers for meeting display and policy checks in the dashboard.
+  """
 
   alias Tymeslot.Bookings.Policy
   alias Tymeslot.Utils.DateTimeUtils
@@ -7,7 +9,7 @@ defmodule TymeslotWeb.Live.Dashboard.Meetings.Helpers do
   # Status helpers
   @spec past_meeting?(Ecto.Schema.t()) :: boolean()
   def past_meeting?(meeting) do
-    DateTime.compare(meeting.start_time, DateTime.utc_now()) == :lt
+    DateTime.compare(meeting.end_time, DateTime.utc_now()) == :lt
   end
 
   # Policy helpers (surface booleans and tooltips)

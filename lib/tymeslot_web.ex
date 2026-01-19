@@ -144,6 +144,7 @@ defmodule TymeslotWeb do
       # Shared helpers
       alias TymeslotWeb.Live.Shared.Flash
       alias TymeslotWeb.Hooks.ModalHook
+      alias TymeslotWeb.Live.Dashboard.Shared.DashboardHelpers
 
       # Routes generation with the ~p sigil
       unquote(verified_routes())

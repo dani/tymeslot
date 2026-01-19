@@ -188,24 +188,28 @@ defmodule TymeslotWeb.Helpers.FileOperations do
   @spec atomic_file_move(String.t(), String.t(), map()) ::
           {:ok, String.t()} | {:error, atom()}
   def atomic_file_move(source_path, dest_path, rollback_info \\ %{}) do
+    # Try rename first (fastest)
     case File.rename(source_path, dest_path) do
       :ok ->
-        Logger.debug("File moved successfully", %{
-          source: source_path,
-          destination: dest_path
-        })
-
         {:ok, dest_path}
 
-      {:error, reason} ->
-        Logger.error("File move failed", %{
-          source: source_path,
-          destination: dest_path,
-          reason: reason,
-          rollback_info: rollback_info
-        })
+      {:error, _reason} ->
+        # Fallback to copy + delete for cross-device moves or other issues
+        case File.cp(source_path, dest_path) do
+          :ok ->
+            File.rm(source_path)
+            {:ok, dest_path}
 
-        {:error, reason}
+          {:error, reason} ->
+            Logger.error("File move failed (rename and copy both failed)", %{
+              source: source_path,
+              destination: dest_path,
+              reason: reason,
+              rollback_info: rollback_info
+            })
+
+            {:error, reason}
+        end
     end
   end
 

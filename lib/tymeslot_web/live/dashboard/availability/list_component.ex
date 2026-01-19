@@ -11,7 +11,6 @@ defmodule TymeslotWeb.Dashboard.Availability.ListComponent do
   alias TymeslotWeb.Components.Dashboard.Availability.{ClearDayModal, DeleteBreakModal}
   alias TymeslotWeb.Components.Shared.TimeOptions
   alias TymeslotWeb.Dashboard.Availability.Helpers
-  alias TymeslotWeb.Live.Dashboard.Shared.DashboardHelpers
 
   # UI Helper Functions
 

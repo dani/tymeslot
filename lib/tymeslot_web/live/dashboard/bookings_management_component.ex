@@ -4,24 +4,25 @@ defmodule TymeslotWeb.Dashboard.BookingsManagementComponent do
   """
   use TymeslotWeb, :live_component
 
-  alias Phoenix.LiveView
   alias Tymeslot.Bookings.Policy
   alias Tymeslot.Meetings
   alias Tymeslot.Security.MeetingsInputProcessor
-  alias TymeslotWeb.Components.Dashboard.Meetings.CancelMeetingModal
-  alias TymeslotWeb.Components.Dashboard.Meetings.RescheduleRequestModal
-  alias TymeslotWeb.Live.Dashboard.Meetings.{Components, Helpers, Loader}
-  alias TymeslotWeb.Live.Dashboard.Shared.DashboardHelpers
+  alias TymeslotWeb.Components.Dashboard.Meetings.{
+    CancelMeetingModal,
+    MeetingListComponents,
+    RescheduleRequestModal,
+    Helpers
+  }
   require Logger
 
   @impl true
   def mount(socket) do
     {:ok,
      socket
-     |> LiveView.stream(:meetings, [])
-     |> assign(:meetings, [])
+     |> Phoenix.LiveView.stream(:meetings, [])
      |> assign(:filter, "upcoming")
      |> assign(:loading, true)
+     |> assign(:is_empty, true)
      |> assign(:cancelling_meeting, nil)
      |> assign(:sending_reschedule, nil)
      |> assign(:per_page, 20)
@@ -75,12 +76,7 @@ defmodule TymeslotWeb.Dashboard.BookingsManagementComponent do
     case MeetingsInputProcessor.validate_filter_input(%{"filter" => filter}, metadata: metadata) do
       {:ok, %{"filter" => validated_filter}} ->
         :telemetry.execute(
-          [
-            :tymeslot,
-            :dashboard,
-            :meetings,
-            :filter
-          ],
+          [:tymeslot, :dashboard, :meetings, :filter],
           %{},
           %{user_id: socket.assigns.current_user.id, filter: validated_filter}
         )
@@ -90,38 +86,30 @@ defmodule TymeslotWeb.Dashboard.BookingsManagementComponent do
          |> assign(:filter, validated_filter)
          |> assign(:next_cursor, nil)
          |> assign(:has_more, false)
-         |> assign(:meetings, [])
          |> assign(:loading, true)
          |> load_meetings()}
 
       {:error, _errors} ->
-        # On filter validation failure, keep current filter and log the attempt
         {:noreply, socket}
     end
   end
 
-  def handle_event("show_cancel_modal", %{"id" => id} = params, socket) do
-    Logger.debug("Cancel modal event received id=#{id}")
-
+  def handle_event("show_cancel_modal", %{"id" => _id} = params, socket) do
     case fetch_meeting_for_modal(socket, params, policy_fun: &Policy.can_cancel_meeting?/1) do
       {:ok, meeting} ->
         emit_cancel_open_telemetry(socket.assigns.current_user.id, meeting.id)
-        Logger.debug("Showing modal for meeting id=#{meeting.id}")
         {:noreply, ModalHook.show_modal(socket, :cancel_meeting, meeting)}
 
       {:error, :validation_failed, reason} ->
         emit_cancel_error_telemetry(socket.assigns.current_user.id, reason, :validation_failed)
-        Logger.debug("Cancellation validation blocked: #{inspect(reason)}")
         {:noreply, socket}
 
       {:error, :policy_blocked, reason} ->
-        Logger.debug("Cancellation blocked: #{inspect(reason)}")
         emit_cancel_error_telemetry(socket.assigns.current_user.id, reason, :blocked)
         Flash.error(reason)
         {:noreply, socket}
 
       {:error, :not_found, _} ->
-        Logger.debug("Meeting not found")
         {:noreply, socket}
     end
   end
@@ -137,38 +125,22 @@ defmodule TymeslotWeb.Dashboard.BookingsManagementComponent do
     case Meetings.cancel_meeting(meeting) do
       {:ok, _cancelled_meeting} ->
         :telemetry.execute(
-          [
-            :tymeslot,
-            :dashboard,
-            :meetings,
-            :cancel,
-            :confirm
-          ],
+          [:tymeslot, :dashboard, :meetings, :cancel, :confirm],
           %{},
           %{user_id: socket.assigns.current_user.id, meeting_id: meeting.id, result: :ok}
         )
 
         Flash.info("Meeting cancelled successfully")
 
-        # Remove cancelled meeting from the current list instead of reloading all meetings
-        updated_meetings = Enum.filter(socket.assigns.meetings, fn m -> m.id != meeting.id end)
-
         {:noreply,
          socket
          |> assign(:cancelling_meeting, nil)
-         |> assign(:meetings, updated_meetings)
-         |> LiveView.stream_delete(:meetings, meeting)
+         |> load_meetings()
          |> ModalHook.hide_modal(:cancel_meeting)}
 
       {:error, reason} ->
         :telemetry.execute(
-          [
-            :tymeslot,
-            :dashboard,
-            :meetings,
-            :cancel,
-            :confirm
-          ],
+          [:tymeslot, :dashboard, :meetings, :cancel, :confirm],
           %{},
           %{
             user_id: socket.assigns.current_user.id,
@@ -183,45 +155,23 @@ defmodule TymeslotWeb.Dashboard.BookingsManagementComponent do
     end
   end
 
-  def handle_event("cancel_meeting", %{"id" => id}, socket) do
-    # Legacy handler for backwards compatibility, redirects to show modal
-    handle_event("show_cancel_modal", %{"id" => id}, socket)
-  end
-
-  def handle_event("show_reschedule_modal", %{"id" => id} = params, socket) do
-    Logger.debug("Reschedule modal event received id=#{id}")
-
+  def handle_event("show_reschedule_modal", %{"id" => _id} = params, socket) do
     case fetch_meeting_for_modal(socket, params, policy_fun: &Policy.can_reschedule_meeting?/1) do
       {:ok, meeting} ->
         :telemetry.execute(
-          [
-            :tymeslot,
-            :dashboard,
-            :meetings,
-            :reschedule,
-            :open
-          ],
+          [:tymeslot, :dashboard, :meetings, :reschedule, :open],
           %{},
           %{user_id: socket.assigns.current_user.id, meeting_id: meeting.id}
         )
 
         {:noreply, ModalHook.show_modal(socket, :reschedule_request, meeting)}
 
-      {:error, :validation_failed, reason} ->
-        Logger.debug("Reschedule validation blocked: #{inspect(reason)}")
+      {:error, :validation_failed, _reason} ->
         {:noreply, socket}
 
       {:error, :policy_blocked, reason} ->
-        Logger.debug("Reschedule blocked: #{inspect(reason)}")
-
         :telemetry.execute(
-          [
-            :tymeslot,
-            :dashboard,
-            :meetings,
-            :reschedule,
-            :blocked
-          ],
+          [:tymeslot, :dashboard, :meetings, :reschedule, :blocked],
           %{},
           %{user_id: socket.assigns.current_user.id, reason: inspect(reason)}
         )
@@ -245,13 +195,7 @@ defmodule TymeslotWeb.Dashboard.BookingsManagementComponent do
     case Meetings.send_reschedule_request(meeting) do
       :ok ->
         :telemetry.execute(
-          [
-            :tymeslot,
-            :dashboard,
-            :meetings,
-            :reschedule,
-            :confirm
-          ],
+          [:tymeslot, :dashboard, :meetings, :reschedule, :confirm],
           %{},
           %{user_id: socket.assigns.current_user.id, meeting_id: meeting.id, result: :ok}
         )
@@ -261,17 +205,12 @@ defmodule TymeslotWeb.Dashboard.BookingsManagementComponent do
         {:noreply,
          socket
          |> assign(:sending_reschedule, nil)
+         |> load_meetings()
          |> ModalHook.hide_modal(:reschedule_request)}
 
       {:error, reason} ->
         :telemetry.execute(
-          [
-            :tymeslot,
-            :dashboard,
-            :meetings,
-            :reschedule,
-            :confirm
-          ],
+          [:tymeslot, :dashboard, :meetings, :reschedule, :confirm],
           %{},
           %{
             user_id: socket.assigns.current_user.id,
@@ -287,7 +226,6 @@ defmodule TymeslotWeb.Dashboard.BookingsManagementComponent do
   end
 
   def handle_event("load_more", _params, %{assigns: %{loading_more: true}} = socket) do
-    # Prevent overlapping pagination requests
     {:noreply, socket}
   end
 
@@ -300,52 +238,36 @@ defmodule TymeslotWeb.Dashboard.BookingsManagementComponent do
     after_cursor = socket.assigns.next_cursor
 
     :telemetry.execute(
-      [
-        :tymeslot,
-        :dashboard,
-        :meetings,
-        :load_more,
-        :start
-      ],
+      [:tymeslot, :dashboard, :meetings, :load_more, :start],
       %{},
       %{user_id: current_user.id, filter: filter, after: after_cursor}
     )
 
-    case Loader.list_meetings_page_for_user(filter, current_user, per_page, after_cursor) do
+    case Meetings.list_user_meetings_by_filter(current_user.id, filter,
+           per_page: per_page,
+           after: after_cursor
+         ) do
       {:ok, page} ->
         socket =
           Enum.reduce(page.items, socket, fn item, s ->
-            LiveView.stream_insert(s, :meetings, item)
+            Phoenix.LiveView.stream_insert(s, :meetings, item)
           end)
 
         :telemetry.execute(
-          [
-            :tymeslot,
-            :dashboard,
-            :meetings,
-            :load_more,
-            :stop
-          ],
+          [:tymeslot, :dashboard, :meetings, :load_more, :stop],
           %{items: length(page.items)},
           %{user_id: current_user.id, filter: filter, has_more: page.has_more}
         )
 
         {:noreply,
          socket
-         |> assign(:meetings, socket.assigns.meetings ++ page.items)
          |> assign(:next_cursor, page.next_cursor)
          |> assign(:has_more, page.has_more)
          |> assign(:loading_more, false)}
 
       {:error, _reason} ->
         :telemetry.execute(
-          [
-            :tymeslot,
-            :dashboard,
-            :meetings,
-            :load_more,
-            :error
-          ],
+          [:tymeslot, :dashboard, :meetings, :load_more, :error],
           %{},
           %{user_id: current_user.id, filter: filter, after: after_cursor}
         )
@@ -360,18 +282,15 @@ defmodule TymeslotWeb.Dashboard.BookingsManagementComponent do
     ~H"""
     <div class="space-y-10 pb-20">
       <div>
-        <.section_header
-          icon={:calendar}
-          title="Meetings"
-        />
+        <.section_header icon={:calendar} title="Meetings" />
 
         <div class="mb-10">
-          <Components.filter_tabs active={@filter} target={@myself} />
+          <MeetingListComponents.filter_tabs active={@filter} target={@myself} />
         </div>
 
-        <Components.meetings_list
+        <MeetingListComponents.meetings_list
           loading={@loading}
-          meetings={@meetings}
+          is_empty={@is_empty}
           meetings_stream={@streams.meetings}
           filter={@filter}
           profile={@profile}
@@ -389,11 +308,7 @@ defmodule TymeslotWeb.Dashboard.BookingsManagementComponent do
               disabled={@loading_more}
             >
               <%= if @loading_more do %>
-                <svg class="animate-spin h-5 w-5 mr-3 inline-block" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Loading...
+                <.spinner class="h-5 w-5 mr-3 inline-block" /> Loading...
               <% else %>
                 Load more meetings
               <% end %>
@@ -402,7 +317,7 @@ defmodule TymeslotWeb.Dashboard.BookingsManagementComponent do
         <% end %>
 
         <div class="mt-16">
-          <Components.info_panel />
+          <MeetingListComponents.info_panel />
         </div>
       </div>
 
@@ -444,35 +359,19 @@ defmodule TymeslotWeb.Dashboard.BookingsManagementComponent do
 
   defp emit_cancel_open_telemetry(user_id, meeting_id) do
     :telemetry.execute(
-      [
-        :tymeslot,
-        :dashboard,
-        :meetings,
-        :cancel,
-        :open
-      ],
+      [:tymeslot, :dashboard, :meetings, :cancel, :open],
       %{},
       %{user_id: user_id, meeting_id: meeting_id}
     )
   end
 
   defp emit_cancel_error_telemetry(user_id, reason, tag) do
-    event =
-      case tag do
-        :validation_failed -> :validation_failed
-        _ -> :blocked
-      end
+    event = if tag == :validation_failed, do: :validation_failed, else: :blocked
 
     :telemetry.execute(
-      [
-        :tymeslot,
-        :dashboard,
-        :meetings,
-        :cancel,
-        event
-      ],
+      [:tymeslot, :dashboard, :meetings, :cancel, event],
       %{},
-      %{user_id: user_id, error: inspect(reason), reason: inspect(reason)}
+      %{user_id: user_id, reason: inspect(reason)}
     )
   end
 
@@ -482,48 +381,29 @@ defmodule TymeslotWeb.Dashboard.BookingsManagementComponent do
     per_page = socket.assigns.per_page
 
     :telemetry.execute(
-      [
-        :tymeslot,
-        :dashboard,
-        :meetings,
-        :load,
-        :start
-      ],
+      [:tymeslot, :dashboard, :meetings, :load, :start],
       %{},
       %{user_id: current_user.id, filter: filter}
     )
 
-    case Loader.list_meetings_page_for_user(filter, current_user, per_page, nil) do
+    case Meetings.list_user_meetings_by_filter(current_user.id, filter, per_page: per_page) do
       {:ok, page} ->
-        socket = LiveView.stream(socket, :meetings, page.items, reset: true)
-
         :telemetry.execute(
-          [
-            :tymeslot,
-            :dashboard,
-            :meetings,
-            :load,
-            :stop
-          ],
+          [:tymeslot, :dashboard, :meetings, :load, :stop],
           %{items: length(page.items)},
           %{user_id: current_user.id, filter: filter}
         )
 
         socket
-        |> assign(:meetings, page.items)
+        |> Phoenix.LiveView.stream(:meetings, page.items, reset: true)
         |> assign(:next_cursor, page.next_cursor)
         |> assign(:has_more, page.has_more)
         |> assign(:loading, false)
+        |> assign(:is_empty, page.items == [])
 
       {:error, _reason} ->
         :telemetry.execute(
-          [
-            :tymeslot,
-            :dashboard,
-            :meetings,
-            :load,
-            :error
-          ],
+          [:tymeslot, :dashboard, :meetings, :load, :error],
           %{},
           %{user_id: current_user.id, filter: filter}
         )
@@ -531,33 +411,33 @@ defmodule TymeslotWeb.Dashboard.BookingsManagementComponent do
         Flash.error("Failed to load meetings")
 
         socket
-        |> assign(:meetings, [])
+        |> Phoenix.LiveView.stream(:meetings, [], reset: true)
         |> assign(:next_cursor, nil)
         |> assign(:has_more, false)
         |> assign(:loading, false)
+        |> assign(:is_empty, true)
     end
   end
 
-  # Helper function to get security metadata
   defp fetch_meeting_for_modal(socket, params, opts) do
     metadata = DashboardHelpers.get_security_metadata(socket)
     policy_fun = Keyword.fetch!(opts, :policy_fun)
+    user_email = socket.assigns.current_user.email
 
     with {:ok, %{"id" => validated_id}} <-
            MeetingsInputProcessor.validate_meeting_id_input(params, metadata: metadata),
-         meeting when not is_nil(meeting) <-
-           Enum.find(socket.assigns.meetings, fn m -> to_string(m.id) == validated_id end),
+         {:ok, meeting} <- fetch_meeting_for_user(validated_id, user_email),
          :ok <- policy_fun.(meeting) do
       {:ok, meeting}
     else
-      {:error, reason} when is_map(reason) ->
-        {:error, :validation_failed, reason}
-
-      {:error, reason} ->
-        {:error, :policy_blocked, reason}
-
-      nil ->
-        {:error, :not_found, nil}
+      {:error, :not_found} -> {:error, :not_found, nil}
+      {:error, reason} when is_map(reason) -> {:error, :validation_failed, reason}
+      {:error, reason} -> {:error, :policy_blocked, reason}
     end
   end
+
+  defp fetch_meeting_for_user(id, user_email) do
+    Meetings.get_meeting_for_user(id, user_email)
+  end
+
 end

@@ -10,7 +10,6 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
   alias Tymeslot.Utils.ChangesetUtils
   alias TymeslotWeb.Components.Dashboard.Integrations.Shared.DeleteIntegrationModal
   alias TymeslotWeb.Dashboard.CalendarSettings.Components
-  alias TymeslotWeb.Live.Dashboard.Shared.DashboardHelpers
   require Logger
 
   @impl true

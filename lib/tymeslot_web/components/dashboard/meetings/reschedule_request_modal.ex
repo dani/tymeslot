@@ -6,8 +6,8 @@ defmodule TymeslotWeb.Components.Dashboard.Meetings.RescheduleRequestModal do
   use Phoenix.Component
 
   alias Phoenix.LiveView.JS
-  alias Tymeslot.Utils.DateTimeUtils
   alias TymeslotWeb.Components.CoreComponents
+  alias TymeslotWeb.Components.Dashboard.Meetings.Helpers
 
   @doc """
   Renders a reschedule request confirmation modal.
@@ -75,7 +75,7 @@ defmodule TymeslotWeb.Components.Dashboard.Meetings.RescheduleRequestModal do
             <div class="text-tymeslot-900 font-black text-lg space-y-2">
               <div class="flex items-center gap-3">
                 <CoreComponents.icon name="hero-calendar" class="w-5 h-5 text-turquoise-600" />
-                <span>{format_meeting_datetime(@meeting, @timezone)}</span>
+                <span>{Helpers.format_meeting_date(@meeting, @timezone)} • {Helpers.format_meeting_time(@meeting, @timezone)}</span>
               </div>
               <div class="flex items-center gap-3">
                 <CoreComponents.icon name="hero-clock" class="w-5 h-5 text-turquoise-600" />
@@ -131,14 +131,4 @@ defmodule TymeslotWeb.Components.Dashboard.Meetings.RescheduleRequestModal do
 
   # Private helper functions
 
-  defp format_meeting_datetime(meeting, timezone) do
-    # Convert UTC times to the appropriate timezone
-    local_start = DateTimeUtils.convert_to_timezone(meeting.start_time, timezone)
-    local_end = DateTimeUtils.convert_to_timezone(meeting.end_time, timezone)
-
-    date = Calendar.strftime(local_start, "%B %d, %Y")
-    start_time = Calendar.strftime(local_start, "%-I:%M %p")
-    end_time = Calendar.strftime(local_end, "%-I:%M %p")
-    "#{date} • #{start_time} - #{end_time}"
-  end
 end
