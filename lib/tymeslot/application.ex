@@ -28,6 +28,11 @@ defmodule Tymeslot.Application do
     # Set up integration telemetry handlers
     Telemetry.attach_default_handlers()
 
+    # Initialize shared email asset cache (ETS)
+    # Note: This table is primarily for static assets like logo data URIs.
+    # If used for dynamic data, consider adding a cleanup mechanism or using CacheStore.
+    :ets.new(:tymeslot_email_assets, [:set, :public, :named_table, read_concurrency: true])
+
     # Base children that are always started
     base_children = [
       TymeslotWeb.Telemetry,
@@ -50,6 +55,8 @@ defmodule Tymeslot.Application do
           Tymeslot.Infrastructure.DashboardCache,
           # Start availability cache GenServer
           Tymeslot.Infrastructure.AvailabilityCache,
+          # Start webhook idempotency cache
+          Tymeslot.Payments.Webhooks.IdempotencyCache,
           # Start calendar request coalescer
           Tymeslot.Integrations.Calendar.RequestCoalescer,
           # Start Oban for background job processing
@@ -68,6 +75,8 @@ defmodule Tymeslot.Application do
           Tymeslot.Infrastructure.DashboardCache,
           # Start availability cache GenServer
           Tymeslot.Infrastructure.AvailabilityCache,
+          # Start webhook idempotency cache
+          Tymeslot.Payments.Webhooks.IdempotencyCache,
           # Start custom rate limiter
           Tymeslot.Security.RateLimiter,
           # Start account lockout tracker

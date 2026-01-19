@@ -18,6 +18,14 @@ defmodule TymeslotWeb.Helpers.PageTitles do
   def dashboard_title(:theme), do: "Theme Selection - Dashboard"
   def dashboard_title(:meetings), do: "Meetings - Dashboard"
   def dashboard_title(:embed), do: "Embed & Share - Dashboard"
-  def dashboard_title(:payment), do: "Payment - Dashboard"
-  def dashboard_title(_), do: "Dashboard"
+
+  def dashboard_title(action) do
+    # Check if this action is registered via dynamic extensions
+    extensions = Application.get_env(:tymeslot, :dashboard_sidebar_extensions, [])
+
+    case Enum.find(extensions, &(&1.action == action)) do
+      %{label: label} -> "#{label} - Dashboard"
+      _ -> "Dashboard"
+    end
+  end
 end

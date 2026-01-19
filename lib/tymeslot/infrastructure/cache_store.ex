@@ -62,6 +62,15 @@ defmodule Tymeslot.Infrastructure.CacheStore do
         :ets.delete_all_objects(@table_name)
       end
 
+      @doc """
+      Manually insert a value into the cache.
+      """
+      def put(key, value, ttl \\ @default_ttl) do
+        expiry = System.monotonic_time(:millisecond) + ttl
+        :ets.insert(@table_name, {key, value, expiry})
+        :ok
+      end
+
       # Server Callbacks
 
       @impl true

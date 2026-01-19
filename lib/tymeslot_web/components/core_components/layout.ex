@@ -13,7 +13,7 @@ defmodule TymeslotWeb.Components.CoreComponents.Layout do
   slot :inner_block, required: true
   attr :show_steps, :boolean, default: false
   attr :current_step, :integer, default: 1
-  attr :duration, :string, default: nil
+  attr :slug, :string, default: nil
   attr :username_context, :string, default: nil
   attr :theme_customization, :any, default: nil
   attr :has_custom_theme, :boolean, default: false
@@ -28,7 +28,7 @@ defmodule TymeslotWeb.Components.CoreComponents.Layout do
             <div class="px-3 py-2">
               <StepNavigation.step_indicator
                 current_step={@current_step}
-                duration={@duration}
+                slug={@slug}
                 username_context={@username_context}
               />
             </div>

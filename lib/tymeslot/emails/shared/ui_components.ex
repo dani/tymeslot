@@ -449,11 +449,17 @@ defmodule Tymeslot.Emails.Shared.UiComponents do
   defp button_markup(text, url, color, width, size, full_width) do
     safe_text = SharedHelpers.sanitize_for_email(text)
 
-    # Validate and sanitize URL
+    # Validate and sanitize URL (allowing mailto: for email buttons)
     safe_url =
-      case UrlValidation.validate_http_url(url) do
-        :ok -> SharedHelpers.sanitize_for_email(url)
-        _ -> "#"
+      cond do
+        String.starts_with?(url, "mailto:") ->
+          SharedHelpers.sanitize_for_email(url)
+
+        UrlValidation.validate_http_url(url) == :ok ->
+          SharedHelpers.sanitize_for_email(url)
+
+        true ->
+          "#"
       end
 
     css_class = "button-#{color}#{if full_width, do: " mobile-button", else: ""}"

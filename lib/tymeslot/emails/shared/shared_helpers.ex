@@ -5,6 +5,7 @@ defmodule Tymeslot.Emails.Shared.SharedHelpers do
   """
 
   alias Phoenix.HTML
+  alias Tymeslot.Utils.TimezoneUtils
   alias TymeslotWeb.Endpoint
 
   @doc """
@@ -96,11 +97,11 @@ defmodule Tymeslot.Emails.Shared.SharedHelpers do
 
   @doc """
   Formats a meeting duration.
-  Example: "30 minutes"
+  Example: "30 minutes" or "1 hour"
   """
-  @spec format_duration(integer()) :: String.t()
-  def format_duration(minutes) when is_integer(minutes) do
-    "#{minutes} minutes"
+  @spec format_duration(integer() | String.t()) :: String.t()
+  def format_duration(duration) do
+    TimezoneUtils.format_duration(duration)
   end
 
   @doc """
