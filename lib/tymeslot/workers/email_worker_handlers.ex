@@ -6,6 +6,7 @@ defmodule Tymeslot.Workers.EmailWorkerHandlers do
   require Logger
   alias Tymeslot.DatabaseQueries.{MeetingQueries, UserQueries}
   alias Tymeslot.Emails.AppointmentBuilder
+  alias Tymeslot.Infrastructure.ValidationHelpers
   alias Tymeslot.Utils.ReminderUtils
 
   @doc """
@@ -342,7 +343,7 @@ defmodule Tymeslot.Workers.EmailWorkerHandlers do
   defp handle_form_submission(args, type, send_fn) do
     required = ["sender_name", "sender_email", "subject", "message"]
 
-    case Tymeslot.Infrastructure.ValidationHelpers.validate_required_fields(args, required) do
+    case ValidationHelpers.validate_required_fields(args, required) do
       {:ok, _} ->
         sender_name = Map.fetch!(args, "sender_name")
         sender_email = Map.fetch!(args, "sender_email")

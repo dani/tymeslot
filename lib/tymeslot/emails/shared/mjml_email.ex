@@ -19,6 +19,7 @@ defmodule Tymeslot.Emails.Shared.MjmlEmail do
 
   import Swoosh.Email
   alias Tymeslot.Emails.Shared.{AvatarHelper, SharedHelpers, Styles}
+  alias Tymeslot.Security.UrlValidation
 
   @doc """
   Compiles MJML template to HTML.
@@ -78,7 +79,7 @@ defmodule Tymeslot.Emails.Shared.MjmlEmail do
   @spec base_mjml_template(String.t(), map() | nil) :: String.t()
   def base_mjml_template(content, organizer_details \\ nil) do
     # Use provided organizer details or fall back to defaults
-    organizer_name = (organizer_details[:name] || fetch_from_name()) |> SharedHelpers.sanitize_for_email()
+    organizer_name = SharedHelpers.sanitize_for_email(organizer_details[:name] || fetch_from_name())
     _organizer_email = organizer_details[:email] || fetch_from_email()
 
     organizer_avatar_url =
@@ -87,7 +88,7 @@ defmodule Tymeslot.Emails.Shared.MjmlEmail do
           AvatarHelper.generate_default_avatar(organizer_name)
 
         url when is_binary(url) ->
-          case Tymeslot.Security.UrlValidation.validate_http_url(url) do
+          case UrlValidation.validate_http_url(url) do
             :ok -> SharedHelpers.sanitize_for_email(url)
             _ -> AvatarHelper.generate_default_avatar(organizer_name)
           end
@@ -96,7 +97,7 @@ defmodule Tymeslot.Emails.Shared.MjmlEmail do
           AvatarHelper.generate_default_avatar(organizer_name)
       end
 
-    organizer_title = (organizer_details[:title] || "Tymeslot") |> SharedHelpers.sanitize_for_email()
+    organizer_title = SharedHelpers.sanitize_for_email(organizer_details[:title] || "Tymeslot")
 
     """
     <mjml>

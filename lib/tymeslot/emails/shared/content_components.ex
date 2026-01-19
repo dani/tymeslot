@@ -9,10 +9,11 @@ defmodule Tymeslot.Emails.Shared.ContentComponents do
   """
 
   alias Tymeslot.Emails.Shared.{SharedHelpers, Styles}
+  alias Tymeslot.Security.UniversalSanitizer
 
   @doc """
   Generates a contact details card for administrative emails.
-  
+
   The `row.value` is sanitized by default. To allow HTML (e.g., mailto links),
   pass `{:safe, html_string}` as the value, or include `safe_html: true` in the row map.
   """
@@ -49,7 +50,12 @@ defmodule Tymeslot.Emails.Shared.ContentComponents do
       end)
 
     """
-    <mj-section background-color="#{Styles.background_color(:white)}" border-radius="#{Styles.card_radius()}" padding="20px" border="1px solid #{Styles.border_color(:subtle)}">
+    <mj-section
+      background-color="#{Styles.background_color(:white)}"
+      border-radius="#{Styles.card_radius()}"
+      padding="20px"
+      border="1px solid #{Styles.border_color(:subtle)}"
+    >
       <mj-column>
         <mj-text font-size="18px" font-weight="600" color="#{Styles.text_color(:primary)}" padding-bottom="12px">
           #{safe_title}
@@ -74,17 +80,20 @@ defmodule Tymeslot.Emails.Shared.ContentComponents do
     # Use UniversalSanitizer for the message content
     # We allow basic HTML if it was already intended, but sanitize it heavily
     sanitized_message =
-      case Tymeslot.Security.UniversalSanitizer.sanitize_and_validate(message, allow_html: true, on_too_long: :truncate) do
+      case UniversalSanitizer.sanitize_and_validate(message, allow_html: true, on_too_long: :truncate) do
         {:ok, sanitized} -> sanitized
         {:error, _} -> SharedHelpers.sanitize_for_email(message)
       end
 
-    escaped_message =
-      sanitized_message
-      |> String.replace("\n", "<br>")
+    escaped_message = String.replace(sanitized_message, "\n", "<br>")
 
     """
-    <mj-section background-color="#{Styles.background_color(:white)}" border-radius="#{Styles.card_radius()}" padding="20px" border="1px solid #{Styles.border_color(:subtle)}">
+    <mj-section
+      background-color="#{Styles.background_color(:white)}"
+      border-radius="#{Styles.card_radius()}"
+      padding="20px"
+      border="1px solid #{Styles.border_color(:subtle)}"
+    >
       <mj-column>
         <mj-text font-size="18px" font-weight="600" color="#{Styles.text_color(:primary)}" padding-bottom="10px">
           #{safe_title}
@@ -112,7 +121,7 @@ defmodule Tymeslot.Emails.Shared.ContentComponents do
   def attendee_message_box(message) when is_binary(message) and message != "" do
     # Use UniversalSanitizer for the message content
     sanitized_message =
-      case Tymeslot.Security.UniversalSanitizer.sanitize_and_validate(message, allow_html: false, on_too_long: :truncate) do
+      case UniversalSanitizer.sanitize_and_validate(message, allow_html: false, on_too_long: :truncate) do
         {:ok, sanitized} -> sanitized
         {:error, _} -> SharedHelpers.sanitize_for_email(message)
       end

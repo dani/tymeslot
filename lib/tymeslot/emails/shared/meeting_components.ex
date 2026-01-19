@@ -16,6 +16,7 @@ defmodule Tymeslot.Emails.Shared.MeetingComponents do
   """
 
   alias Tymeslot.Emails.Shared.{SharedHelpers, Styles}
+  alias Tymeslot.Security.UrlValidation
 
   @doc """
   Generates a polished meeting details card with modern 2026 styling.
@@ -63,10 +64,10 @@ defmodule Tymeslot.Emails.Shared.MeetingComponents do
     # Sanitize user-provided text
     safe_title = SharedHelpers.sanitize_for_email(title)
     safe_button_text = SharedHelpers.sanitize_for_email(button_text_base)
-    
+
     # Validate and sanitize URL
     safe_url =
-      case Tymeslot.Security.UrlValidation.validate_http_url(meeting_url) do
+      case UrlValidation.validate_http_url(meeting_url) do
         :ok ->
           SharedHelpers.sanitize_for_email(meeting_url)
 
@@ -141,7 +142,7 @@ defmodule Tymeslot.Emails.Shared.MeetingComponents do
   def time_alert_badge(time_text, opts \\ []) do
     icon = Keyword.get(opts, :icon, "⏰")
     color = Keyword.get(opts, :color, :blue)
-    
+
     # Sanitize user-provided time text
     safe_time_text = SharedHelpers.sanitize_for_email(time_text)
 
@@ -196,85 +197,23 @@ defmodule Tymeslot.Emails.Shared.MeetingComponents do
 
   @spec single_button_layout(list(map())) :: String.t()
   defp single_button_layout([action]) do
-    {bg_color, text_color, css_class} = get_action_button_colors(action)
-    safe_text = SharedHelpers.sanitize_for_email(action.text)
-
-    safe_url =
-      case Tymeslot.Security.UrlValidation.validate_http_url(action.url) do
-        :ok -> SharedHelpers.sanitize_for_email(action.url)
-        _ -> "#"
-      end
-
-    """
-    <mj-section padding="12px 0">
-      <mj-column>
-        <mj-button
-          href="#{safe_url}"
-          background-color="#{bg_color}"
-          color="#{text_color}"
-          font-size="16px"
-          font-weight="700"
-          border-radius="#{Styles.button_radius()}"
-          inner-padding="#{Styles.button_padding(:large)}"
-          width="auto"
-          css-class="#{css_class} mobile-button">
-          #{safe_text}
-        </mj-button>
-      </mj-column>
-    </mj-section>
-    """
+    render_button(action,
+      section_padding: "12px 0",
+      font_size: "16px",
+      inner_padding: Styles.button_padding(:large)
+    )
   end
 
   @spec two_button_layout(list(map())) :: String.t()
   defp two_button_layout([primary_action, secondary_action]) do
-    {primary_bg, primary_text, primary_class} = get_action_button_colors(primary_action)
-    {secondary_bg, secondary_text, secondary_class} = get_action_button_colors(secondary_action)
-
-    safe_primary_text = SharedHelpers.sanitize_for_email(primary_action.text)
-    safe_secondary_text = SharedHelpers.sanitize_for_email(secondary_action.text)
-
-    safe_primary_url =
-      case Tymeslot.Security.UrlValidation.validate_http_url(primary_action.url) do
-        :ok -> SharedHelpers.sanitize_for_email(primary_action.url)
-        _ -> "#"
-      end
-
-    safe_secondary_url =
-      case Tymeslot.Security.UrlValidation.validate_http_url(secondary_action.url) do
-        :ok -> SharedHelpers.sanitize_for_email(secondary_action.url)
-        _ -> "#"
-      end
-
     """
     <mj-section padding="12px 0">
       <mj-group>
         <mj-column>
-          <mj-button
-            href="#{safe_primary_url}"
-            background-color="#{primary_bg}"
-            color="#{primary_text}"
-            font-size="15px"
-            font-weight="700"
-            border-radius="#{Styles.button_radius()}"
-            inner-padding="#{Styles.button_padding(:medium)}"
-            width="auto"
-            css-class="#{primary_class}">
-            #{safe_primary_text}
-          </mj-button>
+          #{render_button(primary_action, wrap_in_section: false)}
         </mj-column>
         <mj-column>
-          <mj-button
-            href="#{safe_secondary_url}"
-            background-color="#{secondary_bg}"
-            color="#{secondary_text}"
-            font-size="15px"
-            font-weight="700"
-            border-radius="#{Styles.button_radius()}"
-            inner-padding="#{Styles.button_padding(:medium)}"
-            width="auto"
-            css-class="#{secondary_class}">
-            #{safe_secondary_text}
-          </mj-button>
+          #{render_button(secondary_action, wrap_in_section: false)}
         </mj-column>
       </mj-group>
     </mj-section>
@@ -283,38 +222,53 @@ defmodule Tymeslot.Emails.Shared.MeetingComponents do
 
   @spec multi_button_layout(list(map())) :: String.t()
   defp multi_button_layout(actions) when length(actions) > 2 do
-    button_sections =
-      Enum.map_join(actions, "\n", fn action ->
-        {bg_color, text_color, css_class} = get_action_button_colors(action)
-        safe_text = SharedHelpers.sanitize_for_email(action.text)
+    Enum.map_join(actions, "\n", fn action ->
+      render_button(action, section_padding: "8px 0")
+    end)
+  end
 
-        safe_url =
-          case Tymeslot.Security.UrlValidation.validate_http_url(action.url) do
-            :ok -> SharedHelpers.sanitize_for_email(action.url)
-            _ -> "#"
-          end
+  @spec render_button(map(), keyword()) :: String.t()
+  defp render_button(action, opts) do
+    wrap_in_section = Keyword.get(opts, :wrap_in_section, true)
+    section_padding = Keyword.get(opts, :section_padding, "0")
+    font_size = Keyword.get(opts, :font_size, "15px")
+    inner_padding = Keyword.get(opts, :inner_padding, Styles.button_padding(:medium))
 
-        """
-        <mj-section padding="8px 0">
-          <mj-column>
-            <mj-button
-              href="#{safe_url}"
-              background-color="#{bg_color}"
-              color="#{text_color}"
-              font-size="15px"
-              font-weight="700"
-              border-radius="#{Styles.button_radius()}"
-              inner-padding="#{Styles.button_padding(:medium)}"
-              width="auto"
-              css-class="#{css_class} mobile-button">
-              #{safe_text}
-            </mj-button>
-          </mj-column>
-        </mj-section>
-        """
-      end)
+    {bg_color, text_color, css_class} = get_action_button_colors(action)
+    safe_text = SharedHelpers.sanitize_for_email(action.text)
 
-    button_sections
+    safe_url =
+      case UrlValidation.validate_http_url(action.url) do
+        :ok -> SharedHelpers.sanitize_for_email(action.url)
+        _ -> "#"
+      end
+
+    button_mjml = """
+    <mj-button
+      href="#{safe_url}"
+      background-color="#{bg_color}"
+      color="#{text_color}"
+      font-size="#{font_size}"
+      font-weight="700"
+      border-radius="#{Styles.button_radius()}"
+      inner-padding="#{inner_padding}"
+      width="auto"
+      css-class="#{css_class} mobile-button">
+      #{safe_text}
+    </mj-button>
+    """
+
+    if wrap_in_section do
+      """
+      <mj-section padding="#{section_padding}">
+        <mj-column>
+          #{button_mjml}
+        </mj-column>
+      </mj-section>
+      """
+    else
+      button_mjml
+    end
   end
 
   @spec get_action_button_colors(map()) :: {String.t(), String.t(), String.t()}
@@ -357,7 +311,7 @@ defmodule Tymeslot.Emails.Shared.MeetingComponents do
     safe_value1 = SharedHelpers.sanitize_for_email(value1)
     safe_label2 = SharedHelpers.sanitize_for_email(label2)
     safe_value2 = SharedHelpers.sanitize_for_email(value2)
-    
+
     """
     <mj-table width="100%" cellpadding="0" cellspacing="0">
       <tr>

@@ -31,7 +31,7 @@ defmodule Tymeslot.Utils.ReminderUtils do
   Normalizes a reminder map or parameters into a consistent format with atom keys.
   Strict validation: returns {:error, :invalid_reminder} if unit is invalid.
   """
-  @spec normalize_reminder(map()) :: {:ok, map()} | {:error, :invalid_reminder}
+  @spec normalize_reminder(map() | nil) :: {:ok, map()} | {:error, :invalid_reminder}
   def normalize_reminder(%{"value" => value, "unit" => unit}) do
     normalize_reminder(%{value: value, unit: unit})
   end
@@ -130,7 +130,7 @@ defmodule Tymeslot.Utils.ReminderUtils do
   def normalize_reminder_unit(unit) when unit in ["minutes", "hours", "days"], do: unit
 
   def normalize_reminder_unit(unit) when is_binary(unit) do
-    unit = unit |> String.downcase()
+    unit = String.downcase(unit)
 
     cond do
       unit =~ "minute" -> "minutes"

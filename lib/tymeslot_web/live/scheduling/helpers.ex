@@ -364,13 +364,7 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
   def perform_sync_availability_fetch(socket, context) do
     ref = make_ref()
 
-    duration_minutes =
-      cond do
-        mt = socket.assigns[:meeting_type] -> mt.duration_minutes
-        is_integer(socket.assigns[:duration]) -> socket.assigns[:duration]
-        is_binary(socket.assigns[:duration]) -> parse_duration_minutes(socket.assigns[:duration])
-        true -> 30
-      end
+    duration_minutes = get_duration_minutes(socket)
 
     case get_month_availability(
            socket.assigns.organizer_user_id,
@@ -403,13 +397,7 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
     user_timezone = socket.assigns.user_timezone
     organizer_profile = socket.assigns.organizer_profile
 
-    duration_minutes =
-      cond do
-        mt = socket.assigns[:meeting_type] -> mt.duration_minutes
-        is_integer(socket.assigns[:duration]) -> socket.assigns[:duration]
-        is_binary(socket.assigns[:duration]) -> parse_duration_minutes(socket.assigns[:duration])
-        true -> 30
-      end
+    duration_minutes = get_duration_minutes(socket)
 
     task =
       Task.async(fn ->
@@ -485,6 +473,15 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
 
   defp get_owner_timezone(organizer_profile) do
     {:ok, organizer_profile.timezone || "Europe/Kyiv"}
+  end
+
+  defp get_duration_minutes(socket) do
+    cond do
+      mt = socket.assigns[:meeting_type] -> mt.duration_minutes
+      is_integer(socket.assigns[:duration]) -> socket.assigns[:duration]
+      is_binary(socket.assigns[:duration]) -> parse_duration_minutes(socket.assigns[:duration])
+      true -> 30
+    end
   end
 
   @doc """

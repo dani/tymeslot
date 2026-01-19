@@ -19,6 +19,7 @@ defmodule Tymeslot.Emails.Shared.UiComponents do
 
   alias Tymeslot.Emails.Shared.SharedHelpers
   alias Tymeslot.Emails.Shared.Styles
+  alias Tymeslot.Security.UrlValidation
 
   @doc """
   Generates a centered logo header for system emails.
@@ -68,10 +69,11 @@ defmodule Tymeslot.Emails.Shared.UiComponents do
   def action_button_group(buttons) do
     button_html =
       Enum.map_join(buttons, "\n", fn button ->
-        color = Map.get(button, :opts, []) |> Keyword.get(:color, "primary")
-        width = Map.get(button, :opts, []) |> Keyword.get(:width, "auto")
-        size = Map.get(button, :opts, []) |> Keyword.get(:size, :medium)
-        full_width = Map.get(button, :opts, []) |> Keyword.get(:full_width, false)
+        opts = Map.get(button, :opts, [])
+        color = Keyword.get(opts, :color, "primary")
+        width = Keyword.get(opts, :width, "auto")
+        size = Keyword.get(opts, :size, :medium)
+        full_width = Keyword.get(opts, :full_width, false)
 
         """
         <mj-column>
@@ -211,7 +213,7 @@ defmodule Tymeslot.Emails.Shared.UiComponents do
   def troubleshooting_link(url) do
     # Validate and sanitize URL
     safe_url =
-      case Tymeslot.Security.UrlValidation.validate_http_url(url) do
+      case UrlValidation.validate_http_url(url) do
         :ok ->
           SharedHelpers.sanitize_for_email(url)
 
@@ -311,7 +313,7 @@ defmodule Tymeslot.Emails.Shared.UiComponents do
   Generates a modern info grid with refined card styling.
   Each item should have :label and :value keys.
   Perfect for displaying key meeting details at a glance.
-  
+
   Both label and value are sanitized for safe HTML output.
   """
   @spec quick_info_grid(list(map())) :: String.t()
@@ -320,7 +322,7 @@ defmodule Tymeslot.Emails.Shared.UiComponents do
       Enum.map_join(items, "\n", fn item ->
         safe_label = SharedHelpers.sanitize_for_email(item.label)
         safe_value = SharedHelpers.sanitize_for_email(item.value)
-        
+
         """
         <mj-column>
           <mj-text
@@ -449,7 +451,7 @@ defmodule Tymeslot.Emails.Shared.UiComponents do
 
     # Validate and sanitize URL
     safe_url =
-      case Tymeslot.Security.UrlValidation.validate_http_url(url) do
+      case UrlValidation.validate_http_url(url) do
         :ok -> SharedHelpers.sanitize_for_email(url)
         _ -> "#"
       end

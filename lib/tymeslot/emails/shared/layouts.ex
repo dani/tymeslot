@@ -30,8 +30,8 @@ defmodule Tymeslot.Emails.Shared.Layouts do
   """
   @spec system_layout(String.t(), keyword()) :: String.t()
   def system_layout(content, opts \\ []) do
-    title = Keyword.get(opts, :title, "Tymeslot") |> SharedHelpers.sanitize_for_email()
-    preview = Keyword.get(opts, :preview, "Important notification from Tymeslot") |> SharedHelpers.sanitize_for_email()
+    title = SharedHelpers.sanitize_for_email(Keyword.get(opts, :title, "Tymeslot"))
+    preview = SharedHelpers.sanitize_for_email(Keyword.get(opts, :preview, "Important notification from Tymeslot"))
     logo_data_uri = SharedHelpers.get_logo_data_uri()
 
     """
@@ -100,7 +100,7 @@ defmodule Tymeslot.Emails.Shared.Layouts do
   """
   @spec simple_layout(String.t(), keyword()) :: String.t()
   def simple_layout(content, opts \\ []) do
-    title = Keyword.get(opts, :title, "Notification") |> SharedHelpers.sanitize_for_email()
+    title = SharedHelpers.sanitize_for_email(Keyword.get(opts, :title, "Notification"))
     header = Keyword.get(opts, :header)
     safe_header = if header, do: SharedHelpers.sanitize_for_email(header)
     logo_data_uri = SharedHelpers.get_logo_data_uri()
