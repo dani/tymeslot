@@ -82,14 +82,14 @@ defmodule Tymeslot.Emails.Templates.AppointmentConfirmationOrganizer do
   defp organizer_reminder_line(appointment_details) do
     # Default to reminders being enabled if the flag is not explicitly false
     # Map.get returns nil if key exists with nil value, so we need explicit nil check
-    reminders_enabled = 
+    reminders_enabled =
       case Map.get(appointment_details, :reminders_enabled) do
         nil -> true  # Default to enabled when not set
         false -> false
         true -> true
         _ -> true  # Any other value defaults to enabled
       end
-    
+
     if reminders_enabled do
       "- Set a reminder #{appointment_details.reminder_time || "15 minutes"} before"
     else

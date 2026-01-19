@@ -47,7 +47,7 @@ defmodule Tymeslot.Emails.Shared.TemplateHelper do
   def compile_system_template(mjml_content, title \\ "Tymeslot", preview \\ nil) do
     # Only include preview in opts if it's not nil, so system_layout can use its default
     opts = [title: title] ++ if preview, do: [preview: preview], else: []
-    
+
     mjml_content
     |> Layouts.system_layout(opts)
     |> MjmlEmail.compile_mjml()

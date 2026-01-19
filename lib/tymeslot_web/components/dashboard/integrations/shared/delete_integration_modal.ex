@@ -53,6 +53,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Shared.DeleteIntegration
     case socket.assigns.integration_id do
       nil ->
         Flash.error("No integration selected for deletion")
+
         {:noreply,
          socket
          |> assign(:show, false)
@@ -92,6 +93,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Shared.DeleteIntegration
 
           {:error, :not_found} ->
             Flash.error("Integration not found. It may have already been deleted.")
+
             {:noreply,
              socket
              |> assign(:show, false)
@@ -104,6 +106,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Shared.DeleteIntegration
 
       _ ->
         Flash.error("Invalid integration ID")
+
         {:noreply,
          socket
          |> assign(:show, false)
