@@ -24,7 +24,7 @@ tymeslot-*.tar
 # Test files and coverage
 test/
 cover/
-.coverdata
+*.coverdata
 screenshots/
 test/reports/
 
