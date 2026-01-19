@@ -17,6 +17,65 @@ defmodule TymeslotWeb.Components.DashboardIntegrationsTest do
   alias TymeslotWeb.Components.Dashboard.Integrations.Video.CustomConfig
   alias TymeslotWeb.Components.Dashboard.Integrations.Video.MirotalkConfig
   alias TymeslotWeb.Dashboard.CalendarSettingsComponent
+  alias TymeslotWeb.Dashboard.CalendarSettings.Components, as: CalendarComponents
+
+  test "renders calendar_item correctly" do
+    assigns = %{
+      integration: %{
+        id: 1,
+        name: "My Calendar",
+        provider: "google",
+        is_active: true,
+        calendar_list: [%{"id" => "cal1", "name" => "Work", "selected" => true}],
+        default_booking_calendar_id: "cal1"
+      },
+      validating_integration_id: 0,
+      myself: "some-target"
+    }
+
+    html = render_component(&CalendarComponents.calendar_item/1, assigns)
+    assert html =~ "My Calendar"
+    assert html =~ "Work"
+    assert html =~ "Active for Conflict Checking" or html =~ "Syncing 1 Calendars"
+  end
+
+  test "renders calendar_item correctly when inactive" do
+    assigns = %{
+      integration: %{
+        id: 1,
+        name: "My Calendar",
+        provider: "google",
+        is_active: false,
+        calendar_list: []
+      },
+      validating_integration_id: 0,
+      myself: "some-target"
+    }
+
+    html = render_component(&CalendarComponents.calendar_item/1, assigns)
+    assert html =~ "Paused"
+    assert html =~ "disabled"
+  end
+
+  test "renders calendar_item safely when calendar_list is nil" do
+    assigns = %{
+      integration: %{
+        id: 1,
+        name: "My Calendar",
+        provider: "google",
+        is_active: true,
+        calendar_list: nil
+      },
+      validating_integration_id: 0,
+      myself: "some-target"
+    }
+
+    # Should not crash
+    html = render_component(&CalendarComponents.calendar_item/1, assigns)
+    assert html =~ "My Calendar"
+    assert html =~ "Syncing 0 Calendars"
+    assert html =~ "No calendars found"
+  end
 
   test "renders integration_card correctly" do
     assigns = %{
@@ -302,7 +361,7 @@ defmodule TymeslotWeb.Components.DashboardIntegrationsTest do
         assigns: %{
           __changed__: %{},
           form_errors: %{url: "bad"},
-          metadata: %{},
+          security_metadata: %{},
           form_values: %{},
           selected_provider: :caldav
         }

@@ -136,4 +136,44 @@ defmodule TymeslotWeb.Helpers.IntegrationProviders do
       true -> "#{diff} second(s)"
     end
   end
+
+  @doc """
+  Format connection test success message for a provider.
+  """
+  @spec format_test_success_message(atom | String.t(), String.t()) :: String.t()
+  def format_test_success_message(provider, message) do
+    case to_string(provider) do
+      "mirotalk" -> "✓ MiroTalk connection verified - #{message}"
+      "google_meet" -> "✓ Google Meet connection verified - #{message}"
+      "teams" -> "✓ Microsoft Teams connection verified - #{message}"
+      "custom" -> "✓ Custom provider configured - #{message}"
+      _ -> message
+    end
+  end
+
+  @doc """
+  Map a provider error reason to form field errors.
+  """
+  @spec reason_to_form_errors(String.t() | any()) :: map()
+  def reason_to_form_errors(reason) do
+    reason_down = if is_binary(reason), do: String.downcase(reason), else: ""
+
+    cond do
+      is_binary(reason) and
+          (String.contains?(reason_down, "invalid api key") or
+             String.contains?(reason_down, "authentication failed")) ->
+        %{api_key: reason}
+
+      is_binary(reason) and
+          (String.contains?(reason_down, "url") or String.contains?(reason_down, "domain") or
+             String.contains?(reason_down, "endpoint")) ->
+        %{base_url: reason}
+
+      is_binary(reason) ->
+        %{base_url: reason}
+
+      true ->
+        %{base_url: "Connection validation failed"}
+    end
+  end
 end

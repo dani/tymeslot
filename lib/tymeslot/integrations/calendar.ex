@@ -148,6 +148,27 @@ defmodule Tymeslot.Integrations.Calendar do
     Selection.update_calendar_selection(integration, params)
   end
 
+  @doc """
+  Toggles a single calendar's selection state within an integration.
+  """
+  @spec toggle_calendar_selection(CalendarIntegrationSchema.t(), String.t() | integer()) ::
+          {:ok, CalendarIntegrationSchema.t()} | {:error, any()}
+  def toggle_calendar_selection(integration, calendar_id) do
+    current_selection =
+      (integration.calendar_list || [])
+      |> Enum.reduce([], fn cal, acc ->
+        cid = cal["id"] || cal[:id]
+        is_selected = cal["selected"] || cal[:selected] || false
+
+        is_now_selected =
+          if to_string(cid) == to_string(calendar_id), do: !is_selected, else: is_selected
+
+        if is_now_selected, do: [to_string(cid) | acc], else: acc
+      end)
+
+    update_calendar_selection(integration, %{"selected_calendars" => current_selection})
+  end
+
   # ---------------------------
   # Public API: Validation/Connection
   # ---------------------------
@@ -669,6 +690,45 @@ defmodule Tymeslot.Integrations.Calendar do
   end
 
   defp extract_name_from_path(_), do: "Calendar"
+
+  @doc """
+  Discovers calendars for raw credentials and filters them for valid paths.
+  """
+  @spec discover_and_filter_calendars(atom() | String.t(), String.t(), String.t(), String.t()) ::
+          {:ok, %{calendars: list(), discovery_credentials: map()}} | {:error, any()}
+  def discover_and_filter_calendars(provider, url, username, password) do
+    case Discovery.discover_calendars_for_credentials(provider, url, username, password,
+           force_refresh: true
+         ) do
+      {:ok, %{calendars: calendars, discovery_credentials: credentials}} ->
+        # Filter calendars to only include those with valid paths
+        valid_calendars =
+          Enum.filter(calendars, fn calendar ->
+            is_binary(calendar[:path] || calendar[:href])
+          end)
+
+        {:ok, %{calendars: valid_calendars, discovery_credentials: credentials}}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  @doc """
+  Normalizes discovery errors into user-friendly strings.
+  """
+  @spec normalize_discovery_error(any()) :: String.t()
+  def normalize_discovery_error(reason) do
+    errors =
+      reason
+      |> List.wrap()
+      |> Enum.reject(&(&1 in [nil, ""]))
+
+    case errors do
+      [] -> "Calendar discovery failed. Please check your credentials and try again."
+      errors -> Enum.map_join(errors, ", ", &to_string/1)
+    end
+  end
 
   # ---------------------------
   # Internal helpers (legacy) — moved to dedicated modules
