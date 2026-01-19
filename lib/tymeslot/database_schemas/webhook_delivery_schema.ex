@@ -78,7 +78,11 @@ defmodule Tymeslot.DatabaseSchemas.WebhookDeliverySchema do
   """
   @spec retryable?(t()) :: boolean()
   def retryable?(%__MODULE__{response_status: 429}), do: true
-  def retryable?(%__MODULE__{response_status: status}) when status >= 500, do: true
+
+  def retryable?(%__MODULE__{response_status: status})
+      when is_integer(status) and status >= 500,
+      do: true
+
   def retryable?(%__MODULE__{response_status: nil}), do: true
   def retryable?(_), do: false
 
@@ -88,12 +92,23 @@ defmodule Tymeslot.DatabaseSchemas.WebhookDeliverySchema do
   @spec status_message(t()) :: String.t()
   def status_message(%__MODULE__{} = delivery) do
     cond do
-      successful?(delivery) -> "Success"
-      delivery.error_message -> "Error: #{delivery.error_message}"
-      delivery.response_status == 429 -> "Rate limited"
-      delivery.response_status >= 500 -> "Server error"
-      delivery.response_status >= 400 -> "Client error"
-      true -> "Pending"
+      successful?(delivery) ->
+        "Success"
+
+      delivery.error_message ->
+        "Error: #{delivery.error_message}"
+
+      delivery.response_status == 429 ->
+        "Rate limited"
+
+      is_integer(delivery.response_status) and delivery.response_status >= 500 ->
+        "Server error"
+
+      is_integer(delivery.response_status) and delivery.response_status >= 400 ->
+        "Client error"
+
+      true ->
+        "Pending"
     end
   end
 end

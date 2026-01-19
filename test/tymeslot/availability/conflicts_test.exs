@@ -327,7 +327,8 @@ defmodule Tymeslot.Availability.ConflictsTest do
             %{min_advance_hours: 0}
           )
 
-        assert result == false, "Should be unavailable when business hours have passed or it's a weekend"
+        assert result == false,
+               "Should be unavailable when business hours have passed or it's a weekend"
       end
     end
 

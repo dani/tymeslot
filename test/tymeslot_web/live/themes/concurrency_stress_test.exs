@@ -27,8 +27,13 @@ defmodule TymeslotWeb.Live.Themes.ConcurrencyStressTest do
     # Use a unique username for each test run to avoid cache/state leakage
     username = "stress-test-#{System.unique_integer([:positive])}"
     profile = insert(:profile, user: user, username: username, booking_theme: "1")
-    mt30 = insert(:meeting_type, user: user, name: "30 Minutes", duration_minutes: 30, is_active: true)
-    mt60 = insert(:meeting_type, user: user, name: "60 Minutes", duration_minutes: 60, is_active: true)
+
+    mt30 =
+      insert(:meeting_type, user: user, name: "30 Minutes", duration_minutes: 30, is_active: true)
+
+    mt60 =
+      insert(:meeting_type, user: user, name: "60 Minutes", duration_minutes: 60, is_active: true)
+
     insert(:calendar_integration, user: user, is_active: true)
 
     # Set some business hours
@@ -65,7 +70,12 @@ defmodule TymeslotWeb.Live.Themes.ConcurrencyStressTest do
     end)
   end
 
-  test "rapid duration switching cancels previous tasks", %{conn: conn, profile: profile, mt30: mt30, mt60: mt60} do
+  test "rapid duration switching cancels previous tasks", %{
+    conn: conn,
+    profile: profile,
+    mt30: mt30,
+    mt60: mt60
+  } do
     # Stub calendar to be slow
     stub(Tymeslot.CalendarMock, :get_events_for_range_fresh, fn _user_id, _start, _end ->
       Process.sleep(100)
@@ -78,11 +88,15 @@ defmodule TymeslotWeb.Live.Themes.ConcurrencyStressTest do
     # Use render_click since they might not have data-testid or might be in a list
     Enum.each(1..3, fn _ ->
       view
-      |> element("button[phx-click='select_duration'][phx-value-duration='#{MeetingTypes.to_slug(mt30)}']")
+      |> element(
+        "button[phx-click='select_duration'][phx-value-duration='#{MeetingTypes.to_slug(mt30)}']"
+      )
       |> render_click()
 
       view
-      |> element("button[phx-click='select_duration'][phx-value-duration='#{MeetingTypes.to_slug(mt60)}']")
+      |> element(
+        "button[phx-click='select_duration'][phx-value-duration='#{MeetingTypes.to_slug(mt60)}']"
+      )
       |> render_click()
     end)
 

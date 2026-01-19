@@ -403,9 +403,14 @@ defmodule Tymeslot.MeetingTypesContextTest do
     test "handles various durations" do
       user = insert(:user)
 
-      meeting_type_15 = insert(:meeting_type, user: user, name: "15 Minutes", duration_minutes: 15)
-      meeting_type_60 = insert(:meeting_type, user: user, name: "60 Minutes", duration_minutes: 60)
-      meeting_type_90 = insert(:meeting_type, user: user, name: "90 Minutes", duration_minutes: 90)
+      meeting_type_15 =
+        insert(:meeting_type, user: user, name: "15 Minutes", duration_minutes: 15)
+
+      meeting_type_60 =
+        insert(:meeting_type, user: user, name: "60 Minutes", duration_minutes: 60)
+
+      meeting_type_90 =
+        insert(:meeting_type, user: user, name: "90 Minutes", duration_minutes: 90)
 
       assert MeetingTypes.to_duration_string(meeting_type_15) == "15-minutes"
       assert MeetingTypes.to_duration_string(meeting_type_60) == "60-minutes"
@@ -416,7 +421,14 @@ defmodule Tymeslot.MeetingTypesContextTest do
   describe "when finding meeting type by slug" do
     test "finds matching meeting type" do
       user = insert(:user)
-      meeting_type = insert(:meeting_type, user: user, name: "Discovery Call", duration_minutes: 30, is_active: true)
+
+      meeting_type =
+        insert(:meeting_type,
+          user: user,
+          name: "Discovery Call",
+          duration_minutes: 30,
+          is_active: true
+        )
 
       result = MeetingTypes.find_by_slug(user.id, "discovery-call")
 
@@ -425,7 +437,14 @@ defmodule Tymeslot.MeetingTypesContextTest do
 
     test "returns nil for non-matching slug" do
       user = insert(:user)
-      _meeting_type = insert(:meeting_type, user: user, name: "Discovery Call", duration_minutes: 30, is_active: true)
+
+      _meeting_type =
+        insert(:meeting_type,
+          user: user,
+          name: "Discovery Call",
+          duration_minutes: 30,
+          is_active: true
+        )
 
       result = MeetingTypes.find_by_slug(user.id, "other-call")
 
@@ -434,8 +453,22 @@ defmodule Tymeslot.MeetingTypesContextTest do
 
     test "only finds active meeting types" do
       user = insert(:user)
-      _inactive = insert(:meeting_type, user: user, name: "Inactive Call", duration_minutes: 30, is_active: false)
-      active = insert(:meeting_type, user: user, name: "Active Call", duration_minutes: 45, is_active: true)
+
+      _inactive =
+        insert(:meeting_type,
+          user: user,
+          name: "Inactive Call",
+          duration_minutes: 30,
+          is_active: false
+        )
+
+      active =
+        insert(:meeting_type,
+          user: user,
+          name: "Active Call",
+          duration_minutes: 45,
+          is_active: true
+        )
 
       result_inactive = MeetingTypes.find_by_slug(user.id, "inactive-call")
       result_active = MeetingTypes.find_by_slug(user.id, "active-call")
@@ -449,7 +482,14 @@ defmodule Tymeslot.MeetingTypesContextTest do
   describe "when finding meeting type by duration string (deprecated)" do
     test "finds matching meeting type by slug" do
       user = insert(:user)
-      meeting_type = insert(:meeting_type, user: user, name: "Quick Chat", duration_minutes: 30, is_active: true)
+
+      meeting_type =
+        insert(:meeting_type,
+          user: user,
+          name: "Quick Chat",
+          duration_minutes: 30,
+          is_active: true
+        )
 
       result = MeetingTypes.find_by_duration_string(user.id, "quick-chat")
 

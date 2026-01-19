@@ -2,6 +2,7 @@ defmodule Tymeslot.Auth.ValidationTest do
   use Tymeslot.DataCase, async: true
 
   alias Tymeslot.Auth.Validation
+  alias Ecto.Changeset
 
   describe "validate_login_input/1" do
     test "returns :ok when email and password are present" do
@@ -10,13 +11,19 @@ defmodule Tymeslot.Auth.ValidationTest do
     end
 
     test "returns :error when email is missing or blank" do
-      assert {:error, %{email: ["can't be blank"]}} = Validation.validate_login_input(%{"password" => "password123"})
-      assert {:error, %{email: ["can't be blank"]}} = Validation.validate_login_input(%{"email" => "", "password" => "password123"})
+      assert {:error, %{email: ["can't be blank"]}} =
+               Validation.validate_login_input(%{"password" => "password123"})
+
+      assert {:error, %{email: ["can't be blank"]}} =
+               Validation.validate_login_input(%{"email" => "", "password" => "password123"})
     end
 
     test "returns :error when password is missing or blank" do
-      assert {:error, %{password: ["can't be blank"]}} = Validation.validate_login_input(%{"email" => "test@example.com"})
-      assert {:error, %{password: ["can't be blank"]}} = Validation.validate_login_input(%{"email" => "test@example.com", "password" => ""})
+      assert {:error, %{password: ["can't be blank"]}} =
+               Validation.validate_login_input(%{"email" => "test@example.com"})
+
+      assert {:error, %{password: ["can't be blank"]}} =
+               Validation.validate_login_input(%{"email" => "test@example.com", "password" => ""})
     end
 
     test "returns :error with multiple errors when both are missing" do
@@ -59,9 +66,11 @@ defmodule Tymeslot.Auth.ValidationTest do
     end
 
     test "formats changeset errors" do
-      changeset = Ecto.Changeset.change({%{}, %{email: :string}}, %{email: "invalid"})
-      |> Ecto.Changeset.validate_format(:email, ~r/@/)
-      
+      changeset =
+        {%{}, %{email: :string}}
+        |> Changeset.change(%{email: "invalid"})
+        |> Changeset.validate_format(:email, ~r/@/)
+
       result = Validation.format_validation_errors(changeset)
       assert is_map(result) or is_binary(result)
     end

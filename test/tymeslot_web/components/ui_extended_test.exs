@@ -3,10 +3,10 @@ defmodule TymeslotWeb.Components.UIExtendedTest do
   import Phoenix.LiveViewTest
   import Phoenix.Component
 
-  alias TymeslotWeb.Components.Shared.TimeOptions
-  alias TymeslotWeb.Themes.Shared.Assets
   alias TymeslotWeb.Components.CoreComponents.Navigation
+  alias TymeslotWeb.Components.Shared.TimeOptions
   alias TymeslotWeb.Shared.Auth.IconComponents
+  alias TymeslotWeb.Themes.Shared.Assets
 
   describe "TimeOptions" do
     test "time_options/0 returns 24h interval pairs" do
@@ -51,12 +51,17 @@ defmodule TymeslotWeb.Components.UIExtendedTest do
 
     test "back_link/1 renders correctly" do
       assigns = %{to: "/test"}
-      html = render_component(fn assigns ->
-        ~H"""
-        <Navigation.back_link to={@to}>Back</Navigation.back_link>
-        """
-      end, assigns)
-      
+
+      html =
+        render_component(
+          fn assigns ->
+            ~H"""
+            <Navigation.back_link to={@to}>Back</Navigation.back_link>
+            """
+          end,
+          assigns
+        )
+
       assert html =~ "/test"
       assert html =~ "Back"
     end

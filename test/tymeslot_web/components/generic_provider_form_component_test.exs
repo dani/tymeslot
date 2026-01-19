@@ -10,11 +10,12 @@ defmodule TymeslotWeb.Integrations.Providers.GenericProviderFormComponentTest do
       {:is_active, %{type: :boolean}},
       {:start_date, %{type: :datetime}}
     ]
-    
+
     html = render_component(GenericProviderFormComponent, id: "test-form", schema: schema)
-    
+
     assert html =~ "API Key"
-    assert html =~ "Is active" # Default label from helper
+    # Default label from helper
+    assert html =~ "Is active"
     assert html =~ "type=\"text\""
     assert html =~ "type=\"checkbox\""
     assert html =~ "type=\"datetime-local\""

@@ -11,6 +11,7 @@ defmodule Tymeslot.Factory do
   alias Tymeslot.DatabaseSchemas.CalendarIntegrationSchema
   alias Tymeslot.DatabaseSchemas.MeetingSchema
   alias Tymeslot.DatabaseSchemas.MeetingTypeSchema
+  alias Tymeslot.DatabaseSchemas.PaymentTransactionSchema
   alias Tymeslot.DatabaseSchemas.ProfileSchema
   alias Tymeslot.DatabaseSchemas.ThemeCustomizationSchema
   alias Tymeslot.DatabaseSchemas.UserSchema
@@ -230,6 +231,18 @@ defmodule Tymeslot.Factory do
       response_status: 200,
       attempt_count: 1,
       inserted_at: DateTime.utc_now()
+    }
+  end
+
+  @spec payment_transaction_factory() :: Tymeslot.DatabaseSchemas.PaymentTransactionSchema.t()
+  def payment_transaction_factory do
+    %PaymentTransactionSchema{
+      user: build(:user),
+      amount: 1000,
+      product_identifier: "pro_plan",
+      status: "pending",
+      metadata: %{},
+      stripe_id: sequence(:stripe_id, &"sess_#{&1}")
     }
   end
 end

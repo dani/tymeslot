@@ -92,7 +92,12 @@ defmodule Tymeslot.Emails.Shared.MeetingComponentsTest do
 
     test "allows custom title and button text" do
       url = "https://meet.example.com/room123"
-      html = MeetingComponents.video_meeting_section(url, title: "Custom Title", button_text: "Custom Button")
+
+      html =
+        MeetingComponents.video_meeting_section(url,
+          title: "Custom Title",
+          button_text: "Custom Button"
+        )
 
       assert html =~ "Custom Title"
       assert html =~ "Custom Button"

@@ -106,7 +106,8 @@ defmodule Tymeslot.DatabaseQueries.PaymentQueriesTest do
     end
 
     test "returns error when transaction doesn't exist" do
-      assert {:error, :not_found} = PaymentQueries.get_transaction_by_stripe_id("nonexistent")
+      assert {:error, :transaction_not_found} =
+               PaymentQueries.get_transaction_by_stripe_id("nonexistent")
     end
   end
 
@@ -194,7 +195,7 @@ defmodule Tymeslot.DatabaseQueries.PaymentQueriesTest do
     test "returns error when transaction not found" do
       tax_info = %{tax_amount: 100}
 
-      assert {:error, :not_found} =
+      assert {:error, :transaction_not_found} =
                PaymentQueries.coordinate_successful_payment("nonexistent", tax_info, 0)
     end
   end

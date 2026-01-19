@@ -128,7 +128,14 @@ defmodule TymeslotWeb.Live.Themes.AvailabilityRefinementTest do
         )
       end)
 
-      _meeting_type = insert(:meeting_type, user: user, name: "30 Minutes", duration_minutes: 30, is_active: true)
+      _meeting_type =
+        insert(:meeting_type,
+          user: user,
+          name: "30 Minutes",
+          duration_minutes: 30,
+          is_active: true
+        )
+
       insert(:calendar_integration, user: user, is_active: true)
 
       now_in_tz = DateTime.shift_zone!(DateTime.utc_now(), timezone)

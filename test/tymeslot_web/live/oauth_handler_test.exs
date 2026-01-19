@@ -1,14 +1,14 @@
 defmodule TymeslotWeb.Live.OAuthHandlerTest do
   use TymeslotWeb.ConnCase, async: true
-  alias TymeslotWeb.Live.OAuthHandler
   alias Phoenix.LiveView.Socket
+  alias TymeslotWeb.Live.OAuthHandler
 
   describe "handle_oauth_redirect/3" do
     test "sends message and closes modal for OAuth provider" do
       socket = %Socket{assigns: %{__changed__: %{}, show_provider_modal: true}}
-      # IntegrationProviders.oauth_provider? is used here. 
+      # IntegrationProviders.oauth_provider? is used here.
       # "google" + :calendar is an OAuth provider.
-      
+
       updated = OAuthHandler.handle_oauth_redirect(socket, "google", :calendar)
       assert updated.assigns.show_provider_modal == false
       assert_receive {:oauth_redirect, "google", :calendar}
@@ -24,9 +24,15 @@ defmodule TymeslotWeb.Live.OAuthHandlerTest do
 
   describe "handle_oauth_event/2" do
     test "returns correct redirect for known providers" do
-      assert {:oauth_redirect, "google_calendar"} = OAuthHandler.handle_oauth_event("google", :calendar)
-      assert {:oauth_redirect, "outlook_calendar"} = OAuthHandler.handle_oauth_event("outlook", :calendar)
-      assert {:oauth_redirect, "google_meet"} = OAuthHandler.handle_oauth_event("google_meet", :video)
+      assert {:oauth_redirect, "google_calendar"} =
+               OAuthHandler.handle_oauth_event("google", :calendar)
+
+      assert {:oauth_redirect, "outlook_calendar"} =
+               OAuthHandler.handle_oauth_event("outlook", :calendar)
+
+      assert {:oauth_redirect, "google_meet"} =
+               OAuthHandler.handle_oauth_event("google_meet", :video)
+
       assert {:oauth_redirect, "teams"} = OAuthHandler.handle_oauth_event("teams", :video)
     end
 

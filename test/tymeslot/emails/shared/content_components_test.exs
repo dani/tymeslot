@@ -21,7 +21,11 @@ defmodule Tymeslot.Emails.Shared.ContentComponentsTest do
 
     test "allows safe HTML when safe_html flag is set" do
       rows = [
-        %{label: "Email", value: ~s(<a href="mailto:test@example.com">test@example.com</a>), safe_html: true}
+        %{
+          label: "Email",
+          value: ~s(<a href="mailto:test@example.com">test@example.com</a>),
+          safe_html: true
+        }
       ]
 
       html = ContentComponents.contact_details_card("Contact Info", "test@example.com", rows)
@@ -33,7 +37,10 @@ defmodule Tymeslot.Emails.Shared.ContentComponentsTest do
 
     test "allows safe HTML via {:safe, html} tuple" do
       rows = [
-        %{label: "Email", value: {:safe, ~s(<a href="mailto:test@example.com">test@example.com</a>)}}
+        %{
+          label: "Email",
+          value: {:safe, ~s(<a href="mailto:test@example.com">test@example.com</a>)}
+        }
       ]
 
       html = ContentComponents.contact_details_card("Contact Info", "test@example.com", rows)
@@ -56,7 +63,9 @@ defmodule Tymeslot.Emails.Shared.ContentComponentsTest do
 
     test "sanitizes title" do
       rows = [%{label: "Test", value: "Value"}]
-      html = ContentComponents.contact_details_card("<script>Title</script>", "test@example.com", rows)
+
+      html =
+        ContentComponents.contact_details_card("<script>Title</script>", "test@example.com", rows)
 
       refute html =~ "<script>Title</script>"
       assert html =~ "&lt;script&gt;"
@@ -65,7 +74,8 @@ defmodule Tymeslot.Emails.Shared.ContentComponentsTest do
 
   describe "message_content_card/2" do
     test "sanitizes message content" do
-      html = ContentComponents.message_content_card("Message", "<script>alert('xss')</script>Hello")
+      html =
+        ContentComponents.message_content_card("Message", "<script>alert('xss')</script>Hello")
 
       refute html =~ "<script>"
       # UniversalSanitizer strips tags rather than escaping them

@@ -5,7 +5,7 @@ defmodule TymeslotWeb.Live.Scheduling.HandlersTest do
   test "available_handlers/0 returns list of all handlers" do
     handlers = Handlers.available_handlers()
     assert length(handlers) == 4
-    
+
     names = Enum.map(handlers, & &1.name)
     assert "Timezone Handler" in names
     assert "Slot Fetching Handler" in names

@@ -65,7 +65,7 @@ defmodule Tymeslot.Payments.DatabaseOperations do
           {:ok, :payment_failed | :transaction_not_found} | {:error, any()}
   def process_failed_payment(stripe_id) do
     case PaymentQueries.get_transaction_by_stripe_id(stripe_id) do
-      {:error, :not_found} ->
+      {:error, :transaction_not_found} ->
         Logger.info("Transaction not found for failed payment with stripe_id: #{stripe_id}")
         {:ok, :transaction_not_found}
 
@@ -91,7 +91,7 @@ defmodule Tymeslot.Payments.DatabaseOperations do
           {:ok, transaction()} | {:error, :transaction_not_found}
   def get_transaction_by_stripe_id(stripe_id) do
     case PaymentQueries.get_transaction_by_stripe_id(stripe_id) do
-      {:error, :not_found} -> {:error, :transaction_not_found}
+      {:error, :transaction_not_found} -> {:error, :transaction_not_found}
       {:ok, transaction} -> {:ok, transaction}
     end
   end
@@ -104,7 +104,7 @@ defmodule Tymeslot.Payments.DatabaseOperations do
           {:ok, transaction()} | {:error, term()}
   def update_transaction_for_subscription(checkout_session_id, subscription_id, status, metadata) do
     case PaymentQueries.get_transaction_by_stripe_id(checkout_session_id) do
-      {:error, :not_found} ->
+      {:error, :transaction_not_found} ->
         Logger.error("Transaction not found for checkout session: #{checkout_session_id}")
         {:error, :transaction_not_found}
 
@@ -153,7 +153,7 @@ defmodule Tymeslot.Payments.DatabaseOperations do
       {:ok, updated_transaction} ->
         {:ok, process_subscription_updates(updated_transaction)}
 
-      {:error, :not_found} ->
+      {:error, :subscription_not_found} ->
         {:error, :subscription_not_found}
 
       {:error, reason} ->
@@ -170,7 +170,7 @@ defmodule Tymeslot.Payments.DatabaseOperations do
     Logger.warning("Processing subscription payment failure for: #{subscription_id}")
 
     case PaymentQueries.get_active_subscription_transaction_by_subscription_id(subscription_id) do
-      {:error, :not_found} ->
+      {:error, :subscription_not_found} ->
         Logger.warning(
           "No active subscription transaction found for failed payment: #{subscription_id}"
         )
@@ -208,7 +208,7 @@ defmodule Tymeslot.Payments.DatabaseOperations do
   def get_active_subscription_transaction(user_id) do
     case PaymentQueries.get_active_subscription_transaction(user_id) do
       {:ok, transaction} -> transaction
-      {:error, :not_found} -> nil
+      {:error, :subscription_not_found} -> nil
     end
   end
 

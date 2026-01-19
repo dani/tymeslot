@@ -190,13 +190,9 @@ defmodule Tymeslot.Payments do
       {:ok, _updated_transaction} ->
         :ok
 
-      {:error, %Ecto.Changeset{} = changeset} ->
-        Logger.error("Failed to supersede pending transaction: #{inspect(changeset.errors)}")
-        {:error, :transaction_update_failed}
-
       {:error, error} ->
         Logger.error("Failed to supersede pending transaction: #{inspect(error)}")
-        {:error, error}
+        {:error, :transaction_update_failed}
     end
   end
 

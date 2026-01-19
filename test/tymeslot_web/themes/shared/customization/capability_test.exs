@@ -7,7 +7,7 @@ defmodule TymeslotWeb.Themes.Shared.Customization.CapabilityTest do
     assert is_map(Capability.get_customization_options("1"))
     assert is_map(Capability.get_capability_defaults("1"))
     assert is_boolean(Capability.supports_customization?("1", :background))
-    
+
     # generate_css returns binary or error
     result = Capability.generate_css("1", %{})
     assert is_binary(result) or match?({:error, _}, result)

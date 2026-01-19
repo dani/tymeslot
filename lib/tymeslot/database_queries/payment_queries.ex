@@ -21,10 +21,10 @@ defmodule Tymeslot.DatabaseQueries.PaymentQueries do
   Gets a transaction by Stripe ID.
   """
   @spec get_transaction_by_stripe_id(String.t()) ::
-          {:ok, PaymentTransaction.t()} | {:error, :not_found}
+          {:ok, PaymentTransaction.t()} | {:error, :transaction_not_found}
   def get_transaction_by_stripe_id(stripe_id) do
     case Repo.get_by(PaymentTransaction, stripe_id: stripe_id) do
-      nil -> {:error, :not_found}
+      nil -> {:error, :transaction_not_found}
       transaction -> {:ok, transaction}
     end
   end
@@ -33,7 +33,7 @@ defmodule Tymeslot.DatabaseQueries.PaymentQueries do
   Gets a transaction by Subscription ID.
   """
   @spec get_active_subscription_transaction_by_subscription_id(String.t()) ::
-          {:ok, PaymentTransaction.t()} | {:error, :not_found}
+          {:ok, PaymentTransaction.t()} | {:error, :subscription_not_found}
   def get_active_subscription_transaction_by_subscription_id(subscription_id) do
     query =
       from(t in PaymentTransaction,
@@ -44,7 +44,7 @@ defmodule Tymeslot.DatabaseQueries.PaymentQueries do
       )
 
     case Repo.one(query) do
-      nil -> {:error, :not_found}
+      nil -> {:error, :subscription_not_found}
       transaction -> {:ok, transaction}
     end
   end
@@ -53,7 +53,7 @@ defmodule Tymeslot.DatabaseQueries.PaymentQueries do
   Gets the active subscription transaction for a user.
   """
   @spec get_active_subscription_transaction(pos_integer()) ::
-          {:ok, PaymentTransaction.t()} | {:error, :not_found}
+          {:ok, PaymentTransaction.t()} | {:error, :subscription_not_found}
   def get_active_subscription_transaction(user_id) do
     query =
       from(t in PaymentTransaction,
@@ -64,7 +64,7 @@ defmodule Tymeslot.DatabaseQueries.PaymentQueries do
       )
 
     case Repo.one(query) do
-      nil -> {:error, :not_found}
+      nil -> {:error, :subscription_not_found}
       transaction -> {:ok, transaction}
     end
   end

@@ -345,7 +345,13 @@ defmodule Tymeslot.Emails.AppointmentBuilderTest do
 
     test "includes time_until_friendly field" do
       %{user: user} = create_user_with_profile()
-      meeting = insert_meeting_for_user(user, %{start_offset: 3600, duration: 3600, reminder_time: "30 minutes"})
+
+      meeting =
+        insert_meeting_for_user(user, %{
+          start_offset: 3600,
+          duration: 3600,
+          reminder_time: "30 minutes"
+        })
 
       result = AppointmentBuilder.from_meeting(meeting)
 

@@ -162,8 +162,9 @@ defmodule Tymeslot.Payments.Webhooks.CheckoutSessionHandler do
     end
   end
 
-  defp retryable_stripe_error?(%StripeError{extra: %{http_status: status}}) when is_integer(status) do
-    status >= 500
+  defp retryable_stripe_error?(%StripeError{extra: %{http_status: status}})
+       when is_integer(status) do
+    status >= 500 or status == 429
   end
 
   defp retryable_stripe_error?(%StripeError{source: :network}), do: true

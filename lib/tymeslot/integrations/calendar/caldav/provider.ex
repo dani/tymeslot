@@ -60,14 +60,18 @@ defmodule Tymeslot.Integrations.Calendar.CalDAV.Provider do
 
   @impl true
   def new(config) do
+    base_url = config[:base_url] || config["base_url"]
+
     # Auto-detect server type for hints; provider remains :caldav at API level
-    _server_type = ServerDetector.detect_from_url(config[:base_url])
+    if is_binary(base_url) do
+      _server_type = ServerDetector.detect_from_url(base_url)
+    end
 
     common_config = %{
-      base_url: CaldavCommon.normalize_url(config[:base_url]),
-      username: config[:username],
-      password: config[:password],
-      calendar_paths: config[:calendar_paths] || [],
+      base_url: if(is_binary(base_url), do: CaldavCommon.normalize_url(base_url), else: nil),
+      username: config[:username] || config["username"],
+      password: config[:password] || config["password"],
+      calendar_paths: config[:calendar_paths] || config["calendar_paths"] || [],
       verify_ssl: true
     }
 
