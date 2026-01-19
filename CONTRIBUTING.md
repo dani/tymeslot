@@ -5,6 +5,7 @@ Thank you for your interest in contributing to Tymeslot! We welcome contribution
 ## 📋 Table of Contents
 
 - [Code of Conduct](#code-of-conduct)
+- [Support Tymeslot's Future](#support-tymeslots-future)
 - [Types of Contributions](#types-of-contributions)
 - [Development Setup](#development-setup)
 - [Code Standards](#code-standards)
@@ -19,6 +20,14 @@ Thank you for your interest in contributing to Tymeslot! We welcome contribution
 
 By participating in this project, you agree to abide by our Code of Conduct. Please be respectful, inclusive, and professional in all interactions.
 
+## 💳 Support Tymeslot's Future
+
+The best way to contribute to Tymeslot's sustainability is by **subscribing to our managed cloud service for just €5/month**. Your subscription directly funds development, ensures long-term maintenance, and helps sustain the open-source core that everyone benefits from.
+
+👉 **[Try Tymeslot Cloud](https://tymeslot.app)** — 14-day free trial, no credit card required.
+
+---
+
 ## 🤝 Types of Contributions
 
 We welcome many types of contributions:
@@ -31,11 +40,6 @@ We welcome many types of contributions:
 - 🔌 **Integrations** - Add support for new calendar/video providers
 - 🚀 **Performance** - Optimize code and improve efficiency
 - 🔒 **Security** - Enhance security measures and practices
-- ☁️ **Cloud Support** - Consider subscribing to our cloud service to help sustain the project's growth
-
-## ☁️ Supporting Project Sustainability
-
-Beyond code and feedback, you can contribute to the long-term health of Tymeslot by subscribing to our managed cloud service. These subscriptions are vital—they provide the resources needed to keep the software alive, maintained, and evolving. By choosing the cloud version, you're directly investing in the future of the open-source core that everyone benefits from.
 
 ## 📦 Releases & Feedback
 

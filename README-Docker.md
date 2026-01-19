@@ -1,8 +1,8 @@
 # Tymeslot - Docker Deployment Guide
 
-![Tymeslot Logo](https://via.placeholder.com/200x80/4F46E5/FFFFFF?text=Tymeslot)
+**Enterprise-grade meeting scheduling platform built with Elixir/Phoenix LiveView**
 
-**Enterprise-grade meeting scheduling with multi-provider calendar and video conferencing integration**
+> For a comprehensive overview of Tymeslot's features and capabilities, see the [Core README](README.md).
 
 ## Overview
 
