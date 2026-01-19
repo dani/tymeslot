@@ -260,7 +260,7 @@ defmodule TymeslotWeb.Components.DashboardIntegrationsTest do
 
     # Discovery mode
     html =
-      render_component(SharedFormComponents, :config_form, base_assigns)
+      render_component(&SharedFormComponents.config_form/1, base_assigns)
 
     doc = Floki.parse_document!(html)
 

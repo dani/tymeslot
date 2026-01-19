@@ -68,8 +68,9 @@ defmodule Tymeslot.Emails.Shared.ContentComponentsTest do
       html = ContentComponents.message_content_card("Message", "<script>alert('xss')</script>Hello")
 
       refute html =~ "<script>"
-      assert html =~ "&lt;script&gt;"
-      assert html =~ "Hello"
+      # UniversalSanitizer strips tags rather than escaping them
+      refute html =~ "&lt;script&gt;"
+      assert html =~ "alert('xss')Hello"
     end
 
     test "preserves line breaks" do

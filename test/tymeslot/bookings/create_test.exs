@@ -64,7 +64,10 @@ defmodule Tymeslot.Bookings.CreateTest do
 
     @spec start_link() :: {:ok, pid()} | {:error, term()}
     def start_link do
-      Agent.start_link(fn -> %{response: {:ok, []}, integration_info: {:error, :no_integration}} end, name: __MODULE__)
+      Agent.start_link(
+        fn -> %{response: {:ok, []}, integration_info: {:error, :no_integration}} end,
+        name: __MODULE__
+      )
     end
 
     @spec get_events_for_range_fresh(integer(), Date.t(), Date.t()) ::

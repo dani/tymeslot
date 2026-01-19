@@ -65,6 +65,9 @@ defmodule TymeslotWeb.Live.Themes.ThemeProductionChecklistTest do
             booking_theme: unquote(theme_id)
           )
 
+        # Add calendar integration to pass readiness check
+        insert(:calendar_integration, user: nil, user_id: user1.id, is_active: true)
+
         {:ok, view1, _html} = live(conn, ~p"/#{profile1.username}")
         assert view1, "Theme must handle users with no meeting types"
 
@@ -78,6 +81,9 @@ defmodule TymeslotWeb.Live.Themes.ThemeProductionChecklistTest do
             username: "long#{unquote(theme_id)}",
             booking_theme: unquote(theme_id)
           )
+
+        # Add calendar integration to pass readiness check
+        insert(:calendar_integration, user: nil, user_id: user2.id, is_active: true)
 
         insert(:meeting_type,
           user: nil,
@@ -101,6 +107,10 @@ defmodule TymeslotWeb.Live.Themes.ThemeProductionChecklistTest do
             username: "mobile#{unquote(theme_id)}",
             booking_theme: unquote(theme_id)
           )
+
+        # Add calendar integration to pass readiness check
+        insert(:calendar_integration, user: nil, user_id: user.id, is_active: true)
+        insert(:meeting_type, user: nil, user_id: user.id, name: "Test Type")
 
         {:ok, _view, html} = live(conn, ~p"/#{profile.username}")
 

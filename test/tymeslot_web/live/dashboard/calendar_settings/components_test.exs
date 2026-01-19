@@ -33,6 +33,7 @@ defmodule TymeslotWeb.Dashboard.CalendarSettings.ComponentsTest do
         integrations: [integration],
         testing_integration_id: nil,
         validating_integration_id: nil,
+        is_refreshing: false,
         myself: "target"
       }
 

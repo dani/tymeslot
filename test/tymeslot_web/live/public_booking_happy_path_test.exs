@@ -64,7 +64,7 @@ defmodule TymeslotWeb.PublicBookingHappyPathTest do
     {:ok, view, _html} = live(conn, ~p"/#{profile.username}?timezone=#{timezone}")
 
     view
-    |> element("button[phx-value-duration='30min']")
+    |> element("button[phx-value-duration='quick-chat']")
     |> render_click()
 
     view

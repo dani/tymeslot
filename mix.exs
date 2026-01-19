@@ -104,6 +104,7 @@ defmodule Tymeslot.MixProject do
       {:mox, "~> 1.0", only: :test},
       {:meck, "~> 1.1", only: :test},
       {:ex_machina, "~> 2.8", only: :test},
+      {:stripity_stripe, "~> 3.2.0"},
       {:hammer, "~> 7.1"},
       {:html_sanitize_ex, "~> 1.4"},
       {:gen_smtp, "~> 1.2"},

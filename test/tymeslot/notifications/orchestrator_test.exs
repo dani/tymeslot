@@ -76,7 +76,9 @@ defmodule Tymeslot.Notifications.OrchestratorTest do
           reminders: []
         )
 
-      assert {:ok, :reminder_not_scheduled} = Orchestrator.schedule_reminder_notifications(meeting)
+      assert {:ok, :reminder_not_scheduled} =
+               Orchestrator.schedule_reminder_notifications(meeting)
+
       assert all_enqueued(worker: EmailWorker) == []
     end
   end

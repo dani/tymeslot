@@ -1,6 +1,8 @@
 defmodule Tymeslot.Bookings.PolicyTest do
   use Tymeslot.DataCase, async: true
 
+  import Tymeslot.Factory
+
   alias Tymeslot.Bookings.Policy
   alias Tymeslot.DatabaseSchemas.MeetingSchema
 
@@ -229,6 +231,60 @@ defmodule Tymeslot.Bookings.PolicyTest do
 
       # Meeting ending in 30 seconds is not considered past
       assert Policy.meeting_is_past?(ending_soon) == false
+    end
+  end
+
+  describe "build_meeting_attributes/1 reminders snapshot" do
+    test "uses meeting type reminder config when present" do
+      user = insert(:user)
+      _profile = insert(:profile, user: user)
+
+      meeting_type =
+        insert(:meeting_type,
+          user: user,
+          reminder_config: [%{value: 10, unit: "minutes"}, %{value: 1, unit: "hours"}]
+        )
+
+      params = %{
+        meeting_uid: "meeting-uid",
+        start_datetime: DateTime.add(DateTime.utc_now(), 3600, :second),
+        end_datetime: DateTime.add(DateTime.utc_now(), 5400, :second),
+        duration_minutes: 30,
+        form_data: %{"name" => "Attendee", "email" => "attendee@example.com", "message" => ""},
+        organizer_user_id: user.id,
+        meeting_type_id: meeting_type.id,
+        user_timezone: "UTC"
+      }
+
+      attrs = Policy.build_meeting_attributes(params)
+
+      assert attrs.reminders == [%{value: 10, unit: "minutes"}, %{value: 1, unit: "hours"}]
+    end
+
+    test "respects explicit empty reminder config" do
+      user = insert(:user)
+      _profile = insert(:profile, user: user)
+
+      meeting_type =
+        insert(:meeting_type,
+          user: user,
+          reminder_config: []
+        )
+
+      params = %{
+        meeting_uid: "meeting-uid",
+        start_datetime: DateTime.add(DateTime.utc_now(), 3600, :second),
+        end_datetime: DateTime.add(DateTime.utc_now(), 5400, :second),
+        duration_minutes: 30,
+        form_data: %{"name" => "Attendee", "email" => "attendee@example.com", "message" => ""},
+        organizer_user_id: user.id,
+        meeting_type_id: meeting_type.id,
+        user_timezone: "UTC"
+      }
+
+      attrs = Policy.build_meeting_attributes(params)
+
+      assert attrs.reminders == []
     end
   end
 end

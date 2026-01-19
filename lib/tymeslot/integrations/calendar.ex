@@ -523,12 +523,11 @@ defmodule Tymeslot.Integrations.Calendar do
     Discovery.discover_calendars_for_credentials(provider, url, username, password, opts)
   end
 
-  defp refresh_integration(%{id: id, user_id: user_id} = integration)
+  defp refresh_integration(%{id: id, user_id: user_id} = _integration)
        when is_integer(id) and is_integer(user_id) do
     case CalendarManagement.get_calendar_integration(id, user_id) do
       {:ok, fresh} -> {:ok, fresh}
       {:error, :not_found} -> {:error, :not_found}
-      {:error, _} -> {:ok, integration}
     end
   end
 

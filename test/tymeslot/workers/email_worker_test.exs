@@ -70,7 +70,7 @@ defmodule Tymeslot.Workers.EmailWorkerTest do
 
     test "schedules job at specified time" do
       meeting = insert(:meeting)
-      scheduled_at = DateTime.add(DateTime.utc_now(), 1, :hour) |> DateTime.truncate(:second)
+      scheduled_at = DateTime.truncate(DateTime.add(DateTime.utc_now(), 1, :hour), :second)
 
       assert :ok = EmailWorker.schedule_reminder_emails(meeting.id, 1, "hours", scheduled_at)
 
@@ -80,7 +80,7 @@ defmodule Tymeslot.Workers.EmailWorkerTest do
 
     test "prevents duplicate jobs" do
       meeting = insert(:meeting)
-      scheduled_at = DateTime.add(DateTime.utc_now(), 30, :minute) |> DateTime.truncate(:second)
+      scheduled_at = DateTime.truncate(DateTime.add(DateTime.utc_now(), 30, :minute), :second)
 
       assert :ok = EmailWorker.schedule_reminder_emails(meeting.id, 30, "minutes", scheduled_at)
 
@@ -95,8 +95,8 @@ defmodule Tymeslot.Workers.EmailWorkerTest do
 
     test "reschedules reminder by replacing existing job" do
       meeting = insert(:meeting)
-      scheduled_at = DateTime.add(DateTime.utc_now(), 30, :minute) |> DateTime.truncate(:second)
-      new_scheduled_at = DateTime.add(DateTime.utc_now(), 45, :minute) |> DateTime.truncate(:second)
+      scheduled_at = DateTime.truncate(DateTime.add(DateTime.utc_now(), 30, :minute), :second)
+      new_scheduled_at = DateTime.truncate(DateTime.add(DateTime.utc_now(), 45, :minute), :second)
 
       assert :ok = EmailWorker.schedule_reminder_emails(meeting.id, 30, "minutes", scheduled_at)
 
@@ -108,7 +108,7 @@ defmodule Tymeslot.Workers.EmailWorkerTest do
 
       jobs = all_enqueued(worker: EmailWorker)
       assert length(jobs) == 1
-      # We skip the time comparison as Oban.Testing mailbox won't reflect the "replacement" 
+      # We skip the time comparison as Oban.Testing mailbox won't reflect the "replacement"
       # done via DB deletion in worker code.
     end
   end

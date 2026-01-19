@@ -68,6 +68,19 @@ defmodule Tymeslot.Workers.EmailWorkerHandlersTest do
       assert :ok = EmailWorkerHandlers.execute_email_action("send_contact_form", args)
     end
 
+    test "handles send_support_request" do
+      args = %{
+        "sender_name" => "Tester",
+        "sender_email" => "test@example.com",
+        "subject" => "Test",
+        "message" => "Hello"
+      }
+
+      expect(EmailServiceMock, :send_support_request, fn _, _, _, _ -> {:ok, "sent"} end)
+
+      assert :ok = EmailWorkerHandlers.execute_email_action("send_support_request", args)
+    end
+
     test "handles send_email_verification" do
       user = insert(:user)
       expect(EmailServiceMock, :send_email_verification, fn _, _ -> {:ok, "sent"} end)

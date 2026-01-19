@@ -7,9 +7,9 @@ defmodule TymeslotWeb.Themes.Shared.Customization.Helpers do
   alias Tymeslot.DatabaseSchemas.ThemeCustomizationSchema
   alias Tymeslot.Demo
   alias Tymeslot.ThemeCustomizations
+  alias Tymeslot.ThemeCustomizations.Capability
   alias Tymeslot.ThemeCustomizations.Defaults
   alias Tymeslot.ThemeCustomizations.Validation
-  alias Tymeslot.ThemeCustomizations.Capability
 
   @doc """
   Assigns theme customization data to a socket for a specific theme.

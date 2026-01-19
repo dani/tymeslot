@@ -20,7 +20,7 @@ defmodule TymeslotWeb.StripeWebhookController do
       request_path: conn.request_path,
       method: conn.method,
       params_keys: Map.keys(params),
-      headers: Enum.filter(conn.req_headers, fn {k, _} -> String.contains?(k, "stripe") end)
+      headers: stripe_headers(conn)
     )
 
     case conn.assigns[:stripe_event] do
@@ -57,6 +57,10 @@ defmodule TymeslotWeb.StripeWebhookController do
             # Return 503 so Stripe retries this specific event
             # This is used for race conditions (e.g. invoice arrives before subscription record is created)
             # We DON'T mark it as processed here so it can be retried
+            if event_id do
+              IdempotencyCache.release(event_id)
+            end
+
             send_resp(conn, 503, message || "Service Unavailable")
 
           {:error, error, _message} ->
@@ -127,5 +131,14 @@ defmodule TymeslotWeb.StripeWebhookController do
     end
 
     :ok
+  end
+
+  defp stripe_headers(conn) do
+    conn.req_headers
+    |> Enum.filter(fn {k, _} -> String.contains?(k, "stripe") end)
+    |> Enum.map(fn
+      {"stripe-signature", _} -> {"stripe-signature", "[redacted]"}
+      header -> header
+    end)
   end
 end

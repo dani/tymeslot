@@ -89,6 +89,12 @@ defmodule Tymeslot.Demo.Behaviour do
   @callback avatar_alt_text(profile :: map() | nil) :: String.t()
 
   @doc """
+  Finds meeting type by slug.
+  """
+  @callback find_by_slug(user_id :: integer(), slug :: String.t()) ::
+              map() | nil
+
+  @doc """
   Finds meeting type by duration string.
   """
   @callback find_by_duration_string(user_id :: integer(), duration_string :: String.t()) ::

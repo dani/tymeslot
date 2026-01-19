@@ -130,7 +130,7 @@ defmodule Tymeslot.Emails.Shared.MjmlEmailTest do
       # Check for header, content, and footer sections
       assert mjml =~ "<mj-head>"
       assert mjml =~ "<mj-body"
-      assert mjml =~ "Sent by"
+      assert mjml =~ "Powered by"
       assert mjml =~ "Tymeslot"
     end
 

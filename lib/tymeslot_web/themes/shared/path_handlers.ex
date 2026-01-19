@@ -3,6 +3,8 @@ defmodule TymeslotWeb.Themes.Shared.PathHandlers do
   Shared path building logic for theme scheduling LiveViews.
   """
 
+  alias Tymeslot.MeetingTypes
+
   @doc """
   Builds a path with locale and theme query parameters.
   """
@@ -27,18 +29,12 @@ defmodule TymeslotWeb.Themes.Shared.PathHandlers do
   defp do_get_base_path(:overview, username, _socket), do: "/#{username}"
 
   defp do_get_base_path(:schedule, username, socket) do
-    slug =
-      socket.assigns[:duration] || socket.assigns[:selected_duration]
-      |> Tymeslot.MeetingTypes.normalize_duration_slug()
-
+    slug = get_slug(socket)
     if slug, do: "/#{username}/#{slug}", else: "/#{username}"
   end
 
   defp do_get_base_path(:booking, username, socket) do
-    slug =
-      socket.assigns[:duration] || socket.assigns[:selected_duration]
-      |> Tymeslot.MeetingTypes.normalize_duration_slug()
-
+    slug = get_slug(socket)
     if slug, do: "/#{username}/#{slug}/book", else: "/#{username}"
   end
 
@@ -46,13 +42,16 @@ defmodule TymeslotWeb.Themes.Shared.PathHandlers do
   defp do_get_base_path(_, username, _socket), do: "/#{username}"
 
   defp build_query_params(socket, locale) do
-    slug =
-      socket.assigns[:duration] || socket.assigns[:selected_duration]
-      |> Tymeslot.MeetingTypes.normalize_duration_slug()
+    slug = get_slug(socket)
 
     %{"locale" => locale}
     |> maybe_put_query_param("theme", socket.assigns[:theme_id])
     |> maybe_put_query_param("slug", slug)
+  end
+
+  defp get_slug(socket) do
+    duration = socket.assigns[:duration] || socket.assigns[:selected_duration]
+    MeetingTypes.normalize_duration_slug(duration)
   end
 
   defp maybe_put_query_param(params, _key, nil), do: params

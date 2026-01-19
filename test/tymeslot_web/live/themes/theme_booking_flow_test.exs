@@ -28,8 +28,8 @@ defmodule TymeslotWeb.Live.Themes.ThemeBookingFlowTest do
   end
 
   @themes %{
-    "1" => %{name: "quill", duration_selector: "30min"},
-    "2" => %{name: "rhythm", duration_selector: "30min"}
+    "1" => %{name: "quill", duration_selector: "quick-chat"},
+    "2" => %{name: "rhythm", duration_selector: "quick-chat"}
   }
 
   describe "theme booking flow (feature-level)" do
@@ -284,7 +284,7 @@ defmodule TymeslotWeb.Live.Themes.ThemeBookingFlowTest do
           )
 
         {:ok, view, _html} =
-          live(conn, ~p"/#{profile.username}/30-minutes?timezone=#{timezone}")
+          live(conn, ~p"/#{profile.username}/quick-chat?timezone=#{timezone}")
 
         target_date = next_business_day(Date.utc_today())
         date_str = Date.to_string(target_date)
@@ -359,7 +359,7 @@ defmodule TymeslotWeb.Live.Themes.ThemeBookingFlowTest do
 
         # Direct link to booking page must be resilient to refresh/deep-link.
         {:ok, view, _html} =
-          live(conn, ~p"/#{profile.username}/30-minutes/book?timezone=#{timezone}")
+          live(conn, ~p"/#{profile.username}/quick-chat/book?timezone=#{timezone}")
 
         wait_until(fn -> has_element?(view, "form[data-testid='booking-form']") end)
       end

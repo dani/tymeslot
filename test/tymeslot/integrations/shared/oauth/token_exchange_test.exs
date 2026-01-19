@@ -1,5 +1,5 @@
 defmodule Tymeslot.Integrations.Common.OAuth.TokenExchangeTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias Tymeslot.Integrations.Common.OAuth.TokenExchange
 

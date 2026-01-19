@@ -57,6 +57,31 @@ defmodule Tymeslot.Security.MeetingSettingsInputProcessorTest do
       assert {:error, errors} = MeetingSettingsInputProcessor.validate_meeting_type_form(params)
       assert errors[:duration] == "Duration cannot exceed 8 hours (480 minutes)"
     end
+
+    test "validates reminder_config" do
+      params = %{
+        "name" => "Reminder Test",
+        "duration" => "30",
+        "icon" => "none",
+        "meeting_mode" => "personal",
+        "reminder_config" => [
+          %{"value" => "30", "unit" => "minutes"},
+          # Duplicate
+          %{"value" => "30", "unit" => "minutes"}
+        ]
+      }
+
+      assert {:error, errors} = MeetingSettingsInputProcessor.validate_meeting_type_form(params)
+      assert errors[:reminder_config] == "Reminder settings must be unique"
+
+      params =
+        Map.put(params, "reminder_config", [
+          %{"value" => "-5", "unit" => "minutes"}
+        ])
+
+      assert {:error, errors} = MeetingSettingsInputProcessor.validate_meeting_type_form(params)
+      assert errors[:reminder_config] == "Reminder settings must include valid values and units"
+    end
   end
 
   describe "validate_buffer_minutes" do

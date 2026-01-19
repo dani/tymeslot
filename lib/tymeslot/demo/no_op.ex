@@ -95,6 +95,12 @@ defmodule Tymeslot.Demo.NoOp do
   end
 
   @impl true
+  def find_by_slug(user_id, slug)
+      when is_integer(user_id) and is_binary(slug) do
+    MeetingTypes.find_by_slug(user_id, slug)
+  end
+
+  @impl true
   def find_by_duration_string(user_id, duration_string)
       when is_integer(user_id) and is_binary(duration_string) do
     MeetingTypes.find_by_duration_string(user_id, duration_string)

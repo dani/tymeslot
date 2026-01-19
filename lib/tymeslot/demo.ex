@@ -68,6 +68,10 @@ defmodule Tymeslot.Demo do
   @spec avatar_alt_text(map() | nil) :: String.t()
   def avatar_alt_text(profile), do: provider().avatar_alt_text(profile)
 
+  @spec find_by_slug(integer(), String.t()) :: map() | nil
+  def find_by_slug(user_id, slug),
+    do: provider().find_by_slug(user_id, slug)
+
   @spec find_by_duration_string(integer(), String.t()) :: map() | nil
   def find_by_duration_string(user_id, duration_string),
     do: provider().find_by_duration_string(user_id, duration_string)

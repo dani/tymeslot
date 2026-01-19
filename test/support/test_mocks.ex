@@ -95,6 +95,7 @@ defmodule Tymeslot.TestMocks do
       {send_result, send_result}
     end)
     |> stub(:send_contact_form, fn _name, _email, _subject, _msg -> send_result end)
+    |> stub(:send_support_request, fn _name, _email, _subject, _msg -> send_result end)
     |> stub(:send_reschedule_request, fn _meeting -> send_result end)
   end
 

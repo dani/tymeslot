@@ -77,7 +77,17 @@ defmodule Tymeslot.DataCase do
   """
   @spec setup_sandbox(map()) :: :ok
   def setup_sandbox(tags) do
-    pid = Sandbox.start_owner!(Repo, shared: not tags[:async])
+    shared = not tags[:async]
+    pid = Sandbox.start_owner!(Repo, shared: shared)
+
+    if Code.ensure_loaded?(Tymeslot.SaasRepo) and Tymeslot.SaasRepo != Repo do
+      try do
+        Sandbox.start_owner!(Tymeslot.SaasRepo, shared: shared)
+      rescue
+        _ -> :ok
+      end
+    end
+
     on_exit(fn -> Sandbox.stop_owner(pid) end)
   end
 

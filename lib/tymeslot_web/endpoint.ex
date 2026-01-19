@@ -57,11 +57,14 @@ defmodule TymeslotWeb.Endpoint do
   plug RemoteIp
   plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
 
+  # Use custom body reader to cache raw body for webhooks needed for signature verification
+  # Length reduced to 5MB for security; webhooks are typically much smaller.
   plug Plug.Parsers,
     parsers: [:urlencoded, :multipart, :json],
     pass: ["*/*"],
+    body_reader: {TymeslotWeb.Plugs.WebhookBodyCachePlug, :read_body, []},
     json_decoder: Phoenix.json_library(),
-    length: 20_000_000
+    length: 5_000_000
 
   plug Plug.MethodOverride
   plug Plug.Head

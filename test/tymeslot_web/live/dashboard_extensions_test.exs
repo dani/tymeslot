@@ -278,9 +278,9 @@ defmodule TymeslotWeb.DashboardExtensionsTest do
       assert html =~ "Third Extension"
 
       # Check ordering by finding their positions in the HTML
-      first_pos = :binary.match(html, "First Extension") |> elem(0)
-      second_pos = :binary.match(html, "Second Extension") |> elem(0)
-      third_pos = :binary.match(html, "Third Extension") |> elem(0)
+      first_pos = elem(:binary.match(html, "First Extension"), 0)
+      second_pos = elem(:binary.match(html, "Second Extension"), 0)
+      third_pos = elem(:binary.match(html, "Third Extension"), 0)
 
       assert first_pos < second_pos
       assert second_pos < third_pos
@@ -319,8 +319,8 @@ defmodule TymeslotWeb.DashboardExtensionsTest do
 
       # Verify it's in the right section by checking HTML structure
       # Extensions are rendered via the for loop in the Account section
-      account_section_start = :binary.match(html, "Account") |> elem(0)
-      extension_pos = :binary.match(html, "Integrated Feature") |> elem(0)
+      account_section_start = elem(:binary.match(html, "Account"), 0)
+      extension_pos = elem(:binary.match(html, "Integrated Feature"), 0)
 
       assert extension_pos > account_section_start
     end

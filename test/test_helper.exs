@@ -13,7 +13,8 @@ Mix.Task.run("ecto.create", ["--quiet"])
 Mix.Task.run("ecto.migrate", ["--quiet"])
 
 # Start PubSub for testing
-{:ok, _} = Phoenix.PubSub.Supervisor.start_link(name: Tymeslot.TestPubSub, adapter: Phoenix.PubSub.PG2)
+{:ok, _} =
+  Phoenix.PubSub.Supervisor.start_link(name: Tymeslot.TestPubSub, adapter: Phoenix.PubSub.PG2)
 
 # Start Ecto sandbox - ensure Repo is ready first
 {:ok, _} = Application.ensure_all_started(:tymeslot)
@@ -53,6 +54,14 @@ Mox.defmock(GoogleCalendarAPIMock,
 
 Mox.defmock(OutlookCalendarAPIMock,
   for: Tymeslot.Integrations.Calendar.Outlook.CalendarAPIBehaviour
+)
+
+Mox.defmock(Tymeslot.Payments.StripeMock,
+  for: Tymeslot.Payments.Behaviours.StripeProvider
+)
+
+Mox.defmock(Tymeslot.Payments.SubscriptionManagerMock,
+  for: Tymeslot.Payments.Behaviours.SubscriptionManager
 )
 
 ExUnit.start(exclude: [:backup_tests, :oauth_integration, :calendar_integration])

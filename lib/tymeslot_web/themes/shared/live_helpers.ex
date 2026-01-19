@@ -7,6 +7,7 @@ defmodule TymeslotWeb.Themes.Shared.LiveHelpers do
   import Phoenix.LiveView, only: [put_flash: 3, redirect: 2]
 
   alias Tymeslot.Bookings.SubmissionToken
+  alias Tymeslot.MeetingTypes
   alias Tymeslot.Profiles
   alias Tymeslot.Scheduling.ThemeFlow
   alias TymeslotWeb.Helpers.ClientIP
@@ -42,6 +43,9 @@ defmodule TymeslotWeb.Themes.Shared.LiveHelpers do
 
     # Apply theme customization after organizer is resolved
     socket = maybe_assign_customization(socket)
+
+    # Pre-calculate branding status for SaaS (if enabled) to avoid DB queries on every render
+    socket = maybe_assign_branding_status(socket)
 
     # Finally setup initial state
     socket = setup_initial_state_fun.(socket, initial_state, params)
@@ -104,6 +108,27 @@ defmodule TymeslotWeb.Themes.Shared.LiveHelpers do
   end
 
   @doc """
+  Pre-calculates branding status if a subscription manager is configured.
+  This avoids repeated DB queries in the branding overlay component.
+  """
+  @spec maybe_assign_branding_status(Phoenix.LiveView.Socket.t()) :: Phoenix.LiveView.Socket.t()
+  def maybe_assign_branding_status(socket) do
+    user_id = socket.assigns[:organizer_user_id]
+    subscription_manager = Application.get_env(:tymeslot, :subscription_manager)
+
+    should_show =
+      if user_id && subscription_manager && Code.ensure_loaded?(subscription_manager) &&
+           function_exported?(subscription_manager, :should_show_branding?, 1) do
+        subscription_manager.should_show_branding?(user_id)
+      else
+        # Default to showing branding if we can't determine otherwise
+        true
+      end
+
+    assign(socket, :should_show_branding, should_show)
+  end
+
+  @doc """
   Assigns a meeting type based on duration if organizer context is present.
   """
   @spec maybe_assign_meeting_type(Phoenix.LiveView.Socket.t(), integer() | String.t()) ::
@@ -162,7 +187,7 @@ defmodule TymeslotWeb.Themes.Shared.LiveHelpers do
 
   defp normalize_duration_param(params) do
     duration = params["slug"] || params["duration"]
-    Tymeslot.MeetingTypes.normalize_duration_slug(duration)
+    MeetingTypes.normalize_duration_slug(duration)
   end
 
   @doc """

@@ -142,7 +142,9 @@ defmodule Tymeslot.Emails.Templates.AuthEmailsTest do
 
       html = PasswordReset.render(user, reset_url)
 
-      assert html =~ "didn't request" || html =~ "security"
+      # Use a more flexible assertion that handles potential HTML escaping
+      assert html =~ "request"
+      assert html =~ "security" || html =~ "secure"
     end
   end
 

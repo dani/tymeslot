@@ -51,5 +51,25 @@ defmodule Tymeslot.DatabaseSchemas.MeetingTypeSchemaTest do
 
       assert "You already have a meeting type with this name" in errors_on(changeset).user_id
     end
+
+    test "prevents more than three reminders" do
+      user = insert(:user)
+
+      attrs = %{
+        name: "Reminder Packed",
+        duration_minutes: 30,
+        user_id: user.id,
+        reminder_config: [
+          %{value: 15, unit: "minutes"},
+          %{value: 30, unit: "minutes"},
+          %{value: 1, unit: "hours"},
+          %{value: 1, unit: "days"}
+        ]
+      }
+
+      changeset = MeetingTypeSchema.changeset(%MeetingTypeSchema{}, attrs)
+      refute changeset.valid?
+      assert "cannot have more than 3 reminders" in errors_on(changeset).reminder_config
+    end
   end
 end

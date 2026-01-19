@@ -1,5 +1,5 @@
 defmodule TymeslotWeb.Live.Themes.ThemeCustomizationIntegrationTest do
-  use TymeslotWeb.ConnCase, async: true
+  use TymeslotWeb.ConnCase, async: false
 
   import Phoenix.LiveViewTest
   import Tymeslot.Factory

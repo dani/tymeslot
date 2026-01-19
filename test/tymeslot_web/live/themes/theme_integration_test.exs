@@ -6,6 +6,7 @@ defmodule TymeslotWeb.Live.Themes.ThemeIntegrationTest do
 
   alias Ecto.Changeset
   alias Tymeslot.Repo
+  alias Tymeslot.Scheduling.LinkAccessPolicy
   alias Tymeslot.TestMocks
 
   @moduledoc """
@@ -71,6 +72,9 @@ defmodule TymeslotWeb.Live.Themes.ThemeIntegrationTest do
       profile =
         insert(:profile, user: user, username: "emptyuser", booking_theme: "1")
 
+      # Add calendar integration to pass readiness check
+      insert(:calendar_integration, user: user, is_active: true)
+
       {:ok, view, html} = live(conn, ~p"/#{profile.username}")
 
       # Should not crash, should show something
@@ -96,7 +100,7 @@ defmodule TymeslotWeb.Live.Themes.ThemeIntegrationTest do
 
       {:ok, _view, html} = live(conn, ~p"/#{profile.username}")
 
-      message = Tymeslot.Scheduling.LinkAccessPolicy.reason_to_message(:no_calendar)
+      message = LinkAccessPolicy.reason_to_message(:no_calendar)
       assert html =~ message
     end
   end

@@ -1,0 +1,291 @@
+defmodule Tymeslot.Payments.Stripe do
+  @moduledoc """
+  Handles Stripe-specific payment operations for the Tymeslot application.
+  Provides a clean interface for creating customers, sessions, and verifying payments.
+  """
+  @behaviour Tymeslot.Payments.Behaviours.StripeProvider
+
+  require Logger
+
+  alias Stripe.{Checkout.Session, Customer, Subscription, Webhook}
+
+  @max_retries 3
+  @retry_delay_ms 1000
+
+  @type stripe_result :: {:ok, map()} | {:error, any()}
+
+  # Module indirection for testability
+  defp customer_mod, do: Application.get_env(:tymeslot, :stripe_customer_mod, Customer)
+  defp session_mod, do: Application.get_env(:tymeslot, :stripe_session_mod, Session)
+
+  defp subscription_mod,
+    do: Application.get_env(:tymeslot, :stripe_subscription_mod, Subscription)
+
+  defp webhook_mod, do: Application.get_env(:tymeslot, :stripe_webhook_mod, Webhook)
+
+  @doc """
+  Creates a Stripe customer for the given email.
+  """
+  @spec create_customer(String.t()) :: stripe_result()
+  def create_customer(email) when is_binary(email) do
+    create_customer(%{email: email})
+  end
+
+  @spec create_customer(map()) :: stripe_result()
+  def create_customer(params) when is_map(params) do
+    email = params.email
+    Logger.info("Creating Stripe customer for email: #{email}")
+
+    customer_params =
+      Map.merge(
+        %{
+          email: email,
+          metadata: Map.get(params, :metadata, %{"is_business" => "pending"})
+        },
+        Map.take(params, [:name, :phone, :address])
+      )
+
+    execute_with_retry(fn ->
+      customer_mod().create(customer_params, api_key_opts())
+    end)
+  end
+
+  @doc """
+  Creates a Stripe checkout session for payment processing.
+  """
+  @spec create_session(map(), integer(), map(), String.t(), String.t()) :: stripe_result()
+  def create_session(customer, amount, transaction, success_url, cancel_url)
+      when is_integer(amount) do
+    Logger.info("Creating Stripe session for customer: #{customer.id}")
+
+    session_params = build_session_params(customer, amount, transaction, success_url, cancel_url)
+
+    execute_with_retry(fn ->
+      session_mod().create(session_params, api_key_opts())
+    end)
+  end
+
+  @doc """
+  Verifies a Stripe session by ID.
+  """
+  @spec verify_session(String.t()) :: stripe_result()
+  def verify_session(session_id) when is_binary(session_id) do
+    case session_mod().retrieve(session_id, %{}, api_key_opts()) do
+      {:ok, session} ->
+        Logger.info("Session verified successfully: #{session_id}")
+        {:ok, session}
+
+      error ->
+        Logger.error("Failed to verify session: #{inspect(error)}")
+        error
+    end
+  end
+
+  # Private functions
+
+  defp api_key_opts do
+    case stripe_api_key() do
+      nil -> []
+      key -> [api_key: key]
+    end
+  end
+
+  defp stripe_api_key do
+    Application.get_env(:stripity_stripe, :api_key) ||
+      Application.get_env(:tymeslot, :stripe_secret_key)
+  end
+
+  defp execute_with_retry(operation) do
+    if is_nil(stripe_api_key()) do
+      Logger.error("Stripe API key is not configured")
+      {:error, :missing_api_key}
+    else
+      Stream.iterate(1, &(&1 + 1))
+      |> Stream.take(@max_retries)
+      |> Enum.reduce_while({:error, :not_attempted}, fn attempt, _acc ->
+        try do
+          case operation.() do
+            {:ok, result} ->
+              {:halt, {:ok, result}}
+
+            {:error, error} ->
+              if attempt < @max_retries and retryable_error?(error) do
+                Process.sleep(attempt * @retry_delay_ms)
+                {:cont, {:error, :retry}}
+              else
+                log_final_error(error)
+                {:halt, {:error, error}}
+              end
+          end
+        rescue
+          e in [RuntimeError, ErlangError] ->
+            if attempt == @max_retries do
+              log_final_error(e)
+              {:halt, {:error, e}}
+            else
+              Process.sleep(attempt * @retry_delay_ms)
+              {:cont, {:error, :retry}}
+            end
+        end
+      end)
+    end
+  end
+
+  defp retryable_error?(%Stripe.Error{extra: %{http_status: status}}) when status >= 500, do: true
+  defp retryable_error?(%Stripe.Error{source: :network}), do: true
+  defp retryable_error?(_), do: false
+
+  defp build_session_params(customer, amount, transaction, success_url, cancel_url) do
+    currency = Application.get_env(:tymeslot, :currency, "eur")
+
+    %{
+      mode: :payment,
+      payment_method_types: [:card],
+      line_items: [
+        %{
+          quantity: 1,
+          price_data: %{
+            currency: currency,
+            unit_amount: amount,
+            product_data: %{
+              name: transaction.product_identifier || "Tymeslot Pro"
+            }
+          }
+        }
+      ],
+      success_url: success_url,
+      cancel_url: cancel_url,
+      customer: customer.id,
+      client_reference_id: to_string(transaction.id),
+      tax_id_collection: %{enabled: true},
+      billing_address_collection: :required,
+      payment_intent_data: %{
+        metadata: %{"transaction_id" => to_string(transaction.id)}
+      },
+      allow_promotion_codes: true,
+      automatic_tax: %{enabled: true},
+      customer_update: %{
+        address: "auto",
+        name: "auto",
+        shipping: "auto"
+      }
+    }
+  end
+
+  defp log_final_error(error) do
+    Logger.error("Stripe operation failed after #{@max_retries} attempts: #{inspect(error)}")
+  end
+
+  @doc """
+  Creates a Stripe checkout session for subscription processing.
+  """
+  @spec create_checkout_session_for_subscription(map()) :: stripe_result()
+  def create_checkout_session_for_subscription(params) when is_map(params) do
+    Logger.info("Creating Stripe subscription checkout session")
+
+    execute_with_retry(fn ->
+      session_mod().create(params, api_key_opts())
+    end)
+  end
+
+  @doc """
+  Cancels a Stripe subscription.
+  """
+  @spec cancel_subscription(String.t(), keyword()) :: stripe_result()
+  def cancel_subscription(subscription_id, opts \\ []) when is_binary(subscription_id) do
+    Logger.info("Canceling Stripe subscription: #{subscription_id}")
+
+    at_period_end = Keyword.get(opts, :at_period_end, true)
+
+    params =
+      if at_period_end do
+        %{cancel_at_period_end: true}
+      else
+        %{}
+      end
+
+    execute_with_retry(fn ->
+      if at_period_end do
+        subscription_mod().update(subscription_id, params, api_key_opts())
+      else
+        subscription_mod().cancel(subscription_id, %{}, api_key_opts())
+      end
+    end)
+  end
+
+  @doc """
+  Updates a Stripe subscription to a new price.
+  """
+  @spec update_subscription(String.t(), String.t(), map()) :: stripe_result()
+  def update_subscription(subscription_id, new_price_id, opts \\ %{})
+      when is_binary(subscription_id) and is_binary(new_price_id) do
+    Logger.info("Updating Stripe subscription: #{subscription_id} to price: #{new_price_id}")
+
+    execute_with_retry(fn ->
+      # First, get the current subscription to get the subscription item ID
+      with {:ok, subscription} <-
+             subscription_mod().retrieve(subscription_id, %{}, api_key_opts()) do
+        # Find the subscription item that represents the main plan
+        # We can pass the subscription_item_id in opts if we have it, otherwise look for the first one
+        items = Map.get(subscription, :items) || %{data: []}
+        
+        subscription_item = 
+          if item_id = Map.get(opts, :subscription_item_id) do
+            Enum.find(items.data, fn item -> item.id == item_id end)
+          else
+            List.first(items.data)
+          end
+
+        if subscription_item do
+          # Update the subscription item with the new price
+          subscription_mod().update(
+            subscription_id,
+            %{
+              items: [
+                %{
+                  id: subscription_item.id,
+                  price: new_price_id
+                }
+              ]
+            },
+            api_key_opts()
+          )
+        else
+          Logger.error("No subscription items found for subscription: #{subscription_id}")
+          {:error, :no_subscription_items}
+        end
+      end
+    end)
+  end
+
+  @doc """
+  Retrieves a Stripe subscription.
+  """
+  @spec get_subscription(String.t()) :: stripe_result()
+  def get_subscription(subscription_id) when is_binary(subscription_id) do
+    Logger.info("Retrieving Stripe subscription: #{subscription_id}")
+
+    execute_with_retry(fn ->
+      subscription_mod().retrieve(subscription_id, %{}, api_key_opts())
+    end)
+  end
+
+  @doc """
+  Constructs and verifies a webhook event from Stripe.
+  This is primarily used by the webhook signature verifier.
+  """
+  @spec construct_webhook_event(binary(), String.t(), String.t()) :: stripe_result()
+  def construct_webhook_event(payload, signature, secret)
+      when is_binary(payload) and is_binary(signature) and is_binary(secret) do
+    webhook_mod().construct_event(payload, signature, secret)
+  end
+
+  @doc """
+  Returns the Stripe webhook secret from configuration or environment.
+  """
+  @spec webhook_secret() :: String.t() | nil
+  def webhook_secret do
+    Application.get_env(:stripity_stripe, :webhook_secret) ||
+      Application.get_env(:tymeslot, :stripe_webhook_secret)
+  end
+end

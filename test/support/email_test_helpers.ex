@@ -39,8 +39,10 @@ defmodule Tymeslot.EmailTestHelpers do
     * `:organizer_video_url` - Organizer video URL (default: generated)
     * `:attendee_video_url` - Attendee video URL (default: generated)
     * `:view_url` - View meeting URL (default: generated)
-    * `:reminder_time` - Reminder time text (default: "30 minutes")
-    * `:time_until` - Time until meeting (default: "30 minutes")
+  * `:reminder_time` - Reminder time text (default: "30 minutes")
+  * `:reminders_summary` - Reminder summary text
+  * `:reminders_enabled` - Whether reminders are enabled
+  * `:time_until` - Time until meeting (default: "30 minutes")
 
   ## Examples
 
@@ -89,6 +91,8 @@ defmodule Tymeslot.EmailTestHelpers do
       attendee_video_url: "https://meet.example.com/#{uid}?role=guest",
       view_url: "#{base_url}/meetings/#{uid}",
       reminder_time: "30 minutes",
+      reminders_summary: "I'll send you a reminder 30 minutes before our appointment.",
+      reminders_enabled: true,
       time_until: "30 minutes",
       time_until_friendly: "in 30 minutes",
       default_reminder_time: "15 minutes"

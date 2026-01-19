@@ -11,14 +11,13 @@ defmodule TymeslotWeb.Plugs.StripeWebhookPlug do
   alias Tymeslot.Payments.Errors.WebhookError
   alias Tymeslot.Payments.Webhooks.IdempotencyCache
   alias Tymeslot.Payments.Webhooks.Security.{DevelopmentMode, SignatureVerifier}
-  
+  alias Tymeslot.Payments.Stripe, as: StripeProvider
+
   # Test helper function - kept for backward compatibility with tests
   @doc false
   @spec stripe_webhook_secret() :: String.t() | nil
   def stripe_webhook_secret do
-    Application.get_env(:stripity_stripe, :webhook_secret) ||
-      Application.get_env(:tymeslot, :stripe_webhook_secret) ||
-      System.get_env("STRIPE_WEBHOOK_SECRET")
+    StripeProvider.webhook_secret()
   end
 
   @spec init(keyword()) :: keyword()
@@ -35,7 +34,8 @@ defmodule TymeslotWeb.Plugs.StripeWebhookPlug do
     # Read the body first
     with {:ok, raw_body, conn} <- read_body_once(conn),
          {:ok, event} <- verify_webhook(conn, raw_body),
-         {:ok, :not_processed} <- check_idempotency(event_id(event)) do
+         {:ok, event_id} <- require_event_id(event),
+         {:ok, :reserved} <- reserve_event(event_id) do
       Logger.info("Stripe webhook validated successfully: #{event_type(event)}")
       Conn.assign(conn, :stripe_event, event)
     else
@@ -44,6 +44,13 @@ defmodule TymeslotWeb.Plugs.StripeWebhookPlug do
 
         conn
         |> Conn.send_resp(200, "")
+        |> Conn.halt()
+
+      {:ok, :in_progress} ->
+        Logger.info("Webhook processing already in progress, retrying later")
+
+        conn
+        |> Conn.send_resp(503, "")
         |> Conn.halt()
 
       {:error, error} ->
@@ -74,6 +81,27 @@ defmodule TymeslotWeb.Plugs.StripeWebhookPlug do
 
   defp event_id(event), do: Map.get(event, :id) || Map.get(event, "id")
   defp event_type(event), do: Map.get(event, :type) || Map.get(event, "type")
+
+  defp require_event_id(event) do
+    case event_id(event) do
+      nil ->
+        {:error,
+         %WebhookError.SignatureError{
+           reason: :missing_event_id,
+           message: "Missing Stripe event ID"
+         }}
+
+      "" ->
+        {:error,
+         %WebhookError.SignatureError{
+           reason: :missing_event_id,
+           message: "Empty Stripe event ID"
+         }}
+
+      id ->
+        {:ok, id}
+    end
+  end
 
   # Use the cached body from WebhookBodyCachePlug
   @spec read_body_once(Plug.Conn.t()) :: {:ok, binary(), Plug.Conn.t()}
@@ -125,10 +153,10 @@ defmodule TymeslotWeb.Plugs.StripeWebhookPlug do
     end
   end
 
-  # Use ETS-based cache for idempotency checking
-  @spec check_idempotency(String.t()) :: {:ok, :not_processed | :already_processed}
-  defp check_idempotency(event_id) do
-    IdempotencyCache.check_idempotency(event_id)
+  # Use ETS-based cache for idempotency reservation
+  @spec reserve_event(String.t()) :: {:ok, :reserved | :in_progress | :already_processed}
+  defp reserve_event(event_id) do
+    IdempotencyCache.reserve(event_id)
   end
 
   @spec handle_error(Plug.Conn.t(), WebhookError.SignatureError.t()) :: Plug.Conn.t()

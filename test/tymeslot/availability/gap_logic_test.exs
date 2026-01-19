@@ -18,8 +18,8 @@ defmodule Tymeslot.Availability.GapLogicTest do
             segments <-
               list_of(tuple({integer(1..120), integer(1..120)}), min_length: 1, max_length: 5)
           ) do
-      # Use a date in the future to avoid "today" logic issues with past times
-      date = Date.add(Date.utc_today(), 7)
+      # Use a specific future Monday to ensure it's a business day
+      date = ~D[2026-01-19]
       timezone = "UTC"
 
       business_start = DateTime.new!(date, @fallback_start, timezone)
@@ -73,9 +73,10 @@ defmodule Tymeslot.Availability.GapLogicTest do
 
   describe "specific gap cases" do
     setup do
-      # Use a date in the future to avoid "today" logic issues with past times
+      # Use a specific future Monday to ensure it's a business day
+      # Jan 19, 2026 is a Monday (today is Jan 17, 2026)
       %{
-        date: Date.add(Date.utc_today(), 7),
+        date: ~D[2026-01-19],
         timezone: "UTC",
         duration: 30,
         buffer: 10

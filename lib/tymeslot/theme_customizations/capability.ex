@@ -266,6 +266,12 @@ defmodule Tymeslot.ThemeCustomizations.Capability do
   defp generate_capability_css(features, customizations) do
     css_parts = []
 
+    # Generate background CSS if supported
+    # Background comes FIRST so it is processed BEFORE color scheme in reduce, 
+    # allowing color scheme to be overridden by background customizations if they use same keys
+    # Actually, we want background to OVERRIDE color scheme, so background should come AFTER color scheme in the list
+    # so it's processed AFTER color scheme in the reduce.
+    
     # Generate color CSS if supported
     css_parts =
       if features[:supports_custom_colors] do
@@ -290,7 +296,7 @@ defmodule Tymeslot.ThemeCustomizations.Capability do
         css_parts
       end
 
-    merge_css_variables(css_parts)
+    merge_css_variables(Enum.reverse(css_parts))
   end
 
   defp merge_css_variables(css_parts) do
