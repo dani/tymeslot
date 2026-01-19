@@ -9,9 +9,9 @@ defmodule TymeslotWeb.Plugs.StripeWebhookPlug do
 
   alias Plug.Conn
   alias Tymeslot.Payments.Errors.WebhookError
+  alias Tymeslot.Payments.Stripe, as: StripeProvider
   alias Tymeslot.Payments.Webhooks.IdempotencyCache
   alias Tymeslot.Payments.Webhooks.Security.{DevelopmentMode, SignatureVerifier}
-  alias Tymeslot.Payments.Stripe, as: StripeProvider
 
   # Test helper function - kept for backward compatibility with tests
   @doc false

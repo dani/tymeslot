@@ -57,7 +57,7 @@ defmodule Tymeslot.Emails.Shared.MeetingComponentsTest do
 
       html = MeetingComponents.meeting_details_table(details)
 
-      assert html =~ "60 minutes"
+      assert html =~ "1 hour"
       assert html =~ "Virtual Meeting"
       assert html =~ "Discovery Call"
     end

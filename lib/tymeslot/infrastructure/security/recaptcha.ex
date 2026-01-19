@@ -60,7 +60,7 @@ defmodule Tymeslot.Infrastructure.Security.Recaptcha do
 
     headers = [{"Content-Type", "application/x-www-form-urlencoded"}]
 
-    case HTTPoison.post(@verify_url, body, headers, timeout: 5000, recv_timeout: 5000) do
+    case http_client().post(@verify_url, body, headers, timeout: 5000, recv_timeout: 5000) do
       {:ok, %HTTPoison.Response{status_code: 200, body: response_body}} ->
         handle_verification_response(
           response_body,
@@ -111,24 +111,33 @@ defmodule Tymeslot.Infrastructure.Security.Recaptcha do
     System.get_env("RECAPTCHA_SECRET_KEY")
   end
 
+  defp http_client do
+    Application.get_env(:tymeslot, :http_client_module, Tymeslot.Infrastructure.HTTPClient)
+  end
+
   @spec maybe_put_remote_ip(map(), binary()) :: map()
   def maybe_put_remote_ip(params, remote_ip) when is_binary(remote_ip) do
-    trimmed = String.trim(remote_ip)
+    # Reject extremely long strings to prevent memory pressure during validation
+    if byte_size(remote_ip) > 100 do
+      params
+    else
+      trimmed = String.trim(remote_ip)
 
-    cond do
-      trimmed == "" ->
-        params
+      cond do
+        trimmed == "" ->
+          params
 
-      trimmed == "unknown" ->
-        # Don't send "unknown" to Google API
-        params
+        trimmed == "unknown" ->
+          # Don't send "unknown" to Google API
+          params
 
-      valid_ip?(trimmed) ->
-        Map.put(params, "remoteip", trimmed)
+        valid_ip?(trimmed) ->
+          Map.put(params, "remoteip", trimmed)
 
-      true ->
-        # Invalid IP format - don't send it
-        params
+        true ->
+          # Invalid IP format - don't send it
+          params
+      end
     end
   end
 

@@ -32,7 +32,7 @@ defmodule Tymeslot.CoreSaasSeparationTest do
         |> Enum.with_index(1)
         |> Enum.each(fn {line, index} ->
           # Skip test files and comment lines
-          unless String.contains?(source, "test.exs") or String.trim_leading(line) |> String.starts_with?("#") do
+          unless String.contains?(source, "test.exs") or String.starts_with?(String.trim_leading(line), "#") do
             # Check for direct module references (not in strings)
             if String.contains?(line, "TymeslotSaas.Workers") and not String.contains?(line, "\"") do
               raise """

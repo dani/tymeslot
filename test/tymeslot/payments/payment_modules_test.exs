@@ -1,0 +1,82 @@
+defmodule Tymeslot.Payments.PaymentModulesTest do
+  use Tymeslot.DataCase, async: false # PubSub tests need sequential execution
+
+  alias Tymeslot.Payments.{ErrorHandler, PubSub}
+  alias Tymeslot.Payments.Errors.WebhookError
+
+  describe "ErrorHandler" do
+    test "handle_payment_error returns :ok" do
+      assert {:ok, :error_handled} = ErrorHandler.handle_payment_error("stripe_123", "some error", 1)
+    end
+
+    test "handle_subscription_error returns :ok" do
+      assert {:ok, :error_handled} = ErrorHandler.handle_subscription_error("sub_123", "some error", 1)
+    end
+  end
+
+  describe "PubSub" do
+    setup do
+      # Ensure we use Tymeslot.TestPubSub
+      Application.put_env(:tymeslot, :test_mode, true)
+      :ok
+    end
+
+    test "broadcast_payment_successful broadcasts to topic" do
+      Phoenix.PubSub.subscribe(Tymeslot.TestPubSub, "payment:payment_successful")
+      
+      transaction = %{user_id: 1, id: 123}
+      PubSub.broadcast_payment_successful(transaction)
+      
+      assert_receive {:payment_successful, %{user_id: 1, transaction: ^transaction}}
+    end
+
+    test "broadcast_subscription_successful broadcasts to topic" do
+      Phoenix.PubSub.subscribe(Tymeslot.TestPubSub, "payment:subscription_successful")
+      
+      transaction = %{user_id: 1, subscription_id: "sub_1", id: 123}
+      PubSub.broadcast_subscription_successful(transaction)
+      
+      assert_receive {:subscription_successful, %{user_id: 1, subscription_id: "sub_1", transaction: ^transaction}}
+    end
+
+    test "broadcast_subscription_failed broadcasts to topic" do
+      Phoenix.PubSub.subscribe(Tymeslot.TestPubSub, "payment:subscription_failed")
+      
+      transaction = %{user_id: 1, subscription_id: "sub_1", id: 123}
+      PubSub.broadcast_subscription_failed(transaction)
+      
+      assert_receive {:subscription_failed, %{user_id: 1, subscription_id: "sub_1", transaction: ^transaction}}
+    end
+
+    test "broadcast_subscription_event broadcasts to topic" do
+      Phoenix.PubSub.subscribe(Tymeslot.TestPubSub, "payment_events:tymeslot")
+      
+      event_data = %{event: "sub_created", user_id: 1}
+      PubSub.broadcast_subscription_event(event_data)
+      
+      assert_receive ^event_data
+    end
+
+    test "get_pubsub_server returns Tymeslot.TestPubSub in test mode" do
+      assert PubSub.get_pubsub_server() == Tymeslot.TestPubSub
+    end
+  end
+
+  describe "WebhookError" do
+    test "SignatureError can be created" do
+      error = %WebhookError.SignatureError{message: "test", reason: :invalid}
+      assert error.message == "test"
+      assert WebhookError.SignatureError.message(error) == "test"
+    end
+
+    test "ValidationError can be created" do
+      error = %WebhookError.ValidationError{message: "test", reason: :invalid}
+      assert error.message == "test"
+    end
+
+    test "ProcessingError can be created" do
+      error = %WebhookError.ProcessingError{message: "test", reason: :failed}
+      assert error.message == "test"
+    end
+  end
+end

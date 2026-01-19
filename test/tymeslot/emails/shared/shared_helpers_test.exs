@@ -186,7 +186,7 @@ defmodule Tymeslot.Emails.Shared.SharedHelpersTest do
 
   describe "format_duration/1" do
     test "formats single minute" do
-      assert SharedHelpers.format_duration(1) == "1 minutes"
+      assert SharedHelpers.format_duration(1) == "1 minute"
     end
 
     test "formats 30 minutes" do
@@ -194,11 +194,11 @@ defmodule Tymeslot.Emails.Shared.SharedHelpersTest do
     end
 
     test "formats 60 minutes" do
-      assert SharedHelpers.format_duration(60) == "60 minutes"
+      assert SharedHelpers.format_duration(60) == "1 hour"
     end
 
     test "formats 90 minutes" do
-      assert SharedHelpers.format_duration(90) == "90 minutes"
+      assert SharedHelpers.format_duration(90) == "1.5 hours"
     end
 
     test "formats zero minutes" do

@@ -10,6 +10,7 @@ defmodule TymeslotWeb.Live.Themes.ConcurrencyStressTest do
   import Tymeslot.Factory
 
   alias Ecto.Adapters.SQL.Sandbox
+  alias Tymeslot.MeetingTypes
   alias Tymeslot.Repo
   alias Tymeslot.TestMocks
 
@@ -77,11 +78,11 @@ defmodule TymeslotWeb.Live.Themes.ConcurrencyStressTest do
     # Use render_click since they might not have data-testid or might be in a list
     Enum.each(1..3, fn _ ->
       view
-      |> element("button[phx-click='select_duration'][phx-value-duration='#{Tymeslot.MeetingTypes.to_slug(mt30)}']")
+      |> element("button[phx-click='select_duration'][phx-value-duration='#{MeetingTypes.to_slug(mt30)}']")
       |> render_click()
 
       view
-      |> element("button[phx-click='select_duration'][phx-value-duration='#{Tymeslot.MeetingTypes.to_slug(mt60)}']")
+      |> element("button[phx-click='select_duration'][phx-value-duration='#{MeetingTypes.to_slug(mt60)}']")
       |> render_click()
     end)
 

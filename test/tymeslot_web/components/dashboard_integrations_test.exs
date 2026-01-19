@@ -3,7 +3,6 @@ defmodule TymeslotWeb.Components.DashboardIntegrationsTest do
   import Phoenix.Component
   import Phoenix.LiveViewTest
   alias Floki
-  alias Phoenix.LiveView.JS
 
   alias TymeslotWeb.Components.Dashboard.Integrations.Calendar.CaldavConfig
   alias TymeslotWeb.Components.Dashboard.Integrations.Calendar.ConfigBase

@@ -228,8 +228,8 @@ defmodule Tymeslot.Payments.Stripe do
         # Find the subscription item that represents the main plan
         # We can pass the subscription_item_id in opts if we have it, otherwise look for the first one
         items = Map.get(subscription, :items) || %{data: []}
-        
-        subscription_item = 
+
+        subscription_item =
           if item_id = Map.get(opts, :subscription_item_id) do
             Enum.find(items.data, fn item -> item.id == item_id end)
           else

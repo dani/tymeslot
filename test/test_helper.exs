@@ -64,6 +64,14 @@ Mox.defmock(Tymeslot.Payments.SubscriptionManagerMock,
   for: Tymeslot.Payments.Behaviours.SubscriptionManager
 )
 
+Mox.defmock(Tymeslot.Auth.OAuth.HelperMock,
+  for: Tymeslot.Auth.OAuth.HelperBehaviour
+)
+
+Mox.defmock(Tymeslot.Auth.SessionMock,
+  for: Tymeslot.Infrastructure.SessionBehaviour
+)
+
 ExUnit.start(exclude: [:backup_tests, :oauth_integration, :calendar_integration])
 
 # Configure ExUnit to exclude backup tests, OAuth integration tests, and calendar

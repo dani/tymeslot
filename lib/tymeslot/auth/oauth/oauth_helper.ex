@@ -8,6 +8,7 @@ defmodule Tymeslot.Auth.OAuth.Helper do
   - Tymeslot.Auth.OAuth.URLs
   - Tymeslot.Auth.OAuth.Client
   """
+  @behaviour Tymeslot.Auth.OAuth.HelperBehaviour
   require Logger
   alias OAuth2.Response
   alias Phoenix.Controller

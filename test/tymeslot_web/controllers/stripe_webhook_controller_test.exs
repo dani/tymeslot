@@ -3,10 +3,10 @@ defmodule TymeslotWeb.StripeWebhookControllerTest do
 
   import Mox
 
+  alias Stripe.Error, as: StripeError
   alias Tymeslot.Payments.Webhooks.IdempotencyCache
   alias Tymeslot.PaymentTestHelpers
   alias Tymeslot.TestFixtures
-  alias Stripe.Error, as: StripeError
 
   setup :verify_on_exit!
 
@@ -147,7 +147,7 @@ defmodule TymeslotWeb.StripeWebhookControllerTest do
       })
 
       expect(Tymeslot.Payments.StripeMock, :verify_session, 2, fn ^session_id ->
-        {:error, %StripeError{source: :network, message: "timeout"}}
+        {:error, %StripeError{source: :network, message: "timeout", code: :network_error}}
       end)
 
       event = PaymentTestHelpers.mock_stripe_webhook_event("checkout.session.completed", session)

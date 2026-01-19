@@ -2,6 +2,9 @@ defmodule Tymeslot.Bookings.PolicyTest do
   use Tymeslot.DataCase, async: true
 
   import Tymeslot.Factory
+  import Mox
+
+  setup :verify_on_exit!
 
   alias Tymeslot.Bookings.Policy
   alias Tymeslot.DatabaseSchemas.MeetingSchema
@@ -256,6 +259,10 @@ defmodule Tymeslot.Bookings.PolicyTest do
         user_timezone: "UTC"
       }
 
+      expect(Tymeslot.CalendarMock, :get_booking_integration_info, fn _ ->
+        {:ok, %{integration_id: 1, calendar_path: "primary"}}
+      end)
+
       attrs = Policy.build_meeting_attributes(params)
 
       assert attrs.reminders == [%{value: 10, unit: "minutes"}, %{value: 1, unit: "hours"}]
@@ -281,6 +288,10 @@ defmodule Tymeslot.Bookings.PolicyTest do
         meeting_type_id: meeting_type.id,
         user_timezone: "UTC"
       }
+
+      expect(Tymeslot.CalendarMock, :get_booking_integration_info, fn _ ->
+        {:ok, %{integration_id: 1, calendar_path: "primary"}}
+      end)
 
       attrs = Policy.build_meeting_attributes(params)
 

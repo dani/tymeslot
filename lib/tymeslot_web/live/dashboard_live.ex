@@ -448,19 +448,6 @@ defmodule TymeslotWeb.DashboardLive do
     do_consume_avatar_upload(profile, DashboardHelpers.get_security_metadata(socket), socket)
   end
 
-  defp do_consume_avatar_upload(profile, metadata, socket) do
-    results =
-      consume_uploaded_entries(socket, :avatar, &Profiles.consume_avatar_upload(profile, &1, &2, metadata))
-
-    # Send the result back to the component
-    send_update(TymeslotWeb.Dashboard.ProfileSettingsComponent,
-      id: "settings",
-      avatar_upload_result: results
-    )
-
-    {:noreply, socket}
-  end
-
   @spec handle_info({:consume_background_video_upload, map()}, Phoenix.LiveView.Socket.t()) ::
           {:noreply, Phoenix.LiveView.Socket.t()}
   def handle_info({:consume_background_video_upload, profile}, socket) do
@@ -511,6 +498,19 @@ defmodule TymeslotWeb.DashboardLive do
   end
 
   # Private functions
+
+  defp do_consume_avatar_upload(profile, metadata, socket) do
+    results =
+      consume_uploaded_entries(socket, :avatar, &Profiles.consume_avatar_upload(profile, &1, &2, metadata))
+
+    # Send the result back to the component
+    send_update(TymeslotWeb.Dashboard.ProfileSettingsComponent,
+      id: "settings",
+      avatar_upload_result: results
+    )
+
+    {:noreply, socket}
+  end
 
   @spec render_section(map()) :: Phoenix.LiveView.Rendered.t()
   defp render_section(assigns) do
