@@ -16,7 +16,11 @@ defmodule Tymeslot.Payments.Pricing do
     major = div(abs_cents, 100)
     minor = abs_cents |> rem(100) |> Integer.to_string() |> String.pad_leading(2, "0")
 
-    "#{sign}#{symbol}#{major}.#{minor}"
+    if minor == "00" do
+      "#{sign}#{symbol}#{major}"
+    else
+      "#{sign}#{symbol}#{major}.#{minor}"
+    end
   end
 
   defp currency_symbol(currency) when is_atom(currency) do

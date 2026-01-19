@@ -146,9 +146,13 @@ defmodule TymeslotWeb.Themes.Core.ErrorBoundary do
     |> Component.assign(:theme_error_message, format_error(context))
   end
 
-  defp format_error(%{function: :mount}), do: "Failed to load theme"
-  defp format_error(%{function: :handle_params}), do: "Navigation error in theme"
-  defp format_error(%{function: :handle_event}), do: "Event handling error in theme"
-  defp format_error(%{function: :handle_info}), do: "Message handling error in theme"
-  defp format_error(_), do: "An error occurred in the theme"
+  @doc """
+  Formats an error context into a human-readable message.
+  """
+  @spec format_error(map()) :: String.t()
+  def format_error(%{function: :mount}), do: "Failed to load theme"
+  def format_error(%{function: :handle_params}), do: "Navigation error in theme"
+  def format_error(%{function: :handle_event}), do: "Event handling error in theme"
+  def format_error(%{function: :handle_info}), do: "Message handling error in theme"
+  def format_error(_), do: "An error occurred in the theme"
 end

@@ -24,7 +24,7 @@ defmodule TymeslotWeb.Helpers.ThemeUploadHelper do
             {:ok, stored_path}
 
           {:error, reason} ->
-            {:postpone, {:error, reason}}
+            {:ok, {:error, reason}}
         end
       end)
 
@@ -70,7 +70,7 @@ defmodule TymeslotWeb.Helpers.ThemeUploadHelper do
             {:ok, stored_path}
 
           {:error, reason} ->
-            {:postpone, {:error, reason}}
+            {:ok, {:error, reason}}
         end
       end)
 

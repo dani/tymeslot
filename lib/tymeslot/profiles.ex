@@ -435,7 +435,7 @@ defmodule Tymeslot.Profiles do
   Validates the upload using security policies before updating the profile.
   """
   @spec consume_avatar_upload(profile(), map(), map(), map()) ::
-          {:ok, profile()} | {:postpone, any()}
+          {:ok, profile() | {:error, any()}}
   def consume_avatar_upload(profile, %{path: path}, entry, metadata) do
     uploaded_entry = %{
       "path" => path,
@@ -451,11 +451,11 @@ defmodule Tymeslot.Profiles do
 
         case update_avatar(profile, atom_entry) do
           {:ok, updated_profile} -> {:ok, updated_profile}
-          {:error, reason} -> {:postpone, reason}
+          {:error, reason} -> {:ok, {:error, reason}}
         end
 
       {:error, validation_error} ->
-        {:postpone, validation_error}
+        {:ok, {:error, validation_error}}
     end
   end
 

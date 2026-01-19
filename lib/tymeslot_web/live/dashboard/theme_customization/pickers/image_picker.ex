@@ -101,6 +101,15 @@ defmodule TymeslotWeb.Dashboard.ThemeCustomization.Pickers.ImagePicker do
             <% end %>
 
             <%= if @parent_uploads && @parent_uploads[:background_image] do %>
+              <%= for err <- upload_errors(@parent_uploads.background_image) do %>
+                <div class="mt-4 p-3 bg-red-50 border border-red-100 rounded-token-xl text-red-600 text-xs font-bold flex items-center gap-2 animate-in slide-in-from-top-1">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {Phoenix.Naming.humanize(err)}
+                </div>
+              <% end %>
+
               <%= for entry <- @parent_uploads.background_image.entries do %>
                 <div class="mt-6 p-4 bg-white rounded-token-2xl border-2 border-tymeslot-100 shadow-sm animate-in zoom-in">
                   <div class="flex items-center justify-between mb-2">
@@ -115,6 +124,15 @@ defmodule TymeslotWeb.Dashboard.ThemeCustomization.Pickers.ImagePicker do
                       style={"width: #{entry.progress}%"}
                     ></div>
                   </div>
+
+                  <%= for err <- upload_errors(@parent_uploads.background_image, entry) do %>
+                    <div class="mt-2 p-3 bg-red-50 border border-red-100 rounded-token-xl text-red-600 text-xs font-bold flex items-center gap-2 animate-in slide-in-from-top-1">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {Phoenix.Naming.humanize(err)}
+                    </div>
+                  <% end %>
                 </div>
               <% end %>
             <% end %>

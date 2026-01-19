@@ -40,11 +40,11 @@ defmodule TymeslotWeb.Shared.Auth.LayoutComponents do
     <%= if Application.get_env(:tymeslot, :saas_mode, false) or Application.get_env(:tymeslot, :enforce_legal_agreements, false) do %>
       <a
         href={if Application.get_env(:tymeslot, :saas_mode, false), do: "/", else: Application.get_env(:tymeslot, :site_home_path)}
-        class="hidden sm:flex fixed top-4 left-4 items-center px-3 py-2 text-sm font-medium bg-white/80 backdrop-blur-sm rounded-lg hover:bg-white transition duration-300 ease-in-out group z-50"
+        class="flex fixed top-6 left-6 items-center px-6 py-3 text-base font-bold bg-gradient-to-br from-turquoise-600 to-cyan-600 text-white rounded-token-2xl shadow-lg shadow-turquoise-500/20 hover:from-turquoise-700 hover:to-cyan-700 hover:-translate-y-1 hover:shadow-xl hover:shadow-turquoise-500/40 transition-glass duration-300 group z-50"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          class="h-[1.25rem] w-[1.25rem] mr-1 transform group-hover:-translate-x-1 transition-transform duration-200"
+          class="h-5 w-5 mr-2 transform group-hover:-translate-x-1 transition-transform duration-200"
           viewBox="0 0 20 20"
           fill="currentColor"
         >

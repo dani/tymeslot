@@ -267,6 +267,7 @@ defmodule TymeslotWeb.Dashboard.CalendarSettings.Components do
                         phx-value-integration_id={@integration.id}
                         phx-value-calendar_id={calendar_id}
                         phx-target={@myself}
+                        title={if is_selected, do: "Included in conflict checking", else: "Not included in conflict checking"}
                         class={[
                           "inline-flex items-center gap-2 px-2.5 py-1.5 rounded-token-lg border-2 transition-all select-none text-xs font-bold",
                           is_selected &&
@@ -275,8 +276,8 @@ defmodule TymeslotWeb.Dashboard.CalendarSettings.Components do
                             "bg-white border-slate-100 text-slate-500 hover:border-slate-200 hover:bg-slate-50"
                         ]}
                       >
-                        <!-- Calendar color indicator -->
-                        <%= if calendar["color"] || calendar[:color] do %>
+                        <!-- Calendar color indicator - only show when selected -->
+                        <%= if (calendar["color"] || calendar[:color]) && is_selected do %>
                           <span
                             class="w-2 h-2 rounded-full shrink-0"
                             style={"background-color: #{calendar["color"] || calendar[:color]}"}

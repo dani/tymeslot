@@ -113,12 +113,26 @@ defmodule TymeslotWeb.Themes.Core.Dispatcher do
       Gettext.put_locale(TymeslotWeb.Gettext, locale)
     end
 
-    action = assigns[:live_action]
+    cond do
+      msg = assigns[:error] ->
+        render_error(assigns, msg)
 
-    if action in [:reschedule, :cancel, :cancel_confirmed] do
-      render_meeting_management_component(assigns, action)
-    else
-      render_scheduling_component(assigns)
+      error_context = assigns[:theme_error] ->
+        # Use theme_error_message if available, fallback to format_error
+        msg = assigns[:theme_error_message] || ErrorBoundary.format_error(error_context)
+        render_error(assigns, msg)
+
+      msg = assigns[:scheduling_error_message] ->
+        render_error(assigns, msg)
+
+      true ->
+        action = assigns[:live_action]
+
+        if action in [:reschedule, :cancel, :cancel_confirmed] do
+          render_meeting_management_component(assigns, action)
+        else
+          render_scheduling_component(assigns)
+        end
     end
   end
 

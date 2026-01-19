@@ -144,7 +144,7 @@ defmodule TymeslotWeb.Helpers.UploadHandler do
               metadata: metadata
             })
 
-            {:postpone, reason}
+            {:ok, {:error, reason}}
         end
       end)
 

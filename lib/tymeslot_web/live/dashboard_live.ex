@@ -144,7 +144,6 @@ defmodule TymeslotWeb.DashboardLive do
 
   alias Tymeslot.Dashboard.DashboardContext
   alias Tymeslot.Integrations.Calendar
-  alias Tymeslot.Profiles
   alias Tymeslot.Profiles.Timezone
   alias Tymeslot.Security.RateLimiter
   alias TymeslotWeb.Components.DashboardLayout
@@ -248,34 +247,16 @@ defmodule TymeslotWeb.DashboardLive do
     """
   end
 
-  # Handle avatar upload events when on settings page
-  @impl true
-  @spec handle_event(String.t(), map(), Phoenix.LiveView.Socket.t()) ::
-          {:noreply, Phoenix.LiveView.Socket.t()}
-  def handle_event("validate_avatar", _params, socket) do
-    # Validation is handled automatically by Phoenix LiveView
-    {:noreply, socket}
-  end
-
-  @impl true
-  @spec handle_event(String.t(), map(), Phoenix.LiveView.Socket.t()) ::
-          {:noreply, Phoenix.LiveView.Socket.t()}
-  def handle_event("upload_avatar", _params, socket) do
-    if socket.assigns.live_action == :settings do
-      # Get the metadata for security validation
-      metadata = DashboardHelpers.get_security_metadata(socket)
-
-      # Send message to consume the upload
-      send(self(), {:consume_avatar_upload, socket.assigns.profile, metadata})
-    end
-
-    {:noreply, socket}
-  end
-
+  # Handle theme customization events
   @impl true
   @spec handle_event(String.t(), map(), Phoenix.LiveView.Socket.t()) ::
           {:noreply, Phoenix.LiveView.Socket.t()}
   def handle_event("validate_image", _params, socket) do
+    if socket.assigns.uploads.background_image.entries != [] and
+         Enum.all?(socket.assigns.uploads.background_image.entries, &(&1.done? or &1.cancelled?)) do
+      send(self(), {:consume_background_image_upload, socket.assigns.profile})
+    end
+
     {:noreply, socket}
   end
 
@@ -290,7 +271,11 @@ defmodule TymeslotWeb.DashboardLive do
   @spec handle_event(String.t(), map(), Phoenix.LiveView.Socket.t()) ::
           {:noreply, Phoenix.LiveView.Socket.t()}
   def handle_event("validate_video", _params, socket) do
-    # Validation is handled automatically by Phoenix LiveView
+    if socket.assigns.uploads.background_video.entries != [] and
+         Enum.all?(socket.assigns.uploads.background_video.entries, &(&1.done? or &1.cancelled?)) do
+      send(self(), {:consume_background_video_upload, socket.assigns.profile})
+    end
+
     {:noreply, socket}
   end
 
@@ -409,48 +394,6 @@ defmodule TymeslotWeb.DashboardLive do
     {:noreply, socket}
   end
 
-  @spec handle_info(:reset_avatar_upload, Phoenix.LiveView.Socket.t()) ::
-          {:noreply, Phoenix.LiveView.Socket.t()}
-  def handle_info(:reset_avatar_upload, socket) do
-    # Reset the upload configuration after avatar deletion
-    if socket.assigns.live_action == :settings do
-      # Simply disallow and re-allow to get a fresh configuration
-      # This is mainly called after deletion, not after consumption
-      socket =
-        socket
-        |> disallow_upload(:avatar)
-        |> allow_upload(:avatar,
-          accept: ~w(.jpg .jpeg .png .gif .webp),
-          max_entries: 1,
-          max_file_size: 10_000_000
-        )
-
-      # Force update the settings component to get the new upload configuration
-      send_update(ProfileSettingsComponent,
-        id: "settings",
-        parent_uploads: socket.assigns.uploads
-      )
-
-      {:noreply, socket}
-    else
-      {:noreply, socket}
-    end
-  end
-
-  @impl true
-  @spec handle_info(
-          {:consume_avatar_upload, map(), map()} | {:consume_avatar_upload, map()},
-          Phoenix.LiveView.Socket.t()
-        ) ::
-          {:noreply, Phoenix.LiveView.Socket.t()}
-  def handle_info({:consume_avatar_upload, profile, metadata}, socket) do
-    do_consume_avatar_upload(profile, metadata, socket)
-  end
-
-  def handle_info({:consume_avatar_upload, profile}, socket) do
-    do_consume_avatar_upload(profile, DashboardHelpers.get_security_metadata(socket), socket)
-  end
-
   @spec handle_info({:consume_background_video_upload, map()}, Phoenix.LiveView.Socket.t()) ::
           {:noreply, Phoenix.LiveView.Socket.t()}
   def handle_info({:consume_background_video_upload, profile}, socket) do
@@ -502,23 +445,6 @@ defmodule TymeslotWeb.DashboardLive do
 
   # Private functions
 
-  defp do_consume_avatar_upload(profile, metadata, socket) do
-    results =
-      consume_uploaded_entries(
-        socket,
-        :avatar,
-        &Profiles.consume_avatar_upload(profile, &1, &2, metadata)
-      )
-
-    # Send the result back to the component
-    send_update(TymeslotWeb.Dashboard.ProfileSettingsComponent,
-      id: "settings",
-      avatar_upload_result: results
-    )
-
-    {:noreply, socket}
-  end
-
   @spec render_section(map()) :: Phoenix.LiveView.Rendered.t()
   defp render_section(assigns) do
     assigns =
@@ -537,7 +463,7 @@ defmodule TymeslotWeb.DashboardLive do
       client_ip={@component_props[:client_ip]}
       user_agent={@component_props[:user_agent]}
       parent_uploads={
-        if (@live_action == :settings || @live_action == :theme) && Map.has_key?(assigns, :uploads),
+        if @live_action == :theme && Map.has_key?(assigns, :uploads),
           do: @uploads,
           else: nil
       }
@@ -648,17 +574,8 @@ defmodule TymeslotWeb.DashboardLive do
   end
 
   defp maybe_configure_uploads(socket, :settings) do
-    # Configure uploads for settings page
-    if socket.assigns[:uploads] && socket.assigns.uploads[:avatar] do
-      # Upload already configured, don't reconfigure
-      socket
-    else
-      allow_upload(socket, :avatar,
-        accept: ~w(.jpg .jpeg .png .gif .webp),
-        max_entries: 1,
-        max_file_size: 10_000_000
-      )
-    end
+    # No uploads needed here anymore, they are handled in ProfileSettingsComponent
+    socket
   end
 
   defp maybe_configure_uploads(socket, :theme) do
@@ -674,12 +591,16 @@ defmodule TymeslotWeb.DashboardLive do
       |> allow_upload(:background_image,
         accept: img_exts,
         max_entries: 1,
-        max_file_size: UploadConstraints.max_file_size(:image)
+        max_file_size: UploadConstraints.max_file_size(:image),
+        auto_upload: true,
+        progress: &handle_theme_image_progress/3
       )
       |> allow_upload(:background_video,
         accept: vid_exts,
         max_entries: 1,
-        max_file_size: UploadConstraints.max_file_size(:video)
+        max_file_size: UploadConstraints.max_file_size(:video),
+        auto_upload: true,
+        progress: &handle_theme_video_progress/3
       )
     end
   end
@@ -687,6 +608,22 @@ defmodule TymeslotWeb.DashboardLive do
   defp maybe_configure_uploads(socket, _action) do
     # No uploads needed for other pages
     socket
+  end
+
+  defp handle_theme_image_progress(_config, entry, socket) do
+    if entry.done? do
+      send(self(), {:consume_background_image_upload, socket.assigns.profile})
+    end
+
+    {:noreply, socket}
+  end
+
+  defp handle_theme_video_progress(_config, entry, socket) do
+    if entry.done? do
+      send(self(), {:consume_background_video_upload, socket.assigns.profile})
+    end
+
+    {:noreply, socket}
   end
 
   defp maybe_handle_theme_upload(socket, _type) when socket.assigns.live_action != :theme,

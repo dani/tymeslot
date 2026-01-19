@@ -351,7 +351,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Live do
           reason={assigns[:scheduling_error_reason]}
         />
       <% else %>
-        <%= case assigns.current_state do %>
+        <%= case assigns[:current_state] || :overview do %>
           <% :overview -> %>
             <.live_component module={OverviewComponent} id="overview-step" {assigns} />
           <% :schedule -> %>
