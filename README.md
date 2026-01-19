@@ -6,7 +6,14 @@
 > # 📢 OFFICIAL RELEASES ONLY
 > **We publish official, stable releases on GitHub rather than treating every commit as a release. Always use the latest [GitHub Release](https://github.com/tymeslot/tymeslot/releases) for production environments.**
 
-Tymeslot provides comprehensive appointment booking with multi-provider calendar and video conferencing integration. It combines advanced user management, flexible calendar synchronization, professional email notifications, and multi-provider video conferencing into a seamless, customizable scheduling experience.
+**The open-source alternative to Calendly.** Tymeslot gives you complete control over your scheduling workflow—whether you're running it on our cloud or your own server.
+
+**Why Tymeslot?**
+- ✅ **Truly Open Source**: Elastic License 2.0. Fork, audit, contribute—or just use it.
+- ✅ **Your Data, Your Rules**: Self-host on Docker/Cloudron or use our managed cloud.
+- ✅ **Privacy-First Analytics**: No tracking pixels, no data mining, no selling your data.
+- ✅ **Full-Featured Free Tier**: Everything you need to get started. Forever.
+- ✅ **White-Label Pro Tier**: Remove our branding for a fully professional experience (cloud only).
 
 [![License: Elastic-2.0](https://img.shields.io/badge/License-Elastic--2.0-blue.svg)](https://www.elastic.co/licensing/elastic-license)
 [![Elixir](https://img.shields.io/badge/Elixir-1.19.3-purple.svg)](https://elixir-lang.org)
@@ -53,6 +60,24 @@ Tymeslot provides comprehensive appointment booking with multi-provider calendar
 - **Circuit Breakers**: Resilient external service integration with graceful degradation
 - **reCAPTCHA v3 Bot Protection**: Optional bot detection for signup (configurable, auto-disables if keys missing)
 
+### 🌍 Internationalization & Localization
+- **3 Languages**: English, German, Ukrainian with automatic browser detection
+- **Timezone Intelligence**: 90+ cities with automatic DST handling
+- **Localized Booking Pages**: Seamless experience in your customer's language
+- **Smart Language Detection**: Auto-selects based on browser preferences
+
+### 🔗 Embedding & Integration
+- **Secure iframe Embedding**: White-label booking widgets for your website
+- **Domain Controls**: Restrict embedding to authorized domains only
+- **Webhook System**: Real-time event notifications for meeting lifecycle (booked, rescheduled, cancelled)
+- **Custom Branding**: Remove Tymeslot branding with Pro subscription (SaaS only)
+
+### ⏰ Advanced Reminder System
+- **Multiple Reminders**: Configure unlimited reminders per appointment type
+- **Flexible Timing**: Minutes, hours, or days before meetings
+- **Email Notifications**: Professional MJML templates with calendar attachments
+- **Delivery Tracking**: Monitor email status and automatic retry logic
+
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -92,6 +117,24 @@ Tymeslot provides comprehensive appointment booking with multi-provider calendar
    ```
 
 Visit [`localhost:4000`](http://localhost:4000) to see the application.
+
+## 💰 Pricing
+
+**Free Forever Tier** (Self-Hosted or Cloud):
+- Unlimited bookings and meeting types
+- All calendar & video integrations (4 calendar providers, 4 video platforms)
+- Multi-language booking pages (English, German, Ukrainian)
+- Webhooks and embedding
+- Advanced reminder system
+- Community support
+
+**Pro Tier** (Cloud only):
+- Everything in Free
+- Remove Tymeslot branding from booking pages
+- Priority support
+- Support open-source development
+
+**Self-Hosting**: Always free. Deploy on Docker, Cloudron, or bare metal—no licensing fees, ever.
 
 ## 🐳 Docker Deployment
 
@@ -182,6 +225,15 @@ RECAPTCHA_SIGNUP_MIN_SCORE=0.3  # Score threshold (0.0-1.0); default 0.3
 ```
 
 See `.env.example` for the complete configuration template.
+
+## 💼 Who Uses Tymeslot?
+
+- **Freelancers & Consultants**: Replace endless email chains with a professional booking page
+- **Small Businesses**: Coordinate team availability without enterprise pricing
+- **Privacy-Conscious Organizations**: Keep scheduling data on your own infrastructure
+- **Open Source Projects**: Embed booking widgets in your documentation
+- **Developers & Technical Teams**: Extensible platform with webhook integrations and API access
+- **International Teams**: Multi-language support for global customer bases
 
 ### reCAPTCHA Setup (Optional)
 
