@@ -141,6 +141,10 @@ defmodule TymeslotWeb do
       # Shortcut for generating JS commands
       alias Phoenix.LiveView.JS
 
+      # Shared helpers
+      alias TymeslotWeb.Live.Shared.Flash
+      alias TymeslotWeb.Hooks.ModalHook
+
       # Routes generation with the ~p sigil
       unquote(verified_routes())
     end

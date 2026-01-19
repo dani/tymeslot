@@ -12,8 +12,6 @@ defmodule TymeslotWeb.Dashboard.ServiceSettingsComponent do
   alias TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm
   alias TymeslotWeb.Dashboard.MeetingSettings.MeetingTypesListComponent
   alias TymeslotWeb.Dashboard.MeetingSettings.SchedulingSettingsComponent
-  alias TymeslotWeb.Hooks.ModalHook
-  alias TymeslotWeb.Live.Shared.Flash
   require Logger
 
   @impl true

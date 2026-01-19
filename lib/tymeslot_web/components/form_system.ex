@@ -343,6 +343,7 @@ defmodule TymeslotWeb.Components.FormSystem do
   Form wrapper with consistent styling and submission handling.
   """
   attr :for, :any, required: true
+  attr :id, :string, default: nil
   attr :phx_change, :string, default: nil
   attr :phx_submit, :string, default: nil
   attr :phx_target, :any, default: nil
@@ -354,6 +355,7 @@ defmodule TymeslotWeb.Components.FormSystem do
     ~H"""
     <.form
       for={@for}
+      id={@id}
       phx-change={@phx_change}
       phx-submit={@phx_submit}
       phx-target={@phx_target}

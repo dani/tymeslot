@@ -9,7 +9,6 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Shared.DeleteIntegration
   alias Tymeslot.Integrations.Calendar
   alias Tymeslot.Integrations.Video
   alias TymeslotWeb.Dashboard.{CalendarSettingsComponent, VideoSettingsComponent}
-  alias TymeslotWeb.Live.Shared.Flash
 
   @impl true
   def mount(socket) do

@@ -27,7 +27,6 @@ defmodule TymeslotWeb.Dashboard.ProfileSettingsTest do
       }
 
       # Simulate selecting a file
-      # The form helper respects phx-target
       view
       |> file_input("#avatar-upload-form", :avatar, [avatar])
       |> render_upload("avatar.png")
@@ -46,7 +45,7 @@ defmodule TymeslotWeb.Dashboard.ProfileSettingsTest do
     test "does not show error when no files are provided on submit (auto-upload fallback)", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/dashboard/settings")
       
-      # Submit without any file selected using the form helper to respect phx-target
+      # Submit without any file selected
       view
       |> form("#avatar-upload-form", %{})
       |> render_submit()
@@ -68,7 +67,6 @@ defmodule TymeslotWeb.Dashboard.ProfileSettingsTest do
         type: "text/plain"
       }
 
-      # Use form/file_input to respect phx-target
       view
       |> file_input("#avatar-upload-form", :avatar, [avatar])
       |> render_upload("test.txt")
@@ -81,12 +79,11 @@ defmodule TymeslotWeb.Dashboard.ProfileSettingsTest do
 
     test "successfully deletes an avatar", %{conn: conn, profile: profile} do
       # Manually set an avatar for the profile to test deletion
-      # We update the database directly to bypass file system operations in update_avatar
       profile = Repo.update!(Ecto.Changeset.change(profile, avatar: "test_avatar.png"))
 
       {:ok, view, _html} = live(conn, ~p"/dashboard/settings")
 
-      # Verify the delete button is visible (it only shows if profile.avatar is present)
+      # Verify the delete button is visible
       assert has_element?(view, "button", "Delete Photo")
 
       # Click the show modal button
@@ -105,6 +102,113 @@ defmodule TymeslotWeb.Dashboard.ProfileSettingsTest do
       # Verify profile was updated in DB
       updated_profile = Repo.reload!(profile)
       assert updated_profile.avatar == nil
+    end
+  end
+
+  describe "Display Name updates" do
+    test "successfully updates display name on change", %{conn: conn, profile: profile} do
+      {:ok, view, _html} = live(conn, ~p"/dashboard/settings")
+
+      view
+      |> form("#display-name-form", %{full_name: "New Display Name"})
+      |> render_change()
+
+      assert render(view) =~ "Display name updated"
+      
+      updated_profile = Repo.reload!(profile)
+      assert updated_profile.full_name == "New Display Name"
+    end
+
+    test "shows error for invalid display name", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/dashboard/settings")
+
+      # Assuming too long name is invalid
+      long_name = String.duplicate("a", 101)
+      view
+      |> form("#display-name-form", %{full_name: long_name})
+      |> render_change()
+
+      assert render(view) =~ "too long"
+    end
+  end
+
+  describe "Username updates" do
+    test "successfully updates username", %{conn: conn, profile: profile} do
+      {:ok, view, _html} = live(conn, ~p"/dashboard/settings")
+
+      view
+      |> form("#username-form-container form", %{username: "new-username"})
+      |> render_submit()
+
+      assert render(view) =~ "Username updated"
+      
+      updated_profile = Repo.reload!(profile)
+      assert updated_profile.username == "new-username"
+    end
+
+    test "checks username availability", %{conn: conn} do
+      insert(:profile, username: "taken-username")
+      {:ok, view, _html} = live(conn, ~p"/dashboard/settings")
+
+      # Check availability
+      view
+      |> form("#username-form-container form", %{username: "taken-username"})
+      |> render_change()
+
+      assert render(view) =~ "Taken"
+
+      view
+      |> form("#username-form-container form", %{username: "available-username"})
+      |> render_change()
+
+      assert render(view) =~ "Available"
+    end
+
+    test "shows error for invalid username format", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/dashboard/settings")
+
+      view
+      |> form("#username-form-container form", %{username: "Invalid Username!"})
+      |> render_change()
+
+      assert render(view) =~ "Invalid"
+    end
+  end
+
+  describe "Timezone updates" do
+    test "successfully updates timezone", %{conn: conn, profile: profile} do
+      {:ok, view, _html} = live(conn, ~p"/dashboard/settings")
+
+      # Open dropdown
+      view |> element("#timezone-form-container button[phx-click='toggle_timezone_dropdown']") |> render_click()
+      
+      # Verify search input is visible (means dropdown is open)
+      assert render(view) =~ "Search cities"
+
+      # Click the New York option
+      # We use element with text to be sure
+      view |> element("[phx-click='change_timezone']", "New York") |> render_click()
+
+      expected_label = Tymeslot.Utils.TimezoneUtils.format_timezone("America/New_York")
+      assert render(view) =~ "Timezone updated to #{expected_label}"
+      
+      updated_profile = Repo.reload!(profile)
+      assert updated_profile.timezone == "America/New_York"
+    end
+
+    test "shows error for invalid timezone format", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/dashboard/settings")
+
+      # Open dropdown to ensure options are in DOM
+      view |> element("#timezone-form-container button[phx-click='toggle_timezone_dropdown']") |> render_click()
+
+      # Click an option but override with an invalid timezone value
+      # We use a text filter to pick a specific element from the list
+      view
+      |> element("#timezone-form-container [phx-click='change_timezone']", "Adak, Alaska")
+      |> render_click(%{timezone: "Invalid-Timezone-Format"})
+
+      assert render(view) =~ "Invalid timezone format"
     end
   end
 end

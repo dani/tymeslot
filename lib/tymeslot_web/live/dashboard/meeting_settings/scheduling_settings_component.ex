@@ -10,7 +10,6 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.SchedulingSettingsComponent do
   alias Tymeslot.Security.MeetingSettingsInputProcessor
   alias TymeslotWeb.Dashboard.MeetingSettings.Components
   alias TymeslotWeb.Dashboard.MeetingSettings.Helpers
-  alias TymeslotWeb.Live.Shared.Flash
 
   @impl true
   def update(assigns, socket) do

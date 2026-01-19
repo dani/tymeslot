@@ -10,10 +10,8 @@ defmodule TymeslotWeb.Dashboard.BookingsManagementComponent do
   alias Tymeslot.Security.MeetingsInputProcessor
   alias TymeslotWeb.Components.Dashboard.Meetings.CancelMeetingModal
   alias TymeslotWeb.Components.Dashboard.Meetings.RescheduleRequestModal
-  alias TymeslotWeb.Hooks.ModalHook
   alias TymeslotWeb.Live.Dashboard.Meetings.{Components, Helpers, Loader}
   alias TymeslotWeb.Live.Dashboard.Shared.DashboardHelpers
-  alias TymeslotWeb.Live.Shared.Flash
   require Logger
 
   @impl true

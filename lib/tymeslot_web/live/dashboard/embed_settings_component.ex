@@ -10,7 +10,6 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsComponent do
   alias Tymeslot.Scheduling.LinkAccessPolicy
   alias Tymeslot.Security.RateLimiter
   alias TymeslotWeb.Endpoint
-  alias TymeslotWeb.Live.Shared.Flash
 
   require Logger
 

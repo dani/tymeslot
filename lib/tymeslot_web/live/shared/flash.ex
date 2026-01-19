@@ -7,10 +7,8 @@ defmodule TymeslotWeb.Live.Shared.Flash do
   with `send(self(), {:flash, {type, message}})`, you can use the convenience
   functions provided here.
 
-  ## Examples
+    ## Examples
 
-      alias TymeslotWeb.Live.Shared.Flash
-      
       # Using convenience functions
       Flash.info("Settings saved successfully!")
       Flash.error("Failed to save settings")

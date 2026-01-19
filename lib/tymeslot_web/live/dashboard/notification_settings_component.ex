@@ -15,7 +15,6 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
   alias TymeslotWeb.Components.Icons.IconComponents
   alias TymeslotWeb.Dashboard.Notifications.Components
   alias TymeslotWeb.Dashboard.Notifications.Modals
-  alias TymeslotWeb.Hooks.ModalHook
   alias TymeslotWeb.Live.Dashboard.Shared.DashboardHelpers
 
   @impl true
