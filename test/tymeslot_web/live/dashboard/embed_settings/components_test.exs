@@ -1,9 +1,9 @@
 defmodule TymeslotWeb.Live.Dashboard.EmbedSettings.ComponentsTest do
   use TymeslotWeb.ConnCase, async: true
   import Phoenix.LiveViewTest
+  alias TymeslotWeb.Live.Dashboard.EmbedSettings.LivePreview
   alias TymeslotWeb.Live.Dashboard.EmbedSettings.OptionsGrid
   alias TymeslotWeb.Live.Dashboard.EmbedSettings.SecuritySection
-  alias TymeslotWeb.Live.Dashboard.EmbedSettings.LivePreview
 
   describe "OptionsGrid component" do
     test "renders all options" do

@@ -2,8 +2,8 @@ defmodule TymeslotWeb.Hooks.DashboardInitHookTest do
   use TymeslotWeb.ConnCase, async: true
   import Tymeslot.Factory
 
-  alias TymeslotWeb.Hooks.DashboardInitHook
   alias Phoenix.LiveView.Socket
+  alias TymeslotWeb.Hooks.DashboardInitHook
 
   defp build_socket(assigns \\ %{}) do
     %Socket{

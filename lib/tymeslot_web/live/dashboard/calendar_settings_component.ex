@@ -152,7 +152,9 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
 
     case Calendar.create_integration_with_validation(
            socket.assigns.current_user.id,
-           processed_params, metadata: socket.assigns.security_metadata) do
+           processed_params,
+           metadata: socket.assigns.security_metadata
+         ) do
       {:ok, _integration} ->
         send(self(), {:integration_added, :calendar})
         Flash.info("Calendar integration added successfully")
@@ -163,10 +165,10 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
 
       {:error, {:changeset, changeset}} ->
         {:noreply,
-         assign(socket, form_errors: ChangesetUtils.get_first_error(changeset), is_saving: false)}
-
-      {:error, reason} ->
-        {:noreply, assign(socket, form_errors: %{generic: [to_string(reason)]}, is_saving: false)}
+         assign(socket,
+           form_errors: %{generic: [ChangesetUtils.get_first_error(changeset)]},
+           is_saving: false
+         )}
     end
   end
 
@@ -350,8 +352,7 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
   end
 
   defp reset_discovery_state(socket) do
-    socket
-    |> assign(
+    assign(socket,
       discovered_calendars: [],
       show_calendar_selection: false,
       discovery_credentials: %{},

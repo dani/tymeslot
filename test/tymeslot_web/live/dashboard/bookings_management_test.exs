@@ -5,8 +5,10 @@ defmodule TymeslotWeb.Dashboard.BookingsManagementTest do
   import Tymeslot.AuthTestHelpers
   import Mox
 
-  alias Tymeslot.Repo
   alias Tymeslot.DatabaseSchemas.MeetingSchema
+  alias Tymeslot.Repo
+
+  alias Plug.Test
 
   setup :verify_on_exit!
 
@@ -21,7 +23,7 @@ defmodule TymeslotWeb.Dashboard.BookingsManagementTest do
 
     stub(Tymeslot.EmailServiceMock, :send_reschedule_request, fn _ -> {:ok, nil} end)
 
-    conn = conn |> Plug.Test.init_test_session(%{}) |> fetch_session()
+    conn = conn |> Test.init_test_session(%{}) |> fetch_session()
     conn = log_in_user(conn, user)
     {:ok, conn: conn, user: user, profile: profile}
   end

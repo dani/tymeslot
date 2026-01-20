@@ -7,6 +7,7 @@ defmodule Tymeslot.Profiles do
   alias Tymeslot.DatabaseQueries.ProfileQueries
   alias Tymeslot.DatabaseSchemas.ProfileSchema
   alias Tymeslot.MeetingTypes
+  alias Tymeslot.Profiles.Timezone
   alias Tymeslot.Security.FormValidation
   alias Tymeslot.Security.RateLimiter
   alias Tymeslot.Security.SettingsInputProcessor
@@ -63,7 +64,7 @@ defmodule Tymeslot.Profiles do
 
   def prefill_timezone(profile, detected_timezone) do
     prefilled_tz =
-      Tymeslot.Profiles.Timezone.prefill_timezone(profile.timezone, detected_timezone)
+      Timezone.prefill_timezone(profile.timezone, detected_timezone)
 
     %{profile | timezone: prefilled_tz}
   end

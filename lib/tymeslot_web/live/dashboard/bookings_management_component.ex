@@ -8,11 +8,13 @@ defmodule TymeslotWeb.Dashboard.BookingsManagementComponent do
   alias Tymeslot.Meetings
   alias Tymeslot.Security.MeetingsInputProcessor
 
+  alias Phoenix.LiveView
+
   alias TymeslotWeb.Components.Dashboard.Meetings.{
     CancelMeetingModal,
+    Helpers,
     MeetingListComponents,
-    RescheduleRequestModal,
-    Helpers
+    RescheduleRequestModal
   }
 
   require Logger
@@ -21,7 +23,7 @@ defmodule TymeslotWeb.Dashboard.BookingsManagementComponent do
   def mount(socket) do
     {:ok,
      socket
-     |> Phoenix.LiveView.stream(:meetings, [])
+     |> LiveView.stream(:meetings, [])
      |> assign(:filter, "upcoming")
      |> assign(:loading, true)
      |> assign(:is_empty, true)
@@ -252,7 +254,7 @@ defmodule TymeslotWeb.Dashboard.BookingsManagementComponent do
       {:ok, page} ->
         socket =
           Enum.reduce(page.items, socket, fn item, s ->
-            Phoenix.LiveView.stream_insert(s, :meetings, item)
+            LiveView.stream_insert(s, :meetings, item)
           end)
 
         :telemetry.execute(
@@ -397,7 +399,7 @@ defmodule TymeslotWeb.Dashboard.BookingsManagementComponent do
         )
 
         socket
-        |> Phoenix.LiveView.stream(:meetings, page.items, reset: true)
+        |> LiveView.stream(:meetings, page.items, reset: true)
         |> assign(:next_cursor, page.next_cursor)
         |> assign(:has_more, page.has_more)
         |> assign(:loading, false)
@@ -413,7 +415,7 @@ defmodule TymeslotWeb.Dashboard.BookingsManagementComponent do
         Flash.error("Failed to load meetings")
 
         socket
-        |> Phoenix.LiveView.stream(:meetings, [], reset: true)
+        |> LiveView.stream(:meetings, [], reset: true)
         |> assign(:next_cursor, nil)
         |> assign(:has_more, false)
         |> assign(:loading, false)

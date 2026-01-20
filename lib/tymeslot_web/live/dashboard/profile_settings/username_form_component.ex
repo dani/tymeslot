@@ -1,4 +1,8 @@
 defmodule TymeslotWeb.Dashboard.ProfileSettings.UsernameFormComponent do
+  @moduledoc """
+  Username form component for profile settings.
+  Allows users to update their unique booking URL.
+  """
   use TymeslotWeb, :live_component
 
   alias Tymeslot.Bookings.Policy
@@ -100,6 +104,7 @@ defmodule TymeslotWeb.Dashboard.ProfileSettings.UsernameFormComponent do
   def render(assigns) do
     ~H"""
     <div id="username-form-container">
+      <.section_header level={3} title="Custom URL" class="mb-4" />
       <form phx-submit="update_username" phx-change="check_username_availability" phx-target={@myself} class="space-y-4">
         <div>
           <label for="username" class="label">

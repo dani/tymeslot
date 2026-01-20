@@ -16,8 +16,8 @@ defmodule TymeslotWeb.Components.DashboardIntegrationsTest do
   alias TymeslotWeb.Components.Dashboard.Integrations.Shared.UIComponents
   alias TymeslotWeb.Components.Dashboard.Integrations.Video.CustomConfig
   alias TymeslotWeb.Components.Dashboard.Integrations.Video.MirotalkConfig
-  alias TymeslotWeb.Dashboard.CalendarSettingsComponent
   alias TymeslotWeb.Dashboard.CalendarSettings.Components, as: CalendarComponents
+  alias TymeslotWeb.Dashboard.CalendarSettingsComponent
 
   test "renders calendar_item correctly" do
     assigns = %{

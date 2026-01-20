@@ -15,6 +15,7 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettings.OptionsGrid do
   attr :booking_url, :string, required: true
   attr :myself, :any, required: true
 
+  @spec options_grid(map()) :: Phoenix.LiveView.Rendered.t()
   def options_grid(assigns) do
     ~H"""
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">

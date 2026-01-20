@@ -30,6 +30,7 @@ defmodule TymeslotWeb.Dashboard.CalendarSettings.Components do
   attr :discovery_credentials, :map, required: true
   attr :is_saving, :boolean, required: true
 
+  @spec config_view(map()) :: Phoenix.LiveView.Rendered.t()
   def config_view(assigns) do
     ~H"""
     <div
@@ -122,6 +123,7 @@ defmodule TymeslotWeb.Dashboard.CalendarSettings.Components do
   attr :is_refreshing, :boolean, required: true
   attr :myself, :any, required: true
 
+  @spec connected_calendars_section(map()) :: Phoenix.LiveView.Rendered.t()
   def connected_calendars_section(assigns) do
     # Group integrations by active/inactive
     {active, inactive} = Enum.split_with(assigns.integrations, & &1.is_active)
@@ -218,6 +220,7 @@ defmodule TymeslotWeb.Dashboard.CalendarSettings.Components do
   attr :validating_integration_id, :integer, required: true
   attr :myself, :any, required: true
 
+  @spec calendar_item(map()) :: Phoenix.LiveView.Rendered.t()
   def calendar_item(assigns) do
     provider_name = Helpers.format_provider_name(assigns.integration.provider)
 
@@ -361,6 +364,7 @@ defmodule TymeslotWeb.Dashboard.CalendarSettings.Components do
   attr :available_calendar_providers, :list, required: true
   attr :myself, :any, required: true
 
+  @spec available_providers_section(map()) :: Phoenix.LiveView.Rendered.t()
   def available_providers_section(assigns) do
     ~H"""
     <div class="space-y-8 mt-16 pt-12 border-t border-slate-50">

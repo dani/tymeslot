@@ -7,13 +7,18 @@ defmodule Tymeslot.Dashboard.DashboardContextTest do
 
   alias Tymeslot.Dashboard.DashboardContext
 
+  setup do
+    user = insert(:user)
+    future_start = DateTime.utc_now() |> DateTime.add(1, :day) |> DateTime.truncate(:second)
+    {:ok, user: user, future_start: future_start}
+  end
+
   describe "get_dashboard_data_for_action/2" do
-    test "returns 3 upcoming meetings for :overview action" do
-      user = insert(:user)
-
+    test "returns 3 upcoming meetings for :overview action", %{
+      user: user,
+      future_start: future_start
+    } do
       # Create 5 upcoming meetings
-      future_start = DateTime.utc_now() |> DateTime.add(1, :day) |> DateTime.truncate(:second)
-
       for i <- 1..5 do
         start_time = DateTime.add(future_start, i, :hour)
         end_time = DateTime.add(start_time, 60, :minute)
@@ -33,12 +38,10 @@ defmodule Tymeslot.Dashboard.DashboardContextTest do
       assert length(meetings) == 3
     end
 
-    test "returns meetings sorted by start time for :overview action" do
-      user = insert(:user)
-
-      # Create meetings with different start times
-      future_start = DateTime.utc_now() |> DateTime.add(1, :day) |> DateTime.truncate(:second)
-
+    test "returns meetings sorted by start time for :overview action", %{
+      user: user,
+      future_start: future_start
+    } do
       # Insert meetings in random order but expect them sorted
       insert(:meeting,
         organizer_email: user.email,
@@ -65,9 +68,7 @@ defmodule Tymeslot.Dashboard.DashboardContextTest do
       assert DateTime.compare(second.start_time, third.start_time) == :lt
     end
 
-    test "returns empty meetings for non-overview actions" do
-      user = insert(:user)
-
+    test "returns empty meetings for non-overview actions", %{user: user} do
       # Create some meetings
       insert(:future_meeting, organizer_email: user.email)
 
@@ -76,9 +77,7 @@ defmodule Tymeslot.Dashboard.DashboardContextTest do
       assert result == %{upcoming_meetings: []}
     end
 
-    test "returns empty meetings for :integrations action" do
-      user = insert(:user)
-
+    test "returns empty meetings for :integrations action", %{user: user} do
       result = DashboardContext.get_dashboard_data_for_action(user.email, :integrations)
 
       assert result == %{upcoming_meetings: []}
@@ -96,11 +95,10 @@ defmodule Tymeslot.Dashboard.DashboardContextTest do
       assert result == %{upcoming_meetings: []}
     end
 
-    test "only includes confirmed upcoming meetings for :overview" do
-      user = insert(:user)
-
-      future_start = DateTime.utc_now() |> DateTime.add(1, :day) |> DateTime.truncate(:second)
-
+    test "only includes confirmed upcoming meetings for :overview", %{
+      user: user,
+      future_start: future_start
+    } do
       # Create confirmed meeting
       insert(:meeting,
         organizer_email: user.email,
@@ -133,9 +131,7 @@ defmodule Tymeslot.Dashboard.DashboardContextTest do
       assert hd(meetings).status == "confirmed"
     end
 
-    test "does not include past meetings for :overview" do
-      user = insert(:user)
-
+    test "does not include past meetings for :overview", %{user: user, future_start: future_start} do
       # Create a past meeting
       past_start = DateTime.utc_now() |> DateTime.add(-1, :day) |> DateTime.truncate(:second)
 
@@ -147,8 +143,6 @@ defmodule Tymeslot.Dashboard.DashboardContextTest do
       )
 
       # Create a future meeting
-      future_start = DateTime.utc_now() |> DateTime.add(1, :day) |> DateTime.truncate(:second)
-
       insert(:meeting,
         organizer_email: user.email,
         start_time: future_start,

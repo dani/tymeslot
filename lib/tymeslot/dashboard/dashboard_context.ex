@@ -8,6 +8,7 @@ defmodule Tymeslot.Dashboard.DashboardContext do
   alias Tymeslot.DatabaseQueries.VideoIntegrationQueries
   alias Tymeslot.Infrastructure.DashboardCache
   alias Tymeslot.Integrations.CalendarManagement
+  alias Tymeslot.Meetings
   alias Tymeslot.MeetingTypes
 
   @doc """
@@ -118,7 +119,7 @@ defmodule Tymeslot.Dashboard.DashboardContext do
     case action do
       :overview ->
         # Business rule: Overview displays 3 upcoming meetings
-        meetings = Tymeslot.Meetings.list_upcoming_meetings_for_user(user_email, 3)
+        meetings = Meetings.list_upcoming_meetings_for_user(user_email, 3)
         %{upcoming_meetings: meetings}
 
       _ ->

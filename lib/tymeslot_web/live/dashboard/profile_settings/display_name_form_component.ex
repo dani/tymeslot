@@ -1,4 +1,8 @@
 defmodule TymeslotWeb.Dashboard.ProfileSettings.DisplayNameFormComponent do
+  @moduledoc """
+  Display name form component for profile settings.
+  Allows users to update their public display name.
+  """
   use TymeslotWeb, :live_component
 
   alias Tymeslot.Profiles
@@ -51,6 +55,7 @@ defmodule TymeslotWeb.Dashboard.ProfileSettings.DisplayNameFormComponent do
   def render(assigns) do
     ~H"""
     <div id="display-name-form-container">
+      <.section_header level={3} title="Display Name" class="mb-4" />
       <FormSystem.form_wrapper
         for={%{}}
         phx_change="validate_full_name"

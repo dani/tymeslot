@@ -18,6 +18,7 @@ defmodule TymeslotWeb.Dashboard.ThemeSettings.ThemeCustomization.Components do
   import TymeslotWeb.Dashboard.ThemeSettings.ThemeCustomization.Pickers.VideoPicker,
     only: [video_picker: 1]
 
+  @spec toolbar(map()) :: Phoenix.LiveView.Rendered.t()
   def toolbar(assigns) do
     ~H"""
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-10">
@@ -62,6 +63,7 @@ defmodule TymeslotWeb.Dashboard.ThemeSettings.ThemeCustomization.Components do
     """
   end
 
+  @spec color_scheme_section(map()) :: Phoenix.LiveView.Rendered.t()
   def color_scheme_section(assigns) do
     ~H"""
     <div class="card-glass">
@@ -148,6 +150,7 @@ defmodule TymeslotWeb.Dashboard.ThemeSettings.ThemeCustomization.Components do
     """
   end
 
+  @spec background_section(map()) :: Phoenix.LiveView.Rendered.t()
   def background_section(assigns) do
     ~H"""
     <div class="card-glass">

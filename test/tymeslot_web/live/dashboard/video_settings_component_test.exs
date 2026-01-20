@@ -5,14 +5,17 @@ defmodule TymeslotWeb.Dashboard.VideoSettingsComponentTest do
   import Tymeslot.Factory
   import Tymeslot.AuthTestHelpers
 
+  alias Tymeslot.DatabaseSchemas.VideoIntegrationSchema
   alias Tymeslot.Repo
+
+  alias Plug.Test
 
   setup :verify_on_exit!
 
   setup %{conn: conn} do
     user = insert(:user, onboarding_completed_at: DateTime.utc_now())
     _profile = insert(:profile, user: user)
-    conn = conn |> Plug.Test.init_test_session(%{}) |> fetch_session()
+    conn = conn |> Test.init_test_session(%{}) |> fetch_session()
     conn = log_in_user(conn, user)
     {:ok, conn: conn, user: user}
   end
@@ -48,7 +51,7 @@ defmodule TymeslotWeb.Dashboard.VideoSettingsComponentTest do
       |> render_click()
 
       assert render(view) =~ "Integration status updated"
-      refute Repo.get!(Tymeslot.DatabaseSchemas.VideoIntegrationSchema, integration.id).is_active
+      refute Repo.get!(VideoIntegrationSchema, integration.id).is_active
     end
 
     test "tests connection for an integration", %{conn: conn, user: user} do
@@ -157,7 +160,7 @@ defmodule TymeslotWeb.Dashboard.VideoSettingsComponentTest do
 
       assert render(view) =~ "Integration deleted successfully"
       refute render(view) =~ "To Delete"
-      assert Repo.get(Tymeslot.DatabaseSchemas.VideoIntegrationSchema, integration.id) == nil
+      assert Repo.get(VideoIntegrationSchema, integration.id) == nil
     end
   end
 end

@@ -11,6 +11,7 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettings.SecuritySection do
   attr :allowed_domains_str, :string, required: true
   attr :myself, :any, required: true
 
+  @spec security_section(map()) :: Phoenix.LiveView.Rendered.t()
   def security_section(assigns) do
     ~H"""
     <div class="bg-white rounded-token-2xl border-2 border-tymeslot-200 p-8">

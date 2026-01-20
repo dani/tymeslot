@@ -1,4 +1,8 @@
 defmodule TymeslotWeb.Dashboard.ProfileSettings.TimezoneFormComponent do
+  @moduledoc """
+  Timezone form component for profile settings.
+  Allows users to update their account timezone.
+  """
   use TymeslotWeb, :live_component
 
   alias Tymeslot.Profiles
@@ -79,6 +83,7 @@ defmodule TymeslotWeb.Dashboard.ProfileSettings.TimezoneFormComponent do
   def render(assigns) do
     ~H"""
     <div id="timezone-form-container">
+      <.section_header level={3} title="Timezone" class="mb-4" />
       <TimezoneDropdown.timezone_dropdown
         profile={@profile}
         timezone_options={@timezone_options}

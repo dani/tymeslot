@@ -142,9 +142,9 @@ defmodule TymeslotWeb do
       alias Phoenix.LiveView.JS
 
       # Shared helpers
-      alias TymeslotWeb.Live.Shared.Flash
       alias TymeslotWeb.Hooks.ModalHook
       alias TymeslotWeb.Live.Dashboard.Shared.DashboardHelpers
+      alias TymeslotWeb.Live.Shared.Flash
 
       # Routes generation with the ~p sigil
       unquote(verified_routes())

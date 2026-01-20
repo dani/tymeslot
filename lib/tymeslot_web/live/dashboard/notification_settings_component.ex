@@ -137,10 +137,7 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
   end
 
   def handle_event("show_edit_modal", %{"id" => id}, socket) do
-    user_id = socket.assigns.current_user.id
-    webhook_id = NotificationHelpers.parse_id(id)
-
-    case Webhooks.get_webhook(webhook_id, user_id) do
+    case get_webhook_for_user(socket, id) do
       {:ok, webhook} ->
         {:noreply,
          socket
@@ -223,9 +220,7 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
         {:noreply, socket}
 
       id ->
-        user_id = socket.assigns.current_user.id
-
-        case Webhooks.get_webhook(id, user_id) do
+        case get_webhook_for_user(socket, id) do
           {:ok, webhook} ->
             case Webhooks.delete_webhook(webhook) do
               {:ok, _} ->
@@ -250,10 +245,7 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
   end
 
   def handle_event("toggle_webhook", %{"id" => id}, socket) do
-    user_id = socket.assigns.current_user.id
-    webhook_id = NotificationHelpers.parse_id(id)
-
-    case Webhooks.get_webhook(webhook_id, user_id) do
+    case get_webhook_for_user(socket, id) do
       {:ok, webhook} ->
         case Webhooks.toggle_webhook(webhook) do
           {:ok, _} ->
@@ -272,12 +264,10 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
   end
 
   def handle_event("test_connection", %{"id" => id}, socket) do
-    user_id = socket.assigns.current_user.id
     webhook_id = NotificationHelpers.parse_id(id)
-
     socket = assign(socket, :testing_connection, webhook_id)
 
-    case Webhooks.get_webhook(webhook_id, user_id) do
+    case get_webhook_for_user(socket, id) do
       {:ok, webhook} ->
         case Webhooks.test_webhook_connection(webhook.url, webhook.secret) do
           :ok ->
@@ -296,13 +286,10 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
   end
 
   def handle_event("show_deliveries", %{"id" => id}, socket) do
-    webhook_id = NotificationHelpers.parse_id(id)
-    user_id = socket.assigns.current_user.id
-
-    case Webhooks.get_webhook(webhook_id, user_id) do
+    case get_webhook_for_user(socket, id) do
       {:ok, webhook} ->
-        deliveries = Webhooks.list_deliveries(webhook_id, limit: 50)
-        stats = Webhooks.get_delivery_stats(webhook_id, days: 7)
+        deliveries = Webhooks.list_deliveries(webhook.id, limit: 50)
+        stats = Webhooks.get_delivery_stats(webhook.id, days: 7)
 
         {:noreply,
          socket
@@ -453,5 +440,11 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
     user_id = socket.assigns.current_user.id
     webhooks = Webhooks.list_webhooks(user_id)
     assign(socket, :webhooks, webhooks)
+  end
+
+  defp get_webhook_for_user(socket, id) do
+    user_id = socket.assigns.current_user.id
+    webhook_id = NotificationHelpers.parse_id(id)
+    Webhooks.get_webhook(webhook_id, user_id)
   end
 end

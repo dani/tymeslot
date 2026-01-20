@@ -6,9 +6,11 @@ defmodule TymeslotWeb.Hooks.DashboardInitHook do
   import Phoenix.LiveView
   import Phoenix.Component
   alias Tymeslot.Auth
-  alias Tymeslot.Profiles
   alias Tymeslot.Dashboard.DashboardContext
+  alias Tymeslot.Profiles
 
+  @spec on_mount(:default, map(), map(), Phoenix.LiveView.Socket.t()) ::
+          {:cont, Phoenix.LiveView.Socket.t()} | {:halt, Phoenix.LiveView.Socket.t()}
   def on_mount(:default, _params, _session, socket) do
     user = socket.assigns[:current_user]
 
@@ -21,7 +23,10 @@ defmodule TymeslotWeb.Hooks.DashboardInitHook do
         {:halt, redirect(socket, to: "/onboarding")}
 
       true ->
-        profile = Profiles.get_profile(user.id) || %Tymeslot.DatabaseSchemas.ProfileSchema{user_id: user.id}
+        profile =
+          Profiles.get_profile(user.id) ||
+            %Tymeslot.DatabaseSchemas.ProfileSchema{user_id: user.id}
+
         integration_status = DashboardContext.get_integration_status(user.id)
 
         socket =

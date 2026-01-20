@@ -11,6 +11,7 @@ defmodule TymeslotWeb.Dashboard.ThemeSettings.ThemePreview do
   """
   attr :theme_id, :string, required: true
 
+  @spec render(map()) :: Phoenix.LiveView.Rendered.t()
   def render(assigns) do
     theme = Theme.get_theme(assigns.theme_id)
     assigns = assign(assigns, :theme, theme)

@@ -10,6 +10,7 @@ defmodule TymeslotWeb.AccountLive.Handlers do
   alias Tymeslot.Auth
   alias Tymeslot.Security.{AccountInputProcessor, RateLimiter}
   alias TymeslotWeb.AccountLive.{ErrorFormatter, Helpers}
+  alias TymeslotWeb.Helpers.ClientIP
   alias TymeslotWeb.Live.Shared.Flash
 
   # Provider constants
@@ -163,7 +164,7 @@ defmodule TymeslotWeb.AccountLive.Handlers do
 
   defp build_metadata(socket) do
     %{
-      ip: TymeslotWeb.Helpers.ClientIP.get(socket),
+      ip: ClientIP.get(socket),
       user_agent: socket.assigns[:user_agent] || "unknown",
       user_id: socket.assigns.current_user.id
     }

@@ -4,9 +4,9 @@ defmodule TymeslotWeb.Components.Dashboard.Meetings.MeetingListComponents do
   """
   use Phoenix.Component
 
-  alias TymeslotWeb.Components.Icons.IconComponents, as: Icons
-  alias TymeslotWeb.Components.Dashboard.Meetings.Helpers
   alias TymeslotWeb.Components.CoreComponents
+  alias TymeslotWeb.Components.Dashboard.Meetings.Helpers
+  alias TymeslotWeb.Components.Icons.IconComponents, as: Icons
 
   # Filter Tabs
   attr :active, :string, required: true

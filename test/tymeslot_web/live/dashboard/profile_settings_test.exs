@@ -1,18 +1,15 @@
 defmodule TymeslotWeb.Dashboard.ProfileSettingsTest do
   use TymeslotWeb.LiveCase, async: true
 
+  import Tymeslot.DashboardTestHelpers
   import Tymeslot.Factory
-  import Tymeslot.AuthTestHelpers
 
   alias Tymeslot.Repo
 
-  setup %{conn: conn} do
-    user = insert(:user, onboarding_completed_at: DateTime.utc_now())
-    profile = insert(:profile, user: user)
-    conn = conn |> Plug.Test.init_test_session(%{}) |> fetch_session()
-    conn = log_in_user(conn, user)
-    {:ok, conn: conn, user: user, profile: profile}
-  end
+  alias Ecto.Changeset
+  alias Tymeslot.Utils.TimezoneUtils
+
+  setup :setup_dashboard_user
 
   describe "Avatar upload" do
     test "successfully uploads an avatar", %{conn: conn, profile: profile} do
@@ -81,7 +78,7 @@ defmodule TymeslotWeb.Dashboard.ProfileSettingsTest do
 
     test "successfully deletes an avatar", %{conn: conn, profile: profile} do
       # Manually set an avatar for the profile to test deletion
-      profile = Repo.update!(Ecto.Changeset.change(profile, avatar: "test_avatar.png"))
+      profile = Repo.update!(Changeset.change(profile, avatar: "test_avatar.png"))
 
       {:ok, view, _html} = live(conn, ~p"/dashboard/settings")
 
@@ -194,7 +191,7 @@ defmodule TymeslotWeb.Dashboard.ProfileSettingsTest do
       # We use element with text to be sure
       view |> element("[phx-click='change_timezone']", "New York") |> render_click()
 
-      expected_label = Tymeslot.Utils.TimezoneUtils.format_timezone("America/New_York")
+      expected_label = TimezoneUtils.format_timezone("America/New_York")
       assert render(view) =~ "Timezone updated to #{expected_label}"
 
       updated_profile = Repo.reload!(profile)

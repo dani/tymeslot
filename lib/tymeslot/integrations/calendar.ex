@@ -155,8 +155,7 @@ defmodule Tymeslot.Integrations.Calendar do
           {:ok, CalendarIntegrationSchema.t()} | {:error, any()}
   def toggle_calendar_selection(integration, calendar_id) do
     current_selection =
-      (integration.calendar_list || [])
-      |> Enum.reduce([], fn cal, acc ->
+      Enum.reduce(integration.calendar_list || [], [], fn cal, acc ->
         cid = cal["id"] || cal[:id]
         is_selected = cal["selected"] || cal[:selected] || false
 

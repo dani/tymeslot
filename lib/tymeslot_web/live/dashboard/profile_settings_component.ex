@@ -23,9 +23,7 @@ defmodule TymeslotWeb.Dashboard.ProfileSettingsComponent do
 
   @impl true
   def update(assigns, socket) do
-    {:ok,
-     socket
-     |> assign(assigns)}
+    {:ok, assign(socket, assigns)}
   end
 
   @impl true

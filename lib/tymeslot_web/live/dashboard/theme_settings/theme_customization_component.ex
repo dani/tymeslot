@@ -124,6 +124,7 @@ defmodule TymeslotWeb.Dashboard.ThemeSettings.ThemeCustomizationComponent do
   def render(assigns) do
     ~H"""
     <div class="space-y-8" phx-hook="AutoUpload" id="theme-customization-uploads">
+      <.section_header level={3} title="Theme Customization" />
       <Components.toolbar
         profile={@profile}
         theme_id={@theme_id}

@@ -18,6 +18,7 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettings.LivePreview do
   attr :error_reason, :any, required: true
   attr :myself, :any, required: true
 
+  @spec live_preview(map()) :: Phoenix.LiveView.Rendered.t()
   def live_preview(assigns) do
     ~H"""
     <div class="bg-gradient-to-br from-tymeslot-50 to-tymeslot-100 rounded-token-2xl border-2 border-tymeslot-200 p-8">

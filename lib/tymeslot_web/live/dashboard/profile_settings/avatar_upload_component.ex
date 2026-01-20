@@ -1,4 +1,8 @@
 defmodule TymeslotWeb.Dashboard.ProfileSettings.AvatarUploadComponent do
+  @moduledoc """
+  Avatar upload component for profile settings.
+  Allows users to upload or delete their profile picture.
+  """
   use TymeslotWeb, :live_component
 
   alias Tymeslot.Profiles
@@ -7,9 +11,7 @@ defmodule TymeslotWeb.Dashboard.ProfileSettings.AvatarUploadComponent do
 
   @impl true
   def update(assigns, socket) do
-    socket =
-      socket
-      |> assign(assigns)
+    socket = assign(socket, assigns)
 
     socket =
       if socket.assigns[:uploads] && socket.assigns.uploads[:avatar] do
@@ -139,7 +141,7 @@ defmodule TymeslotWeb.Dashboard.ProfileSettings.AvatarUploadComponent do
   def render(assigns) do
     ~H"""
     <div id="avatar-upload-container" class="lg:col-span-1 space-y-8 text-center pt-4">
-      <CoreComponents.section_header level={3} title="Profile Picture" />
+      <.section_header level={3} title="Profile Picture" />
       
       <div class="relative inline-block mb-8" phx-hook="AutoUpload" id="avatar-upload-section">
         <div class="w-40 h-40 rounded-[2.5rem] overflow-hidden bg-tymeslot-100 border-4 border-white shadow-2xl relative z-10 mx-auto">
