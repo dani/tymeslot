@@ -305,6 +305,14 @@ defmodule Tymeslot.Workers.EmailWorkerHandlers do
     end
   end
 
+  defp log_email_results(meeting, {:reminder, val, unit}, organizer_success, attendee_success) do
+    Logger.info("Reminder (#{val} #{unit}) emails sent",
+      meeting_id: meeting.id,
+      organizer_sent: organizer_success,
+      attendee_sent: attendee_success
+    )
+  end
+
   defp log_email_results(meeting, email_type, organizer_success, attendee_success) do
     Logger.info("#{email_type} emails sent",
       meeting_id: meeting.id,

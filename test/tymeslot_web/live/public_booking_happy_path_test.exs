@@ -11,8 +11,8 @@ defmodule TymeslotWeb.PublicBookingHappyPathTest do
 
   setup :verify_on_exit!
 
-  setup do
-    Mox.set_mox_global()
+  setup tags do
+    Mox.set_mox_from_context(tags)
     ensure_rate_limiter_started()
     RateLimiter.clear_all()
 

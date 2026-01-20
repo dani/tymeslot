@@ -37,6 +37,8 @@ defmodule TymeslotWeb.ConnCase do
 
   setup tags do
     DataCase.setup_sandbox(tags)
+    Mox.set_mox_from_context(tags)
+    Tymeslot.TestMocks.setup_subscription_mocks()
     {:ok, conn: setup_session(ConnTest.build_conn())}
   end
 

@@ -18,8 +18,8 @@ defmodule TymeslotWeb.Live.Themes.ThemeProductionChecklistTest do
   @themes_to_test Registry.valid_theme_ids()
 
   describe "production readiness checklist" do
-    setup do
-      Mox.set_mox_global()
+    setup tags do
+      Mox.set_mox_from_context(tags)
       TestMocks.setup_calendar_mocks()
       :ok
     end

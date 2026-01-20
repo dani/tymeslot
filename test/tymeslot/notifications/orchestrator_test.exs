@@ -44,7 +44,8 @@ defmodule Tymeslot.Notifications.OrchestratorTest do
     end
 
     test "schedules reminders at the correct absolute time" do
-      start_time = ~U[2026-01-20 12:00:00Z]
+      # Use a date in the future to ensure the reminder is scheduled
+      start_time = DateTime.utc_now() |> DateTime.add(2, :day) |> DateTime.truncate(:second)
 
       meeting =
         insert(:meeting,
@@ -55,7 +56,7 @@ defmodule Tymeslot.Notifications.OrchestratorTest do
       Orchestrator.schedule_reminder_notifications(meeting)
 
       # Assert the job is scheduled exactly 1 hour before start_time
-      expected_time = ~U[2026-01-20 11:00:00Z]
+      expected_time = DateTime.add(start_time, -1, :hour)
 
       assert_enqueued(
         worker: EmailWorker,

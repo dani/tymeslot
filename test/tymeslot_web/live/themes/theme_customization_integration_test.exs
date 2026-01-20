@@ -11,8 +11,8 @@ defmodule TymeslotWeb.Live.Themes.ThemeCustomizationIntegrationTest do
   alias Tymeslot.ThemeCustomizations
 
   describe "theme customization application" do
-    setup do
-      Mox.set_mox_global()
+    setup tags do
+      Mox.set_mox_from_context(tags)
       TestMocks.setup_calendar_mocks()
 
       user = insert(:user)

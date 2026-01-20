@@ -17,9 +17,9 @@ defmodule Tymeslot.MeetingsContextTest do
 
   setup :verify_on_exit!
 
-  setup do
-    # Set Mox to global mode to allow async processes to use mocks
-    Mox.set_mox_global()
+  setup tags do
+    # Set Mox to use the current test's context
+    Mox.set_mox_from_context(tags)
 
     TestMocks.setup_email_mocks()
     TestMocks.setup_calendar_mocks()

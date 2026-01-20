@@ -21,11 +21,11 @@ defmodule TymeslotWeb.OnboardingValidationTest do
 
   setup :verify_on_exit!
 
-  setup %{conn: conn} do
-    Mox.set_mox_global()
+  setup tags do
+    Mox.set_mox_from_context(tags)
     ensure_rate_limiter_started()
     RateLimiter.clear_all()
-    {:ok, conn: setup_onboarding_session(conn)}
+    {:ok, conn: setup_onboarding_session(tags.conn)}
   end
 
   describe "basic settings - full name validation" do

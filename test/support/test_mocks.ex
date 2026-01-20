@@ -15,7 +15,7 @@ defmodule Tymeslot.TestMocks do
     create_result = Keyword.get(opts, :create_result, {:ok, room_url})
 
     Tymeslot.MiroTalkAPIMock
-    |> stub(:create_meeting_room, fn -> create_result end)
+    |> stub(:create_meeting_room, fn _config -> create_result end)
     |> stub(:extract_room_id, fn url ->
       case String.contains?(url, "/join/") do
         true -> url |> String.split("/join/") |> List.last()

@@ -13,8 +13,8 @@ defmodule TymeslotWeb.Live.Themes.AvailabilityRefinementTest do
 
   setup :verify_on_exit!
 
-  setup do
-    Mox.set_mox_global()
+  setup tags do
+    Mox.set_mox_from_context(tags)
     Sandbox.mode(Repo, {:shared, self()})
     ensure_rate_limiter_started()
     RateLimiter.clear_all()

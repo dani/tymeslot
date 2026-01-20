@@ -58,6 +58,8 @@ defmodule TymeslotWeb.LiveCase do
   setup tags do
     DataCase.setup_sandbox(tags)
     DataCase.reset_stateful_components()
+    Mox.set_mox_from_context(tags)
+    Tymeslot.TestMocks.setup_subscription_mocks()
     {:ok, conn: ConnTest.build_conn()}
   end
 end
