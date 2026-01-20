@@ -312,9 +312,11 @@ Themes are fully isolated with consistent functionality across all variations.
 
 We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-**Beyond code and feedback, you can support Tymeslot's sustainability by subscribing to our managed cloud service.** These subscriptions directly fund the maintenance and development of the open-source core, ensuring the project remains alive and continues to evolve.
+**One of the simplest and most impactful ways to contribute is to leave a star on GitHub.** It helps more people discover Tymeslot and supports the growth of our open-source community.
 
-**How to contribute most effectively:** The biggest contribution you can make to Tymeslot is your **feedback**. Whether it's reporting a bug, suggesting a new feature, or simply sharing how you use the platform, your insights are what drive our growth.
+**Beyond code and stars, you can support Tymeslot's sustainability by subscribing to our managed cloud service.** These subscriptions directly fund the maintenance and development of the open-source core, ensuring the project remains alive and continues to evolve.
+
+**How to contribute most effectively:** Your feedback is invaluable. Whether it's reporting a bug, suggesting a new feature, or simply sharing how you use the platform, your insights are what drive our growth.
 
 ### Development Setup
 
