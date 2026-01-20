@@ -144,12 +144,11 @@ defmodule TymeslotWeb.DashboardLive do
 
   alias Tymeslot.Dashboard.DashboardContext
   alias Tymeslot.Integrations.Calendar
-  alias Tymeslot.Profiles.Timezone
+  alias Tymeslot.Meetings
+  alias Tymeslot.Profiles
   alias TymeslotWeb.Components.DashboardLayout
   alias TymeslotWeb.Helpers.PageTitles
-  alias TymeslotWeb.Live.InitHelpers
 
-  # Alias dashboard components to satisfy aliasing rules and improve maintainability
   alias TymeslotWeb.Dashboard.{
     BookingsManagementComponent,
     CalendarSettingsComponent,
@@ -164,49 +163,13 @@ defmodule TymeslotWeb.DashboardLive do
 
   alias TymeslotWeb.Live.Dashboard.EmbedSettingsComponent
 
-  # Dashboard components are loaded dynamically based on the current action
-
   require Logger
 
   @impl true
   @spec mount(map(), map(), Phoenix.LiveView.Socket.t()) ::
-          {:ok, Phoenix.LiveView.Socket.t()} | {:ok, Phoenix.LiveView.Socket.t(), keyword()}
+    {:ok, Phoenix.LiveView.Socket.t()} | {:ok, Phoenix.LiveView.Socket.t(), keyword()}
   def mount(_params, _session, socket) do
-    InitHelpers.with_user_context(socket, fn socket ->
-      connect_params = get_connect_params(socket) || %{}
-      detected_timezone = connect_params["timezone"]
-      user = socket.assigns.current_user
-
-      socket =
-        socket
-        |> assign(shared_data: %{})
-        |> assign(detected_timezone: detected_timezone)
-
-      socket =
-        if user do
-          {:ok, socket} = DashboardHelpers.mount_dashboard_common(socket)
-          socket
-        else
-          assign_dev_profile(socket)
-        end
-
-      {:ok, load_shared_data(socket)}
-    end)
-  end
-
-  defp assign_dev_profile(socket) do
-    assign(socket, :profile, %{
-      id: 1,
-      user_id: 1,
-      username: "dev-user",
-      full_name: "Development User",
-      timezone: "Europe/Kyiv",
-      buffer_minutes: 15,
-      advance_booking_days: 90,
-      min_advance_hours: 3,
-      avatar: nil,
-      booking_theme: "1"
-    })
+    {:ok, socket}
   end
 
   @impl true
@@ -218,7 +181,7 @@ defmodule TymeslotWeb.DashboardLive do
     socket =
       socket
       |> assign(:page_title, PageTitles.dashboard_title(action))
-      |> load_section_specific_data(action)
+      |> load_dashboard_data()
 
     {:noreply, socket}
   end
@@ -231,7 +194,7 @@ defmodule TymeslotWeb.DashboardLive do
       current_user={@current_user}
       profile={@profile}
       current_action={@live_action}
-      integration_status={get_integration_status(assigns)}
+      integration_status={@integration_status}
     >
       <.flash_group flash={@flash} id="dashboard-flash-group" />
 
@@ -248,55 +211,53 @@ defmodule TymeslotWeb.DashboardLive do
   @spec handle_info({:profile_updated, map()}, Phoenix.LiveView.Socket.t()) ::
           {:noreply, Phoenix.LiveView.Socket.t()}
   def handle_info({:profile_updated, profile}, socket) do
-    # Invalidate cache when profile is updated
-    DashboardContext.invalidate_integration_status(socket.assigns.current_user.id)
-
     {:noreply,
      socket
      |> assign(profile: profile)
-     |> load_shared_data()}
+     |> handle_saving_animation()
+     |> refresh_dashboard_data()}
   end
 
   @spec handle_info({:integration_added, any()}, Phoenix.LiveView.Socket.t()) ::
           {:noreply, Phoenix.LiveView.Socket.t()}
   def handle_info({:integration_added, _type}, socket) do
-    # Invalidate cache when integrations change
-    DashboardContext.invalidate_integration_status(socket.assigns.current_user.id)
-
-    {:noreply, load_shared_data(socket)}
+    {:noreply,
+     socket
+     |> handle_saving_animation()
+     |> refresh_dashboard_data()}
   end
 
   @spec handle_info({:integration_removed, any()}, Phoenix.LiveView.Socket.t()) ::
           {:noreply, Phoenix.LiveView.Socket.t()}
   def handle_info({:integration_removed, _type}, socket) do
-    # Invalidate cache when integrations change
-    DashboardContext.invalidate_integration_status(socket.assigns.current_user.id)
-
-    {:noreply, load_shared_data(socket)}
+    {:noreply,
+     socket
+     |> handle_saving_animation()
+     |> refresh_dashboard_data()}
   end
 
   @spec handle_info({:integration_updated, any()}, Phoenix.LiveView.Socket.t()) ::
           {:noreply, Phoenix.LiveView.Socket.t()}
   def handle_info({:integration_updated, _type}, socket) do
-    # Invalidate cache when integrations are enabled/disabled
-    DashboardContext.invalidate_integration_status(socket.assigns.current_user.id)
-
-    {:noreply, load_shared_data(socket)}
+    {:noreply,
+     socket
+     |> handle_saving_animation()
+     |> refresh_dashboard_data()}
   end
 
   @spec handle_info({:meeting_type_changed}, Phoenix.LiveView.Socket.t()) ::
           {:noreply, Phoenix.LiveView.Socket.t()}
   def handle_info({:meeting_type_changed}, socket) do
-    # Invalidate cache when meeting types change
-    DashboardContext.invalidate_integration_status(socket.assigns.current_user.id)
-
     # Reload data based on current section
     if socket.assigns.live_action == :meeting_settings do
       # Force update the service settings component to reload its data
       send_update(ServiceSettingsComponent, id: to_string(:meeting_settings))
     end
 
-    {:noreply, load_shared_data(socket)}
+    {:noreply,
+     socket
+     |> handle_saving_animation()
+     |> refresh_dashboard_data()}
   end
 
   @spec handle_info({:flash, {atom(), String.t()}}, Phoenix.LiveView.Socket.t()) ::
@@ -309,6 +270,11 @@ defmodule TymeslotWeb.DashboardLive do
           {:noreply, Phoenix.LiveView.Socket.t()}
   def handle_info({:user_updated, user}, socket) do
     {:noreply, assign(socket, :current_user, user)}
+  end
+
+  @impl true
+  def handle_info(:hide_saving, socket) do
+    {:noreply, assign(socket, saving: false)}
   end
 
   @impl true
@@ -390,11 +356,19 @@ defmodule TymeslotWeb.DashboardLive do
       current_user={@component_props.current_user}
       profile={@component_props[:profile]}
       shared_data={@component_props[:shared_data]}
-      integration_status={@component_props[:integration_status]}
+      integration_status={@integration_status}
+      saving={@saving}
       client_ip={@component_props[:client_ip]}
       user_agent={@component_props[:user_agent]}
     />
     """
+  end
+
+  @spec handle_saving_animation(Phoenix.LiveView.Socket.t(), non_neg_integer()) ::
+          Phoenix.LiveView.Socket.t()
+  defp handle_saving_animation(socket, duration \\ 1000) do
+    Process.send_after(self(), :hide_saving, duration)
+    assign(socket, saving: true)
   end
 
   @spec component_for_action(atom()) :: module()
@@ -423,79 +397,54 @@ defmodule TymeslotWeb.DashboardLive do
     base_props = %{
       current_user: assigns.current_user,
       profile: assigns.profile,
-      integration_status: get_integration_status(assigns),
       client_ip: assigns.client_ip,
       user_agent: assigns.user_agent
     }
 
     case action do
       :overview ->
-        Map.put(base_props, :shared_data, assigns.shared_data)
+        Map.put(base_props, :shared_data, %{upcoming_meetings: assigns[:upcoming_meetings] || []})
 
       :settings ->
         # Prefill timezone for settings using the same logic as onboarding, without persisting
-        Map.put(base_props, :profile, apply_timezone_prefill(assigns))
+        Map.put(base_props, :profile, Profiles.prefill_timezone(assigns.profile, assigns[:detected_timezone]))
 
       :availability ->
         # Prefill timezone for availability page using detected browser timezone
-        Map.put(base_props, :profile, apply_timezone_prefill(assigns))
+        Map.put(base_props, :profile, Profiles.prefill_timezone(assigns.profile, assigns[:detected_timezone]))
 
       _ ->
         base_props
     end
   end
 
-  @spec apply_timezone_prefill(map()) :: map() | nil
-  defp apply_timezone_prefill(assigns) do
-    if assigns.profile do
-      prefilled_tz =
-        Timezone.prefill_timezone(assigns.profile.timezone, assigns[:detected_timezone])
+  @spec refresh_dashboard_data(Phoenix.LiveView.Socket.t()) :: Phoenix.LiveView.Socket.t()
+  defp refresh_dashboard_data(socket) do
+    if user = socket.assigns[:current_user] do
+      # Invalidate cache
+      DashboardContext.invalidate_integration_status(user.id)
 
-      Map.put(assigns.profile, :timezone, prefilled_tz)
+      # Refresh status for top-level assign (needed for sidebar)
+      integration_status = DashboardContext.get_integration_status(user.id)
+
+      socket
+      |> assign(:integration_status, integration_status)
+      |> load_dashboard_data()
     else
-      assigns.profile
+      socket
     end
   end
 
-  @spec load_shared_data(Phoenix.LiveView.Socket.t()) :: Phoenix.LiveView.Socket.t()
-  defp load_shared_data(socket) do
-    user = socket.assigns.current_user
-    user_id = if user, do: user.id, else: nil
-    user_email = if user, do: user.email, else: nil
+  @spec load_dashboard_data(Phoenix.LiveView.Socket.t()) :: Phoenix.LiveView.Socket.t()
+  defp load_dashboard_data(socket) do
+    user = socket.assigns[:current_user]
     action = socket.assigns[:live_action]
 
-    shared_data = DashboardContext.get_data_for_action(action, user_id, user_email)
-    assign(socket, :shared_data, shared_data)
-  end
-
-  @spec load_section_specific_data(Phoenix.LiveView.Socket.t(), atom()) ::
-          Phoenix.LiveView.Socket.t()
-  defp load_section_specific_data(socket, action) do
-    # Shared data is now consistently loaded in mount or handle_params via load_shared_data
-    # We only reload if action changed and data isn't sufficient
-    if socket.assigns[:shared_data] && action != :overview &&
-         Map.has_key?(socket.assigns.shared_data, :integration_status) do
-      socket
+    if user && action == :overview do
+      meetings = Meetings.list_upcoming_meetings_for_user(user.email) |> Enum.take(3)
+      assign(socket, :upcoming_meetings, meetings)
     else
-      load_shared_data(socket)
-    end
-  end
-
-  @spec get_integration_status(map()) :: map()
-  defp get_integration_status(assigns) do
-    # Get integration status from shared_data if available
-    if assigns[:shared_data] && assigns.shared_data[:integration_status] do
-      assigns.shared_data.integration_status
-    else
-      # This shouldn't happen since load_shared_data now always sets integration_status
-      %{
-        has_calendar: false,
-        has_video: false,
-        has_meeting_types: false,
-        calendar_count: 0,
-        video_count: 0,
-        meeting_types_count: 0
-      }
+      assign(socket, :upcoming_meetings, [])
     end
   end
 end

@@ -8,49 +8,7 @@ defmodule Tymeslot.Dashboard.DashboardContext do
   alias Tymeslot.DatabaseQueries.VideoIntegrationQueries
   alias Tymeslot.Infrastructure.DashboardCache
   alias Tymeslot.Integrations.CalendarManagement
-  alias Tymeslot.Meetings
   alias Tymeslot.MeetingTypes
-
-  @doc """
-  Gets dashboard statistics and shared data for a user.
-  Uses caching for expensive queries with optimized single-query approach.
-  """
-  @spec get_dashboard_data(integer(), String.t()) :: %{
-          upcoming_meetings: list(),
-          integration_status: map()
-        }
-  def get_dashboard_data(user_id, user_email) when is_integer(user_id) do
-    # Get upcoming meetings directly (no caching for time-sensitive data)
-    upcoming_meetings =
-      Enum.take(Meetings.list_upcoming_meetings_for_user(user_email), 3)
-
-    # Use cache for integration status (doesn't change frequently)
-    integration_status = get_integration_status(user_id)
-
-    %{
-      upcoming_meetings: upcoming_meetings,
-      integration_status: integration_status
-    }
-  end
-
-  @spec get_dashboard_data(nil | any(), nil | any()) :: %{
-          upcoming_meetings: list(),
-          integration_status: map()
-        }
-  def get_dashboard_data(_user_id, _user_email) do
-    # Mock data for development when user_id is nil
-    %{
-      upcoming_meetings: [],
-      integration_status: %{
-        has_calendar: false,
-        has_video: false,
-        has_meeting_types: false,
-        calendar_count: 0,
-        video_count: 0,
-        meeting_types_count: 0
-      }
-    }
-  end
 
   @doc """
   Gets just the integration status for a user (lighter query for sidebar notifications).
@@ -115,19 +73,6 @@ defmodule Tymeslot.Dashboard.DashboardContext do
   def invalidate_integration_status(user_id) do
     DashboardCache.invalidate(DashboardCache.integration_status_key(user_id))
     :ok
-  end
-
-  @doc """
-  Gets dashboard data tailored for a specific LiveView action.
-  """
-  @spec get_data_for_action(atom(), integer(), String.t() | nil) :: map()
-  def get_data_for_action(action, user_id, user_email \\ nil) do
-    if action == :overview do
-      get_dashboard_data(user_id, user_email)
-    else
-      integration_status = get_integration_status(user_id)
-      %{integration_status: integration_status}
-    end
   end
 
   @doc """

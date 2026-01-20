@@ -5,25 +5,17 @@ defmodule TymeslotWeb.AccountLive do
   """
   use TymeslotWeb, :live_view
 
-  alias Tymeslot.Profiles
   alias TymeslotWeb.AccountLive.{Handlers, Helpers}
   alias TymeslotWeb.Components.Icons.IconComponents
-  alias TymeslotWeb.Live.InitHelpers
 
   import TymeslotWeb.AccountLive.Components
 
   @impl true
   def mount(_params, _session, socket) do
-    InitHelpers.with_user_context(socket, fn socket ->
-      user = socket.assigns.current_user
-      profile = if user, do: Profiles.get_profile(user.id)
-
-      {:ok,
-       socket
-       |> assign(:profile, profile)
-       |> assign(:page_title, "Account Settings")
-       |> Helpers.init_form_state()}
-    end)
+    {:ok,
+     socket
+     |> assign(:page_title, "Account Settings")
+     |> Helpers.init_form_state()}
   end
 
   @impl true

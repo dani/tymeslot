@@ -81,7 +81,8 @@ defmodule TymeslotWeb.Router do
     live_session :authenticated,
       on_mount: [
         {Tymeslot.LiveHooks.AuthLiveSessionHook, :ensure_authenticated},
-        TymeslotWeb.Hooks.ClientInfoHook
+        TymeslotWeb.Hooks.ClientInfoHook,
+        TymeslotWeb.Hooks.DashboardInitHook
       ] do
       live "/dashboard", DashboardLive, :overview
       live "/dashboard/settings", DashboardLive, :settings

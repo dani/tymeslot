@@ -56,6 +56,17 @@ defmodule Tymeslot.Profiles do
   end
 
   @doc """
+  Prefills the timezone for a profile based on a detected timezone.
+  """
+  @spec prefill_timezone(profile() | nil, String.t() | nil) :: profile() | nil
+  def prefill_timezone(nil, _detected_timezone), do: nil
+
+  def prefill_timezone(profile, detected_timezone) do
+    prefilled_tz = Tymeslot.Profiles.Timezone.prefill_timezone(profile.timezone, detected_timezone)
+    %{profile | timezone: prefilled_tz}
+  end
+
+  @doc """
   Updates a user's profile settings.
   """
   @spec update_profile(profile, map()) :: result(profile)
