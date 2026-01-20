@@ -26,14 +26,14 @@ defmodule Tymeslot.Infrastructure.ValidationHelpersTest do
     end
 
     test "handles fields that are not existing atoms without crashing" do
-      # This test would have failed with String.to_existing_atom
+      # We now use String.to_existing_atom with a fallback to string
       unique_field = "field_that_definitely_is_not_an_atom_#{:erlang.unique_integer()}"
       params = %{}
       required = [unique_field]
 
       # Should not raise ArgumentError
       assert {:error, errors} = ValidationHelpers.validate_required_fields(params, required)
-      assert Map.has_key?(errors, String.to_atom(unique_field))
+      assert Map.has_key?(errors, unique_field)
     end
   end
 end

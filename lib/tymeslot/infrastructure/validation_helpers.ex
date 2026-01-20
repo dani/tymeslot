@@ -113,7 +113,14 @@ defmodule Tymeslot.Infrastructure.ValidationHelpers do
         is_nil(value) or value == ""
       end)
       |> Enum.map(fn field ->
-        {String.to_atom(field), ["can't be blank"]}
+        key =
+          try do
+            String.to_existing_atom(field)
+          rescue
+            ArgumentError -> field
+          end
+
+        {key, ["can't be blank"]}
       end)
       |> Enum.into(%{})
 
