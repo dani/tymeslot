@@ -31,7 +31,7 @@ defmodule TymeslotWeb.Dashboard.VideoSettingsComponentTest do
 
     test "lists connected integrations", %{conn: conn, user: user} do
       insert(:video_integration, user: user, name: "My MiroTalk", provider: "mirotalk")
-      
+
       {:ok, view, _html} = live(conn, ~p"/dashboard/video")
 
       assert render(view) =~ "My MiroTalk"
@@ -40,7 +40,7 @@ defmodule TymeslotWeb.Dashboard.VideoSettingsComponentTest do
 
     test "toggles integration status", %{conn: conn, user: user} do
       integration = insert(:video_integration, user: user, is_active: true)
-      
+
       {:ok, view, _html} = live(conn, ~p"/dashboard/video")
 
       view
@@ -141,7 +141,7 @@ defmodule TymeslotWeb.Dashboard.VideoSettingsComponentTest do
 
     test "deletes an integration", %{conn: conn, user: user} do
       integration = insert(:video_integration, user: user, name: "To Delete")
-      
+
       {:ok, view, _html} = live(conn, ~p"/dashboard/video")
 
       assert render(view) =~ "To Delete"

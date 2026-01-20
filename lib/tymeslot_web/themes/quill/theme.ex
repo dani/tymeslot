@@ -46,7 +46,8 @@ defmodule TymeslotWeb.Themes.Quill.Theme do
   def theme_config do
     %{
       name: "Quill",
-      description: "Glass morphism design with elegant transparency effects and a 4-step booking flow.",
+      description:
+        "Glass morphism design with elegant transparency effects and a 4-step booking flow.",
       preview_image: "/images/ui/theme-previews/quill-theme-preview.webp",
       flow_steps: 4,
       design_system: :glassmorphism,

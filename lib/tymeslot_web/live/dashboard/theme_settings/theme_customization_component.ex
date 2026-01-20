@@ -194,8 +194,8 @@ defmodule TymeslotWeb.Dashboard.ThemeSettings.ThemeCustomizationComponent do
   end
 
   def handle_event("validate_image", _params, socket) do
-    if socket.assigns.uploads && socket.assigns.uploads[:background_image] &&
-         socket.assigns.uploads.background_image.entries != [] and
+    if (socket.assigns.uploads && socket.assigns.uploads[:background_image] &&
+          socket.assigns.uploads.background_image.entries != []) and
          Enum.all?(
            socket.assigns.uploads.background_image.entries,
            &(&1.done? or &1.cancelled?)
@@ -211,8 +211,8 @@ defmodule TymeslotWeb.Dashboard.ThemeSettings.ThemeCustomizationComponent do
   end
 
   def handle_event("validate_video", _params, socket) do
-    if socket.assigns.uploads && socket.assigns.uploads[:background_video] &&
-         socket.assigns.uploads.background_video.entries != [] and
+    if (socket.assigns.uploads && socket.assigns.uploads[:background_video] &&
+          socket.assigns.uploads.background_video.entries != []) and
          Enum.all?(
            socket.assigns.uploads.background_video.entries,
            &(&1.done? or &1.cancelled?)

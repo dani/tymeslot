@@ -37,7 +37,6 @@ defmodule TymeslotWeb.AuthLive do
       |> assign(:loading, false)
       |> assign(:errors, %{})
       |> assign(:flash_messages, %{})
-      |> assign(:app_name, get_app_name())
       |> assign(:current_year, DateTime.utc_now().year)
       |> assign(:current_state, :login)
       |> assign(:previous_state, nil)
@@ -293,8 +292,10 @@ defmodule TymeslotWeb.AuthLive do
   end
 
   def handle_event("submit_complete_registration", params, socket) do
+    client_ip = ClientIP.get(socket)
+
     with :ok <- SecurityHelper.validate_csrf_token(socket, params),
-         :ok <- RateLimiter.check_oauth_registration_rate_limit(socket.assigns[:client_ip]) do
+         :ok <- RateLimiter.check_oauth_registration_rate_limit(client_ip) do
       case AuthActions.complete_oauth_registration(params, socket) do
         {:ok, updated_socket, message} ->
           socket =
@@ -585,10 +586,6 @@ defmodule TymeslotWeb.AuthLive do
   end
 
   # Private Helper Functions
-
-  defp get_app_name do
-    Config.app_name()
-  end
 
   defp get_success_redirect_path do
     Config.success_redirect_path()

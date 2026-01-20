@@ -130,5 +130,4 @@ defmodule TymeslotWeb.Components.Dashboard.Meetings.RescheduleRequestModal do
   end
 
   # Private helper functions
-
 end

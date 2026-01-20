@@ -1,4 +1,4 @@
-defmodule Tymeslot.LiveHooks.AuthLiveSessionHook do
+defmodule TymeslotWeb.Hooks.AuthLiveSessionHook do
   @moduledoc """
   LiveView hook for handling authentication in LiveView sessions.
 
@@ -12,7 +12,7 @@ defmodule Tymeslot.LiveHooks.AuthLiveSessionHook do
   In your router.ex:
 
   ```elixir
-  live_session :authenticated, on_mount: {TymeslotWeb.LiveHooks.AuthLiveSessionHook, :ensure_authenticated} do
+  live_session :authenticated, on_mount: {TymeslotWeb.Hooks.AuthLiveSessionHook, :ensure_authenticated} do
     scope "/app", YourAppWeb do
       pipe_through [:browser, :authenticated_live]
 

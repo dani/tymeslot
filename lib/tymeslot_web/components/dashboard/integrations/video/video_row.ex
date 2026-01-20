@@ -14,7 +14,9 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Video.VideoRow do
 
   @spec video_row(map()) :: Phoenix.LiveView.Rendered.t()
   def video_row(assigns) do
-    provider_display_name = IntegrationProviders.format_provider_name(:video, assigns.integration.provider)
+    provider_display_name =
+      IntegrationProviders.format_provider_name(:video, assigns.integration.provider)
+
     assigns = assign(assigns, :provider_display_name, provider_display_name)
 
     ~H"""

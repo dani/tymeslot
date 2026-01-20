@@ -41,8 +41,9 @@ defmodule TymeslotWeb.Dashboard.Notifications.HelpersTest do
   describe "format_changeset_errors/1" do
     test "formats changeset errors into a flat map" do
       import Ecto.Changeset
-      data  = %{}
+      data = %{}
       types = %{name: :string, url: :string}
+
       changeset =
         {data, types}
         |> cast(%{name: "", url: "invalid"}, [:name, :url])

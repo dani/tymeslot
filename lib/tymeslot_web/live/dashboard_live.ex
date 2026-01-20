@@ -100,8 +100,9 @@ defmodule TymeslotWeb.DashboardLive do
 
         live_session :external_dashboard,
           on_mount: [
-            {Tymeslot.LiveHooks.AuthLiveSessionHook, :ensure_authenticated},
-            TymeslotWeb.Hooks.ClientInfoHook
+            {TymeslotWeb.Hooks.AuthLiveSessionHook, :ensure_authenticated},
+            TymeslotWeb.Hooks.ClientInfoHook,
+            TymeslotWeb.Hooks.DashboardInitHook
           ] do
           # Reuse Core's DashboardLive, but with your custom action
           live "/my-feature", TymeslotWeb.DashboardLive, :my_feature
@@ -144,7 +145,6 @@ defmodule TymeslotWeb.DashboardLive do
 
   alias Tymeslot.Dashboard.DashboardContext
   alias Tymeslot.Integrations.Calendar
-  alias Tymeslot.Meetings
   alias Tymeslot.Profiles
   alias TymeslotWeb.Components.DashboardLayout
   alias TymeslotWeb.Helpers.PageTitles
@@ -167,7 +167,7 @@ defmodule TymeslotWeb.DashboardLive do
 
   @impl true
   @spec mount(map(), map(), Phoenix.LiveView.Socket.t()) ::
-    {:ok, Phoenix.LiveView.Socket.t()} | {:ok, Phoenix.LiveView.Socket.t(), keyword()}
+          {:ok, Phoenix.LiveView.Socket.t()} | {:ok, Phoenix.LiveView.Socket.t(), keyword()}
   def mount(_params, _session, socket) do
     {:ok, socket}
   end
@@ -407,11 +407,19 @@ defmodule TymeslotWeb.DashboardLive do
 
       :settings ->
         # Prefill timezone for settings using the same logic as onboarding, without persisting
-        Map.put(base_props, :profile, Profiles.prefill_timezone(assigns.profile, assigns[:detected_timezone]))
+        Map.put(
+          base_props,
+          :profile,
+          Profiles.prefill_timezone(assigns.profile, assigns[:detected_timezone])
+        )
 
       :availability ->
         # Prefill timezone for availability page using detected browser timezone
-        Map.put(base_props, :profile, Profiles.prefill_timezone(assigns.profile, assigns[:detected_timezone]))
+        Map.put(
+          base_props,
+          :profile,
+          Profiles.prefill_timezone(assigns.profile, assigns[:detected_timezone])
+        )
 
       _ ->
         base_props
@@ -440,11 +448,11 @@ defmodule TymeslotWeb.DashboardLive do
     user = socket.assigns[:current_user]
     action = socket.assigns[:live_action]
 
-    if user && action == :overview do
-      meetings = Meetings.list_upcoming_meetings_for_user(user.email) |> Enum.take(3)
-      assign(socket, :upcoming_meetings, meetings)
+    if user do
+      dashboard_data = DashboardContext.get_dashboard_data_for_action(user.email, action)
+      assign(socket, dashboard_data)
     else
-      assign(socket, :upcoming_meetings, [])
+      socket
     end
   end
 end

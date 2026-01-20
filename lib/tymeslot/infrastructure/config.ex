@@ -54,18 +54,6 @@ defmodule Tymeslot.Infrastructure.Config do
   # Configuration Values
 
   @doc """
-  Gets the application name.
-  """
-  @spec app_name() :: String.t()
-  def app_name do
-    if function_exported?(Tymeslot, :get_app_name, 0) do
-      Tymeslot.get_app_name()
-    else
-      "Tymeslot"
-    end
-  end
-
-  @doc """
   Gets the success redirect path after authentication.
   """
   @spec success_redirect_path() :: String.t()

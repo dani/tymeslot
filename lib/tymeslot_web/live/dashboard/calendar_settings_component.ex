@@ -75,12 +75,16 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
       end
 
     if field_atom do
-      case CalendarInputProcessor.validate_single_field(field_atom, value, metadata: socket.assigns.security_metadata) do
+      case CalendarInputProcessor.validate_single_field(field_atom, value,
+             metadata: socket.assigns.security_metadata
+           ) do
         {:ok, _} ->
-          {:noreply, assign(socket, :form_errors, Map.delete(socket.assigns.form_errors, field_atom))}
+          {:noreply,
+           assign(socket, :form_errors, Map.delete(socket.assigns.form_errors, field_atom))}
 
         {:error, error} ->
-          {:noreply, assign(socket, :form_errors, Map.put(socket.assigns.form_errors, field_atom, error))}
+          {:noreply,
+           assign(socket, :form_errors, Map.put(socket.assigns.form_errors, field_atom, error))}
       end
     else
       {:noreply, socket}
@@ -105,7 +109,12 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
            provider: provider
          ) do
       {:ok, sanitized_params} ->
-        case Calendar.discover_and_filter_calendars(provider, sanitized_params["url"], sanitized_params["username"], sanitized_params["password"]) do
+        case Calendar.discover_and_filter_calendars(
+               provider,
+               sanitized_params["url"],
+               sanitized_params["username"],
+               sanitized_params["password"]
+             ) do
           {:ok, %{calendars: calendars, discovery_credentials: credentials}} ->
             {:noreply,
              socket
@@ -132,14 +141,18 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
     processed_params =
       case Map.get(full_params, "selected_calendars") do
         calendars when is_list(calendars) ->
-          selection = Calendar.prepare_selection_params(calendars, socket.assigns.discovered_calendars)
+          selection =
+            Calendar.prepare_selection_params(calendars, socket.assigns.discovered_calendars)
+
           Map.merge(params, selection)
 
         _ ->
           params
       end
 
-    case Calendar.create_integration_with_validation(socket.assigns.current_user.id, processed_params, metadata: socket.assigns.security_metadata) do
+    case Calendar.create_integration_with_validation(
+           socket.assigns.current_user.id,
+           processed_params, metadata: socket.assigns.security_metadata) do
       {:ok, _integration} ->
         send(self(), {:integration_added, :calendar})
         Flash.info("Calendar integration added successfully")
@@ -149,7 +162,8 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
         {:noreply, assign(socket, form_errors: errors, is_saving: false)}
 
       {:error, {:changeset, changeset}} ->
-        {:noreply, assign(socket, form_errors: ChangesetUtils.get_first_error(changeset), is_saving: false)}
+        {:noreply,
+         assign(socket, form_errors: ChangesetUtils.get_first_error(changeset), is_saving: false)}
 
       {:error, reason} ->
         {:noreply, assign(socket, form_errors: %{generic: [to_string(reason)]}, is_saving: false)}
@@ -178,6 +192,7 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
       {:ok, url} -> send(self(), {:external_redirect, url})
       {:error, msg} -> Flash.error(msg)
     end
+
     {:noreply, socket}
   end
 
@@ -186,12 +201,18 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
       {:ok, url} -> send(self(), {:external_redirect, url})
       {:error, msg} -> Flash.error(msg)
     end
+
     {:noreply, socket}
   end
 
-  def handle_event("connect_nextcloud_calendar", _params, socket), do: {:noreply, setup_config_view(socket, :nextcloud)}
-  def handle_event("connect_caldav_calendar", _params, socket), do: {:noreply, setup_config_view(socket, :caldav)}
-  def handle_event("connect_radicale_calendar", _params, socket), do: {:noreply, setup_config_view(socket, :radicale)}
+  def handle_event("connect_nextcloud_calendar", _params, socket),
+    do: {:noreply, setup_config_view(socket, :nextcloud)}
+
+  def handle_event("connect_caldav_calendar", _params, socket),
+    do: {:noreply, setup_config_view(socket, :caldav)}
+
+  def handle_event("connect_radicale_calendar", _params, socket),
+    do: {:noreply, setup_config_view(socket, :radicale)}
 
   def handle_event("refresh_all_calendars", _params, socket) do
     if socket.assigns.is_refreshing do
@@ -207,16 +228,24 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
          |> assign(:is_refreshing, true)
          |> start_async(:refresh_calendars, fn ->
            active
-           |> Task.async_stream(&Calendar.update_integration_with_discovery/1, max_concurrency: 5, timeout: 30_000)
+           |> Task.async_stream(&Calendar.update_integration_with_discovery/1,
+             max_concurrency: 5,
+             timeout: 30_000
+           )
            |> Enum.to_list()
          end)}
       end
     end
   end
 
-  def handle_event("toggle_calendar_selection", %{"integration_id" => id, "calendar_id" => cal_id}, socket) do
+  def handle_event(
+        "toggle_calendar_selection",
+        %{"integration_id" => id, "calendar_id" => cal_id},
+        socket
+      ) do
     with {:ok, int_id} <- parse_int(id),
-         integration when not is_nil(integration) <- Enum.find(socket.assigns.integrations, &(&1.id == int_id)),
+         integration when not is_nil(integration) <-
+           Enum.find(socket.assigns.integrations, &(&1.id == int_id)),
          {:ok, _} <- Calendar.toggle_calendar_selection(integration, cal_id) do
       {:noreply, load_integrations(socket)}
     else
@@ -250,7 +279,8 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
 
   def handle_event("upgrade_google_scope", %{"id" => id}, socket) do
     with {:ok, int_id} <- parse_int(id),
-         {:ok, url} <- Calendar.initiate_google_scope_upgrade(socket.assigns.current_user.id, int_id) do
+         {:ok, url} <-
+           Calendar.initiate_google_scope_upgrade(socket.assigns.current_user.id, int_id) do
       send(self(), {:external_redirect, url})
       {:noreply, socket}
     else
@@ -283,9 +313,14 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
       end)
 
     cond do
-      failures == 0 -> Flash.info("All calendars refreshed successfully")
-      successes > 0 -> Flash.error("#{successes} refreshed, #{failures} failed. Check connections.")
-      true -> Flash.error("All calendar refreshes failed.")
+      failures == 0 ->
+        Flash.info("All calendars refreshed successfully")
+
+      successes > 0 ->
+        Flash.error("#{successes} refreshed, #{failures} failed. Check connections.")
+
+      true ->
+        Flash.error("All calendar refreshes failed.")
     end
 
     {:noreply, socket |> assign(:is_refreshing, false) |> load_integrations()}
@@ -333,12 +368,14 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
   defp normalize_provider(_), do: :caldav
 
   defp parse_int(id) when is_integer(id), do: {:ok, id}
+
   defp parse_int(id) when is_binary(id) do
     case Integer.parse(id) do
       {i, ""} -> {:ok, i}
       _ -> :error
     end
   end
+
   defp parse_int(_), do: :error
 
   @impl true

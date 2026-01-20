@@ -80,7 +80,7 @@ defmodule TymeslotWeb.Router do
 
     live_session :authenticated,
       on_mount: [
-        {Tymeslot.LiveHooks.AuthLiveSessionHook, :ensure_authenticated},
+        {TymeslotWeb.Hooks.AuthLiveSessionHook, :ensure_authenticated},
         TymeslotWeb.Hooks.ClientInfoHook,
         TymeslotWeb.Hooks.DashboardInitHook
       ] do
@@ -104,7 +104,7 @@ defmodule TymeslotWeb.Router do
 
     live_session :onboarding,
       on_mount: [
-        {Tymeslot.LiveHooks.AuthLiveSessionHook, :ensure_authenticated},
+        {TymeslotWeb.Hooks.AuthLiveSessionHook, :ensure_authenticated},
         TymeslotWeb.Hooks.ClientInfoHook
       ] do
       live "/onboarding", OnboardingLive, :welcome
@@ -176,7 +176,7 @@ defmodule TymeslotWeb.Router do
       pipe_through [:browser, :local_only, :require_authenticated_user]
 
       live_session :debug_onboarding,
-        on_mount: [{Tymeslot.LiveHooks.AuthLiveSessionHook, :ensure_authenticated}] do
+        on_mount: [{TymeslotWeb.Hooks.AuthLiveSessionHook, :ensure_authenticated}] do
         live "/onboarding", OnboardingLive, :debug_welcome
         live "/onboarding/:step", OnboardingLive, :debug_step
       end

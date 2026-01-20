@@ -8,6 +8,7 @@ defmodule TymeslotWeb.Dashboard.ProfileSettingsComponent do
   use TymeslotWeb, :live_component
 
   alias TymeslotWeb.Components.CoreComponents
+
   alias TymeslotWeb.Dashboard.ProfileSettings.{
     AvatarUploadComponent,
     DisplayNameFormComponent,

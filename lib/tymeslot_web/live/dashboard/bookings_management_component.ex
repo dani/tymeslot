@@ -7,12 +7,14 @@ defmodule TymeslotWeb.Dashboard.BookingsManagementComponent do
   alias Tymeslot.Bookings.Policy
   alias Tymeslot.Meetings
   alias Tymeslot.Security.MeetingsInputProcessor
+
   alias TymeslotWeb.Components.Dashboard.Meetings.{
     CancelMeetingModal,
     MeetingListComponents,
     RescheduleRequestModal,
     Helpers
   }
+
   require Logger
 
   @impl true
@@ -439,5 +441,4 @@ defmodule TymeslotWeb.Dashboard.BookingsManagementComponent do
   defp fetch_meeting_for_user(id, user_email) do
     Meetings.get_meeting_for_user(id, user_email)
   end
-
 end

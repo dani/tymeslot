@@ -163,7 +163,7 @@ defmodule TymeslotWeb.AccountLive.Handlers do
 
   defp build_metadata(socket) do
     %{
-      ip: socket.assigns[:client_ip] || "unknown",
+      ip: TymeslotWeb.Helpers.ClientIP.get(socket),
       user_agent: socket.assigns[:user_agent] || "unknown",
       user_id: socket.assigns.current_user.id
     }

@@ -34,7 +34,7 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsTest do
       # Flash messages in Tymeslot might be rendered in a specific way or require a re-render
       # Let's check the database first to see if it worked
       assert Repo.reload!(profile).booking_theme == "2"
-      
+
       # Now check the UI for "Current Style" label on the Rhythm theme
       assert render(view) =~ "Current Style"
     end
@@ -105,7 +105,7 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsTest do
       # Re-trigger update (simulated by some parent action, here just closing and re-opening
       # or we can just verify browsing_type is preserved across renders if we had a way to trigger it)
       # Actually, since it's a live component, let's just check that switching tabs works
-      
+
       # Switch to Gradient tab
       view
       |> element("button", "Gradient")
@@ -145,10 +145,10 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsTest do
       view
       |> file_input("#theme-background-image-form", :background_image, [image])
       |> render_upload("bg.png")
-      
+
       # Wait for auto-upload and consumption
       Process.sleep(200)
-      
+
       assert render(view) =~ "Background image uploaded successfully"
     end
   end

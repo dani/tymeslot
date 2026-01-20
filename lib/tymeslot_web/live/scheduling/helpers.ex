@@ -100,7 +100,22 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
   """
   @spec store_client_ip(Phoenix.LiveView.Socket.t()) :: Phoenix.LiveView.Socket.t()
   def store_client_ip(socket) do
-    ip = ClientIP.get(socket)
+    # Try mount-specific extraction first if not already in assigns
+    ip =
+      case socket.assigns[:client_ip] do
+        ip when is_binary(ip) ->
+          ip
+
+        _ ->
+          # get_from_mount/1 should only be called during mount.
+          # We wrap it in try-rescue to prevent crashes if called during events.
+          try do
+            ClientIP.get_from_mount(socket)
+          rescue
+            _ -> "unknown"
+          end
+      end
+
     assign(socket, :client_ip, ip)
   end
 

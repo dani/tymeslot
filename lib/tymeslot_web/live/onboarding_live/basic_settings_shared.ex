@@ -14,7 +14,7 @@ defmodule TymeslotWeb.OnboardingLive.BasicSettingsShared do
   @spec metadata(Phoenix.LiveView.Socket.t()) :: map()
   def metadata(socket) do
     %{
-      ip: socket.assigns[:client_ip] || "unknown",
+      ip: ClientIP.get(socket),
       user_agent: ClientIP.get_user_agent(socket)
     }
   end

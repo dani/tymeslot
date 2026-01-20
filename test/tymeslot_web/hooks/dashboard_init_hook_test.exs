@@ -43,7 +43,10 @@ defmodule TymeslotWeb.Hooks.DashboardInitHookTest do
       socket = build_socket(%{current_user: user})
 
       assert {:cont, updated_socket} = DashboardInitHook.on_mount(:default, %{}, %{}, socket)
-      assert %Tymeslot.DatabaseSchemas.ProfileSchema{user_id: user_id} = updated_socket.assigns.profile
+
+      assert %Tymeslot.DatabaseSchemas.ProfileSchema{user_id: user_id} =
+               updated_socket.assigns.profile
+
       assert user_id == user.id
     end
   end

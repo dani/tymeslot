@@ -35,7 +35,10 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsComponent do
         nil
       else
         scheduling_readiness = LinkAccessPolicy.check_public_readiness(profile)
-        if match?({:ok, :ready}, scheduling_readiness), do: nil, else: elem(scheduling_readiness, 1)
+
+        if match?({:ok, :ready}, scheduling_readiness),
+          do: nil,
+          else: elem(scheduling_readiness, 1)
       end
 
     # Format allowed domains for display

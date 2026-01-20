@@ -62,7 +62,9 @@ defmodule Tymeslot.Profiles do
   def prefill_timezone(nil, _detected_timezone), do: nil
 
   def prefill_timezone(profile, detected_timezone) do
-    prefilled_tz = Tymeslot.Profiles.Timezone.prefill_timezone(profile.timezone, detected_timezone)
+    prefilled_tz =
+      Tymeslot.Profiles.Timezone.prefill_timezone(profile.timezone, detected_timezone)
+
     %{profile | timezone: prefilled_tz}
   end
 

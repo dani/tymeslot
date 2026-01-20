@@ -18,7 +18,6 @@ defmodule TymeslotWeb.Session.LoginComponent do
   Renders the login page with animated background and form.
 
   ## Assigns
-  - `:app_name` (required): The name of the application to display in the login title.
   - `:flash` (optional): A map of flash messages to display.
   """
   @spec auth_login(map()) :: Phoenix.LiveView.Rendered.t()
@@ -35,7 +34,7 @@ defmodule TymeslotWeb.Session.LoginComponent do
     <.auth_card_layout title="Welcome Back!">
       <:heading>
         <h2 class="text-xl font-bold text-slate-900 mb-6 font-heading tracking-tight text-center">
-          Log in to {@app_name}
+          Log in to Tymeslot
         </h2>
       </:heading>
 

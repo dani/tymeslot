@@ -31,7 +31,7 @@ defmodule TymeslotWeb.Live.Dashboard.Shared.DashboardHelpers do
   end
 
   defp compute_ip(assigns) do
-    assigns[:client_ip] || assigns[:remote_ip] || "unknown"
+    assigns[:client_ip] || "unknown"
   end
 
   defp compute_user_agent(assigns) do

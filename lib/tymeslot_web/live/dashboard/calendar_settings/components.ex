@@ -5,7 +5,13 @@ defmodule TymeslotWeb.Dashboard.CalendarSettings.Components do
   use TymeslotWeb, :html
 
   alias Tymeslot.Integrations.Calendar
-  alias TymeslotWeb.Components.Dashboard.Integrations.Calendar.{CaldavConfig, NextcloudConfig, RadicaleConfig}
+
+  alias TymeslotWeb.Components.Dashboard.Integrations.Calendar.{
+    CaldavConfig,
+    NextcloudConfig,
+    RadicaleConfig
+  }
+
   alias TymeslotWeb.Components.Dashboard.Integrations.ProviderCard
   alias TymeslotWeb.Components.Icons.ProviderIcon
   alias TymeslotWeb.Components.UI.StatusSwitch
@@ -218,7 +224,13 @@ defmodule TymeslotWeb.Dashboard.CalendarSettings.Components do
     assigns =
       assigns
       |> assign(:provider_name, provider_name)
-      |> assign(:display_name, if(assigns.integration.name == provider_name, do: provider_name, else: assigns.integration.name))
+      |> assign(
+        :display_name,
+        if(assigns.integration.name == provider_name,
+          do: provider_name,
+          else: assigns.integration.name
+        )
+      )
 
     ~H"""
     <div class={[

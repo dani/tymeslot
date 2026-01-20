@@ -92,26 +92,21 @@ defmodule TymeslotWeb.Live.Scheduling.Handlers.BookingSubmissionHandlerComponent
   @spec check_rate_limit(Phoenix.LiveView.Socket.t()) ::
           {:ok, Phoenix.LiveView.Socket.t()} | {:error, Phoenix.LiveView.Socket.t()}
   def check_rate_limit(socket) do
-    client_ip = socket.assigns[:client_ip] || ClientIP.get(socket)
+    client_ip = ClientIP.get(socket)
 
-    if client_ip do
-      case RateLimiter.check_booking_submission_limit(client_ip) do
-        {:allow, _count} ->
-          {:ok, socket}
+    case RateLimiter.check_booking_submission_limit(client_ip) do
+      {:allow, _count} ->
+        {:ok, socket}
 
-        {:deny, _limit} ->
-          Logger.warning("Booking rate limit exceeded for IP: #{inspect(client_ip)}")
+      {:deny, _limit} ->
+        Logger.warning("Booking rate limit exceeded for IP: #{inspect(client_ip)}")
 
-          socket =
-            socket
-            |> assign(:submitting, false)
-            |> put_flash(:error, "Too many booking attempts. Please try again later.")
+        socket =
+          socket
+          |> assign(:submitting, false)
+          |> put_flash(:error, "Too many booking attempts. Please try again later.")
 
-          {:error, socket}
-      end
-    else
-      # No client IP available, allow the request
-      {:ok, socket}
+        {:error, socket}
     end
   end
 

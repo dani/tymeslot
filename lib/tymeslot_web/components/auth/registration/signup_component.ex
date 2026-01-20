@@ -18,9 +18,6 @@ defmodule TymeslotWeb.Registration.SignupComponent do
 
   @doc """
   Renders the signup page with animated background and form.
-
-  ## Assigns
-  - `:app_name` (required): The name of the application to display in the signup title.
   """
   @spec auth_signup(map()) :: Phoenix.LiveView.Rendered.t()
   def auth_signup(assigns) do
@@ -30,7 +27,7 @@ defmodule TymeslotWeb.Registration.SignupComponent do
       |> Map.put_new(:loading, false)
 
     ~H"""
-    <.auth_card_layout title={"Join #{assigns.app_name}"} subtitle="Start scheduling your meetings with ease. Zero friction, total control.">
+    <.auth_card_layout title="Join Tymeslot" subtitle="Start scheduling your meetings with ease. Zero friction, total control.">
       <:form>
         <.auth_form
           id="signup-form"

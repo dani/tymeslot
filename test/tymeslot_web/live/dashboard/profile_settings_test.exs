@@ -33,26 +33,28 @@ defmodule TymeslotWeb.Dashboard.ProfileSettingsTest do
 
       # We wait for the message processing (auto-consumption)
       render(view)
-      
+
       # Verify success message appears without manual submit
       assert render(view) =~ "Avatar updated successfully"
-      
+
       # Verify profile was updated in DB
       updated_profile = Repo.reload!(profile)
       assert updated_profile.avatar != nil
     end
 
-    test "does not show error when no files are provided on submit (auto-upload fallback)", %{conn: conn} do
+    test "does not show error when no files are provided on submit (auto-upload fallback)", %{
+      conn: conn
+    } do
       {:ok, view, _html} = live(conn, ~p"/dashboard/settings")
-      
+
       # Submit without any file selected
       view
       |> form("#avatar-upload-form", %{})
       |> render_submit()
-      
+
       # Wait for message processing
       render(view)
-      
+
       # Should NOT show "No file was uploaded" anymore as we silently ignore empty results
       refute render(view) =~ "No file was uploaded"
     end
@@ -70,9 +72,9 @@ defmodule TymeslotWeb.Dashboard.ProfileSettingsTest do
       view
       |> file_input("#avatar-upload-form", :avatar, [avatar])
       |> render_upload("test.txt")
-      
+
       render(view)
-      
+
       # Should show the humanized error message from LiveView's extension validation
       assert render(view) =~ "Not accepted"
     end
@@ -98,7 +100,7 @@ defmodule TymeslotWeb.Dashboard.ProfileSettingsTest do
 
       # Verify success message
       assert render(view) =~ "Avatar deleted successfully"
-      
+
       # Verify profile was updated in DB
       updated_profile = Repo.reload!(profile)
       assert updated_profile.avatar == nil
@@ -114,7 +116,7 @@ defmodule TymeslotWeb.Dashboard.ProfileSettingsTest do
       |> render_change()
 
       assert render(view) =~ "Display name updated"
-      
+
       updated_profile = Repo.reload!(profile)
       assert updated_profile.full_name == "New Display Name"
     end
@@ -124,6 +126,7 @@ defmodule TymeslotWeb.Dashboard.ProfileSettingsTest do
 
       # Assuming too long name is invalid
       long_name = String.duplicate("a", 101)
+
       view
       |> form("#display-name-form", %{full_name: long_name})
       |> render_change()
@@ -141,7 +144,7 @@ defmodule TymeslotWeb.Dashboard.ProfileSettingsTest do
       |> render_submit()
 
       assert render(view) =~ "Username updated"
-      
+
       updated_profile = Repo.reload!(profile)
       assert updated_profile.username == "new-username"
     end
@@ -180,8 +183,10 @@ defmodule TymeslotWeb.Dashboard.ProfileSettingsTest do
       {:ok, view, _html} = live(conn, ~p"/dashboard/settings")
 
       # Open dropdown
-      view |> element("#timezone-form-container button[phx-click='toggle_timezone_dropdown']") |> render_click()
-      
+      view
+      |> element("#timezone-form-container button[phx-click='toggle_timezone_dropdown']")
+      |> render_click()
+
       # Verify search input is visible (means dropdown is open)
       assert render(view) =~ "Search cities"
 
@@ -191,7 +196,7 @@ defmodule TymeslotWeb.Dashboard.ProfileSettingsTest do
 
       expected_label = Tymeslot.Utils.TimezoneUtils.format_timezone("America/New_York")
       assert render(view) =~ "Timezone updated to #{expected_label}"
-      
+
       updated_profile = Repo.reload!(profile)
       assert updated_profile.timezone == "America/New_York"
     end
@@ -200,7 +205,9 @@ defmodule TymeslotWeb.Dashboard.ProfileSettingsTest do
       {:ok, view, _html} = live(conn, ~p"/dashboard/settings")
 
       # Open dropdown to ensure options are in DOM
-      view |> element("#timezone-form-container button[phx-click='toggle_timezone_dropdown']") |> render_click()
+      view
+      |> element("#timezone-form-container button[phx-click='toggle_timezone_dropdown']")
+      |> render_click()
 
       # Click an option but override with an invalid timezone value
       # We use a text filter to pick a specific element from the list

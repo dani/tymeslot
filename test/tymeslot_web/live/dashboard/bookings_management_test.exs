@@ -13,9 +13,12 @@ defmodule TymeslotWeb.Dashboard.BookingsManagementTest do
   setup %{conn: conn} do
     user = insert(:user, onboarding_completed_at: DateTime.utc_now())
     profile = insert(:profile, user: user)
-    
+
     # Stub email notifications for meeting actions
-    stub(Tymeslot.EmailServiceMock, :send_cancellation_emails, fn _ -> {{:ok, nil}, {:ok, nil}} end)
+    stub(Tymeslot.EmailServiceMock, :send_cancellation_emails, fn _ ->
+      {{:ok, nil}, {:ok, nil}}
+    end)
+
     stub(Tymeslot.EmailServiceMock, :send_reschedule_request, fn _ -> {:ok, nil} end)
 
     conn = conn |> Plug.Test.init_test_session(%{}) |> fetch_session()
@@ -40,13 +43,14 @@ defmodule TymeslotWeb.Dashboard.BookingsManagementTest do
 
     test "renders in-progress meetings with join button", %{conn: conn, user: user} do
       # Meeting started 5 minutes ago, ends in 25 minutes
-      _meeting = insert(:meeting,
-        organizer_email: user.email,
-        attendee_name: "Active Meeting",
-        meeting_url: "https://tymeslot.com/join/active",
-        start_time: DateTime.add(DateTime.utc_now(), -5, :minute),
-        end_time: DateTime.add(DateTime.utc_now(), 25, :minute)
-      )
+      _meeting =
+        insert(:meeting,
+          organizer_email: user.email,
+          attendee_name: "Active Meeting",
+          meeting_url: "https://tymeslot.com/join/active",
+          start_time: DateTime.add(DateTime.utc_now(), -5, :minute),
+          end_time: DateTime.add(DateTime.utc_now(), 25, :minute)
+        )
 
       {:ok, view, _html} = live(conn, ~p"/dashboard/meetings")
 
@@ -57,10 +61,19 @@ defmodule TymeslotWeb.Dashboard.BookingsManagementTest do
 
     test "filters meetings by status", %{conn: conn, user: user} do
       insert(:meeting, organizer_email: user.email, attendee_name: "Upcoming Meeting")
-      insert(:meeting, organizer_email: user.email, attendee_name: "Cancelled Meeting", status: "cancelled")
-      insert(:meeting, organizer_email: user.email, attendee_name: "Past Meeting",
+
+      insert(:meeting,
+        organizer_email: user.email,
+        attendee_name: "Cancelled Meeting",
+        status: "cancelled"
+      )
+
+      insert(:meeting,
+        organizer_email: user.email,
+        attendee_name: "Past Meeting",
         start_time: DateTime.add(DateTime.utc_now(), -1, :day),
-        end_time: DateTime.add(DateTime.utc_now(), -23, :hour))
+        end_time: DateTime.add(DateTime.utc_now(), -23, :hour)
+      )
 
       {:ok, view, _html} = live(conn, ~p"/dashboard/meetings")
 
@@ -122,11 +135,13 @@ defmodule TymeslotWeb.Dashboard.BookingsManagementTest do
     end
 
     test "allows cancelling a meeting with reschedule_requested status", %{conn: conn, user: user} do
-      meeting = insert(:meeting,
-        organizer_email: user.email,
-        attendee_name: "Reschedule Then Cancel",
-        status: "reschedule_requested"
-      )
+      meeting =
+        insert(:meeting,
+          organizer_email: user.email,
+          attendee_name: "Reschedule Then Cancel",
+          status: "reschedule_requested"
+        )
+
       {:ok, view, _html} = live(conn, ~p"/dashboard/meetings")
 
       assert render(view) =~ "Reschedule Then Cancel"
@@ -148,8 +163,11 @@ defmodule TymeslotWeb.Dashboard.BookingsManagementTest do
     test "loads more meetings", %{conn: conn, user: user} do
       # Insert 25 meetings (per_page is 20)
       for i <- 1..25 do
-        insert(:meeting, organizer_email: user.email, attendee_name: "Meeting #{i}",
-          start_time: DateTime.add(DateTime.utc_now(), i, :hour))
+        insert(:meeting,
+          organizer_email: user.email,
+          attendee_name: "Meeting #{i}",
+          start_time: DateTime.add(DateTime.utc_now(), i, :hour)
+        )
       end
 
       {:ok, view, _html} = live(conn, ~p"/dashboard/meetings")

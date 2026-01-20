@@ -150,8 +150,7 @@ defmodule Tymeslot.Payments.Webhooks.CheckoutSessionHandler do
 
   defp handle_retryable_error(error, session_id) do
     if retryable_stripe_error?(error) do
-      {:error, :retry_later,
-       "Stripe error for session #{session_id}: #{error.message}"}
+      {:error, :retry_later, "Stripe error for session #{session_id}: #{error.message}"}
     else
       Logger.error("Payment processing failed",
         session_id: session_id,

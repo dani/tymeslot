@@ -5,13 +5,18 @@ defmodule TymeslotWeb.Dashboard.ThemeSettings.ThemeCustomization.Components do
   use TymeslotWeb, :html
 
   alias Tymeslot.Scheduling.LinkAccessPolicy
-  import TymeslotWeb.Dashboard.ThemeSettings.ThemeCustomization.Pickers.ColorPicker, only: [color_picker: 1]
+
+  import TymeslotWeb.Dashboard.ThemeSettings.ThemeCustomization.Pickers.ColorPicker,
+    only: [color_picker: 1]
 
   import TymeslotWeb.Dashboard.ThemeSettings.ThemeCustomization.Pickers.GradientPicker,
     only: [gradient_picker: 1]
 
-  import TymeslotWeb.Dashboard.ThemeSettings.ThemeCustomization.Pickers.ImagePicker, only: [image_picker: 1]
-  import TymeslotWeb.Dashboard.ThemeSettings.ThemeCustomization.Pickers.VideoPicker, only: [video_picker: 1]
+  import TymeslotWeb.Dashboard.ThemeSettings.ThemeCustomization.Pickers.ImagePicker,
+    only: [image_picker: 1]
+
+  import TymeslotWeb.Dashboard.ThemeSettings.ThemeCustomization.Pickers.VideoPicker,
+    only: [video_picker: 1]
 
   def toolbar(assigns) do
     ~H"""

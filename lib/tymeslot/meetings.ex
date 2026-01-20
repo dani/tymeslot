@@ -489,7 +489,15 @@ defmodule Tymeslot.Meetings do
   end
 
   @doc """
-  Lists upcoming meetings for a specific user.
+  Lists upcoming meetings for a specific user with a limit.
+  """
+  @spec list_upcoming_meetings_for_user(String.t(), integer()) :: [Ecto.Schema.t()]
+  def list_upcoming_meetings_for_user(user_email, limit) do
+    MeetingQueries.upcoming_meetings_for_user(user_email, limit)
+  end
+
+  @doc """
+  Lists all upcoming meetings for a specific user.
   """
   @spec list_upcoming_meetings_for_user(String.t()) :: [Ecto.Schema.t()]
   def list_upcoming_meetings_for_user(user_email) do
@@ -717,7 +725,9 @@ defmodule Tymeslot.Meetings do
       end
 
     query_opts = Keyword.merge(query_opts, per_page: per_page)
-    query_opts = if after_cursor, do: Keyword.put(query_opts, :after, after_cursor), else: query_opts
+
+    query_opts =
+      if after_cursor, do: Keyword.put(query_opts, :after, after_cursor), else: query_opts
 
     list_user_meetings_cursor_page_by_id(user_id, query_opts)
   end
