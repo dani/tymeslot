@@ -6,48 +6,51 @@ defmodule Tymeslot.Integrations.Calendar.EventsRead do
   require Logger
   alias Tymeslot.Infrastructure.Logging.Redactor
   alias Tymeslot.Integrations.Calendar.CalDAV.Base
-  alias Tymeslot.Integrations.Calendar.Operations
   alias Tymeslot.Integrations.Calendar.Providers.ProviderAdapter
+  alias Tymeslot.Integrations.Calendar.Runtime.ClientManager
 
   @doc """
   Lists events within a date range from all configured calendars.
   Uses server-side filtering to exclude events outside the range.
   Fetches from all calendars in parallel for better performance.
 
-  DEPRECATED: Prefer get_events_for_range_fresh/3 in Operations when possible.
+  DEPRECATED: Prefer get_events_for_range_fresh/3 in EventQueries when possible.
   """
   @spec list_events_in_range(DateTime.t() | Date.t(), DateTime.t() | Date.t(), (-> list(map()))) ::
           {:ok, list(map())} | {:error, term()}
-  def list_events_in_range(start_date, end_date, clients_fun \\ &Operations.clients/0) do
+  def list_events_in_range(start_date, end_date, clients_fun \\ &ClientManager.clients/0) do
     Logger.info("Listing calendar events in range from all calendars",
       start_date: start_date,
       end_date: end_date
     )
 
-    start_utc = ensure_utc(start_date)
-    end_utc = ensure_utc(end_date)
+    case {ensure_utc(start_date), ensure_utc(end_date)} do
+      {{:ok, start_utc}, {:ok, end_utc}} ->
+        all_clients = clients_fun.()
+        Logger.info("Fetching from #{length(all_clients)} calendar(s) in parallel")
 
-    all_clients = clients_fun.()
-    Logger.info("Fetching from #{length(all_clients)} calendar(s) in parallel")
+        tasks =
+          Enum.map(all_clients, fn client ->
+            Task.async(fn -> fetch_events_with_fallback(client, start_utc, end_utc) end)
+          end)
 
-    tasks =
-      Enum.map(all_clients, fn client ->
-        Task.async(fn -> fetch_events_with_fallback(client, start_utc, end_utc) end)
-      end)
+        results = Task.await_many(tasks, Base.task_await_timeout_ms())
 
-    results = Task.await_many(tasks, Base.task_await_timeout_ms())
+        all_events =
+          results
+          |> Enum.filter(fn
+            {:ok, _, _} -> true
+            _ -> false
+          end)
+          |> Enum.flat_map(fn {:ok, events, _path} -> events end)
+          |> Enum.uniq_by(& &1.uid)
 
-    all_events =
-      results
-      |> Enum.filter(fn
-        {:ok, _, _} -> true
-        _ -> false
-      end)
-      |> Enum.flat_map(fn {:ok, events, _path} -> events end)
-      |> Enum.uniq_by(& &1.uid)
+        Logger.info("Total events found across all calendars: #{length(all_events)}")
+        {:ok, all_events}
 
-    Logger.info("Total events found across all calendars: #{length(all_events)}")
-    {:ok, all_events}
+      _ ->
+        {:error, :timezone_error}
+    end
   end
 
   @doc """
@@ -115,17 +118,17 @@ defmodule Tymeslot.Integrations.Calendar.EventsRead do
     end
   end
 
-  defp ensure_utc(%DateTime{time_zone: "Etc/UTC"} = dt), do: dt
+  defp ensure_utc(%DateTime{time_zone: "Etc/UTC"} = dt), do: {:ok, dt}
 
   defp ensure_utc(%DateTime{} = dt) do
     case DateTime.shift_zone(dt, "Etc/UTC") do
-      {:ok, utc_dt} -> utc_dt
-      _ -> dt
+      {:ok, utc_dt} -> {:ok, utc_dt}
+      {:error, _reason} -> {:error, :timezone_error}
     end
   end
 
   defp ensure_utc(%Date{} = d) do
-    DateTime.new!(d, ~T[00:00:00], "Etc/UTC")
+    {:ok, DateTime.new!(d, ~T[00:00:00], "Etc/UTC")}
   end
 
   defp wrap_events_result(client, result, log_level \\ nil)

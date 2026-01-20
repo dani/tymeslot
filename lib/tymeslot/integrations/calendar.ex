@@ -16,7 +16,8 @@ defmodule Tymeslot.Integrations.Calendar do
   alias Tymeslot.Integrations.Calendar.Deletion
   alias Tymeslot.Integrations.Calendar.Discovery
   alias Tymeslot.Integrations.Calendar.OAuth
-  alias Tymeslot.Integrations.Calendar.Operations
+  alias Tymeslot.Integrations.Calendar.Orchestration.Workflows
+  alias Tymeslot.Integrations.Calendar.Runtime.EventQueries
   alias Tymeslot.Integrations.Calendar.Selection
   alias Tymeslot.Integrations.Calendar.TokenUtils
   alias Tymeslot.Integrations.{CalendarManagement, CalendarPrimary}
@@ -279,50 +280,7 @@ defmodule Tymeslot.Integrations.Calendar do
   """
   @spec refresh_calendar_list_async(integration_id(), user_id(), String.t()) :: {:ok, pid()}
   def refresh_calendar_list_async(integration_id, user_id, component_id) do
-    parent = self()
-
-    Logger.info("Starting async calendar list refresh",
-      integration_id: integration_id,
-      user_id: user_id
-    )
-
-    Task.Supervisor.start_child(Tymeslot.TaskSupervisor, fn ->
-      case get_integration(integration_id, user_id) do
-        {:ok, integration} ->
-          case discover_calendars_for_integration(integration) do
-            {:ok, calendars} ->
-              Logger.info("Successfully discovered calendars",
-                integration_id: integration_id,
-                count: length(calendars)
-              )
-
-              # Update the integration's calendar_list in the database so it's persisted
-              update_integration(integration, %{calendar_list: calendars})
-
-              send(parent, {:calendar_list_refreshed, component_id, integration_id, calendars})
-
-            {:error, reason} ->
-              Logger.error("Failed to discover calendars",
-                integration_id: integration_id,
-                error: inspect(reason)
-              )
-
-              send(
-                parent,
-                {:calendar_list_refreshed, component_id, integration_id,
-                 integration.calendar_list}
-              )
-          end
-
-        {:error, reason} ->
-          Logger.error("Failed to find integration for calendar refresh",
-            integration_id: integration_id,
-            error: inspect(reason)
-          )
-
-          send(parent, {:calendar_list_refreshed, component_id, integration_id, []})
-      end
-    end)
+    Workflows.refresh_calendar_list_async(integration_id, user_id, component_id)
   end
 
   @doc """
@@ -385,8 +343,8 @@ defmodule Tymeslot.Integrations.Calendar do
   @spec list_events(user_id() | nil) :: {:ok, list()} | {:error, term()}
   def list_events(user_id \\ nil) do
     case user_id do
-      id when is_integer(id) and id > 0 -> Operations.list_events(id)
-      nil -> Operations.list_events(nil)
+      id when is_integer(id) and id > 0 -> EventQueries.list_events(id)
+      nil -> EventQueries.list_events(nil)
       _ -> {:error, :invalid_user_id}
     end
   end
@@ -447,7 +405,7 @@ defmodule Tymeslot.Integrations.Calendar do
           {:ok, list()} | {:error, term()}
   def get_events_for_month(user_id, year, month, timezone)
       when is_integer(user_id) and is_integer(year) and is_integer(month) and is_binary(timezone) do
-    calendar_module().get_events_for_month(user_id, year, month, timezone)
+    behaviour_module().get_events_for_month(user_id, year, month, timezone)
   end
 
   @doc """
@@ -465,7 +423,7 @@ defmodule Tymeslot.Integrations.Calendar do
           {:ok, list()} | {:error, term()}
   def get_events_for_range_fresh(user_id, start_date, end_date)
       when is_integer(user_id) do
-    calendar_module().get_events_for_range_fresh(user_id, start_date, end_date)
+    behaviour_module().get_events_for_range_fresh(user_id, start_date, end_date)
   end
 
   @doc """
@@ -474,35 +432,35 @@ defmodule Tymeslot.Integrations.Calendar do
   @spec create_event(map(), user_id() | nil) :: {:ok, map()} | {:error, term()}
   def create_event(event_data, user_id \\ nil) do
     case user_id do
-      id when is_integer(id) and id > 0 -> calendar_module().create_event(event_data, id)
-      nil -> calendar_module().create_event(event_data, nil)
+      id when is_integer(id) and id > 0 -> behaviour_module().create_event(event_data, id)
+      nil -> behaviour_module().create_event(event_data, nil)
       _ -> {:error, :invalid_user_id}
     end
   end
 
   @doc """
-  Update an event with optional target integration or meeting context.
+  Update an event with optional target integration, meeting context, or user_id.
   """
-  @spec update_event(String.t(), map(), pos_integer() | MeetingSchema.t() | nil) ::
+  @spec update_event(String.t(), map(), pos_integer() | MeetingSchema.t() | {pos_integer(), pos_integer()} | nil) ::
           :ok | {:error, term()}
   def update_event(uid, event_data, context \\ nil) do
-    calendar_module().update_event(uid, event_data, context)
+    behaviour_module().update_event(uid, event_data, context)
   end
 
   @doc """
-  Delete an event with optional target integration or meeting context.
+  Delete an event with optional target integration, meeting context, or user_id.
   """
-  @spec delete_event(String.t(), pos_integer() | MeetingSchema.t() | nil) ::
+  @spec delete_event(String.t(), pos_integer() | MeetingSchema.t() | {pos_integer(), pos_integer()} | nil) ::
           :ok | {:error, term()}
   def delete_event(uid, context \\ nil) do
-    calendar_module().delete_event(uid, context)
+    behaviour_module().delete_event(uid, context)
   end
 
   @doc """
   Get a single event by UID.
   """
-  @spec get_event(String.t()) :: {:ok, map()} | {:error, :not_found | term()}
-  def get_event(uid), do: calendar_module().get_event(uid)
+  @spec get_event(String.t(), user_id() | nil) :: {:ok, map()} | {:error, :not_found | term()}
+  def get_event(uid, user_id \\ nil), do: behaviour_module().get_event(uid, user_id)
 
   @doc """
   Returns the booking calendar integration info for a user or meeting type (id and path) used for event creation.
@@ -513,22 +471,29 @@ defmodule Tymeslot.Integrations.Calendar do
         ) ::
           {:ok, %{integration_id: pos_integer(), calendar_path: String.t()}} | {:error, term()}
   def get_booking_integration_info(context) do
-    calendar_module().get_booking_integration_info(context)
+    behaviour_module().get_booking_integration_info(context)
   end
 
   # --- private helpers ---
 
-  defp calendar_module do
-    mod = Application.get_env(:tymeslot, :calendar_module, Operations)
+  # Returns the configured CalendarBehaviour implementation module
+  # Defaults to Operations but can be overridden for testing
+  defp behaviour_module do
+    mod =
+      Application.get_env(
+        :tymeslot,
+        :calendar_module,
+        Tymeslot.Integrations.Calendar.Operations
+      )
 
     if Code.ensure_loaded?(mod) do
       mod
     else
-      Logger.error(
+      Logger.warning(
         "Configured calendar_module #{inspect(mod)} is not loaded. Falling back to Operations."
       )
 
-      Operations
+      Tymeslot.Integrations.Calendar.Operations
     end
   end
 
@@ -554,30 +519,7 @@ defmodule Tymeslot.Integrations.Calendar do
   @spec update_integration_with_discovery(map()) ::
           {:ok, CalendarIntegrationSchema.t()} | {:error, term()}
   def update_integration_with_discovery(integration) do
-    with {:ok, refreshed_integration} <- refresh_integration(integration),
-         {:ok, merged} <- discover_calendars_with_selection(refreshed_integration) do
-      # If discovery returned empty but we had existing selection, preserve it
-      # to prevent accidental data loss from transient provider issues
-      existing_calendar_list = refreshed_integration.calendar_list || []
-      had_existing_selection = existing_calendar_list != []
-
-      final_calendar_list =
-        if merged == [] && had_existing_selection do
-          existing_calendar_list
-        else
-          merged
-        end
-
-      case CalendarManagement.update_calendar_integration(refreshed_integration, %{
-             calendar_list: final_calendar_list
-           }) do
-        {:ok, updated} -> {:ok, updated}
-        error -> error
-      end
-    else
-      error ->
-        error
-    end
+    Workflows.update_integration_with_discovery(integration)
   end
 
   @doc """
@@ -595,16 +537,6 @@ defmodule Tymeslot.Integrations.Calendar do
   def discover_calendars_for_credentials(provider, url, username, password, opts \\ []) do
     Discovery.discover_calendars_for_credentials(provider, url, username, password, opts)
   end
-
-  defp refresh_integration(%{id: id, user_id: user_id} = _integration)
-       when is_integer(id) and is_integer(user_id) do
-    case CalendarManagement.get_calendar_integration(id, user_id) do
-      {:ok, fresh} -> {:ok, fresh}
-      {:error, :not_found} -> {:error, :not_found}
-    end
-  end
-
-  defp refresh_integration(integration), do: {:ok, integration}
 
   @doc """
   Map connection/validation error atoms to user-friendly messages.
@@ -696,21 +628,7 @@ defmodule Tymeslot.Integrations.Calendar do
   @spec discover_and_filter_calendars(atom() | String.t(), String.t(), String.t(), String.t()) ::
           {:ok, %{calendars: list(), discovery_credentials: map()}} | {:error, any()}
   def discover_and_filter_calendars(provider, url, username, password) do
-    case Discovery.discover_calendars_for_credentials(provider, url, username, password,
-           force_refresh: true
-         ) do
-      {:ok, %{calendars: calendars, discovery_credentials: credentials}} ->
-        # Filter calendars to only include those with valid paths
-        valid_calendars =
-          Enum.filter(calendars, fn calendar ->
-            is_binary(calendar[:path] || calendar[:href])
-          end)
-
-        {:ok, %{calendars: valid_calendars, discovery_credentials: credentials}}
-
-      {:error, reason} ->
-        {:error, reason}
-    end
+    Workflows.discover_and_filter_calendars(provider, url, username, password)
   end
 
   @doc """
