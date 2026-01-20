@@ -16,6 +16,8 @@ defmodule TymeslotWeb.Themes.Rhythm.Meeting.CancelConfirmed do
     <Wrapper.rhythm_wrapper
       theme_customization={@theme_customization}
       custom_css={@custom_css}
+      locale={@locale}
+      language_dropdown_open={@language_dropdown_open}
     >
       <!-- Scheduling Box with Glass Effect -->
       <div class="scheduling-box">

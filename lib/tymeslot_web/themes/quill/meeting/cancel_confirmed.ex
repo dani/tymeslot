@@ -18,6 +18,8 @@ defmodule TymeslotWeb.Themes.Quill.Meeting.CancelConfirmed do
     <Wrapper.quill_wrapper
       theme_customization={@theme_customization}
       custom_css={@custom_css}
+      locale={@locale}
+      language_dropdown_open={@language_dropdown_open}
     >
       <div class="min-h-screen flex items-center justify-center px-4 py-8">
         <div class="w-full max-w-md">

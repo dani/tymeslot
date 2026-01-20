@@ -32,15 +32,18 @@ defmodule TymeslotWeb.Themes.Shared.LocaleHandler do
   def handle_locale_change(socket, new_locale) do
     current_locale = socket.assigns[:locale]
 
-    # Skip if locale is already set (idempotent)
+    # Always ensure Gettext is set for the current process
+    # This handles cases where the process might have been reused or dictionary cleared
+    if new_locale in supported_locales() do
+      Gettext.put_locale(TymeslotWeb.Gettext, new_locale)
+    end
+
+    # Skip if locale is already set in assigns (idempotent for assigns)
     cond do
       new_locale == current_locale ->
         socket
 
       new_locale in supported_locales() ->
-        # Update Gettext for current process
-        Gettext.put_locale(TymeslotWeb.Gettext, new_locale)
-
         # Update socket assigns
         # Note: For persistence across navigation, themes should use a full
         # redirect (external: true) with the locale in query params to ensure

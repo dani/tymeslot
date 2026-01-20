@@ -229,9 +229,14 @@ defmodule Tymeslot.Availability.ConflictsTest do
 
   describe "date_has_slots_with_events?/5" do
     test "returns true when no events block the day" do
-      # Ensure we use a weekday (default business hours)
-      # Today is Sat Jan 17, 2026. Next Monday is Jan 19.
-      date = ~D[2026-01-19]
+      # Ensure we use a future weekday (default business hours)
+      date = Date.add(Date.utc_today(), 7)
+      date = 
+        case Date.day_of_week(date) do
+          6 -> Date.add(date, 2)
+          7 -> Date.add(date, 1)
+          _ -> date
+        end
 
       result =
         Conflicts.date_has_slots_with_events?(
@@ -246,8 +251,14 @@ defmodule Tymeslot.Availability.ConflictsTest do
     end
 
     test "returns true when events don't cover entire business hours" do
-      # Ensure we use a weekday
-      date = ~D[2026-01-19]
+      # Ensure we use a future weekday
+      date = Date.add(Date.utc_today(), 7)
+      date = 
+        case Date.day_of_week(date) do
+          6 -> Date.add(date, 2)
+          7 -> Date.add(date, 1)
+          _ -> date
+        end
 
       # Event only covers part of the day
       events = [

@@ -12,7 +12,7 @@ defmodule TymeslotWeb.Live.Themes.RhythmMeetingTest do
       username: "john",
       color_scheme: "purple",
       background_value: "gradient_1",
-      start_time: ~U[2026-01-20 10:00:00Z],
+      start_time: DateTime.add(DateTime.utc_now(), 1, :day),
       duration: 30
     })
   end
@@ -32,12 +32,15 @@ defmodule TymeslotWeb.Live.Themes.RhythmMeetingTest do
       ThemeMeetingTestCases.setup_reschedule_view(conn, profile, meeting)
     end
 
-    test "renders the reschedule page with rhythm style and meeting details", %{view: view} do
+    test "renders the reschedule page with rhythm style and meeting details", %{view: view, meeting: meeting} do
       ThemeMeetingTestCases.test_reschedule_page_rendering(view)
 
       # Check meeting details
-      assert render(view) =~ "January 20, 2026"
-      assert render(view) =~ "10:00 AM"
+      formatted_date = Calendar.strftime(meeting.start_time, "%B %d, %Y")
+      formatted_time = Calendar.strftime(meeting.start_time, "%-I:%M %p")
+      
+      assert render(view) =~ formatted_date
+      assert render(view) =~ formatted_time
       assert render(view) =~ "John Doe"
       assert render(view) =~ "30 min"
 

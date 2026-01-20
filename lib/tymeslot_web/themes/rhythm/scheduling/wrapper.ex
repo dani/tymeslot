@@ -21,7 +21,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Wrapper do
     assigns = assign(assigns, :has_video_background, has_video_background)
 
     ~H"""
-    <div class="rhythm-theme-wrapper theme-2">
+    <div class="rhythm-theme-wrapper theme-2" data-locale={assigns[:locale]}>
       <!-- Render custom CSS if available -->
       <%= if assigns[:custom_css] && assigns[:custom_css] != "" do %>
         <style type="text/css">

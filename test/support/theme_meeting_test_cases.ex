@@ -14,6 +14,8 @@ defmodule TymeslotWeb.ThemeMeetingTestCases do
   """
   @spec setup_theme_meeting(map()) :: {:ok, keyword()}
   def setup_theme_meeting(attrs) do
+    Tymeslot.TestMocks.setup_subscription_mocks()
+
     user_name = Map.get(attrs, :user_name)
     theme_id = Map.get(attrs, :theme_id)
     username = Map.get(attrs, :username)

@@ -39,6 +39,25 @@ defmodule TymeslotWeb.Themes.Shared.PathHandlers do
   end
 
   defp do_get_base_path(:confirmation, username, _socket), do: "/#{username}/thank-you"
+
+  defp do_get_base_path(:cancel, username, socket) do
+    meeting_uid = socket.assigns[:meeting_uid]
+    if meeting_uid, do: "/#{username}/meeting/#{meeting_uid}/cancel", else: "/#{username}"
+  end
+
+  defp do_get_base_path(:cancel_confirmed, username, socket) do
+    meeting_uid = socket.assigns[:meeting_uid]
+
+    if meeting_uid,
+      do: "/#{username}/meeting/#{meeting_uid}/cancel-confirmed",
+      else: "/#{username}"
+  end
+
+  defp do_get_base_path(:reschedule, username, socket) do
+    meeting_uid = socket.assigns[:meeting_uid]
+    if meeting_uid, do: "/#{username}/meeting/#{meeting_uid}/reschedule", else: "/#{username}"
+  end
+
   defp do_get_base_path(_, username, _socket), do: "/#{username}"
 
   defp build_query_params(socket, locale) do

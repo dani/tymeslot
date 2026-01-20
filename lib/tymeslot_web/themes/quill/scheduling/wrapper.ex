@@ -22,7 +22,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Wrapper do
     assigns = assign(assigns, :has_video_background, has_video_background)
 
     ~H"""
-    <div class="quill-theme-wrapper theme-1">
+    <div class="quill-theme-wrapper theme-1" data-locale={assigns[:locale]}>
       <!-- Render custom CSS if available -->
       <%= if assigns[:custom_css] && assigns[:custom_css] != "" do %>
         <style type="text/css">

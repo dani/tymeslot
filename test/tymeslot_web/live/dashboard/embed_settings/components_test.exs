@@ -15,7 +15,7 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettings.ComponentsTest do
         myself: "myself"
       }
 
-      html = render_component(&OptionsGrid.render/1, assigns)
+      html = render_component(&OptionsGrid.options_grid/1, assigns)
       assert html =~ "Inline Embed"
       assert html =~ "Popup Modal"
       assert html =~ "Direct Link"
@@ -32,7 +32,7 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettings.ComponentsTest do
         myself: "myself"
       }
 
-      html = render_component(&SecuritySection.render/1, assigns)
+      html = render_component(&SecuritySection.security_section/1, assigns)
       assert html =~ "Security & Domain Control"
       assert html =~ "Configure"
       refute html =~ "Allowed Domains (Optional)"
@@ -45,7 +45,7 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettings.ComponentsTest do
         myself: "myself"
       }
 
-      html = render_component(&SecuritySection.render/1, assigns)
+      html = render_component(&SecuritySection.security_section/1, assigns)
       assert html =~ "Hide"
       assert html =~ "Allowed Domains (Optional)"
       assert html =~ "example.com"
@@ -66,7 +66,7 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettings.ComponentsTest do
         myself: "myself"
       }
 
-      html = render_component(&LivePreview.render/1, assigns)
+      html = render_component(&LivePreview.live_preview/1, assigns)
       assert html =~ "Link Deactivated"
       assert html =~ "The organizer hasn’t connected a calendar yet."
     end
@@ -83,7 +83,7 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettings.ComponentsTest do
         myself: "myself"
       }
 
-      html = render_component(&LivePreview.render/1, assigns)
+      html = render_component(&LivePreview.live_preview/1, assigns)
       assert html =~ "id=\"live-preview-container\""
       assert html =~ "data-username=\"testuser\""
     end

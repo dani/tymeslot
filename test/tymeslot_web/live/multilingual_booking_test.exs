@@ -215,6 +215,33 @@ defmodule TymeslotWeb.Live.MultilingualBookingTest do
       # Verify the locale is still German
       assert render(view) =~ "data-locale=\"de\""
     end
+
+    test "persists language selection on meeting management pages", %{
+      conn: conn,
+      username: username,
+      user: user
+    } do
+      meeting = insert(:meeting, organizer_user: user)
+
+      # Start on cancel page in English
+      {:ok, view, _html} = live(conn, "/#{username}/meeting/#{meeting.uid}/cancel")
+      assert render(view) =~ "data-locale=\"en\""
+
+      # Switch to German via dropdown
+      view |> element("button[phx-click='toggle_language_dropdown']") |> render_click()
+
+      {:ok, conn} =
+        view
+        |> element("button[phx-click='change_locale'][phx-value-locale='de']")
+        |> render_click()
+        |> follow_redirect(conn)
+
+      # Verify we stayed on the cancel page (BUG FIX: previously redirected to overview)
+      assert conn.path_info == [username, "meeting", meeting.uid, "cancel"]
+
+      {:ok, new_view, _html} = live(conn)
+      assert render(new_view) =~ "data-locale=\"de\""
+    end
   end
 
   # Helper Functions

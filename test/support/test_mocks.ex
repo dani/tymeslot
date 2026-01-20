@@ -43,7 +43,7 @@ defmodule Tymeslot.TestMocks do
     result = Keyword.get(opts, :result, {:ok, events})
 
     Tymeslot.CalendarMock
-    |> stub(:list_events_in_range, fn _start_time, _end_time -> result end)
+    |> stub(:list_events_in_range, fn _user_id, _start_time, _end_time -> result end)
     |> stub(:get_events_for_range_fresh, fn _user_id, _start_date, _end_date -> result end)
     |> stub(:get_booking_integration_info, fn _user_id ->
       {:error, :no_integration}
@@ -100,13 +100,25 @@ defmodule Tymeslot.TestMocks do
   end
 
   @doc """
+  Sets up Subscription Manager mocks.
+  """
+  @spec setup_subscription_mocks(keyword()) :: term()
+  def setup_subscription_mocks(opts \\ []) do
+    show_branding = Keyword.get(opts, :show_branding, true)
+
+    Tymeslot.Payments.SubscriptionManagerMock
+    |> stub(:should_show_branding?, fn _user_id -> show_branding end)
+  end
+
+  @doc """
   Sets up all standard mocks for a typical successful flow.
   """
-  @spec setup_standard_mocks() :: term()
-  def setup_standard_mocks do
+  @spec setup_all_mocks() :: term()
+  def setup_all_mocks do
     setup_mirotalk_mocks()
     setup_calendar_mocks()
     setup_email_mocks()
+    setup_subscription_mocks()
   end
 
   @doc """
