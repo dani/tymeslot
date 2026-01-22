@@ -1,12 +1,14 @@
 defmodule Tymeslot.Auth.OAuth.GoogleTest do
   use Tymeslot.DataCase, async: false
 
+  alias Phoenix.Controller
+  alias Phoenix.Flash
+  alias Plug.Conn, as: PlugConn
   alias Plug.Test, as: PlugTest
   alias Tymeslot.Auth.OAuth.Google
   alias Tymeslot.Auth.OAuth.HelperMock
   import Mox
   import Phoenix.ConnTest, only: [redirected_to: 1]
-  alias Phoenix.Controller
 
   setup :verify_on_exit!
 
@@ -47,8 +49,7 @@ defmodule Tymeslot.Auth.OAuth.GoogleTest do
     redirect_uri = "http://callback"
 
     expect(HelperMock, :handle_oauth_callback, fn _conn, %{code: ^code, state: ^state, provider: :google} ->
-      conn
-      |> Plug.Conn.put_private(:oauth_callback_result, {:ok, %{"id" => 2}})
+      PlugConn.put_private(conn, :oauth_callback_result, {:ok, %{"id" => 2}})
     end)
 
     updated_conn = Google.handle_callback(conn, code, state, redirect_uri)
@@ -65,7 +66,7 @@ defmodule Tymeslot.Auth.OAuth.GoogleTest do
       # Mock the error response from FlowHandler
       conn
       |> Controller.fetch_flash([])
-      |> Plug.Conn.put_status(302)
+      |> PlugConn.put_status(302)
       |> Controller.put_flash(:error, "invalid state")
       |> Controller.redirect(to: "/?auth=login")
     end)
@@ -73,6 +74,6 @@ defmodule Tymeslot.Auth.OAuth.GoogleTest do
     updated_conn = Google.handle_callback(conn, code, state, redirect_uri)
     assert updated_conn.status == 302
     assert redirected_to(updated_conn) == "/?auth=login"
-    assert Phoenix.Flash.get(updated_conn.assigns.flash, :error) == "invalid state"
+    assert Flash.get(updated_conn.assigns.flash, :error) == "invalid state"
   end
 end
