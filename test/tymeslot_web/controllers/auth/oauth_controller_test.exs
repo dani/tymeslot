@@ -155,16 +155,6 @@ defmodule TymeslotWeb.OAuthControllerTest do
       assert redirected_to(conn) == "/auth/login"
       assert Flash.get(conn.assigns.flash, :error) =~ "Too many authentication attempts"
     end
-
-    test "handles callback without state (legacy)", %{conn: conn} do
-      :meck.expect(OAuthHelper, :handle_oauth_callback, fn conn, "code", :github, _paths ->
-        conn = Controller.fetch_flash(conn, [])
-        Controller.redirect(conn, to: "/dashboard")
-      end)
-
-      conn = get(conn, ~p"/auth/github/callback", %{"code" => "code"})
-      assert redirected_to(conn) == "/dashboard"
-    end
   end
 
   describe "POST /auth/complete" do

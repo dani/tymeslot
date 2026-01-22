@@ -5,6 +5,8 @@ defmodule Tymeslot.Auth.OAuth.GoogleTest do
   alias Tymeslot.Auth.OAuth.Google
   alias Tymeslot.Auth.OAuth.HelperMock
   import Mox
+  import Phoenix.ConnTest, only: [redirected_to: 1]
+  alias Phoenix.Controller
 
   setup :verify_on_exit!
 
@@ -44,11 +46,13 @@ defmodule Tymeslot.Auth.OAuth.GoogleTest do
     state = "state456"
     redirect_uri = "http://callback"
 
-    expect(HelperMock, :validate_state, fn ^conn, ^state -> :ok end)
-    expect(HelperMock, :clear_oauth_state, fn ^conn -> conn end)
-    expect(HelperMock, :do_handle_callback, fn _conn, ^code, ^redirect_uri, :google -> {:ok, conn, %{"id" => 2}} end)
+    expect(HelperMock, :handle_oauth_callback, fn _conn, %{code: ^code, state: ^state, provider: :google} ->
+      conn
+      |> Plug.Conn.put_private(:oauth_callback_result, {:ok, %{"id" => 2}})
+    end)
 
-    assert {:ok, _updated_conn, %{"id" => 2}} = Google.handle_callback(conn, code, state, redirect_uri)
+    updated_conn = Google.handle_callback(conn, code, state, redirect_uri)
+    assert updated_conn.private[:oauth_callback_result] == {:ok, %{"id" => 2}}
   end
 
   test "handle_callback/4 returns error on invalid state" do
@@ -57,8 +61,18 @@ defmodule Tymeslot.Auth.OAuth.GoogleTest do
     state = "wrong_state"
     redirect_uri = "http://callback"
 
-    expect(HelperMock, :validate_state, fn ^conn, ^state -> {:error, :invalid_state} end)
+    expect(HelperMock, :handle_oauth_callback, fn conn, %{code: ^code, state: ^state, provider: :google} ->
+      # Mock the error response from FlowHandler
+      conn
+      |> Controller.fetch_flash([])
+      |> Plug.Conn.put_status(302)
+      |> Controller.put_flash(:error, "invalid state")
+      |> Controller.redirect(to: "/?auth=login")
+    end)
 
-    assert {:error, ^conn, :invalid_state} = Google.handle_callback(conn, code, state, redirect_uri)
+    updated_conn = Google.handle_callback(conn, code, state, redirect_uri)
+    assert updated_conn.status == 302
+    assert redirected_to(updated_conn) == "/?auth=login"
+    assert Phoenix.Flash.get(updated_conn.assigns.flash, :error) == "invalid state"
   end
 end
