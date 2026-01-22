@@ -2,6 +2,7 @@ defmodule Tymeslot.Auth.OAuth.Google do
   @moduledoc """
   Handles Google OAuth authentication logic.
   """
+  @behaviour Tymeslot.Auth.OAuth.ProviderBehaviour
   require Logger
 
   alias OAuth2.Client
@@ -30,30 +31,31 @@ defmodule Tymeslot.Auth.OAuth.Google do
   end
 
   @doc """
-  Returns the Google OAuth2 authorization URL (legacy function without state).
+  Handles the OAuth callback: validates state, exchanges code for token, and fetches user info.
 
-  This function is kept for backward compatibility but should be avoided.
-  Use authorize_url/2 with connection and state parameter instead.
+  ## Parameters
+    - conn: Plug.Conn.t()
+    - code: String.t() - OAuth authorization code
+    - state: String.t() - OAuth state parameter for CSRF protection
+    - redirect_uri: String.t() - The redirect URI used in the authorization request
+
+  ## Returns
+    - {:ok, conn, user_info} - Successful authentication
+    - {:error, conn, reason} - Authentication failed (e.g., invalid state)
   """
-  @spec authorize_url(String.t()) :: String.t()
-  def authorize_url(redirect_uri) do
-    client = oauth_helper().build_oauth_client(:google, redirect_uri, "")
-    Client.authorize_url!(client, scope: "email profile")
-  end
-
-  @doc """
-  Handles the OAuth callback: exchanges code for token and fetches user info.
-  """
-  @spec handle_callback(String.t(), String.t()) :: {:ok, map()} | {:error, any()}
-  def handle_callback(code, redirect_uri) do
-    client = oauth_helper().build_oauth_client(:google, redirect_uri, "")
-
-    with {:ok, client} <- oauth_helper().exchange_code_for_token(client, code),
-         {:ok, user_info} <- oauth_helper().get_user_info(client, :google) do
-      {:ok, user_info}
-    else
-      err -> {:error, err}
-    end
+  @spec handle_callback(Plug.Conn.t(), String.t(), String.t(), String.t()) ::
+          Plug.Conn.t()
+  def handle_callback(conn, code, state, _redirect_uri) do
+    oauth_helper().handle_oauth_callback(conn, %{
+      code: code,
+      state: state,
+      provider: :google,
+      opts: [
+        success_path: "/dashboard",
+        login_path: "/?auth=login",
+        registration_path: "/?auth=oauth_complete"
+      ]
+    })
   end
 
   @doc """

@@ -75,6 +75,27 @@ defmodule Tymeslot.Auth.OAuth.Client do
   end
 
   @doc """
+  Fetches user information from the provider.
+  """
+  @spec get_user_info(Client.t(), provider) :: {:ok, map()} | {:error, any()}
+  def get_user_info(client, provider) do
+    client = with_auth_header(client, provider)
+    url = user_info_url(provider)
+
+    case Client.get(client, url) do
+      {:ok, %OAuth2.Response{body: body}} -> decode_oauth_body(body)
+      err -> err
+    end
+  end
+
+  defp user_info_url(:github), do: "https://api.github.com/user"
+  defp user_info_url(:google), do: "https://www.googleapis.com/oauth2/v1/userinfo"
+
+  defp decode_oauth_body(body) when is_binary(body), do: Jason.decode(body)
+  defp decode_oauth_body(body) when is_map(body), do: {:ok, body}
+  defp decode_oauth_body(other), do: {:error, {:unexpected_body, other}}
+
+  @doc """
   Parse access token from JSON or return as-is.
   """
   @spec parse_access_token(String.t()) :: String.t()
@@ -108,7 +129,7 @@ defmodule Tymeslot.Auth.OAuth.Client do
   end
 
   defp app_user_agent do
-    # Preserve existing UA string for compatibility
-    "foundersbundle"
+    # User agent for OAuth requests
+    "Tymeslot-Scheduler"
   end
 end

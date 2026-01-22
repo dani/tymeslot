@@ -12,44 +12,32 @@ defmodule TymeslotWeb.LiveCase do
 
   alias Phoenix.ConnTest
   alias Tymeslot.DataCase
+  alias Tymeslot.TestMocks
 
   using do
     quote do
-      # The default endpoint for testing
-      @endpoint TymeslotWeb.Endpoint
-
-      use TymeslotWeb, :verified_routes
-
       # Import conveniences for testing with connections
       import Plug.Conn
       import Phoenix.ConnTest
       import Phoenix.LiveViewTest
-      import TymeslotWeb.LiveCase
+      import TymeslotWeb.ConnCase
 
-      def wait_until(predicate, timeout_ms \\ 30_000, interval_ms \\ 100) do
-        deadline = System.monotonic_time(:millisecond) + timeout_ms
-        do_wait_until(predicate, deadline, interval_ms)
-      end
+      # Routes generation with the ~p sigil
+      unquote(TymeslotWeb.verified_routes())
 
-      defp do_wait_until(predicate, deadline, interval_ms) do
-        case predicate.() do
-          true ->
+      # The default endpoint for testing
+      @endpoint TymeslotWeb.Endpoint
+
+      defp wait_until(fun, timeout \\ 5000) do
+        if timeout <= 0 do
+          fun.() || flunk("Timed out waiting for condition")
+        else
+          if fun.() do
             :ok
-
-          {:ok, _} ->
-            :ok
-
-          _ ->
-            now = System.monotonic_time(:millisecond)
-
-            if now >= deadline do
-              flunk(
-                "Timed out waiting for UI condition. Current monotonic time: #{now}, deadline: #{deadline}"
-              )
-            end
-
-            Process.sleep(interval_ms)
-            do_wait_until(predicate, deadline, interval_ms)
+          else
+            Process.sleep(100)
+            wait_until(fun, timeout - 100)
+          end
         end
       end
     end
@@ -59,7 +47,7 @@ defmodule TymeslotWeb.LiveCase do
     DataCase.setup_sandbox(tags)
     DataCase.reset_stateful_components()
     Mox.set_mox_from_context(tags)
-    Tymeslot.TestMocks.setup_subscription_mocks()
+    TestMocks.setup_subscription_mocks()
     {:ok, conn: ConnTest.build_conn()}
   end
 end

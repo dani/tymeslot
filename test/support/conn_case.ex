@@ -20,6 +20,7 @@ defmodule TymeslotWeb.ConnCase do
   alias Phoenix.ConnTest
   alias Plug.Conn
   alias Tymeslot.DataCase
+  alias Tymeslot.TestMocks
 
   using do
     quote do
@@ -38,7 +39,7 @@ defmodule TymeslotWeb.ConnCase do
   setup tags do
     DataCase.setup_sandbox(tags)
     Mox.set_mox_from_context(tags)
-    Tymeslot.TestMocks.setup_subscription_mocks()
+    TestMocks.setup_subscription_mocks()
     {:ok, conn: setup_session(ConnTest.build_conn())}
   end
 

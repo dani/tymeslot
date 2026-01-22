@@ -9,12 +9,14 @@ defmodule TymeslotWeb.ThemeMeetingTestCases do
   import ExUnit.Assertions
   import Tymeslot.Factory
 
+  alias Tymeslot.TestMocks
+
   @doc """
   Sets up a user, profile, theme customization, and meeting for theme tests.
   """
   @spec setup_theme_meeting(map()) :: {:ok, keyword()}
   def setup_theme_meeting(attrs) do
-    Tymeslot.TestMocks.setup_subscription_mocks()
+    TestMocks.setup_subscription_mocks()
 
     user_name = Map.get(attrs, :user_name)
     theme_id = Map.get(attrs, :theme_id)

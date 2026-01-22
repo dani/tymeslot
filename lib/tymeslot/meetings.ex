@@ -631,33 +631,19 @@ defmodule Tymeslot.Meetings do
           {:ok, CursorPage.t()} | {:error, :invalid_cursor}
   def list_user_meetings_cursor_page(user_email, opts \\ []) do
     per_page = Keyword.get(opts, :per_page, 20)
-    status = Keyword.get(opts, :status)
-    exclude_status = Keyword.get(opts, :exclude_status)
-    time_filter = Keyword.get(opts, :time_filter)
     cursor = Keyword.get(opts, :after)
 
     case decode_cursor_opt(cursor) do
       :no_cursor ->
-        items =
-          list_user_meetings_internal(user_email,
-            per_page: per_page,
-            status: status,
-            exclude_status: exclude_status,
-            time_filter: time_filter
-          )
-
+        items = list_user_meetings_internal(user_email, opts)
         {:ok, build_cursor_page(items, per_page)}
 
       {:ok, %{after_start: after_start, after_id: after_id}} ->
         items =
-          list_user_meetings_internal(user_email,
-            per_page: per_page,
-            status: status,
-            exclude_status: exclude_status,
-            time_filter: time_filter,
-            after_start: after_start,
-            after_id: after_id
-          )
+          opts
+          |> Keyword.put(:after_start, after_start)
+          |> Keyword.put(:after_id, after_id)
+          |> then(&list_user_meetings_internal(user_email, &1))
 
         {:ok, build_cursor_page(items, per_page)}
 

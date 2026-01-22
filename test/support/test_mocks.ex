@@ -106,8 +106,7 @@ defmodule Tymeslot.TestMocks do
   def setup_subscription_mocks(opts \\ []) do
     show_branding = Keyword.get(opts, :show_branding, true)
 
-    Tymeslot.Payments.SubscriptionManagerMock
-    |> stub(:should_show_branding?, fn _user_id -> show_branding end)
+    stub(Tymeslot.Payments.SubscriptionManagerMock, :should_show_branding?, fn _user_id -> show_branding end)
   end
 
   @doc """

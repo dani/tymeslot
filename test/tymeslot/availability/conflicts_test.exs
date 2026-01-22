@@ -9,6 +9,16 @@ defmodule Tymeslot.Availability.ConflictsTest do
   alias Tymeslot.Availability.{BusinessHours, Calculate, Conflicts, Events}
   alias Tymeslot.Utils.{DateTimeUtils, TimeRange}
 
+  defp get_future_weekday do
+    date = Date.add(Date.utc_today(), 7)
+
+    case Date.day_of_week(date) do
+      6 -> Date.add(date, 2)
+      7 -> Date.add(date, 1)
+      _ -> date
+    end
+  end
+
   property "date_has_slots_with_events? matches available_slots availability" do
     # This property test verifies that the optimized month-view check (date_has_slots_with_events?)
     # returns 'true' if and only if there is at least one slot returned by the full
@@ -230,13 +240,7 @@ defmodule Tymeslot.Availability.ConflictsTest do
   describe "date_has_slots_with_events?/5" do
     test "returns true when no events block the day" do
       # Ensure we use a future weekday (default business hours)
-      date = Date.add(Date.utc_today(), 7)
-      date = 
-        case Date.day_of_week(date) do
-          6 -> Date.add(date, 2)
-          7 -> Date.add(date, 1)
-          _ -> date
-        end
+      date = get_future_weekday()
 
       result =
         Conflicts.date_has_slots_with_events?(
@@ -252,13 +256,7 @@ defmodule Tymeslot.Availability.ConflictsTest do
 
     test "returns true when events don't cover entire business hours" do
       # Ensure we use a future weekday
-      date = Date.add(Date.utc_today(), 7)
-      date = 
-        case Date.day_of_week(date) do
-          6 -> Date.add(date, 2)
-          7 -> Date.add(date, 1)
-          _ -> date
-        end
+      date = get_future_weekday()
 
       # Event only covers part of the day
       events = [

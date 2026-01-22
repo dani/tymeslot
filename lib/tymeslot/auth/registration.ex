@@ -1,6 +1,6 @@
 defmodule Tymeslot.Auth.Registration do
   @moduledoc """
-  Handles user registration for Foundersbundle.
+  Handles user registration for Tymeslot.
   """
 
   require Logger

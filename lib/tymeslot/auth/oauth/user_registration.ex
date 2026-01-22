@@ -1,0 +1,177 @@
+defmodule Tymeslot.Auth.OAuth.UserRegistration do
+  @moduledoc """
+  Handles finding and creating users from OAuth information.
+  """
+
+  require Logger
+  alias Tymeslot.Auth.OAuth.TransactionalUserCreation
+  alias Tymeslot.Infrastructure.Config
+
+  @type provider :: :github | :google
+
+  @doc """
+  Finds an existing user in the database by OAuth provider information.
+  """
+  @spec find_existing_user(provider, map()) :: {:ok, map()} | {:error, :not_found}
+  def find_existing_user(:github, %{email: email, github_user_id: github_id}) do
+    user_queries = Config.user_queries_module()
+    github_id_int = normalize_github_id(github_id)
+
+    find_user_by_id_or_email(
+      user_queries,
+      &user_queries.get_user_by_github_id/1,
+      github_id_int,
+      email
+    )
+  end
+
+  def find_existing_user(:google, %{email: email, google_user_id: google_id}) do
+    user_queries = Config.user_queries_module()
+
+    find_user_by_id_or_email(
+      user_queries,
+      &user_queries.get_user_by_google_id/1,
+      google_id,
+      email
+    )
+  end
+
+  @doc """
+  Creates a new user from OAuth provider information.
+  """
+  @spec create_oauth_user(provider, map(), map()) :: {:ok, map()} | {:error, any()}
+  def create_oauth_user(provider, oauth_user, profile_params \\ %{}) do
+    placeholder_password = "$2b$12$oauth_user_no_password_placeholder_hash_not_for_authentication"
+    email_verified = determine_email_verification_status(oauth_user)
+
+    auth_params = build_auth_params(provider, oauth_user, email_verified, placeholder_password)
+
+    case TransactionalUserCreation.find_or_create_oauth_user(
+           provider,
+           auth_params,
+           profile_params
+         ) do
+      {:ok, %{user: user, created: true}} ->
+        handle_user_verification_status(user, email_verified, oauth_user.email)
+
+      {:ok, %{user: user, created: false}} ->
+        case check_oauth_account_linking(provider, user, oauth_user) do
+          :should_link_account -> {:ok, user}
+          :email_already_taken -> {:error, :email_already_taken}
+        end
+
+      {:error, reason} ->
+        Logger.error("OAuth user creation failed: #{inspect(reason)}")
+        {:error, reason}
+    end
+  end
+
+  @doc """
+  Checks if the registration is complete for the given provider and user.
+  """
+  @spec registration_complete?(provider, map()) :: boolean()
+  def registration_complete?(:github, %{email: email, github_user_id: id})
+      when is_binary(email) and is_binary(id),
+      do: true
+
+  def registration_complete?(:google, %{email: email, google_user_id: id})
+      when is_binary(email) and is_binary(id),
+      do: true
+
+  def registration_complete?(_, _), do: false
+
+  @doc """
+  Determines what information is missing for OAuth registration completion.
+  """
+  @spec check_oauth_requirements(provider, map()) :: {:missing, list(atom())} | :complete
+  def check_oauth_requirements(_provider, user) do
+    missing = []
+
+    missing =
+      if is_binary(user.email) and String.length(String.trim(user.email)) > 0 do
+        missing
+      else
+        [:email | missing]
+      end
+
+    missing =
+      if Config.saas_mode?() or Application.get_env(:tymeslot, :enforce_legal_agreements, false) do
+        [:terms | missing]
+      else
+        missing
+      end
+
+    if missing == [], do: :complete, else: {:missing, Enum.reverse(missing)}
+  end
+
+  # Private helpers
+
+  defp normalize_github_id(github_id) do
+    case github_id do
+      id when is_integer(id) -> id
+      id when is_binary(id) -> String.to_integer(id)
+      _ -> nil
+    end
+  end
+
+  defp find_user_by_id_or_email(user_queries, id_lookup_fn, user_id, email) do
+    if is_integer(user_id) or is_binary(user_id) do
+      case id_lookup_fn.(user_id) do
+        {:error, :not_found} -> find_user_by_email(user_queries, email)
+        {:ok, user} -> {:ok, user}
+      end
+    else
+      find_user_by_email(user_queries, email)
+    end
+  end
+
+  defp find_user_by_email(user_queries, email) do
+    if email && String.trim(email) != "" do
+      user_queries.get_user_by_email(email)
+    else
+      {:error, :not_found}
+    end
+  end
+
+  defp determine_email_verification_status(%{email_from_provider: true}), do: true
+  defp determine_email_verification_status(%{email_from_provider: false}), do: false
+
+  defp determine_email_verification_status(oauth_user) do
+    if oauth_user.email && String.trim(oauth_user.email) != "" do
+      true
+    else
+      oauth_user.is_verified || false
+    end
+  end
+
+  defp build_auth_params(provider, oauth_user, email_verified, placeholder_password) do
+    %{
+      "provider" => to_string(provider),
+      "email" => oauth_user.email,
+      "is_verified" => email_verified,
+      "#{provider}_user_id" => Map.get(oauth_user, String.to_existing_atom("#{provider}_user_id")),
+      "terms_accepted" =>
+        if(Application.get_env(:tymeslot, :enforce_legal_agreements, false),
+          do: "true",
+          else: "false"
+        ),
+      "hashed_password" => placeholder_password
+    }
+  end
+
+  defp handle_user_verification_status(user, false, email) when not is_nil(email) do
+    {:ok, Map.put(user, :needs_email_verification, true)}
+  end
+
+  defp handle_user_verification_status(user, _, _), do: {:ok, user}
+
+  defp check_oauth_account_linking(provider, user, oauth_user) do
+    provider_id_field = String.to_existing_atom("#{provider}_user_id")
+
+    if Map.get(user, provider_id_field) == Map.get(oauth_user, provider_id_field) do
+      :should_link_account
+    else
+      :email_already_taken
+    end
+  end
+end

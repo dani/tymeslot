@@ -168,29 +168,9 @@ defmodule TymeslotWeb.OAuthController do
     end
   end
 
-  def github_callback(conn, %{"code" => code}) do
-    case RateLimiter.check_oauth_callback_rate_limit(ClientIP.get(conn)) do
-      :ok ->
-        # Handle legacy callbacks without state parameter (less secure)
-        Logger.warning("GitHub OAuth callback received without state parameter")
-        paths = get_redirect_paths(conn)
-        # Clear the oauth_intent session after handling
-        conn
-        |> delete_session(:oauth_intent)
-        |> OAuthHelper.handle_oauth_callback(code, :github, paths)
-
-      {:error, :rate_limited, _message} ->
-        AuthControllerHelpers.handle_rate_limited(
-          conn,
-          "Too many authentication attempts. Please try again later.",
-          get_login_path(conn)
-        )
-    end
-  end
-
   def github_callback(conn, _params) do
     conn
-    |> put_flash(:error, "GitHub authentication failed - missing authorization code.")
+    |> put_flash(:error, "GitHub authentication failed - missing authorization code or security token.")
     |> redirect(to: "/?auth=login")
   end
 
@@ -216,29 +196,9 @@ defmodule TymeslotWeb.OAuthController do
     end
   end
 
-  def google_callback(conn, %{"code" => code}) do
-    case RateLimiter.check_oauth_callback_rate_limit(ClientIP.get(conn)) do
-      :ok ->
-        # Handle legacy callbacks without state parameter (less secure)
-        Logger.warning("Google OAuth callback received without state parameter")
-        paths = get_redirect_paths(conn)
-        # Clear the oauth_intent session after handling
-        conn
-        |> delete_session(:oauth_intent)
-        |> OAuthHelper.handle_oauth_callback(code, :google, paths)
-
-      {:error, :rate_limited, _message} ->
-        AuthControllerHelpers.handle_rate_limited(
-          conn,
-          "Too many authentication attempts. Please try again later.",
-          get_login_path(conn)
-        )
-    end
-  end
-
   def google_callback(conn, _params) do
     conn
-    |> put_flash(:error, "Google authentication failed - missing authorization code.")
+    |> put_flash(:error, "Google authentication failed - missing authorization code or security token.")
     |> redirect(to: "/?auth=login")
   end
 

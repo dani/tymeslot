@@ -8,7 +8,7 @@ defmodule Tymeslot.Auth.OAuth.Authenticator do
 
   require Logger
 
-  alias Tymeslot.Auth.{OAuth.Helper, Session}
+  alias Tymeslot.Auth.Session
 
   @type provider :: :github | :google
   @type registration_params :: %{
@@ -60,11 +60,12 @@ defmodule Tymeslot.Auth.OAuth.Authenticator do
         registration_complete_fun,
         build_registration_params_fun
       ) do
-    client = oauth_helper().build_oauth_client(provider, callback_url, "")
+    alias Tymeslot.Auth.OAuth.Client
+    client = Client.build(provider, callback_url, "")
     provider_name = provider |> to_string() |> String.capitalize()
 
-    with {:ok, client} <- oauth_helper().exchange_code_for_token(client, code),
-         {:ok, user_info} <- oauth_helper().get_user_info(client, provider),
+    with {:ok, client} <- Client.exchange_code_for_token(client, code),
+         {:ok, user_info} <- Client.get_user_info(client, provider),
          {:ok, user} <- process_user_fun.(user_info) do
       # If account is complete, log them in
       if registration_complete_fun.(user) do
@@ -96,11 +97,6 @@ defmodule Tymeslot.Auth.OAuth.Authenticator do
         {:error, conn, :authentication_error,
          "An error occurred during #{provider_name} authentication."}
     end
-  end
-
-  # Use dependency injection for the OAuth Helper
-  defp oauth_helper do
-    Application.get_env(:tymeslot, :oauth_helper_module, Helper)
   end
 
   # Use dependency injection for the Session module
