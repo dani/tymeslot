@@ -16,6 +16,7 @@ defmodule Tymeslot.Profiles do
   alias Tymeslot.Security.RateLimiter
   alias Tymeslot.Security.SettingsInputProcessor
   alias Tymeslot.Themes.Theme
+  alias Tymeslot.Bookings.Validation, as: BookingsValidation
 
   @type user_id :: pos_integer()
   @type username :: String.t()
@@ -73,19 +74,22 @@ defmodule Tymeslot.Profiles do
   Updates a user's profile settings.
   """
   @spec update_profile(profile, map()) :: result(profile)
-  def update_profile(%ProfileSchema{} = profile, attrs), do: ProfileQueries.update_profile(profile, attrs)
+  def update_profile(%ProfileSchema{} = profile, attrs),
+    do: ProfileQueries.update_profile(profile, attrs)
 
   @doc """
   Updates a specific field in the profile.
   """
   @spec update_profile_field(profile, atom(), term()) :: result(profile)
-  def update_profile_field(%ProfileSchema{} = profile, field, value), do: ProfileQueries.update_field(profile, field, value)
+  def update_profile_field(%ProfileSchema{} = profile, field, value),
+    do: ProfileQueries.update_field(profile, field, value)
 
   @doc """
   Updates the full name for a profile.
   """
   @spec update_full_name(profile, String.t()) :: result(profile)
-  def update_full_name(%ProfileSchema{} = profile, full_name), do: update_profile(profile, %{full_name: full_name})
+  def update_full_name(%ProfileSchema{} = profile, full_name),
+    do: update_profile(profile, %{full_name: full_name})
 
   # --- Timezone Management ---
 
@@ -94,6 +98,7 @@ defmodule Tymeslot.Profiles do
   """
   @spec prefill_timezone(profile() | nil, String.t() | nil) :: profile() | nil
   def prefill_timezone(nil, _detected_timezone), do: nil
+
   def prefill_timezone(profile, detected_timezone) do
     prefilled_tz = Timezone.prefill_timezone(profile.timezone, detected_timezone)
     %{profile | timezone: prefilled_tz}
@@ -120,7 +125,8 @@ defmodule Tymeslot.Profiles do
   Updates the timezone for a profile.
   """
   @spec update_timezone(profile, timezone) :: result(profile)
-  def update_timezone(%ProfileSchema{} = profile, timezone), do: update_profile(profile, %{timezone: timezone})
+  def update_timezone(%ProfileSchema{} = profile, timezone),
+    do: update_profile(profile, %{timezone: timezone})
 
   # --- Username Management ---
 
@@ -141,13 +147,17 @@ defmodule Tymeslot.Profiles do
   """
   @spec update_username(profile(), username(), user_id()) :: result(profile())
   def update_username(%ProfileSchema{} = profile, username, user_id) do
-    with :ok <- RateLimiter.check_username_change_rate_limit("user:" <> Integer.to_string(user_id)),
+    with :ok <-
+           RateLimiter.check_username_change_rate_limit("user:" <> Integer.to_string(user_id)),
          :ok <- Usernames.validate_username_format(username),
          {:ok, updated_profile} <- ProfileQueries.update_username(profile, username) do
       {:ok, updated_profile}
     else
-      {:error, :rate_limited} -> {:error, "Too many username change attempts. Please try again later."}
-      {:error, reason} -> {:error, reason}
+      {:error, :rate_limited} ->
+        {:error, "Too many username change attempts. Please try again later."}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
@@ -172,33 +182,55 @@ defmodule Tymeslot.Profiles do
   def get_profile_settings(user_id) do
     case ProfileQueries.get_by_user_id(user_id) do
       {:error, :not_found} ->
-        %{timezone: get_default_timezone(), buffer_minutes: 15, advance_booking_days: 90, min_advance_hours: 3}
+        %{
+          timezone: get_default_timezone(),
+          buffer_minutes: 15,
+          advance_booking_days: 90,
+          min_advance_hours: 3
+        }
+
       {:ok, profile} ->
-        %{timezone: profile.timezone, buffer_minutes: profile.buffer_minutes, advance_booking_days: profile.advance_booking_days, min_advance_hours: profile.min_advance_hours}
+        %{
+          timezone: profile.timezone,
+          buffer_minutes: profile.buffer_minutes,
+          advance_booking_days: profile.advance_booking_days,
+          min_advance_hours: profile.min_advance_hours
+        }
     end
   end
 
-  def update_buffer_minutes(profile, buffer), do: Scheduling.update_buffer_minutes(profile, buffer)
-  def update_advance_booking_days(profile, days), do: Scheduling.update_advance_booking_days(profile, days)
-  def update_min_advance_hours(profile, hours), do: Scheduling.update_min_advance_hours(profile, hours)
+  @spec update_buffer_minutes(profile, non_neg_integer()) :: result(profile)
+  def update_buffer_minutes(profile, buffer),
+    do: Scheduling.update_buffer_minutes(profile, buffer)
+
+  @spec update_advance_booking_days(profile, non_neg_integer()) :: result(profile)
+  def update_advance_booking_days(profile, days),
+    do: Scheduling.update_advance_booking_days(profile, days)
+
+  @spec update_min_advance_hours(profile, non_neg_integer()) :: result(profile)
+  def update_min_advance_hours(profile, hours),
+    do: Scheduling.update_min_advance_hours(profile, hours)
 
   @doc """
   Validates buffer minutes value.
   """
   @spec validate_buffer_minutes(integer()) :: boolean()
-  def validate_buffer_minutes(minutes), do: Tymeslot.Bookings.Validation.valid_buffer_minutes?(minutes)
+  def validate_buffer_minutes(minutes),
+    do: BookingsValidation.valid_buffer_minutes?(minutes)
 
   @doc """
   Validates advance booking days value.
   """
   @spec validate_advance_booking_days(integer()) :: boolean()
-  def validate_advance_booking_days(days), do: Tymeslot.Bookings.Validation.valid_booking_window?(days)
+  def validate_advance_booking_days(days),
+    do: BookingsValidation.valid_booking_window?(days)
 
   @doc """
   Validates minimum advance hours value.
   """
   @spec validate_min_advance_hours(integer()) :: boolean()
-  def validate_min_advance_hours(hours), do: Tymeslot.Bookings.Validation.valid_minimum_notice?(hours)
+  def validate_min_advance_hours(hours),
+    do: BookingsValidation.valid_minimum_notice?(hours)
 
   # --- Avatar Management ---
 
@@ -206,24 +238,39 @@ defmodule Tymeslot.Profiles do
   Consumption callback for avatar upload.
   Validates the upload using security policies before updating the profile.
   """
-  @spec consume_avatar_upload(profile(), map(), map(), map()) :: {:ok, profile() | {:error, any()}}
+  @spec consume_avatar_upload(profile(), map(), map(), map()) ::
+          {:ok, profile() | {:error, any()}}
   def consume_avatar_upload(profile, %{path: path}, entry, metadata) do
-    uploaded_entry = %{"path" => path, "client_name" => entry.client_name, "size" => entry.client_size}
+    uploaded_entry = %{
+      "path" => path,
+      "client_name" => entry.client_name,
+      "size" => entry.client_size
+    }
 
     case SettingsInputProcessor.validate_avatar_upload(uploaded_entry, metadata: metadata) do
       {:ok, validated_entry} ->
         atom_entry = %{path: validated_entry["path"], client_name: validated_entry["client_name"]}
+
         case Avatars.update_avatar(profile, atom_entry) do
           {:ok, updated_profile} -> {:ok, updated_profile}
           {:error, reason} -> {:ok, {:error, reason}}
         end
-      {:error, validation_error} -> {:ok, {:error, validation_error}}
+
+      {:error, validation_error} ->
+        {:ok, {:error, validation_error}}
     end
   end
 
+  @spec update_avatar(profile, uploaded_entry) :: result(profile)
   def update_avatar(profile, entry), do: Avatars.update_avatar(profile, entry)
+
+  @spec delete_avatar(profile) :: result(profile)
   def delete_avatar(profile), do: Avatars.delete_avatar(profile)
+
+  @spec avatar_url(profile | nil, atom()) :: String.t()
   def avatar_url(profile, version \\ :original), do: Avatars.avatar_url(profile, version)
+
+  @spec avatar_alt_text(profile | nil) :: String.t()
   def avatar_alt_text(profile), do: Avatars.avatar_alt_text(profile)
 
   @doc """
@@ -231,6 +278,7 @@ defmodule Tymeslot.Profiles do
   """
   @spec display_name(profile | nil) :: String.t() | nil
   def display_name(nil), do: nil
+
   def display_name(profile) do
     if profile.full_name && String.trim(profile.full_name) != "" do
       profile.full_name
@@ -246,7 +294,9 @@ defmodule Tymeslot.Profiles do
   """
   @spec update_booking_theme(profile, term()) :: result(profile)
   def update_booking_theme(%ProfileSchema{} = profile, theme_id) do
-    if Theme.valid_theme_id?(theme_id), do: update_profile(profile, %{booking_theme: theme_id}), else: {:error, "Invalid theme ID"}
+    if Theme.valid_theme_id?(theme_id),
+      do: update_profile(profile, %{booking_theme: theme_id}),
+      else: {:error, "Invalid theme ID"}
   end
 
   @doc """
@@ -254,15 +304,32 @@ defmodule Tymeslot.Profiles do
   """
   @spec update_allowed_embed_domains(profile, String.t() | [String.t()]) :: result(profile)
   def update_allowed_embed_domains(%ProfileSchema{} = profile, domains) when is_binary(domains) do
-    domain_list = domains |> String.split(",") |> Enum.map(&String.trim/1) |> Enum.reject(&(&1 == ""))
+    domain_list =
+      domains |> String.split(",") |> Enum.map(&String.trim/1) |> Enum.reject(&(&1 == ""))
+
     domain_list = if domain_list == [], do: ["none"], else: domain_list
     update_allowed_embed_domains(profile, domain_list)
   end
 
   def update_allowed_embed_domains(%ProfileSchema{} = profile, domains) when is_list(domains) do
     require Logger
-    normalized_domains = domains |> Enum.map(&String.trim/1) |> Enum.map(&String.downcase/1) |> Enum.map(fn domain -> domain |> String.replace(~r|^https?://|, "") |> String.split("/") |> List.first() end) |> Enum.reject(&(&1 == "")) |> Enum.uniq()
-    Logger.info("Updating allowed embed domains", user_id: profile.user_id, profile_id: profile.id, domain_count: length(normalized_domains))
+
+    normalized_domains =
+      domains
+      |> Enum.map(&String.trim/1)
+      |> Enum.map(&String.downcase/1)
+      |> Enum.map(fn domain ->
+        domain |> String.replace(~r|^https?://|, "") |> String.split("/") |> List.first()
+      end)
+      |> Enum.reject(&(&1 == ""))
+      |> Enum.uniq()
+
+    Logger.info("Updating allowed embed domains",
+      user_id: profile.user_id,
+      profile_id: profile.id,
+      domain_count: length(normalized_domains)
+    )
+
     update_profile(profile, %{allowed_embed_domains: normalized_domains})
   end
 
@@ -282,6 +349,7 @@ defmodule Tymeslot.Profiles do
   @doc """
   Optimized version of resolve_organizer_context.
   """
+  @spec resolve_organizer_context_optimized(username) :: {:ok, map()} | {:error, :profile_not_found}
   def resolve_organizer_context_optimized(username), do: resolve_organizer_context(username)
 
   defp build_organizer_context(profile, username) do

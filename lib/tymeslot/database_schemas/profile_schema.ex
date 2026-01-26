@@ -6,6 +6,7 @@ defmodule Tymeslot.DatabaseSchemas.ProfileSchema do
   import Ecto.Changeset
 
   alias Tymeslot.DatabaseSchemas.ThemeCustomizationSchema
+  alias Tymeslot.Profiles
   alias Tymeslot.Security.UniversalSanitizer
   alias Tymeslot.Utils.TimezoneUtils
   alias TymeslotWeb.Themes.Core.Registry
@@ -46,7 +47,7 @@ defmodule Tymeslot.DatabaseSchemas.ProfileSchema do
     field(:avatar, :string)
     field(:booking_theme, :string, default: Registry.default_theme_id())
     field(:has_custom_theme, :boolean, default: false)
-    field(:allowed_embed_domains, {:array, :string}, default: [])
+    field(:allowed_embed_domains, {:array, :string}, default: ["none"])
     field(:meeting_types, {:array, :map}, virtual: true)
     belongs_to(:user, Tymeslot.DatabaseSchemas.UserSchema)
     belongs_to(:primary_calendar_integration, Tymeslot.DatabaseSchemas.CalendarIntegrationSchema)
@@ -101,50 +102,12 @@ defmodule Tymeslot.DatabaseSchemas.ProfileSchema do
   end
 
   defp validate_username_not_reserved(changeset) do
-    reserved_usernames = [
-      "admin",
-      "api",
-      "app",
-      "auth",
-      "blog",
-      "dashboard",
-      "dev",
-      "docs",
-      "help",
-      "home",
-      "login",
-      "logout",
-      "meeting",
-      "meetings",
-      "profile",
-      "register",
-      "schedule",
-      "settings",
-      "signup",
-      "static",
-      "support",
-      "test",
-      "user",
-      "users",
-      "www",
-      "healthcheck",
-      "assets",
-      "images",
-      "css",
-      "js",
-      "fonts",
-      "about",
-      "contact",
-      "privacy",
-      "terms"
-    ]
-
     case get_change(changeset, :username) do
       nil ->
         changeset
 
       username ->
-        if username in reserved_usernames do
+        if username in Profiles.reserved_paths() do
           add_error(changeset, :username, "is reserved")
         else
           changeset
@@ -241,14 +204,14 @@ defmodule Tymeslot.DatabaseSchemas.ProfileSchema do
         add_error(
           changeset,
           :allowed_embed_domains,
-          "domains exceed maximum length of 255 characters: #{format_error_list(too_long_domains)}"
+          "Some domains are too long (max 255 characters): #{format_error_list(too_long_domains)}"
         )
 
       invalid_domains != [] ->
         add_error(
           changeset,
           :allowed_embed_domains,
-          "contains invalid domains: #{format_error_list(invalid_domains)}"
+          "Invalid domain format: #{format_error_list(invalid_domains)}. Please use formats like 'example.com' and avoid paths or ports."
         )
 
       true ->
@@ -271,6 +234,9 @@ defmodule Tymeslot.DatabaseSchemas.ProfileSchema do
     cond do
       domain == "" ->
         false
+
+      domain in ["none", "open"] ->
+        true
 
       # Reject URLs with protocols, paths, query strings, or fragments
       String.contains?(domain, ["://", "/", "?", "#", "@"]) ->

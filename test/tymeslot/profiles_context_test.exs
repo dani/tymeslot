@@ -6,6 +6,7 @@ defmodule Tymeslot.ProfilesContextTest do
 
   use Tymeslot.DataCase, async: true
 
+  alias Tymeslot.DatabaseQueries.ProfileQueries
   alias Tymeslot.Profiles
 
   # =====================================
@@ -67,12 +68,13 @@ defmodule Tymeslot.ProfilesContextTest do
     end
 
     test "get_profile_settings returns configured settings", %{user: user} do
-      _profile = update_profile_settings(user.id, %{
-        timezone: "America/Los_Angeles",
-        buffer_minutes: 30,
-        advance_booking_days: 60,
-        min_advance_hours: 6
-      })
+      _profile =
+        update_profile_settings(user.id, %{
+          timezone: "America/Los_Angeles",
+          buffer_minutes: 30,
+          advance_booking_days: 60,
+          min_advance_hours: 6
+        })
 
       settings = Profiles.get_profile_settings(user.id)
 
@@ -109,7 +111,7 @@ defmodule Tymeslot.ProfilesContextTest do
     test "generate_default_username returns available username" do
       user = insert(:user)
       username = Profiles.generate_default_username(user.id)
-      
+
       assert String.starts_with?(username, "user_#{user.id}")
       assert Profiles.username_available?(username)
     end
@@ -126,8 +128,8 @@ defmodule Tymeslot.ProfilesContextTest do
     test "update_username respects rate limits" do
       user = insert(:user)
       profile = insert(:profile, user: user)
-      
-      # We don't want to test the exact limit of the RateLimiter here, 
+
+      # We don't want to test the exact limit of the RateLimiter here,
       # but that Profiles.update_username calls it.
       # In a real scenario, we might mock RateLimiter, but for now we just verify it works.
       new_username = "user#{System.unique_integer([:positive])}"
@@ -135,9 +137,12 @@ defmodule Tymeslot.ProfilesContextTest do
     end
 
     test "validate_username_format rejects invalid formats" do
-      assert {:error, _} = Profiles.validate_username_format("ab") # too short
-      assert {:error, _} = Profiles.validate_username_format("admin") # reserved
-      assert {:error, _} = Profiles.validate_username_format("Invalid User") # spaces/caps
+      # too short
+      assert {:error, _} = Profiles.validate_username_format("ab")
+      # reserved
+      assert {:error, _} = Profiles.validate_username_format("admin")
+      # spaces/caps
+      assert {:error, _} = Profiles.validate_username_format("Invalid User")
       assert Profiles.validate_username_format("valid_user-123") == :ok
     end
   end
@@ -160,13 +165,17 @@ defmodule Tymeslot.ProfilesContextTest do
     test "update_advance_booking_days validates range", %{profile: profile} do
       assert {:ok, updated} = Profiles.update_advance_booking_days(profile, 60)
       assert updated.advance_booking_days == 60
-      assert {:error, :invalid_advance_booking_days} = Profiles.update_advance_booking_days(profile, 0)
+
+      assert {:error, :invalid_advance_booking_days} =
+               Profiles.update_advance_booking_days(profile, 0)
     end
 
     test "update_min_advance_hours validates range", %{profile: profile} do
       assert {:ok, updated} = Profiles.update_min_advance_hours(profile, 12)
       assert updated.min_advance_hours == 12
-      assert {:error, :invalid_min_advance_hours} = Profiles.update_min_advance_hours(profile, 200)
+
+      assert {:error, :invalid_min_advance_hours} =
+               Profiles.update_min_advance_hours(profile, 200)
     end
   end
 
@@ -206,8 +215,11 @@ defmodule Tymeslot.ProfilesContextTest do
       profile = insert(:profile, user: user)
 
       # 1x1 transparent PNG
-      png_binary = <<137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 0, 1, 0, 0, 0, 1, 8, 6, 0, 0, 0, 31, 21, 196, 137, 0, 0, 0, 11, 73, 68, 65, 84, 8, 153, 99, 96, 0, 2, 0, 0, 5, 0, 1, 34, 38, 10, 75, 0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130>>
-      
+      png_binary =
+        <<137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 0, 1, 0, 0, 0, 1, 8,
+          6, 0, 0, 0, 31, 21, 196, 137, 0, 0, 0, 11, 73, 68, 65, 84, 8, 153, 99, 96, 0, 2, 0, 0,
+          5, 0, 1, 34, 38, 10, 75, 0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130>>
+
       fake_path = "/tmp/valid_image.png"
       File.write!(fake_path, png_binary)
 
@@ -218,7 +230,7 @@ defmodule Tymeslot.ProfilesContextTest do
 
       assert {:ok, updated_profile} = Profiles.update_avatar(profile, entry)
       assert updated_profile.avatar =~ "_avatar_"
-      
+
       # Clean up
       upload_dir = Application.get_env(:tymeslot, :upload_directory, "uploads")
       File.rm_rf!(Path.join(upload_dir, "avatars/#{profile.id}"))
@@ -252,7 +264,7 @@ defmodule Tymeslot.ProfilesContextTest do
 
   # Helper to update settings directly in DB for testing retrieval
   defp update_profile_settings(user_id, attrs) do
-    {:ok, profile} = Tymeslot.DatabaseQueries.ProfileQueries.get_by_user_id(user_id)
-    Tymeslot.DatabaseQueries.ProfileQueries.update_profile(profile, attrs)
+    {:ok, profile} = ProfileQueries.get_by_user_id(user_id)
+    ProfileQueries.update_profile(profile, attrs)
   end
 end

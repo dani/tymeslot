@@ -24,9 +24,8 @@ defmodule Tymeslot.Profiles.Settings do
       {:ok, profile}
     else
       # Validate username format if it changed
-      with :ok <- validate_username_if_changed(profile, username),
-           {:ok, updated_profile} <- perform_basic_update(profile, full_name, username, timezone, dev_mode) do
-        {:ok, updated_profile}
+      with :ok <- validate_username_if_changed(profile, username) do
+        perform_basic_update(profile, full_name, username, timezone, dev_mode)
       end
     end
   end
@@ -40,11 +39,13 @@ defmodule Tymeslot.Profiles.Settings do
   end
 
   defp perform_basic_update(profile, full_name, username, timezone, true) do
-    updated_profile = Map.merge(profile, %{
-      full_name: full_name,
-      username: username,
-      timezone: timezone
-    })
+    updated_profile =
+      Map.merge(profile, %{
+        full_name: full_name,
+        username: username,
+        timezone: timezone
+      })
+
     {:ok, updated_profile}
   end
 
@@ -54,13 +55,15 @@ defmodule Tymeslot.Profiles.Settings do
       username: username,
       timezone: timezone
     }
+
     Profiles.update_profile(profile, attrs)
   end
 
   @doc """
   Updates scheduling preferences (buffer time, booking window, advance notice).
   """
-  @spec update_scheduling_preferences(term(), map(), keyword()) :: {:ok, term()} | {:error, term()}
+  @spec update_scheduling_preferences(term(), map(), keyword()) ::
+          {:ok, term()} | {:error, term()}
   def update_scheduling_preferences(profile, params, opts \\ []) do
     dev_mode = Keyword.get(opts, :dev_mode, false)
 
