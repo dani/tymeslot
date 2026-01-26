@@ -331,3 +331,48 @@ html {
   background-size: 200px 100%;
   animation: skeleton-loading 1.2s ease-in-out infinite;
 }
+
+/* Updated animation using opacity and scale instead of max-width for better multi-line support */
+@keyframes citation-typing {
+  0% { opacity: 0; transform: translateY(10px); }
+  10% { opacity: 1; transform: translateY(0); }
+  85% { opacity: 1; transform: translateY(0); }
+  95% { opacity: 0; transform: translateY(-10px); }
+  100% { opacity: 0; }
+}
+
+.citation-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.typewriter-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.typewriter-text {
+  display: inline-block;
+  overflow: hidden;
+  white-space: normal;
+  text-align: center;
+  font-size: clamp(1.25rem, 4vw, 2.5rem);
+  font-weight: 300;
+  background: linear-gradient(135deg, #0f766e 0%, #0891b2 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: citation-typing 4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  letter-spacing: -0.02em;
+}
+
+/* Responsive font size for smaller screens */
+@media (max-width: 640px) {
+  .typewriter-text {
+    font-size: clamp(1rem, 5vw, 1.5rem);
+    line-height: 1.4;
+  }
+}
