@@ -78,14 +78,16 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettings.Helpers do
   def embed_code(_, _), do: ""
 
   defp build_js_options(options) do
-    %{
-      locale: sanitize_locale(options[:locale]),
-      theme: sanitize_theme(options[:theme]),
-      primaryColor: sanitize_primary_color(options[:primary_color])
-    }
-    |> Enum.reject(fn {_k, v} -> v == nil || v == "" end)
-    |> Enum.map(fn {k, v} -> "#{k}: '#{v}'" end)
-    |> case do
+    js_list =
+      %{
+        locale: sanitize_locale(options[:locale]),
+        theme: sanitize_theme(options[:theme]),
+        primaryColor: sanitize_primary_color(options[:primary_color])
+      }
+      |> Enum.reject(fn {_k, v} -> v == nil || v == "" end)
+      |> Enum.map(fn {k, v} -> "#{k}: '#{v}'" end)
+
+    case js_list do
       [] -> ""
       list -> ", {" <> Enum.join(list, ", ") <> "}"
     end

@@ -166,9 +166,9 @@ defmodule Tymeslot.Security.MeetingSettingsInputProcessor do
   - `opts` - Options including metadata for logging
 
   ## Returns
-  - `{:ok, sanitized_value}` | `{:error, validation_error}`
+  - `{:ok, validated_integer}` | `{:error, validation_error}`
   """
-  @spec validate_buffer_minutes(String.t(), keyword()) :: {:ok, String.t()} | {:error, String.t()}
+  @spec validate_buffer_minutes(String.t(), keyword()) :: {:ok, integer()} | {:error, String.t()}
   def validate_buffer_minutes(buffer_str, opts \\ []) do
     metadata = Keyword.get(opts, :metadata, %{})
 
@@ -186,7 +186,7 @@ defmodule Tymeslot.Security.MeetingSettingsInputProcessor do
         value: validated_buffer
       })
 
-      {:ok, to_string(validated_buffer)}
+      {:ok, validated_buffer}
     else
       {:error, error_msg} ->
         SecurityLogger.log_security_event("buffer_minutes_validation_failure", %{
@@ -208,10 +208,10 @@ defmodule Tymeslot.Security.MeetingSettingsInputProcessor do
   - `opts` - Options including metadata for logging
 
   ## Returns
-  - `{:ok, sanitized_value}` | `{:error, validation_error}`
+  - `{:ok, validated_integer}` | `{:error, validation_error}`
   """
   @spec validate_advance_booking_days(String.t(), keyword()) ::
-          {:ok, String.t()} | {:error, String.t()}
+          {:ok, integer()} | {:error, String.t()}
   def validate_advance_booking_days(days_str, opts \\ []) do
     metadata = Keyword.get(opts, :metadata, %{})
 
@@ -229,7 +229,7 @@ defmodule Tymeslot.Security.MeetingSettingsInputProcessor do
         value: validated_days
       })
 
-      {:ok, to_string(validated_days)}
+      {:ok, validated_days}
     else
       {:error, error_msg} ->
         SecurityLogger.log_security_event("advance_booking_days_validation_failure", %{
@@ -251,10 +251,10 @@ defmodule Tymeslot.Security.MeetingSettingsInputProcessor do
   - `opts` - Options including metadata for logging
 
   ## Returns
-  - `{:ok, sanitized_value}` | `{:error, validation_error}`
+  - `{:ok, validated_integer}` | `{:error, validation_error}`
   """
   @spec validate_min_advance_hours(String.t(), keyword()) ::
-          {:ok, String.t()} | {:error, String.t()}
+          {:ok, integer()} | {:error, String.t()}
   def validate_min_advance_hours(hours_str, opts \\ []) do
     metadata = Keyword.get(opts, :metadata, %{})
 
@@ -272,7 +272,7 @@ defmodule Tymeslot.Security.MeetingSettingsInputProcessor do
         value: validated_hours
       })
 
-      {:ok, to_string(validated_hours)}
+      {:ok, validated_hours}
     else
       {:error, error_msg} ->
         SecurityLogger.log_security_event("min_advance_hours_validation_failure", %{
