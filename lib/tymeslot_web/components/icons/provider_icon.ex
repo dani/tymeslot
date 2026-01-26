@@ -22,7 +22,7 @@ defmodule TymeslotWeb.Components.Icons.ProviderIcon do
   """
   attr :provider, :string, required: true
   attr :type, :string, default: nil, values: ["calendar", "video", nil]
-  attr :size, :string, default: "large", values: ["compact", "medium", "large"]
+  attr :size, :string, default: "large", values: ["compact", "medium", "large", "mini"]
   attr :class, :string, default: ""
   attr :icon_class, :string, default: ""
 
@@ -40,10 +40,14 @@ defmodule TymeslotWeb.Components.Icons.ProviderIcon do
     # Determine the type based on provider if not explicitly set
     provider_type = type || determine_provider_type(provider)
 
+    # Map mini size to compact for the icon file path if needed
+    # (Assuming we use compact icons for mini size)
+    actual_size = if size == "mini", do: "compact", else: size
+
     # Ensure we have all required parameters
-    if provider && provider_type && size do
+    if provider && provider_type && actual_size do
       # Build the path to the PNG file
-      "/icons/providers/#{provider_type}/#{size}/#{provider}.png"
+      "/icons/providers/#{provider_type}/#{actual_size}/#{provider}.png"
     else
       # Return nil if any parameter is missing
       nil
@@ -80,6 +84,7 @@ defmodule TymeslotWeb.Components.Icons.ProviderIcon do
         "large" -> "w-8 h-8"
         "medium" -> "w-7 h-7"
         "compact" -> "w-6 h-6"
+        "mini" -> "w-4 h-4"
       end
 
     "#{base_classes} #{additional_class}"

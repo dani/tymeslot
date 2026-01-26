@@ -326,6 +326,12 @@
     0 0 0 4px var(--color-primary-100);
 }
 
+/* Sortable drag state */
+.dragging {
+  @apply ring-2 ring-turquoise-500 shadow-xl scale-[1.02] rotate-1;
+  z-index: 50;
+}
+
 /* Mobile/Tablet optimization - Sidebar as overlay */
 @media (max-width: 1024px) {
   .dashboard-sidebar {

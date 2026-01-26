@@ -37,12 +37,14 @@ export const MeetingTypeSortable = {
 
   handleDragStart(e) {
     this.draggedElement = e.currentTarget;
+    e.currentTarget.classList.add('dragging');
     e.currentTarget.style.opacity = '0.4';
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/html', e.currentTarget.innerHTML);
   },
 
   handleDragEnd(e) {
+    e.currentTarget.classList.remove('dragging');
     e.currentTarget.style.opacity = '1';
 
     // Remove all drag-over styles

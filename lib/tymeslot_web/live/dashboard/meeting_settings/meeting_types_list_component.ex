@@ -5,6 +5,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypesListComponent do
   """
   use TymeslotWeb, :html
 
+  alias TymeslotWeb.Components.Icons.ProviderIcon
   alias TymeslotWeb.Dashboard.MeetingSettings.Card
 
   attr :meeting_types, :list, required: true
@@ -62,7 +63,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypesListComponent do
           id="meeting-types-sortable-list"
           phx-hook="MeetingTypeSortable"
           data-target={@parent_myself}
-          class="grid grid-cols-1 lg:grid-cols-2 gap-4"
+          class="flex flex-col space-y-2"
         >
           <%= for type <- @meeting_types do %>
             <div draggable="true" data-meeting-type-id={type.id} class="cursor-move">
