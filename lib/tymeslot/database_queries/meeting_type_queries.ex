@@ -289,6 +289,22 @@ defmodule Tymeslot.DatabaseQueries.MeetingTypeQueries do
     Repo.get!(MeetingTypeSchema, id)
   end
 
+  @doc """
+  Updates all meeting types for a user with new sort orders.
+  """
+  @spec reorder_meeting_types(integer(), [integer()]) :: {:ok, any()} | {:error, any()}
+  def reorder_meeting_types(user_id, meeting_type_ids) when is_list(meeting_type_ids) do
+    now = NaiveDateTime.truncate(NaiveDateTime.utc_now(), :second)
+
+    Repo.transaction(fn ->
+      Enum.with_index(meeting_type_ids, fn meeting_type_id, index ->
+        MeetingTypeSchema
+        |> where([mt], mt.id == ^meeting_type_id and mt.user_id == ^user_id)
+        |> Repo.update_all(set: [sort_order: index, updated_at: now])
+      end)
+    end)
+  end
+
   defp handle_individual_defaults_creation([]), do: {:ok, []}
 
   defp handle_individual_defaults_creation(types_to_create) when is_list(types_to_create) do

@@ -43,33 +43,12 @@ defmodule TymeslotWeb.Dashboard.ServiceSettingsComponent do
 
     socket =
       socket
-      |> assign(:meeting_types, sort_meeting_types(data.meeting_types))
+      |> assign(:meeting_types, data.meeting_types)
       |> assign(:video_integrations, data.video_integrations)
       |> assign(:calendar_integrations, data.calendar_integrations)
 
     {:ok, socket}
   end
-
-  # --- Sorting helpers ---
-  defp sort_meeting_types(types) when is_list(types) do
-    Enum.sort_by(types, fn type -> sort_key_for_type(type) end)
-  end
-
-  defp sort_key_for_type(%{name: name}) do
-    name = String.trim(name || "")
-
-    case Regex.run(~r/\d+/, name) do
-      [num_str] ->
-        # Numeric-first ordering, then by full name for stability
-        {0, String.to_integer(num_str), String.downcase(name)}
-
-      _ ->
-        # Alphabetical ordering fallback
-        {1, nil, String.downcase(name)}
-    end
-  end
-
-  defp sort_key_for_type(_), do: {1, nil, ""}
 
   @impl true
   def handle_event("toggle_add_form", _params, socket) do
@@ -247,6 +226,40 @@ defmodule TymeslotWeb.Dashboard.ServiceSettingsComponent do
       {:error, _} ->
         Flash.error("Failed to delete meeting type")
         {:noreply, ModalHook.hide_modal(socket, :delete_meeting_type)}
+    end
+  end
+
+  def handle_event("reorder_meeting_types", %{"ids" => ids}, socket) when is_list(ids) do
+    user_id = socket.assigns.current_user.id
+
+    # Convert to integers safely
+    meeting_type_ids =
+      ids
+      |> Enum.map(fn
+        id when is_integer(id) ->
+          id
+
+        id when is_binary(id) ->
+          case Integer.parse(id) do
+            {int, _} -> int
+            :error -> nil
+          end
+
+        _ ->
+          nil
+      end)
+      |> Enum.reject(&is_nil/1)
+
+    case MeetingTypes.reorder_meeting_types(user_id, meeting_type_ids) do
+      {:ok, _} ->
+        send(self(), {:meeting_type_changed})
+        Flash.info("Meeting types reordered")
+        {:noreply, socket}
+
+      {:error, reason} ->
+        Logger.error("Failed to reorder meeting types: #{inspect(reason)}")
+        Flash.error("Failed to reorder meeting types")
+        {:noreply, socket}
     end
   end
 

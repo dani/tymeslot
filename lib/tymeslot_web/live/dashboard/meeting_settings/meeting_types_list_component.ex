@@ -58,9 +58,16 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypesListComponent do
           </p>
         </div>
       <% else %>
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div
+          id="meeting-types-sortable-list"
+          phx-hook="MeetingTypeSortable"
+          data-target={@parent_myself}
+          class="grid grid-cols-1 lg:grid-cols-2 gap-4"
+        >
           <%= for type <- @meeting_types do %>
-            <Card.meeting_type_card type={type} myself={@parent_myself} />
+            <div draggable="true" data-meeting-type-id={type.id} class="cursor-move">
+              <Card.meeting_type_card type={type} myself={@parent_myself} />
+            </div>
           <% end %>
         </div>
       <% end %>

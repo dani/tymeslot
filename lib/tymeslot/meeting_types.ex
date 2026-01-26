@@ -99,6 +99,14 @@ defmodule Tymeslot.MeetingTypes do
   end
 
   @doc """
+  Reorders meeting types for a user.
+  """
+  @spec reorder_meeting_types(integer(), [integer()]) :: {:ok, any()} | {:error, any()}
+  def reorder_meeting_types(user_id, meeting_type_ids) when is_list(meeting_type_ids) do
+    MeetingTypeQueries.reorder_meeting_types(user_id, meeting_type_ids)
+  end
+
+  @doc """
   Finds a meeting type by its slug (derived from name).
   """
   @spec find_by_slug(integer(), String.t()) :: Ecto.Schema.t() | nil

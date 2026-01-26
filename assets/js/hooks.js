@@ -7,6 +7,7 @@ import { RecaptchaV3Hook } from "./hooks/recaptcha_v3_hook";
 import { ClipboardCopy } from "./clipboard_hook";
 import { AutoUpload } from "./hooks/auto_upload";
 import { EmbedPreview } from "./hooks/embed_preview";
+import { MeetingTypeSortable } from "./hooks/meeting_type_sortable";
 
 const Hooks = {};
 
@@ -40,5 +41,8 @@ Hooks.AutoUpload = AutoUpload;
 
 // Embed preview hook for dashboard
 Hooks.EmbedPreview = EmbedPreview;
+
+// Meeting type sortable hook for reordering
+Hooks.MeetingTypeSortable = MeetingTypeSortable;
 
 export default Hooks;

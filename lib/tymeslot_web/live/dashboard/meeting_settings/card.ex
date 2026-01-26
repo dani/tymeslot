@@ -19,6 +19,17 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Card do
     ]}>
       <div class="flex items-center justify-between mb-4">
         <div class="flex items-center">
+          <!-- Drag Handle -->
+          <div class="drag-handle cursor-grab active:cursor-grabbing mr-3 text-tymeslot-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 8h16M4 16h16"
+              />
+            </svg>
+          </div>
           <%= if @type.icon && @type.icon != "none" do %>
             <span class={[@type.icon, "w-6 h-6 text-tymeslot-600 mr-3"]} />
           <% end %>

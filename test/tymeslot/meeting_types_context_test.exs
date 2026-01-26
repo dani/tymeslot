@@ -617,4 +617,48 @@ defmodule Tymeslot.MeetingTypesContextTest do
       end
     end
   end
+
+  describe "when reordering meeting types" do
+    test "successfully reorders meeting types" do
+      user = insert(:user)
+
+      mt1 = insert(:meeting_type, user: user, name: "First", sort_order: 0)
+      mt2 = insert(:meeting_type, user: user, name: "Second", sort_order: 1)
+      mt3 = insert(:meeting_type, user: user, name: "Third", sort_order: 2)
+
+      # Reorder: Third, First, Second
+      new_order = [mt3.id, mt1.id, mt2.id]
+
+      assert {:ok, _} = MeetingTypes.reorder_meeting_types(user.id, new_order)
+
+      # Verify new order
+      types = MeetingTypes.get_all_meeting_types(user.id)
+      assert Enum.at(types, 0).id == mt3.id
+      assert Enum.at(types, 1).id == mt1.id
+      assert Enum.at(types, 2).id == mt2.id
+    end
+
+    test "does not reorder other users' meeting types" do
+      user1 = insert(:user)
+      user2 = insert(:user)
+
+      mt1 = insert(:meeting_type, user: user1, name: "User1 First", sort_order: 0)
+      mt2 = insert(:meeting_type, user: user1, name: "User1 Second", sort_order: 1)
+
+      # Try to reorder user1's types as user2
+      new_order = [mt2.id, mt1.id]
+      assert {:ok, _} = MeetingTypes.reorder_meeting_types(user2.id, new_order)
+
+      # Verify user1's types remain unchanged
+      types = MeetingTypes.get_all_meeting_types(user1.id)
+      assert Enum.at(types, 0).id == mt1.id
+      assert Enum.at(types, 1).id == mt2.id
+    end
+
+    test "handles empty meeting type list" do
+      user = insert(:user)
+
+      assert {:ok, _} = MeetingTypes.reorder_meeting_types(user.id, [])
+    end
+  end
 end
