@@ -13,7 +13,11 @@
 }
 
 .input-with-icon {
-  @apply pl-10;
+  @apply pl-14;
+}
+
+.input-with-trailing-icon {
+  @apply pr-14;
 }
 
 .input::placeholder {

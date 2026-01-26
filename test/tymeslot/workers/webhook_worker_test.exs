@@ -8,7 +8,6 @@ defmodule Tymeslot.Workers.WebhookWorkerTest do
   alias Ecto.UUID
   alias Tymeslot.DatabaseSchemas.WebhookDeliverySchema
   alias Tymeslot.DatabaseSchemas.WebhookSchema
-  alias Tymeslot.Webhooks.Security
   alias Tymeslot.Workers.WebhookWorker
 
   setup :verify_on_exit!
@@ -211,69 +210,33 @@ defmodule Tymeslot.Workers.WebhookWorkerTest do
   end
 
   describe "perform/1 - security" do
-    test "generates HMAC signature when secret is present" do
+    test "includes token and timestamp headers" do
       meeting = insert(:meeting)
       user = insert(:user)
 
-      # Insert webhook with encrypted secret
-      # The webhook schema encrypts the secret on insert
+      # Insert webhook with encrypted token
       {:ok, webhook} =
         %WebhookSchema{}
         |> WebhookSchema.changeset(%{
           name: "Test Webhook",
           url: "https://example.com/webhook",
-          secret: "test_secret_key",
           events: ["meeting.created"],
           is_active: true,
           user_id: user.id
         })
         |> Repo.insert()
 
-      expect(Tymeslot.HTTPClientMock, :post, fn _url, body, headers, _opts ->
-        # Verify signature header is present
-        signature_header = Enum.find(headers, fn {key, _} -> key == "X-Tymeslot-Signature" end)
-        assert signature_header, "Expected X-Tymeslot-Signature header"
-
-        {_, signature} = signature_header
-
-        # Verify signature format (should be sha256=...)
-        assert String.starts_with?(signature, "sha256=")
-
-        # Verify signature is valid
-        expected_signature =
-          Security.generate_signature_from_string(body, "test_secret_key")
-
-        assert signature == expected_signature
-
-        {:ok, %{status_code: 200, body: "OK"}}
-      end)
-
-      assert :ok =
-               perform_job(WebhookWorker, %{
-                 "webhook_id" => webhook.id,
-                 "event_type" => "meeting.created",
-                 "meeting_id" => meeting.id
-               })
-    end
-
-    test "includes timestamp header for replay attack prevention" do
-      meeting = insert(:meeting)
-      user = insert(:user)
-
-      # Insert webhook with encrypted secret
-      {:ok, webhook} =
-        %WebhookSchema{}
-        |> WebhookSchema.changeset(%{
-          name: "Test Webhook",
-          url: "https://example.com/webhook",
-          secret: "test_secret",
-          events: ["meeting.created"],
-          is_active: true,
-          user_id: user.id
-        })
-        |> Repo.insert()
+      # The token is generated automatically on insert
+      webhook = WebhookSchema.decrypt_token(webhook)
+      assert webhook.webhook_token != nil
 
       expect(Tymeslot.HTTPClientMock, :post, fn _url, _body, headers, _opts ->
+        # Verify token header is present and correct
+        token_header = Enum.find(headers, fn {key, _} -> key == "X-Tymeslot-Token" end)
+        assert token_header, "Expected X-Tymeslot-Token header"
+        {_key, value} = token_header
+        assert value == webhook.webhook_token
+
         # Verify timestamp header is present
         timestamp_header = Enum.find(headers, fn {key, _} -> key == "X-Tymeslot-Timestamp" end)
         assert timestamp_header, "Expected X-Tymeslot-Timestamp header"

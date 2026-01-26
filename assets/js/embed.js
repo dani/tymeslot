@@ -15,6 +15,27 @@
 (function() {
   'use strict';
 
+  /**
+   * Global Error Handling
+   */
+  const failSafe = (msg) => {
+    console.error('Tymeslot Error:', msg);
+    const containers = document.querySelectorAll('#tymeslot-booking, [data-tymeslot-inline]');
+    containers.forEach(c => {
+      if (typeof TymeslotBooking !== 'undefined' && TymeslotBooking.showError) {
+        TymeslotBooking.showError(c);
+      } else {
+        c.innerHTML = '<div style="padding:20px;color:#991b1b;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;font-family:sans-serif;"><strong>Booking system unavailable.</strong></div>';
+      }
+    });
+  };
+
+  window.addEventListener('error', function(e) {
+    if (e.filename && e.filename.indexOf('embed.js') !== -1) {
+      failSafe(e.message);
+    }
+  });
+
   // Configuration
   const CONFIG = {
     // Get base URL from script tag or current domain
@@ -462,10 +483,18 @@
   /**
    * Initialize when DOM is ready
    */
+  const init = () => {
+    try {
+      initInlineEmbeds();
+    } catch (e) {
+      failSafe(e.message);
+    }
+  };
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initInlineEmbeds);
+    document.addEventListener('DOMContentLoaded', init);
   } else {
-    initInlineEmbeds();
+    init();
   }
 
 })();

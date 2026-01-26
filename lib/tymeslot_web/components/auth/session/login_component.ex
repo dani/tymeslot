@@ -11,8 +11,8 @@ defmodule TymeslotWeb.Session.LoginComponent do
   import TymeslotWeb.Shared.PasswordToggleButtonComponent
   import TymeslotWeb.Shared.Auth.LayoutComponents
   import TymeslotWeb.Shared.Auth.FormComponents
-  import TymeslotWeb.Shared.Auth.InputComponents
   import TymeslotWeb.Shared.Auth.ButtonComponents
+  import TymeslotWeb.Components.CoreComponents
 
   @doc """
   Renders the login page with animated background and form.
@@ -47,25 +47,32 @@ defmodule TymeslotWeb.Session.LoginComponent do
           csrf_token={@csrf_token}
         >
           <div class="space-y-4 sm:space-y-5">
-            <.standard_email_input
+            <.input
               name="email"
+              type="email"
+              label="Email Address"
               value={Map.get(@form_data, :email, "")}
               errors={Map.get(@errors, :email, [])}
               phx-change="validate_login"
+              icon="hero-envelope"
+              required
             />
             <div>
-              <.form_label for="password-input" text="Password" />
-              <.auth_text_input
+              <.input
                 id="password-input"
                 name="password"
                 type="password"
+                label="Password"
                 placeholder="Enter your password"
-                required={true}
+                required
                 value={Map.get(@form_data, :password, "")}
                 errors={Map.get(@errors, :password, [])}
+                icon="hero-lock-closed"
               >
-                <.password_toggle_button id="password-toggle" />
-              </.auth_text_input>
+                <:trailing_icon>
+                  <.password_toggle_button id="password-toggle" />
+                </:trailing_icon>
+              </.input>
             </div>
             <div class="text-fluid-xs sm:text-fluid-sm mt-1 mb-2">
               <button

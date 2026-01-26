@@ -13,7 +13,6 @@ defmodule TymeslotWeb.Dashboard.Notifications.Modals do
   attr :saving, :boolean, default: false
   attr :on_cancel, :any, required: true
   attr :on_submit, :any, required: true
-  attr :on_generate_secret, :any, required: true
   attr :on_toggle_event, :any, required: true
   attr :on_validate_field, :any, required: true
   attr :myself, :any, required: true
@@ -31,67 +30,31 @@ defmodule TymeslotWeb.Dashboard.Notifications.Modals do
         <%= if @mode == :create, do: "Create Webhook", else: "Edit Webhook" %>
       </:header>
 
-      <form id="webhook-form-modal-form" phx-submit={@on_submit} phx-target={@myself}>
+      <form id="webhook-form-modal-form" phx-submit={@on_submit} phx-target={@myself} class="space-y-6">
         <!-- Name Field -->
-        <div class="space-y-2">
-          <label class="block text-token-sm font-black text-tymeslot-900">Webhook Name *</label>
-          <input
-            type="text"
-            name="webhook[name]"
-            value={Map.get(@form_values, "name", "")}
-            phx-blur={@on_validate_field.("name", "")}
-            class="input-base"
-            placeholder="My n8n Automation"
-            required
-          />
-          <%= if error = Map.get(@form_errors, :name) do %>
-            <p class="text-token-sm text-red-600 font-medium"><%= error %></p>
-          <% end %>
-        </div>
+        <.input
+          name="webhook[name]"
+          label="Webhook Name"
+          value={Map.get(@form_values, "name", "")}
+          phx-blur={@on_validate_field.("name", "")}
+          placeholder="My n8n Automation"
+          required
+          errors={if error = Map.get(@form_errors, :name), do: [error], else: []}
+          icon="hero-tag"
+        />
 
         <!-- URL Field -->
-        <div class="space-y-2 mt-4">
-          <label class="block text-token-sm font-black text-tymeslot-900">Webhook URL *</label>
-          <input
-            type="url"
-            name="webhook[url]"
-            value={Map.get(@form_values, "url", "")}
-            phx-blur={@on_validate_field.("url", "")}
-            class="input-base font-mono text-token-sm"
-            placeholder="https://your-n8n-instance.com/webhook/..."
-            required
-          />
-          <%= if error = Map.get(@form_errors, :url) do %>
-            <p class="text-token-sm text-red-600 font-medium"><%= error %></p>
-          <% end %>
-        </div>
-
-        <!-- Secret Field -->
-        <div class="space-y-2 mt-4">
-          <label class="block text-token-sm font-black text-tymeslot-900">
-            Secret Key (Optional)
-            <span class="text-tymeslot-500 font-medium">- for HMAC signature verification</span>
-          </label>
-          <div class="flex gap-2">
-            <input
-              type="text"
-              name="webhook[secret]"
-              value={Map.get(@form_values, "secret", "")}
-              class="input-base font-mono text-token-sm flex-1"
-              placeholder="Leave empty or generate a secure key"
-            />
-            <CoreComponents.action_button
-              variant={:secondary}
-              phx-click={@on_generate_secret}
-              class="whitespace-nowrap"
-            >
-              Generate
-            </CoreComponents.action_button>
-          </div>
-          <p class="text-token-xs text-tymeslot-500 font-medium">
-            The secret will be used to sign webhook payloads for security verification.
-          </p>
-        </div>
+        <.input
+          name="webhook[url]"
+          type="url"
+          label="Webhook URL"
+          value={Map.get(@form_values, "url", "")}
+          phx-blur={@on_validate_field.("url", "")}
+          placeholder="https://your-n8n-instance.com/webhook/..."
+          required
+          errors={if error = Map.get(@form_errors, :url), do: [error], else: []}
+          icon="hero-link"
+        />
 
         <!-- Events Selection -->
         <div class="space-y-3 mt-6">
@@ -99,13 +62,12 @@ defmodule TymeslotWeb.Dashboard.Notifications.Modals do
           <div class="space-y-2">
             <%= for event <- @available_events do %>
               <label class="flex items-start gap-3 p-4 rounded-token-xl border-2 border-tymeslot-100 hover:border-turquoise-200 cursor-pointer transition-colors">
-                <input
+                <.input
                   type="checkbox"
                   name="webhook[events][]"
                   value={event.value}
                   checked={event.value in Map.get(@form_values, "events", [])}
                   phx-click={@on_toggle_event.(event.value)}
-                  class="mt-1 w-5 h-5 text-turquoise-600 rounded border-tymeslot-300 focus:ring-turquoise-500"
                 />
                 <div class="flex-1">
                   <div class="font-black text-tymeslot-900"><%= event.label %></div>
@@ -115,7 +77,7 @@ defmodule TymeslotWeb.Dashboard.Notifications.Modals do
             <% end %>
           </div>
           <%= if error = Map.get(@form_errors, :events) do %>
-            <p class="text-token-sm text-red-600 font-medium"><%= error %></p>
+            <p class="text-token-sm text-red-600 font-medium mt-3"><%= error %></p>
           <% end %>
         </div>
 
@@ -199,6 +161,61 @@ defmodule TymeslotWeb.Dashboard.Notifications.Modals do
   end
 
   attr :show, :boolean, default: false
+  attr :on_cancel, :any, required: true
+  attr :on_confirm, :any, required: true
+
+  @spec regenerate_token_modal(map()) :: Phoenix.LiveView.Rendered.t()
+  def regenerate_token_modal(assigns) do
+    ~H"""
+    <CoreComponents.modal
+      id="regenerate-token-modal"
+      show={@show}
+      on_cancel={@on_cancel}
+      size={:small}
+    >
+      <:header>
+        <div class="flex items-center gap-2">
+          <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+            />
+          </svg>
+          Regenerate Token?
+        </div>
+      </:header>
+
+      <div class="text-center sm:text-left">
+        <p class="text-tymeslot-600 font-medium">
+          Are you sure? The current security token will be immediately invalidated and any existing integrations using it will stop working.
+        </p>
+      </div>
+
+      <:footer>
+        <div class="flex gap-3">
+          <CoreComponents.action_button
+            variant={:secondary}
+            phx-click={@on_cancel}
+            class="flex-1"
+          >
+            Cancel
+          </CoreComponents.action_button>
+          <CoreComponents.action_button
+            variant={:danger}
+            phx-click={@on_confirm}
+            class="flex-1"
+          >
+            Regenerate
+          </CoreComponents.action_button>
+        </div>
+      </:footer>
+    </CoreComponents.modal>
+    """
+  end
+
+  attr :show, :boolean, default: false
   attr :webhook, :map, required: true
   attr :deliveries, :list, required: true
   attr :stats, :map, required: true
@@ -244,10 +261,16 @@ defmodule TymeslotWeb.Dashboard.Notifications.Modals do
 
         <!-- Deliveries List -->
         <div>
-          <h3 class="text-lg font-black text-tymeslot-900 mb-4 flex items-center gap-2">
-            <CoreComponents.icon name="hero-list-bullet" class="w-5 h-5" />
-            Recent Deliveries
-          </h3>
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-black text-tymeslot-900 flex items-center gap-2">
+              <CoreComponents.icon name="hero-list-bullet" class="w-5 h-5" />
+              Recent Deliveries
+            </h3>
+            <div class="flex items-center gap-1.5 text-token-xs text-tymeslot-500 font-medium bg-tymeslot-50 px-2 py-1 rounded-token-lg border border-tymeslot-100">
+              <CoreComponents.icon name="hero-information-circle" class="w-3.5 h-3.5" />
+              Test calls are not logged
+            </div>
+          </div>
           <%= if @deliveries == [] do %>
             <div class="text-center py-12 bg-tymeslot-50 rounded-token-2xl border-2 border-dashed border-tymeslot-200">
               <p class="text-tymeslot-600 font-medium">No deliveries yet</p>

@@ -490,27 +490,22 @@ defmodule TymeslotWeb.Dashboard.Availability.ListComponent do
             <input type="hidden" name="day" value={@day_availability.day_of_week} />
             <div class="flex flex-col sm:flex-row sm:items-center gap-6">
               <div class="flex-1">
-                <label class="label">Start Time</label>
-                <select name="start" class="input">
-                  <%= for {label, value} <- TimeOptions.time_options() do %>
-                    <option
-                      value={value}
-                      selected={value == format_time(@day_availability.start_time)}
-                    >
-                      {label}
-                    </option>
-                  <% end %>
-                </select>
+                <.input
+                  type="select"
+                  name="start"
+                  label="Start Time"
+                  options={TimeOptions.time_options()}
+                  value={format_time(@day_availability.start_time)}
+                />
               </div>
               <div class="flex-1">
-                <label class="label">End Time</label>
-                <select name="end" class="input">
-                  <%= for {label, value} <- TimeOptions.time_options() do %>
-                    <option value={value} selected={value == format_time(@day_availability.end_time)}>
-                      {label}
-                    </option>
-                  <% end %>
-                </select>
+                <.input
+                  type="select"
+                  name="end"
+                  label="End Time"
+                  options={TimeOptions.time_options()}
+                  value={format_time(@day_availability.end_time)}
+                />
               </div>
             </div>
           </form>
@@ -564,48 +559,34 @@ defmodule TymeslotWeb.Dashboard.Availability.ListComponent do
           >
             <input type="hidden" name="day" value={@day_availability.day_of_week} />
             <div class="lg:col-span-1">
-              <label class="label">Label</label>
-              <input
-                type="text"
+              <.input
                 name="label"
+                label="Label"
                 placeholder="e.g. Lunch"
-                class={[
-                  "input",
-                  if(@form_errors[:label], do: "input-error", else: "")
-                ]}
+                errors={@form_errors[:label] || []}
               />
             </div>
             <div>
-              <label class="label">From</label>
-              <select
+              <.input
+                type="select"
                 name="start"
+                label="From"
                 required
-                class={[
-                  "input",
-                  if(@form_errors[:start_time], do: "input-error", else: "")
-                ]}
-              >
-                <option value="">Start</option>
-                <%= for {label, value} <- TimeOptions.time_options() do %>
-                  <option value={value}>{label}</option>
-                <% end %>
-              </select>
+                prompt="Start"
+                options={TimeOptions.time_options()}
+                errors={@form_errors[:start_time] || []}
+              />
             </div>
             <div>
-              <label class="label">Until</label>
-              <select
+              <.input
+                type="select"
                 name="end"
+                label="Until"
                 required
-                class={[
-                  "input",
-                  if(@form_errors[:end_time], do: "input-error", else: "")
-                ]}
-              >
-                <option value="">End</option>
-                <%= for {label, value} <- TimeOptions.time_options() do %>
-                  <option value={value}>{label}</option>
-                <% end %>
-              </select>
+                prompt="End"
+                options={TimeOptions.time_options()}
+                errors={@form_errors[:end_time] || []}
+              />
             </div>
             <div>
               <button type="submit" class="btn-primary w-full py-3 flex items-center justify-center whitespace-nowrap">

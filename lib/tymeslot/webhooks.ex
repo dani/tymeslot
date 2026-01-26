@@ -13,7 +13,7 @@ defmodule Tymeslot.Webhooks do
 
   alias Tymeslot.DatabaseQueries.WebhookQueries
   alias Tymeslot.DatabaseSchemas.{WebhookDeliverySchema, WebhookSchema}
-  alias Tymeslot.Webhooks.{PayloadBuilder, Security}
+  alias Tymeslot.Webhooks.PayloadBuilder
   alias Tymeslot.Workers.WebhookWorker
 
   # ============================================================================
@@ -22,20 +22,23 @@ defmodule Tymeslot.Webhooks do
 
   @doc """
   Lists all webhooks for a user.
+  Returns webhooks with decrypted tokens.
   """
   @spec list_webhooks(integer()) :: [WebhookSchema.t()]
   def list_webhooks(user_id) do
-    WebhookQueries.list_webhooks(user_id)
+    user_id
+    |> WebhookQueries.list_webhooks()
+    |> Enum.map(&WebhookSchema.decrypt_token/1)
   end
 
   @doc """
   Gets a single webhook by ID for a specific user.
-  Returns the webhook with decrypted secret.
+  Returns the webhook with decrypted token.
   """
   @spec get_webhook(integer(), integer()) :: {:ok, WebhookSchema.t()} | {:error, :not_found}
   def get_webhook(id, user_id) do
     case WebhookQueries.get_webhook(id, user_id) do
-      {:ok, webhook} -> {:ok, WebhookSchema.decrypt_secret(webhook)}
+      {:ok, webhook} -> {:ok, WebhookSchema.decrypt_token(webhook)}
       error -> error
     end
   end
@@ -87,6 +90,34 @@ defmodule Tymeslot.Webhooks do
     WebhookQueries.enable_webhook(webhook)
   end
 
+  @doc """
+  Regenerates the webhook token.
+  """
+  @spec regenerate_token(WebhookSchema.t()) ::
+          {:ok, WebhookSchema.t()} | {:error, Ecto.Changeset.t()}
+  def regenerate_token(%WebhookSchema{} = webhook) do
+    # Passing nil for webhook_token triggers generation in the changeset
+    WebhookQueries.update_webhook(webhook, %{webhook_token: nil})
+  end
+
+  @doc """
+  Builds the standard headers for a webhook request.
+  """
+  @spec build_headers(map(), String.t() | nil) :: [{String.t(), String.t()}]
+  def build_headers(_payload, token) do
+    base_headers = [
+      {"Content-Type", "application/json"},
+      {"User-Agent", "Tymeslot-Webhooks/1.0"},
+      {"X-Tymeslot-Timestamp", DateTime.to_iso8601(DateTime.utc_now())}
+    ]
+
+    if token do
+      [{"X-Tymeslot-Token", token} | base_headers]
+    else
+      base_headers
+    end
+  end
+
   # ============================================================================
   # Validation & Testing
   # ============================================================================
@@ -95,9 +126,9 @@ defmodule Tymeslot.Webhooks do
   Tests a webhook connection by sending a test payload.
   """
   @spec test_webhook_connection(String.t(), String.t() | nil) :: :ok | {:error, String.t()}
-  def test_webhook_connection(url, secret \\ nil) do
+  def test_webhook_connection(url, token \\ nil) do
     payload = PayloadBuilder.build_test_payload()
-    headers = build_headers(payload, secret)
+    headers = build_headers(payload, token)
 
     case http_client().post(url, Jason.encode!(payload), headers, recv_timeout: 10_000) do
       {:ok, %{status_code: status}} when status >= 200 and status < 300 ->
@@ -219,25 +250,8 @@ defmodule Tymeslot.Webhooks do
   # Private Helpers
   # ============================================================================
 
-  defp build_headers(_payload, nil) do
-    [
-      {"Content-Type", "application/json"},
-      {"User-Agent", "Tymeslot-Webhooks/1.0"}
-    ]
-  end
-
-  defp build_headers(payload, secret) when is_binary(secret) do
-    signature = Security.generate_signature(payload, secret)
-
-    [
-      {"Content-Type", "application/json"},
-      {"User-Agent", "Tymeslot-Webhooks/1.0"},
-      {"X-Tymeslot-Signature", signature},
-      {"X-Tymeslot-Timestamp", DateTime.to_iso8601(DateTime.utc_now())}
-    ]
-  end
-
   defp http_client do
     Application.get_env(:tymeslot, :http_client_module, Tymeslot.Infrastructure.HTTPClient)
   end
+
 end

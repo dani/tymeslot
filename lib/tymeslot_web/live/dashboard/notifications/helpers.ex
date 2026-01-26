@@ -30,7 +30,7 @@ defmodule TymeslotWeb.Dashboard.Notifications.Helpers do
   """
   @spec validate_field(map(), map(), String.t(), any(), map()) :: map()
   def validate_field(form_values, current_errors, field, value, metadata) do
-    allowed_fields = ["name", "url", "secret", "events"]
+    allowed_fields = ["name", "url", "events"]
 
     if field in allowed_fields do
       updated_values = Map.put(form_values, field, value)

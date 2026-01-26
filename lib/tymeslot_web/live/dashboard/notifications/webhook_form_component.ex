@@ -24,7 +24,7 @@ defmodule TymeslotWeb.Dashboard.Notifications.WebhookFormComponent do
     mode = assigns[:mode] || :create
     webhook = assigns[:webhook]
 
-    # Use form_values from assigns if provided (from parent), 
+    # Use form_values from assigns if provided (from parent),
     # otherwise initialize from webhook or defaults
     form_values =
       cond do
@@ -35,7 +35,6 @@ defmodule TymeslotWeb.Dashboard.Notifications.WebhookFormComponent do
           %{
             "name" => webhook.name,
             "url" => webhook.url,
-            "secret" => webhook.secret || "",
             "events" => webhook.events
           }
 
@@ -43,7 +42,6 @@ defmodule TymeslotWeb.Dashboard.Notifications.WebhookFormComponent do
           %{
             "name" => "",
             "url" => "",
-            "secret" => "",
             "events" => []
           }
       end
@@ -106,63 +104,80 @@ defmodule TymeslotWeb.Dashboard.Notifications.WebhookFormComponent do
           </div>
 
           <div class="space-y-6">
-            <div class="space-y-2">
-              <label class="block text-token-sm font-black text-tymeslot-900">Webhook Name *</label>
-              <input
-                type="text"
-                name="webhook[name]"
-                value={Map.get(@form_values, "name", "")}
-                phx-blur={JS.push("validate_field", value: %{"field" => "name"}, target: @parent_component)}
-                class="input-base w-full text-tymeslot-900"
-                placeholder="My n8n Automation"
-                required
-              />
-              <%= if error = Map.get(@form_errors, :name) do %>
-                <p class="text-token-sm text-red-600 font-medium"><%= error %></p>
-              <% end %>
+            <.input
+              name="webhook[name]"
+              label="Webhook Name"
+              value={Map.get(@form_values, "name", "")}
+              phx-blur={JS.push("validate_field", value: %{"field" => "name"}, target: @parent_component)}
+              placeholder="My n8n Automation"
+              required
+              errors={if error = Map.get(@form_errors, :name), do: [error], else: []}
+              icon="hero-tag"
+            />
+
+            <.input
+              name="webhook[url]"
+              type="url"
+              label="Webhook URL"
+              value={Map.get(@form_values, "url", "")}
+              phx-blur={JS.push("validate_field", value: %{"field" => "url"}, target: @parent_component)}
+              placeholder="https://your-n8n-instance.com/webhook/..."
+              required
+              errors={if error = Map.get(@form_errors, :url), do: [error], else: []}
+              icon="hero-link"
+            />
+
+            <div :if={@mode == :create} class="p-4 rounded-token-xl bg-turquoise-50/50 border-2 border-turquoise-100">
+              <div class="flex gap-3">
+                <div class="mt-0.5">
+                  <svg class="w-5 h-5 text-turquoise-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <p class="text-token-sm font-black text-turquoise-900">Security Token</p>
+                  <p class="text-token-xs text-turquoise-700 font-medium mt-0.5">
+                    A unique security token will be automatically generated for this webhook once created. You'll use it to verify requests in your automation tool.
+                  </p>
+                </div>
+              </div>
             </div>
 
-            <div class="space-y-2">
-              <label class="block text-token-sm font-black text-tymeslot-900">Webhook URL *</label>
-              <input
-                type="url"
-                name="webhook[url]"
-                value={Map.get(@form_values, "url", "")}
-                phx-blur={JS.push("validate_field", value: %{"field" => "url"}, target: @parent_component)}
-                class="input-base font-mono text-token-sm w-full text-tymeslot-900"
-                placeholder="https://your-n8n-instance.com/webhook/..."
-                required
-              />
-              <%= if error = Map.get(@form_errors, :url) do %>
-                <p class="text-token-sm text-red-600 font-medium"><%= error %></p>
-              <% end %>
-            </div>
-
-            <div class="space-y-2">
+            <div :if={@mode == :edit} class="space-y-2">
               <label class="block text-token-sm font-black text-tymeslot-900">
-                Secret Key (Optional)
-                <span class="text-tymeslot-500 font-medium">- for HMAC signature verification</span>
+                Security Token
+                <span class="text-tymeslot-500 font-medium">- Use this in your n8n/Zapier header verification</span>
               </label>
               <div class="flex gap-2">
                 <input
                   type="text"
-                  name="webhook[secret]"
-                  id="webhook_secret"
-                  value={Map.get(@form_values, "secret", "")}
-                  phx-change={JS.push("validate_field", value: %{"field" => "secret"}, target: @parent_component)}
-                  class="input-base font-mono text-token-sm flex-1 text-tymeslot-900"
-                  placeholder="Leave empty or generate a secure key"
+                  value={@webhook.webhook_token}
+                  readonly
+                  class="input-base font-mono text-token-sm flex-1 bg-tymeslot-50 text-tymeslot-600 cursor-default"
+                  id="webhook_token_display"
                 />
                 <button
                   type="button"
-                  phx-click={JS.push("generate_secret", target: @parent_component)}
+                  id="copy-webhook-token"
+                  phx-hook="CopyOnClick"
+                  data-copy-text={@webhook.webhook_token}
+                  data-copy-feedback="Security token copied to clipboard!"
                   class="whitespace-nowrap px-5 py-2.5 rounded-token-xl bg-tymeslot-50 text-tymeslot-600 font-bold hover:bg-tymeslot-100 transition-all border-2 border-transparent hover:border-tymeslot-200"
                 >
-                  Generate
+                  Copy
+                </button>
+                <button
+                  type="button"
+                  phx-click="show_regenerate_token_modal"
+                  phx-value-id={@webhook.id}
+                  phx-target={@parent_component}
+                  class="whitespace-nowrap px-5 py-2.5 rounded-token-xl bg-red-50 text-red-600 font-bold hover:bg-red-100 transition-all border-2 border-transparent hover:border-red-200"
+                >
+                  Regenerate
                 </button>
               </div>
               <p class="text-token-xs text-tymeslot-500 font-medium">
-                The secret will be used to sign webhook payloads for security verification.
+                This token is automatically sent in the <code class="bg-tymeslot-100 px-1 rounded">X-Tymeslot-Token</code> header.
               </p>
             </div>
           </div>
@@ -180,13 +195,12 @@ defmodule TymeslotWeb.Dashboard.Notifications.WebhookFormComponent do
           <div class="space-y-3">
             <%= for event <- @available_events do %>
               <label class="flex items-start gap-3 p-4 rounded-token-xl border-2 border-tymeslot-100 hover:border-turquoise-200 cursor-pointer transition-colors">
-                <input
+                <.input
                   type="checkbox"
                   name="webhook[events][]"
                   value={event.value}
                   checked={event.value in Map.get(@form_values, "events", [])}
                   phx-click={JS.push("toggle_event", value: %{"event" => event.value}, target: @parent_component)}
-                  class="mt-1 w-5 h-5 text-turquoise-600 rounded border-tymeslot-300 focus:ring-turquoise-500"
                 />
                 <div class="flex-1">
                   <div class="font-black text-tymeslot-900"><%= event.label %></div>
@@ -230,9 +244,9 @@ defmodule TymeslotWeb.Dashboard.Notifications.WebhookFormComponent do
     values = assigns.form_values
     errors = assigns.form_errors
 
-    has_name = Map.get(values, "name", "") |> String.trim() != ""
-    has_url = Map.get(values, "url", "") |> String.trim() != ""
-    has_events = Map.get(values, "events", []) |> Enum.any?()
+    has_name = String.trim(Map.get(values, "name", "")) != ""
+    has_url = String.trim(Map.get(values, "url", "")) != ""
+    has_events = Enum.any?(Map.get(values, "events", []))
     no_errors = Enum.empty?(errors)
 
     has_name && has_url && has_events && no_errors
@@ -246,13 +260,13 @@ defmodule TymeslotWeb.Dashboard.Notifications.WebhookFormComponent do
       !Enum.empty?(errors) ->
         "Please fix the validation errors above."
 
-      Map.get(values, "name", "") |> String.trim() == "" ->
+      String.trim(Map.get(values, "name", "")) == "" ->
         "Webhook name is required."
 
-      Map.get(values, "url", "") |> String.trim() == "" ->
+      String.trim(Map.get(values, "url", "")) == "" ->
         "Webhook URL is required."
 
-      !(Map.get(values, "events", []) |> Enum.any?()) ->
+      !Enum.any?(Map.get(values, "events", [])) ->
         "At least one event subscription is required."
 
       true ->

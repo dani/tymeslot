@@ -215,9 +215,9 @@ defmodule Tymeslot.Factory do
     %WebhookSchema{
       name: sequence(:webhook_name, &"Webhook #{&1}"),
       url: sequence(:webhook_url, &"https://example.com/webhook/#{&1}"),
-      secret: "secure_secret_123",
       events: ["meeting.created", "meeting.cancelled"],
       is_active: true,
+      webhook_token_encrypted: <<1, 2, 3>>,
       user: build(:user)
     }
   end

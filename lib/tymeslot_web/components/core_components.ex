@@ -135,38 +135,59 @@ defmodule TymeslotWeb.Components.CoreComponents do
   # ========== FORM ELEMENTS ==========
 
   @doc """
-  Renders a form field with label and error handling.
+  Renders a unified input field with label, icons, and error handling.
   """
-  attr :form, :any, required: true
-  attr :field, :atom, required: true
-  attr :label, :string, required: true
+  attr :id, :any, default: nil
+  attr :name, :any
+  attr :label, :string, default: nil
+  attr :value, :any
   attr :type, :string, default: "text"
-  attr :placeholder, :string, default: ""
+  attr :field, Phoenix.HTML.FormField
+  attr :errors, :list, default: []
+  attr :checked, :boolean
+  attr :prompt, :string, default: nil
+  attr :options, :list
+  attr :multiple, :boolean, default: false
   attr :required, :boolean, default: false
-  attr :touched_fields, :any, default: []
+  attr :placeholder, :string, default: nil
+  attr :rows, :integer, default: 4
+  attr :icon, :string, default: nil
+  attr :validate_on_blur, :boolean, default: false
+  attr :class, :string, default: nil
+  attr :min, :any
+  attr :max, :any
+  attr :step, :any
+  attr :minlength, :any
+  attr :maxlength, :any
+  attr :pattern, :any
   attr :rest, :global
-  @spec form_field(map()) :: Phoenix.LiveView.Rendered.t()
-  def form_field(assigns), do: Forms.form_field(assigns)
+  slot :inner_block
+  slot :leading_icon
+  slot :trailing_icon
+  @spec input(map()) :: Phoenix.LiveView.Rendered.t()
+  def input(assigns), do: Forms.input(assigns)
 
   @doc """
-  Renders a textarea field with label and error handling.
+  Form wrapper with consistent styling and submission handling.
   """
-  attr :form, :any, required: true
-  attr :field, :atom, required: true
-  attr :label, :string, required: true
-  attr :placeholder, :string, default: ""
-  attr :rows, :integer, default: 4
-  attr :required, :boolean, default: false
-  attr :touched_fields, :any, default: []
-  attr :rest, :global
-  @spec form_textarea(map()) :: Phoenix.LiveView.Rendered.t()
-  def form_textarea(assigns), do: Forms.form_textarea(assigns)
+  attr :for, :any, required: true
+  attr :id, :string, default: nil
+  attr :class, :string, default: ""
+  attr :rest, :global, include: ~w(phx-change phx-submit phx-target)
+  slot :inner_block, required: true
+  @spec form_wrapper(map()) :: Phoenix.LiveView.Rendered.t()
+  def form_wrapper(assigns), do: Forms.form_wrapper(assigns)
+
+  @doc """
+  Renders a list of password requirements.
+  """
+  @spec password_requirements(map()) :: Phoenix.LiveView.Rendered.t()
+  def password_requirements(assigns), do: Forms.password_requirements(assigns)
 
   @doc """
   Renders a field error message.
   """
   attr :errors, :list, default: []
-  attr :field, :atom, required: true
   @spec field_error(map()) :: Phoenix.LiveView.Rendered.t()
   def field_error(assigns), do: Forms.field_error(assigns)
 

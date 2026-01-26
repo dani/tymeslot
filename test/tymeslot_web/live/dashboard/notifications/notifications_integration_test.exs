@@ -22,7 +22,7 @@ defmodule TymeslotWeb.Dashboard.Notifications.NotificationsIntegrationTest do
       # 1. Initial empty state
       assert render(view) =~ "No Webhooks Yet"
 
-      # 2. Open create modal
+      # 2. Open create form
       view
       |> element("button", "Create Your First Webhook")
       |> render_click()
@@ -31,11 +31,10 @@ defmodule TymeslotWeb.Dashboard.Notifications.NotificationsIntegrationTest do
 
       # 3. Fill and submit create form
       view
-      |> form("#webhook-form-modal form", %{
+      |> form("#webhook-form", %{
         "webhook" => %{
           "name" => "My n8n Webhook",
           "url" => "https://example.com/webhook",
-          "secret" => "super-secret",
           "events" => ["meeting.created"]
         }
       })
@@ -61,7 +60,7 @@ defmodule TymeslotWeb.Dashboard.Notifications.NotificationsIntegrationTest do
       [webhook] = Webhooks.list_webhooks(user.id)
       refute webhook.is_active
 
-      # 5. Open edit modal
+      # 5. Open edit form
       view
       |> element("button[title='Edit']")
       |> render_click()
@@ -70,7 +69,7 @@ defmodule TymeslotWeb.Dashboard.Notifications.NotificationsIntegrationTest do
 
       # 6. Update webhook
       view
-      |> form("#webhook-form-modal form", %{
+      |> form("#webhook-form", %{
         "webhook" => %{
           "name" => "Updated Webhook Name",
           "url" => "https://example.com/updated",
@@ -113,7 +112,7 @@ defmodule TymeslotWeb.Dashboard.Notifications.NotificationsIntegrationTest do
 
       # Submit empty form
       view
-      |> form("#webhook-form-modal form", %{
+      |> form("#webhook-form", %{
         "webhook" => %{
           "name" => "",
           "url" => "not-a-url"

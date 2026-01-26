@@ -4,18 +4,18 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
   Contains common logic used across multiple scheduling components.
   """
 
+  alias Phoenix.Component
   alias Tymeslot.Availability.{BusinessHours, Calculate}
   alias Tymeslot.Demo
   alias Tymeslot.Infrastructure.AvailabilityCache
   alias Tymeslot.Integrations.Calendar
   alias Tymeslot.Security.FormValidation
   alias Tymeslot.Utils.{ContextUtils, DateTimeUtils, TimezoneUtils}
-  alias TymeslotWeb.Components.FormSystem
   alias TymeslotWeb.Helpers.ClientIP
 
   require Logger
 
-  import Phoenix.Component, only: [assign: 3]
+  import Component, only: [assign: 3]
 
   @doc """
   Handles username resolution and organizer setup.
@@ -52,8 +52,25 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
     end
   end
 
-  defdelegate setup_form_state(socket, form_data \\ %{}, opts \\ []), to: FormSystem
-  defdelegate assign_form_errors(socket, errors), to: FormSystem
+  # Form state helpers
+  def setup_form_state(socket, form_data \\ %{}, opts \\ []) do
+    as = Keyword.get(opts, :as)
+
+    socket
+    |> assign(:form, Component.to_form(form_data, as: as))
+    |> assign(:touched_fields, MapSet.new())
+    |> assign(:validation_errors, %{})
+    |> assign(:saving, false)
+  end
+
+  def assign_form_errors(socket, errors) when is_list(errors) do
+    error_map = Enum.group_by(errors, &elem(&1, 0), &elem(&1, 1))
+    assign(socket, :validation_errors, error_map)
+  end
+
+  def assign_form_errors(socket, error_map) when is_map(error_map) do
+    assign(socket, :validation_errors, error_map)
+  end
 
   @doc """
   Returns a CSS class if the field has errors.

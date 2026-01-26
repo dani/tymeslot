@@ -6,6 +6,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.SharedFormCompo
   use Phoenix.Component
 
   alias TymeslotWeb.Components.Dashboard.Integrations.Shared.UIComponents
+  import TymeslotWeb.Components.CoreComponents
 
   attr :provider, :string, required: true
   attr :show_calendar_selection, :boolean, required: true
@@ -148,41 +149,20 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.SharedFormCompo
   @spec integration_name_field(map()) :: Phoenix.LiveView.Rendered.t()
   def integration_name_field(assigns) do
     ~H"""
-    <div>
-      <label for="integration_name" class="label">
-        Integration Name
-      </label>
-      <div class="relative">
-        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <svg class="w-5 h-5 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
-            />
-          </svg>
-        </div>
-        <input
-          type="text"
-          id="integration_name"
-          name={@field_name}
-          value={@suggested_name}
-          required
-          phx-blur={@blur_event}
-          phx-value-field="name"
-          phx-target={@target}
-          class={[
-            "input input-with-icon w-full",
-            if(Map.get(@form_errors, :name), do: "input-error", else: "")
-          ]}
-          placeholder={@placeholder}
-        />
-      </div>
-      <%= if error = Map.get(@form_errors, :name) do %>
-        <p class="form-error">{error}</p>
-      <% end %>
-    </div>
+    <.input
+      id="integration_name"
+      name={@field_name}
+      type="text"
+      label="Integration Name"
+      value={@suggested_name}
+      required
+      phx-blur={@blur_event}
+      phx-value-field="name"
+      phx-target={@target}
+      placeholder={@placeholder}
+      errors={if error = Map.get(@form_errors, :name), do: [error], else: []}
+      icon="hero-tag"
+    />
     """
   end
 
@@ -201,13 +181,12 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.SharedFormCompo
           <%= for calendar <- @discovered_calendars do %>
             <% calendar_path = calendar.path || calendar.href %>
             <div class="flex items-center space-x-3 p-3 rounded-lg hover:bg-white/20 transition-colors">
-              <input
+              <.input
                 type="checkbox"
                 name="selected_calendars[]"
                 value={calendar_path}
                 checked
                 id={"calendar-#{calendar_path |> String.replace("/", "-")}"}
-                class="checkbox"
               />
               <label
                 for={"calendar-#{calendar_path |> String.replace("/", "-")}"}
@@ -238,29 +217,19 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.SharedFormCompo
 
   defp text_field(assigns) do
     ~H"""
-    <div>
-      <label for={@id} class="label">
-        {@label}
-      </label>
-      <input
-        type={@type}
-        id={@id}
-        name={@name}
-        value={@value}
-        required
-        phx-blur="validate_field"
-        phx-value-field={@field}
-        phx-target={@target}
-        class={[
-          "input w-full",
-          if(@error, do: "input-error", else: "")
-        ]}
-        placeholder={@placeholder}
-      />
-      <%= if @error do %>
-        <p class="form-error">{@error}</p>
-      <% end %>
-    </div>
+    <.input
+      id={@id}
+      name={@name}
+      type={@type}
+      label={@label}
+      value={@value}
+      required
+      phx-blur="validate_field"
+      phx-value-field={@field}
+      phx-target={@target}
+      placeholder={@placeholder}
+      errors={if @error, do: [@error], else: []}
+    />
     """
   end
 
@@ -275,29 +244,20 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.SharedFormCompo
 
   defp password_field(assigns) do
     ~H"""
-    <div>
-      <label for={@id} class="label">
-        {@label}
-      </label>
-      <input
-        type="password"
-        id={@id}
-        name={@name}
-        value={@value}
-        required
-        phx-blur="validate_field"
-        phx-value-field={@field}
-        phx-target={@target}
-        class={[
-          "input w-full",
-          if(@error, do: "input-error", else: "")
-        ]}
-        placeholder={@placeholder}
-      />
-      <%= if @error do %>
-        <p class="form-error">{@error}</p>
-      <% end %>
-    </div>
+    <.input
+      id={@id}
+      name={@name}
+      type="password"
+      label={@label}
+      value={@value}
+      required
+      phx-blur="validate_field"
+      phx-value-field={@field}
+      phx-target={@target}
+      placeholder={@placeholder}
+      errors={if @error, do: [@error], else: []}
+      icon="hero-lock-closed"
+    />
     """
   end
 

@@ -16,7 +16,6 @@ defmodule Tymeslot.Security.WebhookInputProcessor do
   embedded_schema do
     field(:name, :string)
     field(:url, :string)
-    field(:secret, :string)
     field(:events, {:array, :string}, default: [])
   end
 
@@ -51,7 +50,7 @@ defmodule Tymeslot.Security.WebhookInputProcessor do
 
   defp perform_webhook_validation(params) do
     %__MODULE__{}
-    |> cast(params, [:name, :url, :secret, :events])
+    |> cast(params, [:name, :url, :events])
     |> validate_required([:name], message: "Name cannot be empty")
     |> validate_required([:url])
     |> validate_length(:name, min: 1, max: 255)
@@ -139,18 +138,9 @@ defmodule Tymeslot.Security.WebhookInputProcessor do
 
   defp validate_events_list(changeset) do
     validate_change(changeset, :events, fn :events, events ->
-      valid_events = WebhookSchema.valid_events()
-
-      if Enum.empty?(events) do
-        [{:events, "At least one event must be selected"}]
-      else
-        invalid_events = Enum.reject(events, &(&1 in valid_events))
-
-        if Enum.empty?(invalid_events) do
-          []
-        else
-          [{:events, "Invalid events: #{Enum.join(invalid_events, ", ")}"}]
-        end
+      case WebhookSchema.validate_events_list(events) do
+        :ok -> []
+        {:error, msg} -> [{:events, String.capitalize(msg)}]
       end
     end)
   end

@@ -16,7 +16,7 @@ defmodule Tymeslot.DatabaseSchemas.WebhookSchema do
           user_id: integer() | nil,
           name: String.t() | nil,
           url: String.t() | nil,
-          secret_encrypted: binary() | nil,
+          webhook_token_encrypted: binary() | nil,
           events: [String.t()],
           is_active: boolean(),
           last_triggered_at: DateTime.t() | nil,
@@ -25,6 +25,7 @@ defmodule Tymeslot.DatabaseSchemas.WebhookSchema do
           disabled_at: DateTime.t() | nil,
           disabled_reason: String.t() | nil,
           user: Tymeslot.DatabaseSchemas.UserSchema.t() | Ecto.Association.NotLoaded.t(),
+          webhook_token: String.t() | nil,
           inserted_at: DateTime.t() | nil,
           updated_at: DateTime.t() | nil
         }
@@ -32,7 +33,7 @@ defmodule Tymeslot.DatabaseSchemas.WebhookSchema do
   schema "webhooks" do
     field(:name, :string)
     field(:url, :string)
-    field(:secret_encrypted, :binary)
+    field(:webhook_token_encrypted, :binary)
     field(:events, {:array, :string}, default: [])
     field(:is_active, :boolean, default: true)
     field(:last_triggered_at, :utc_datetime)
@@ -41,8 +42,8 @@ defmodule Tymeslot.DatabaseSchemas.WebhookSchema do
     field(:disabled_at, :utc_datetime)
     field(:disabled_reason, :string)
 
-    # Virtual field for decrypted secret
-    field(:secret, :string, virtual: true)
+    # Virtual field for decrypted token
+    field(:webhook_token, :string, virtual: true)
 
     belongs_to(:user, Tymeslot.DatabaseSchemas.UserSchema)
 
@@ -57,7 +58,7 @@ defmodule Tymeslot.DatabaseSchemas.WebhookSchema do
 
   @required_fields [:name, :url, :user_id]
   @optional_fields [
-    :secret,
+    :webhook_token,
     :events,
     :is_active,
     :last_triggered_at,
@@ -77,16 +78,17 @@ defmodule Tymeslot.DatabaseSchemas.WebhookSchema do
     |> validate_length(:url, min: 1, max: 2048)
     |> validate_url()
     |> validate_events()
-    |> encrypt_secret()
     |> foreign_key_constraint(:user_id)
+    |> generate_token()
+    |> encrypt_token()
   end
 
   @doc """
-  Decrypts the secret field.
+  Decrypts the webhook token field.
   """
-  @spec decrypt_secret(t()) :: t()
-  def decrypt_secret(%__MODULE__{} = webhook) do
-    %{webhook | secret: Encryption.decrypt(webhook.secret_encrypted)}
+  @spec decrypt_token(t()) :: t()
+  def decrypt_token(%__MODULE__{} = webhook) do
+    %{webhook | webhook_token: Encryption.decrypt(webhook.webhook_token_encrypted)}
   end
 
   @doc """
@@ -206,40 +208,72 @@ defmodule Tymeslot.DatabaseSchemas.WebhookSchema do
       nil ->
         changeset
 
-      [] ->
-        add_error(changeset, :events, "must select at least one event")
-
       events ->
-        invalid_events = Enum.reject(events, &(&1 in @valid_events))
-
-        if Enum.empty?(invalid_events) do
-          changeset
-        else
-          add_error(
-            changeset,
-            :events,
-            "contains invalid events: #{Enum.join(invalid_events, ", ")}"
-          )
+        case validate_events_list(events) do
+          :ok -> changeset
+          {:error, msg} -> add_error(changeset, :events, msg)
         end
     end
   end
 
-  defp encrypt_secret(changeset) do
-    case get_change(changeset, :secret) do
+  @doc """
+  Validates a list of event types.
+  Returns :ok or {:error, message}
+  """
+  @spec validate_events_list([String.t()]) :: :ok | {:error, String.t()}
+  def validate_events_list([]) do
+    {:error, "must select at least one event"}
+  end
+
+  def validate_events_list(events) when is_list(events) do
+    invalid_events = Enum.reject(events, &(&1 in @valid_events))
+
+    if Enum.empty?(invalid_events) do
+      :ok
+    else
+      {:error, "contains invalid events: #{Enum.join(invalid_events, ", ")}"}
+    end
+  end
+
+  @doc """
+  Generates a new secure webhook token.
+  """
+  @spec generate_secure_token() :: String.t()
+  def generate_secure_token do
+    "ts_" <> Base.encode64(:crypto.strong_rand_bytes(24), padding: false)
+  end
+
+  defp in_production? do
+    Application.get_env(:tymeslot, :environment) == :prod
+  end
+
+  defp generate_token(changeset) do
+    case fetch_change(changeset, :webhook_token) do
+      {:ok, token} when is_binary(token) and token != "" ->
+        changeset
+
+      {:ok, _} ->
+        put_change(changeset, :webhook_token, generate_secure_token())
+
+      :error ->
+        if get_field(changeset, :webhook_token_encrypted) do
+          changeset
+        else
+          put_change(changeset, :webhook_token, generate_secure_token())
+        end
+    end
+  end
+
+  defp encrypt_token(changeset) do
+    case get_change(changeset, :webhook_token) do
       nil ->
         changeset
 
       "" ->
         changeset
 
-      secret ->
-        changeset
-        |> put_change(:secret_encrypted, Encryption.encrypt(secret))
-        |> delete_change(:secret)
+      token ->
+        put_change(changeset, :webhook_token_encrypted, Encryption.encrypt(token))
     end
-  end
-
-  defp in_production? do
-    Application.get_env(:tymeslot, :environment) == :prod
   end
 end

@@ -7,7 +7,7 @@ defmodule TymeslotWeb.Dashboard.ProfileSettings.DisplayNameFormComponent do
 
   alias Tymeslot.Profiles
   alias Tymeslot.Security.SettingsInputProcessor
-  alias TymeslotWeb.Components.FormSystem
+  import TymeslotWeb.Components.CoreComponents
 
   @impl true
   def update(assigns, socket) do
@@ -56,22 +56,24 @@ defmodule TymeslotWeb.Dashboard.ProfileSettings.DisplayNameFormComponent do
     ~H"""
     <div id="display-name-form-container">
       <.section_header level={3} title="Display Name" class="mb-4" />
-      <FormSystem.form_wrapper
+      <.form_wrapper
         for={%{}}
-        phx_change="validate_full_name"
-        phx_target={@myself}
+        phx-change="validate_full_name"
+        phx-target={@myself}
         id="display-name-form"
       >
-        <FormSystem.text_field
+        <.input
           name="full_name"
           value={if @profile, do: @profile.full_name || "", else: ""}
           label="Display Name"
           placeholder="Enter your full name"
-          help="This name will appear to visitors when they book meetings with you. Changes are saved automatically."
           errors={if @form_errors[:full_name], do: [@form_errors[:full_name]], else: []}
           phx-debounce="500"
         />
-      </FormSystem.form_wrapper>
+        <p class="mt-2 text-sm text-slate-500 font-bold">
+          This name will appear to visitors when they book meetings with you. Changes are saved automatically.
+        </p>
+      </.form_wrapper>
     </div>
     """
   end

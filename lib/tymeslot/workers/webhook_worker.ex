@@ -19,7 +19,7 @@ defmodule Tymeslot.Workers.WebhookWorker do
 
   alias Tymeslot.DatabaseQueries.{MeetingQueries, WebhookQueries}
   alias Tymeslot.DatabaseSchemas.WebhookSchema
-  alias Tymeslot.Webhooks.{PayloadBuilder, Security}
+  alias Tymeslot.Webhooks.PayloadBuilder
 
   # 10 second timeout for webhook delivery
   @delivery_timeout_ms 10_000
@@ -143,108 +143,86 @@ defmodule Tymeslot.Workers.WebhookWorker do
   defp deliver_webhook(%WebhookSchema{} = webhook, event_type, meeting, attempt) do
     # Check if webhook is still active
     if WebhookSchema.should_be_active?(webhook) do
-      # Decrypt secret if present
-      webhook = WebhookSchema.decrypt_secret(webhook)
+      # SSRF Protection: Re-validate URL format immediately before delivery to prevent DNS rebinding
+      case WebhookSchema.validate_url_format(webhook.url) do
+        :ok ->
+          # Decrypt token
+          webhook = WebhookSchema.decrypt_token(webhook)
 
-      # Build payload
-      payload = PayloadBuilder.build_payload(event_type, meeting, to_string(webhook.id))
+          # Build payload
+          payload = PayloadBuilder.build_payload(event_type, meeting, to_string(webhook.id))
 
-      # Create delivery log entry
-      {:ok, delivery} =
-        WebhookQueries.create_delivery(%{
-          webhook_id: webhook.id,
-          event_type: event_type,
-          meeting_id: meeting.id,
-          payload: payload,
-          attempt_count: attempt
-        })
+          # Create delivery log entry
+          {:ok, delivery} =
+            WebhookQueries.create_delivery(%{
+              webhook_id: webhook.id,
+              event_type: event_type,
+              meeting_id: meeting.id,
+              payload: payload,
+              attempt_count: attempt
+            })
 
-      # Send HTTP request
-      result = send_webhook_request(webhook.url, payload, webhook.secret)
+          # Send HTTP request
+          headers = Tymeslot.Webhooks.build_headers(payload, webhook.webhook_token)
 
-      # Update delivery log with result
-      {:ok, delivery} = update_delivery_with_result(delivery, result)
+          result =
+            case http_client().post(webhook.url, Jason.encode!(payload), headers,
+                   recv_timeout: @delivery_timeout_ms
+                 ) do
+              {:ok, %{status_code: status, body: response_body}} ->
+                {:ok, status, response_body}
 
-      # Return result for perform/1 to handle success/failure
-      case result do
-        {:ok, status, _body} when status >= 200 and status < 300 ->
-          {:ok, delivery}
+              {:error, %{reason: reason}} ->
+                {:error, inspect(reason)}
 
-        {:ok, status, _body} ->
-          {:error, {:http_error, status}}
+              {:error, reason} ->
+                {:error, inspect(reason)}
+            end
+
+          # Update delivery log with result
+          {:ok, delivery} =
+            case result do
+              {:ok, status, response_body} ->
+                WebhookQueries.update_delivery(delivery, %{
+                  response_status: status,
+                  response_body: truncate_response(response_body),
+                  delivered_at: DateTime.utc_now()
+                })
+
+              {:error, error_message} ->
+                WebhookQueries.update_delivery(delivery, %{
+                  error_message: truncate_response(error_message)
+                })
+            end
+
+          # Return result for perform/1 to handle success/failure
+          case result do
+            {:ok, status, _body} when status >= 200 and status < 300 ->
+              {:ok, delivery}
+
+            {:ok, status, _body} ->
+              {:error, {:http_error, status}}
+
+            {:error, reason} ->
+              {:error, reason}
+          end
 
         {:error, reason} ->
-          {:error, reason}
+          Logger.warning("Webhook delivery blocked by SSRF protection",
+            webhook_id: webhook.id,
+            url: webhook.url,
+            reason: reason
+          )
+
+          {:error, :blocked_by_ssrf}
       end
     else
       {:error, :disabled}
     end
   end
 
-  defp send_webhook_request(url, payload, secret) do
-    # Re-validate URL in production to prevent DNS rebinding attacks
-    if production?() and WebhookSchema.private_url?(url) do
-      {:error, "URL resolves to a private or local network address"}
-    else
-      headers = build_headers(payload, secret)
-      body = Jason.encode!(payload)
-
-      task =
-        Task.async(fn ->
-          http_client().post(url, body, headers, recv_timeout: @delivery_timeout_ms)
-        end)
-
-      case Task.yield(task, @delivery_timeout_ms + 1000) || Task.shutdown(task) do
-        {:ok, {:ok, %{status_code: status, body: response_body}}} ->
-          {:ok, status, response_body}
-
-        {:ok, {:error, %{reason: reason}}} ->
-          {:error, inspect(reason)}
-
-        {:ok, {:error, reason}} ->
-          {:error, inspect(reason)}
-
-        nil ->
-          {:error, "Request timed out after #{@delivery_timeout_ms}ms"}
-      end
-    end
-  end
-
-  defp build_headers(_payload, nil) do
-    [
-      {"Content-Type", "application/json"},
-      {"User-Agent", "Tymeslot-Webhooks/1.0"}
-    ]
-  end
-
-  defp build_headers(payload, secret) when is_binary(secret) and secret != "" do
-    signature = Security.generate_signature(payload, secret)
-
-    [
-      {"Content-Type", "application/json"},
-      {"User-Agent", "Tymeslot-Webhooks/1.0"},
-      {"X-Tymeslot-Signature", signature},
-      {"X-Tymeslot-Timestamp", DateTime.to_iso8601(DateTime.utc_now())}
-    ]
-  end
-
-  defp build_headers(payload, _), do: build_headers(payload, nil)
-
-  defp update_delivery_with_result(delivery, {:ok, status, response_body}) do
-    WebhookQueries.update_delivery(delivery, %{
-      response_status: status,
-      response_body: truncate_response(response_body),
-      delivered_at: DateTime.utc_now()
-    })
-  end
-
-  defp update_delivery_with_result(delivery, {:error, error_message}) do
-    WebhookQueries.update_delivery(delivery, %{
-      error_message: truncate_response(error_message)
-    })
-  end
-
   # Truncate response to prevent database bloat and ensure UTF-8 compatibility
+  @spec truncate_response(String.t() | term() | nil) :: String.t() | nil
   defp truncate_response(nil), do: nil
 
   defp truncate_response(response) when is_binary(response) do
@@ -266,11 +244,8 @@ defmodule Tymeslot.Workers.WebhookWorker do
 
   defp truncate_response(response), do: truncate_response(inspect(response))
 
+  @spec http_client() :: module()
   defp http_client do
     Application.get_env(:tymeslot, :http_client_module, Tymeslot.Infrastructure.HTTPClient)
-  end
-
-  defp production? do
-    Application.get_env(:tymeslot, :environment) == :prod
   end
 end

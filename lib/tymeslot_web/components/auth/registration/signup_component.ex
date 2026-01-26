@@ -9,10 +9,10 @@ defmodule TymeslotWeb.Registration.SignupComponent do
   use TymeslotWeb, :html
   import TymeslotWeb.Shared.Auth.LayoutComponents
   import TymeslotWeb.Shared.Auth.FormComponents
-  import TymeslotWeb.Shared.Auth.InputComponents
   import TymeslotWeb.Shared.Auth.ButtonComponents
   import TymeslotWeb.Shared.SocialAuthButtons
   import TymeslotWeb.Shared.PasswordToggleButtonComponent
+  import TymeslotWeb.Components.CoreComponents
 
   alias Tymeslot.Infrastructure.Security.RecaptchaHelpers
 
@@ -61,25 +61,32 @@ defmodule TymeslotWeb.Registration.SignupComponent do
             />
           </div>
           <div class="space-y-4 sm:space-y-5 mb-2">
-            <.standard_email_input
+            <.input
               name="user[email]"
+              type="email"
+              label="Email Address"
               errors={Map.get(@errors, :email, [])}
               value={Map.get(@form_data, :email, "")}
               phx-change="validate_signup"
+              icon="hero-envelope"
+              required
             />
             <div id="password-toggle-container" class="password-container" phx-hook="PasswordToggle">
-              <.form_label for="password-input" text="Password" />
-              <.auth_text_input
+              <.input
                 id="password-input"
                 name="user[password]"
                 type="password"
+                label="Password"
                 placeholder="Create a password"
-                required={true}
+                required
                 aria-describedby="password-requirements"
                 errors={Map.get(@errors, :password, [])}
+                icon="hero-lock-closed"
               >
-                <.password_toggle_button id="password-toggle" />
-              </.auth_text_input>
+                <:trailing_icon>
+                  <.password_toggle_button id="password-toggle" />
+                </:trailing_icon>
+              </.input>
               <.password_requirements />
             </div>
             <%= if Application.get_env(:tymeslot, :enforce_legal_agreements, false) do %>

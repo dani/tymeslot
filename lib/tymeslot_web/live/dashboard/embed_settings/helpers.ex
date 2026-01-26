@@ -25,8 +25,9 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettings.Helpers do
     data_primary_color = if primary_color, do: " data-primary-color=\"#{primary_color}\"", else: ""
 
     String.trim("""
+    <!-- Tymeslot Inline -->
     <div id="tymeslot-booking" data-username="#{username}"#{data_locale}#{data_theme}#{data_primary_color}></div>
-    <script src="#{base_url}/embed.js" async onerror="var d=document.getElementById('tymeslot-booking');if(d)d.innerHTML='<strong>Booking could not be loaded.</strong>'"></script>
+    <script src="#{base_url}/embed.js" async></script>
     """)
   end
 
@@ -37,6 +38,7 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettings.Helpers do
     js_options = build_js_options(options)
 
     String.trim("""
+    <!-- Tymeslot Popup -->
     <button onclick="if(window.TymeslotBooking){TymeslotBooking.open('#{username}'#{js_options})}else{alert('Booking system is currently unavailable.')}">Book a Meeting</button>
     <script src="#{base_url}/embed.js" async></script>
     """)
@@ -58,6 +60,7 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettings.Helpers do
     js_options = build_js_options(options)
 
     String.trim("""
+    <!-- Tymeslot Floating Button -->
     <script src="#{base_url}/embed.js" async></script>
     <script>
       (function() {

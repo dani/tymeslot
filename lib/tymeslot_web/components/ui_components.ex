@@ -193,36 +193,35 @@ defmodule TymeslotWeb.Components.UIComponents do
   end
 
   @doc """
-  Renders a form field with label and error handling.
-
-  Delegates to CoreComponents.Forms for the actual implementation.
+  Renders a unified input field with label, icons, and error handling.
   """
-  attr :form, :any, required: true
-  attr :field, :atom, required: true
-  attr :label, :string, required: true
+  attr :id, :any, default: nil
+  attr :name, :any
+  attr :label, :string, default: nil
+  attr :value, :any
   attr :type, :string, default: "text"
-  attr :placeholder, :string, default: ""
+  attr :field, Phoenix.HTML.FormField
+  attr :errors, :list, default: []
+  attr :checked, :boolean
+  attr :prompt, :string, default: nil
+  attr :options, :list
+  attr :multiple, :boolean, default: false
   attr :required, :boolean, default: false
-  attr :touched_fields, :list, default: []
-  attr :rest, :global
-
-  @spec form_field(map()) :: Phoenix.LiveView.Rendered.t()
-  def form_field(assigns), do: Forms.form_field(assigns)
-
-  @doc """
-  Renders a textarea field with label and error handling.
-
-  Delegates to CoreComponents.Forms for the actual implementation.
-  """
-  attr :form, :any, required: true
-  attr :field, :atom, required: true
-  attr :label, :string, required: true
-  attr :placeholder, :string, default: ""
+  attr :placeholder, :string, default: nil
   attr :rows, :integer, default: 4
-  attr :required, :boolean, default: false
-  attr :touched_fields, :list, default: []
+  attr :icon, :string, default: nil
+  attr :validate_on_blur, :boolean, default: false
+  attr :class, :string, default: nil
+  attr :min, :any
+  attr :max, :any
+  attr :step, :any
+  attr :minlength, :any
+  attr :maxlength, :any
+  attr :pattern, :any
   attr :rest, :global
-
-  @spec form_textarea(map()) :: Phoenix.LiveView.Rendered.t()
-  def form_textarea(assigns), do: Forms.form_textarea(assigns)
+  slot :inner_block
+  slot :leading_icon
+  slot :trailing_icon
+  @spec input(map()) :: Phoenix.LiveView.Rendered.t()
+  def input(assigns), do: Forms.input(assigns)
 end

@@ -13,9 +13,9 @@ defmodule TymeslotWeb.Session.PasswordResetComponent do
   use TymeslotWeb, :html
   import TymeslotWeb.Shared.Auth.LayoutComponents
   import TymeslotWeb.Shared.Auth.FormComponents
-  import TymeslotWeb.Shared.Auth.InputComponents
   import TymeslotWeb.Shared.Auth.ButtonComponents
   import TymeslotWeb.Shared.PasswordToggleButtonComponent
+  import TymeslotWeb.Components.CoreComponents
 
   @doc """
   Renders the forgot password form using shared auth components.
@@ -42,11 +42,15 @@ defmodule TymeslotWeb.Session.PasswordResetComponent do
           loading={@loading}
           csrf_token={@csrf_token}
         >
-          <.standard_email_input
+          <.input
             name="email"
+            type="email"
+            label="Email Address"
             errors={Map.get(@errors, :email, [])}
             value={Map.get(@form_data, :email, "")}
             phx-change="validate_reset_request"
+            icon="hero-envelope"
+            required
           />
 
           <%= if Map.get(@errors, :general) do %>
@@ -165,32 +169,38 @@ defmodule TymeslotWeb.Session.PasswordResetComponent do
         >
           <input type="hidden" name="token" value={@reset_token} />
           <div class="space-y-1.5" id="password-toggle-container" phx-hook="PasswordToggle">
-            <.form_label for="password-input" text="New Password" />
-            <.auth_text_input
+            <.input
               id="password-input"
               name="password"
               type="password"
+              label="New Password"
               placeholder="Enter your new password"
-              required={true}
+              required
               class="text-sm sm:text-base"
               aria-describedby="password-requirements"
+              icon="hero-lock-closed"
             >
-              <.password_toggle_button id="password-toggle" />
-            </.auth_text_input>
+              <:trailing_icon>
+                <.password_toggle_button id="password-toggle" />
+              </:trailing_icon>
+            </.input>
             <.password_requirements />
           </div>
           <div class="space-y-1.5">
-            <.form_label for="confirm-password-input" text="Confirm New Password" />
-            <.auth_text_input
+            <.input
               id="confirm-password-input"
               name="password_confirmation"
               type="password"
+              label="Confirm New Password"
               placeholder="Confirm your new password"
-              required={true}
+              required
               class="text-sm sm:text-base"
+              icon="hero-lock-closed"
             >
-              <.password_toggle_button id="confirm-password-toggle" />
-            </.auth_text_input>
+              <:trailing_icon>
+                <.password_toggle_button id="confirm-password-toggle" />
+              </:trailing_icon>
+            </.input>
           </div>
           <div class="pt-2">
             <.auth_button type="submit">

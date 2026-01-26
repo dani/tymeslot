@@ -96,40 +96,35 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.BookingComponent do
                     data-testid="booking-form"
                     class="space-y-2"
                   >
-                    <.form_field
-                      form={f}
-                      field={:name}
+                    <.input
+                      field={f[:name]}
                       label={gettext("Your Name")}
                       placeholder={gettext("John Doe")}
-                      required={true}
-                      touched_fields={@touched_fields}
+                      required
                       phx-debounce="blur"
                       phx-blur="field_blur"
                       phx-value-field="name"
                       phx-target={@myself}
                     />
 
-                    <.form_field
-                      form={f}
-                      field={:email}
+                    <.input
+                      field={f[:email]}
                       label={gettext("Email Address")}
                       type="email"
                       placeholder={gettext("john@example.com")}
-                      required={true}
-                      touched_fields={@touched_fields}
+                      required
                       phx-debounce="blur"
                       phx-blur="field_blur"
                       phx-value-field="email"
                       phx-target={@myself}
                     />
 
-                    <.form_textarea
-                      form={f}
-                      field={:message}
+                    <.input
+                      field={f[:message]}
+                      type="textarea"
                       label={gettext("Additional Message (Optional)")}
                       placeholder={gettext("Let me know what you'd like to discuss...")}
                       rows={3}
-                      touched_fields={@touched_fields}
                       phx-debounce="blur"
                       phx-blur="field_blur"
                       phx-value-field="message"

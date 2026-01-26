@@ -10,7 +10,6 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
   alias Phoenix.LiveView.JS
   alias Tymeslot.Security.WebhookInputProcessor
   alias Tymeslot.Webhooks
-  alias Tymeslot.Webhooks.Security, as: WebhookSecurity
   alias TymeslotWeb.Components.Icons.IconComponents
   alias TymeslotWeb.Dashboard.Notifications.Components
   alias TymeslotWeb.Dashboard.Notifications.Helpers, as: NotificationHelpers
@@ -22,7 +21,8 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
   def mount(socket) do
     modal_configs = [
       {:delete, false},
-      {:deliveries, false}
+      {:deliveries, false},
+      {:regenerate_token, false}
     ]
 
     {:ok,
@@ -58,7 +58,7 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
   @impl true
   @spec handle_event(String.t(), map(), Phoenix.LiveView.Socket.t()) ::
           {:noreply, Phoenix.LiveView.Socket.t()}
-  def handle_event("show_create_modal", _params, socket) do
+  def handle_event("show_webhook_form", _params, socket) do
     {:noreply,
      socket
      |> assign(:show_webhook_form, true)
@@ -69,7 +69,6 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
      |> assign(:form_values, %{
        "name" => "",
        "url" => "",
-       "secret" => "",
        "events" => []
      })}
   end
@@ -81,13 +80,6 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
      |> assign(:webhook_form_data, nil)
      |> assign(:form_errors, %{})
      |> assign(:form_values, %{})}
-  end
-
-  def handle_event("generate_secret", _params, socket) do
-    secret = WebhookSecurity.generate_secret()
-    form_values = Map.put(socket.assigns.form_values, "secret", secret)
-
-    {:noreply, assign(socket, :form_values, form_values)}
   end
 
   def handle_event("validate_field", %{"field" => field, "value" => value}, socket) do
@@ -115,7 +107,23 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
 
   def handle_event("toggle_event", %{"event" => event}, socket) do
     form_values = NotificationHelpers.toggle_event(socket.assigns.form_values, event)
-    {:noreply, assign(socket, :form_values, form_values)}
+
+    # Trigger validation for the events field
+    metadata = NotificationHelpers.get_security_metadata(socket)
+
+    updated_errors =
+      NotificationHelpers.validate_field(
+        form_values,
+        socket.assigns.form_errors,
+        "events",
+        Map.get(form_values, "events"),
+        metadata
+      )
+
+    {:noreply,
+     socket
+     |> assign(:form_values, form_values)
+     |> assign(:form_errors, updated_errors)}
   end
 
   def handle_event("create_webhook", %{"webhook" => params}, socket) do
@@ -148,7 +156,7 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
     end
   end
 
-  def handle_event("show_edit_modal", %{"id" => id}, socket) do
+  def handle_event("show_edit_webhook_form", %{"id" => id}, socket) do
     case get_webhook_for_user(socket, id) do
       {:ok, webhook} ->
         {:noreply,
@@ -161,7 +169,6 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
          |> assign(:form_values, %{
            "name" => webhook.name,
            "url" => webhook.url,
-           "secret" => webhook.secret || "",
            "events" => webhook.events
          })}
 
@@ -274,7 +281,7 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
 
     case get_webhook_for_user(socket, id) do
       {:ok, webhook} ->
-        case Webhooks.test_webhook_connection(webhook.url, webhook.secret) do
+        case Webhooks.test_webhook_connection(webhook.url, webhook.webhook_token) do
           :ok ->
             Flash.info("Webhook test successful! Check your endpoint.")
             {:noreply, assign(socket, :testing_connection, nil)}
@@ -309,6 +316,59 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
     end
   end
 
+  def handle_event("show_regenerate_token_modal", %{"id" => id}, socket) do
+    case get_webhook_for_user(socket, id) do
+      {:ok, webhook} ->
+        {:noreply,
+         socket
+         |> ModalHook.show_modal(:regenerate_token)
+         |> assign(:selected_webhook, webhook)}
+
+      {:error, _} ->
+        Flash.error("Webhook not found")
+        {:noreply, socket}
+    end
+  end
+
+  def handle_event("hide_regenerate_token_modal", _params, socket) do
+    {:noreply,
+     socket
+     |> ModalHook.hide_modal(:regenerate_token)
+     |> assign(:selected_webhook, nil)}
+  end
+
+  def handle_event("regenerate_token", _params, socket) do
+    case socket.assigns.selected_webhook do
+      nil ->
+        {:noreply, socket}
+
+      webhook ->
+        case Webhooks.regenerate_token(webhook) do
+          {:ok, updated_webhook} ->
+            Flash.info("Security token regenerated")
+
+            # Update form data if we are editing this webhook
+            socket =
+              if socket.assigns.webhook_form_mode == :edit and
+                   socket.assigns.webhook_form_data.id == updated_webhook.id do
+                assign(socket, :webhook_form_data, updated_webhook)
+              else
+                socket
+              end
+
+            {:noreply,
+             socket
+             |> ModalHook.hide_modal(:regenerate_token)
+             |> assign(:selected_webhook, nil)
+             |> load_webhooks()}
+
+          {:error, _} ->
+            Flash.error("Failed to regenerate token")
+            {:noreply, socket}
+        end
+    end
+  end
+
   def handle_event("hide_deliveries", _params, socket) do
     {:noreply,
      socket
@@ -323,6 +383,29 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
   def render(assigns) do
     ~H"""
     <div class="space-y-10 pb-20">
+      <!-- Modals (Always rendered so they can be triggered from anywhere) -->
+      <Modals.delete_webhook_modal
+        show={@show_delete_modal}
+        on_cancel={JS.push("hide_delete_modal", target: @myself)}
+        on_confirm={JS.push("delete_webhook", target: @myself)}
+      />
+
+      <%= if @show_deliveries_modal do %>
+        <Modals.deliveries_modal
+          show={@show_deliveries_modal}
+          webhook={@selected_webhook}
+          deliveries={@deliveries}
+          stats={@delivery_stats}
+          on_close={JS.push("hide_deliveries", target: @myself)}
+        />
+      <% end %>
+
+      <Modals.regenerate_token_modal
+        show={@show_regenerate_token_modal}
+        on_cancel={JS.push("hide_regenerate_token_modal", target: @myself)}
+        on_confirm={JS.push("regenerate_token", target: @myself)}
+      />
+
       <%= if @show_webhook_form do %>
         <div class="animate-in fade-in slide-in-from-bottom-4 duration-500">
           <.live_component
@@ -360,24 +443,6 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
           </div>
         </div>
 
-        <!-- Delete Confirmation Modal -->
-        <Modals.delete_webhook_modal
-          show={@show_delete_modal}
-          on_cancel={JS.push("hide_delete_modal", target: @myself)}
-          on_confirm={JS.push("delete_webhook", target: @myself)}
-        />
-
-        <!-- Deliveries Modal -->
-        <%= if @show_deliveries_modal do %>
-          <Modals.deliveries_modal
-            show={@show_deliveries_modal}
-            webhook={@selected_webhook}
-            deliveries={@deliveries}
-            stats={@delivery_stats}
-            on_close={JS.push("hide_deliveries", target: @myself)}
-          />
-        <% end %>
-
         <!-- Tab Content -->
         <div class="space-y-12">
           <!-- Connected Webhooks Section -->
@@ -390,7 +455,7 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
                   count={length(@webhooks)}
                 />
                 <button
-                  phx-click="show_create_modal"
+                  phx-click="show_webhook_form"
                   phx-target={@myself}
                   class="btn-primary"
                 >
@@ -403,9 +468,10 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
                   <Components.webhook_card
                     webhook={webhook}
                     testing={@testing_connection == webhook.id}
-                    on_edit={JS.push("show_edit_modal", value: %{"id" => webhook.id}, target: @myself)}
+                    target={@myself}
+                    on_edit={JS.push("show_edit_webhook_form", value: %{"id" => webhook.id}, target: @myself)}
                     on_delete={JS.push("show_delete_modal", value: %{"id" => webhook.id}, target: @myself)}
-                    on_toggle={JS.push("toggle_webhook", value: %{"id" => webhook.id}, target: @myself)}
+                    on_toggle="toggle_webhook"
                     on_test={JS.push("test_connection", value: %{"id" => webhook.id}, target: @myself)}
                     on_view_deliveries={JS.push("show_deliveries", value: %{"id" => webhook.id}, target: @myself)}
                   />
@@ -414,7 +480,7 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
             </div>
           <% else %>
             <!-- Empty State -->
-            <Components.webhook_empty_state on_create={JS.push("show_create_modal", target: @myself)} />
+            <Components.webhook_empty_state on_create={JS.push("show_webhook_form", target: @myself)} />
           <% end %>
 
           <!-- Documentation Section -->

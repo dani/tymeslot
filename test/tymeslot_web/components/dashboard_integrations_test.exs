@@ -2,6 +2,7 @@ defmodule TymeslotWeb.Components.DashboardIntegrationsTest do
   use TymeslotWeb.ConnCase, async: true
   import Phoenix.Component
   import Phoenix.LiveViewTest
+  import TymeslotWeb.Components.CoreComponents
   alias Floki
 
   alias TymeslotWeb.Components.Dashboard.Integrations.Calendar.CaldavConfig
@@ -249,7 +250,7 @@ defmodule TymeslotWeb.Components.DashboardIntegrationsTest do
 
   test "renders integration_form with provider info and base errors" do
     inner_block = [
-      %{__slot__: :inner_block, inner_block: fn assigns, _ -> ~H[<input name="x" />] end}
+      %{__slot__: :inner_block, inner_block: fn assigns, _ -> ~H[<.input name="x" />] end}
     ]
 
     assigns = %{
@@ -279,7 +280,7 @@ defmodule TymeslotWeb.Components.DashboardIntegrationsTest do
 
   test "renders integration_form submit button in saving state" do
     inner_block = [
-      %{__slot__: :inner_block, inner_block: fn assigns, _ -> ~H[<input name="x" />] end}
+      %{__slot__: :inner_block, inner_block: fn assigns, _ -> ~H[<.input name="x" />] end}
     ]
 
     assigns = %{

@@ -54,82 +54,52 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm do
     ~H"""
     <form phx-submit="save_meeting_type" phx-target={@parent_myself} class="space-y-4">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label for="type_name" class="label">
-            Name
-          </label>
-          <input
-            type="text"
-            id="type_name"
-            name="meeting_type[name]"
-            value={Map.get(@form_data, "name", if(@type, do: @type.name, else: ""))}
-            required
-            maxlength="100"
-            class={[
-              "input",
-              if(Map.get(@form_errors, :name), do: "input-error", else: "")
-            ]}
-            placeholder="e.g., Quick Chat"
-            phx-change="validate_meeting_type"
-            phx-target={@myself}
-          />
-          <%= if errors = Map.get(@form_errors, :name) do %>
-            <p class="form-error">{Helpers.format_errors(errors)}</p>
-          <% end %>
-        </div>
+        <.input
+          name="meeting_type[name]"
+          label="Name"
+          value={Map.get(@form_data, "name", if(@type, do: @type.name, else: ""))}
+          required
+          maxlength="100"
+          placeholder="e.g., Quick Chat"
+          phx-change="validate_meeting_type"
+          phx-target={@myself}
+          errors={if errors = Map.get(@form_errors, :name), do: [Helpers.format_errors(errors)], else: []}
+          icon="hero-tag"
+        />
 
         <div>
-          <label for="type_duration" class="label">
-            Duration (minutes)
-          </label>
-          <input
+          <.input
             type="number"
-            id="type_duration"
             name="meeting_type[duration]"
+            label="Duration (minutes)"
             value={Map.get(@form_data, "duration", if(@type, do: @type.duration_minutes, else: "30"))}
             min="5"
             max="480"
             step="5"
             required
-            class={[
-              "input",
-              if(Map.get(@form_errors, :duration), do: "input-error", else: "")
-            ]}
             placeholder="30"
             phx-change="validate_meeting_type"
             phx-target={@myself}
+            errors={if errors = Map.get(@form_errors, :duration), do: [Helpers.format_errors(errors)], else: []}
+            icon="hero-clock"
           />
-          <%= if errors = Map.get(@form_errors, :duration) do %>
-            <p class="form-error">{Helpers.format_errors(errors)}</p>
-          <% end %>
           <p class="mt-1 text-token-sm text-tymeslot-600">
             Enter a duration between 5 and 480 minutes
           </p>
         </div>
       </div>
 
-      <div>
-        <label for="type_description" class="label">
-          Description (optional)
-        </label>
-        <input
-          type="text"
-          id="type_description"
-          name="meeting_type[description]"
-          value={Map.get(@form_data, "description", if(@type, do: @type.description, else: ""))}
-          maxlength="500"
-          class={[
-            "input",
-            if(Map.get(@form_errors, :description), do: "input-error", else: "")
-          ]}
-          placeholder="Brief description of this meeting type"
-          phx-change="validate_meeting_type"
-          phx-target={@myself}
-        />
-        <%= if errors = Map.get(@form_errors, :description) do %>
-          <p class="form-error">{Helpers.format_errors(errors)}</p>
-        <% end %>
-      </div>
+      <.input
+        name="meeting_type[description]"
+        label="Description (optional)"
+        value={Map.get(@form_data, "description", if(@type, do: @type.description, else: ""))}
+        maxlength="500"
+        placeholder="Brief description of this meeting type"
+        phx-change="validate_meeting_type"
+        phx-target={@myself}
+        errors={if errors = Map.get(@form_errors, :description), do: [Helpers.format_errors(errors)], else: []}
+        icon="hero-document-text"
+      />
 
       <.reminders_section
         reminders={@reminders}
