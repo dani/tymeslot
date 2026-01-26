@@ -1,12 +1,40 @@
-## "msgid"s in this file come from POT (.pot) files.
-###
-### Do not add, change, or remove "msgid"s manually here as
-### they're tied to the ones in the corresponding POT file
-### (with the same domain).
-###
-### Use "mix gettext.extract --merge" or "mix gettext.merge"
-### to merge POT files into PO files.
+## German error translations
 msgid ""
 msgstr ""
 "Language: de\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: Error Messages
+msgid "something_went_wrong"
+msgstr "Ein Fehler ist aufgetreten"
+
+msgid "try_again_later"
+msgstr "Bitte versuchen Sie es später noch einmal"
+
+msgid "invalid_meeting_link"
+msgstr "Ungültiger Link"
+
+msgid "slot_no_longer_available"
+msgstr "Dieser Termin ist leider nicht mehr verfügbar"
+
+msgid "name_required"
+msgstr "Name erforderlich"
+
+msgid "email_required"
+msgstr "E-Mail erforderlich"
+
+msgid "email_invalid"
+msgstr "Bitte geben Sie eine gültige E-Mail-Adresse ein"
+
+msgid "calendar_setup_required"
+msgstr "Diese Buchungsseite ist noch nicht verfügbar"
+
+msgid "connect_calendar_first"
+msgstr "Falls Sie der Veranstalter sind: Bitte verknüpfen Sie einen Kalender in Ihrem Dashboard."
+
+#: Status
+msgid "loading"
+msgstr "Lädt …"
+
+msgid "submitting"
+msgstr "Wird gesendet …"

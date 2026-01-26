@@ -1,12 +1,40 @@
-## "msgid"s in this file come from POT (.pot) files.
-###
-### Do not add, change, or remove "msgid"s manually here as
-### they're tied to the ones in the corresponding POT file
-### (with the same domain).
-###
-### Use "mix gettext.extract --merge" or "mix gettext.merge"
-### to merge POT files into PO files.
+## Ukrainian error translations
 msgid ""
 msgstr ""
 "Language: uk\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100 != 11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10||n%100>=20) ? 1 : 2);\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10||n%100>=20) ? 1 : 2);\n"
+
+#: Error Messages
+msgid "something_went_wrong"
+msgstr "Щось пішло не так"
+
+msgid "try_again_later"
+msgstr "Спробуйте пізніше"
+
+msgid "invalid_meeting_link"
+msgstr "Посилання на зустріч недійсне"
+
+msgid "slot_no_longer_available"
+msgstr "Цей час більше недоступний"
+
+msgid "name_required"
+msgstr "Вкажіть ім'я"
+
+msgid "email_required"
+msgstr "Вкажіть електронну пошту"
+
+msgid "email_invalid"
+msgstr "Введіть коректну електронну адресу"
+
+msgid "calendar_setup_required"
+msgstr "Ми поки що не можемо показати цю сторінку планування"
+
+msgid "connect_calendar_first"
+msgstr "Якщо ви організатор, підключіть календар на панелі керування."
+
+#: Status
+msgid "loading"
+msgstr "Завантаження…"
+
+msgid "submitting"
+msgstr "Надсилання…"

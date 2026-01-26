@@ -141,41 +141,6 @@ msgstr "Vielen Dank!"
 msgid "see_you_soon"
 msgstr "Bis bald"
 
-#: Error Messages
-msgid "something_went_wrong"
-msgstr "Ein Fehler ist aufgetreten"
-
-msgid "try_again_later"
-msgstr "Bitte versuchen Sie es später noch einmal"
-
-msgid "invalid_meeting_link"
-msgstr "Ungültiger Link"
-
-msgid "slot_no_longer_available"
-msgstr "Dieser Termin ist leider nicht mehr verfügbar"
-
-msgid "name_required"
-msgstr "Name erforderlich"
-
-msgid "email_required"
-msgstr "E-Mail erforderlich"
-
-msgid "email_invalid"
-msgstr "Bitte geben Sie eine gültige E-Mail-Adresse ein"
-
-msgid "calendar_setup_required"
-msgstr "Diese Buchungsseite ist noch nicht verfügbar"
-
-msgid "connect_calendar_first"
-msgstr "Falls Sie der Veranstalter sind: Bitte verknüpfen Sie einen Kalender in Ihrem Dashboard."
-
-#: Status
-msgid "loading"
-msgstr "Lädt …"
-
-msgid "submitting"
-msgstr "Wird gesendet …"
-
 #: Time formats
 msgid "minutes"
 msgstr "Minuten"

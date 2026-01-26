@@ -3,6 +3,7 @@ defmodule TymeslotWeb.Themes.Shared.Components.ErrorComponent do
   Shared error component for scheduling page readiness issues.
   """
   use TymeslotWeb, :live_component
+  use Gettext, backend: TymeslotWeb.Gettext
 
   alias TymeslotWeb.Components.CoreComponents
 
@@ -27,7 +28,7 @@ defmodule TymeslotWeb.Themes.Shared.Components.ErrorComponent do
               />
             </CoreComponents.icon_badge>
             <h1 class="text-2xl md:text-3xl font-bold mb-4" style="color: white;">
-              We can’t show this scheduling page yet
+              {dgettext("errors", "calendar_setup_required")}
             </h1>
             <CoreComponents.info_box variant={:error}>
               {@message}
@@ -40,7 +41,7 @@ defmodule TymeslotWeb.Themes.Shared.Components.ErrorComponent do
             <% end %>
 
             <p class="text-sm mt-6" style="color: rgba(255,255,255,0.85);">
-              If you are the organizer, please connect a calendar in your dashboard.
+              {dgettext("errors", "connect_calendar_first")}
             </p>
           </div>
         </CoreComponents.glass_morphism_card>

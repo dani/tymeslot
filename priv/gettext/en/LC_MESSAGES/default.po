@@ -144,41 +144,6 @@ msgstr "Thank You!"
 msgid "see_you_soon"
 msgstr "We'll see you soon"
 
-#: Error Messages
-msgid "something_went_wrong"
-msgstr "Something went wrong"
-
-msgid "try_again_later"
-msgstr "Please try again later"
-
-msgid "invalid_meeting_link"
-msgstr "Invalid meeting link"
-
-msgid "slot_no_longer_available"
-msgstr "This time slot is no longer available"
-
-msgid "name_required"
-msgstr "Name is required"
-
-msgid "email_required"
-msgstr "Email is required"
-
-msgid "email_invalid"
-msgstr "Please enter a valid email address"
-
-msgid "calendar_setup_required"
-msgstr "We can't show this scheduling page yet"
-
-msgid "connect_calendar_first"
-msgstr "If you are the organizer, please connect a calendar in your dashboard."
-
-#: Status
-msgid "loading"
-msgstr "Loading..."
-
-msgid "submitting"
-msgstr "Submitting..."
-
 #: Time formats
 msgid "minutes"
 msgstr "minutes"
