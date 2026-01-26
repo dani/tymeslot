@@ -37,17 +37,46 @@
   const BASE_URL = CONFIG.getBaseUrl();
 
   /**
+   * Global message listener for iframe resizing
+   */
+  window.addEventListener('message', function(e) {
+    if (e.origin !== BASE_URL) return;
+    if (e.data.type === 'tymeslot-resize' && e.data.height) {
+      const iframes = document.querySelectorAll('iframe[title="Booking Widget"]');
+      iframes.forEach(iframe => {
+        if (iframe.contentWindow === e.source) {
+          iframe.style.height = e.data.height + 'px';
+          if (iframe.parentNode) {
+            iframe.parentNode.style.minHeight = e.data.height + 'px';
+          }
+        }
+      });
+    }
+  });
+
+  /**
    * Create an iframe for embedding
    */
   function createBookingIframe(username, options = {}) {
     const iframe = document.createElement('iframe');
     const url = `${BASE_URL}/${username}`;
     
-    // Build URL with customization params
+    // Build URL with customization params - STRICT ALLOWLIST
     const params = new URLSearchParams();
-    if (options.theme) params.append('theme', options.theme);
-    if (options.primaryColor) params.append('primary-color', options.primaryColor);
-    if (options.duration) params.append('duration', options.duration);
+    const ALLOWED_PARAMS = ['theme', 'primaryColor', 'locale'];
+    
+    ALLOWED_PARAMS.forEach(key => {
+      const val = options[key];
+      if (!val) return;
+
+      if (key === 'theme' && /^\d+$/.test(val)) {
+        params.append('theme', val);
+      } else if (key === 'primaryColor' && /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(val)) {
+        params.append('primary-color', val);
+      } else if (key === 'locale' && /^[a-z]{2}(-[a-zA-Z0-9]+)?$/.test(val)) {
+        params.append('locale', val);
+      }
+    });
     
     const fullUrl = params.toString() ? `${url}?${params.toString()}` : url;
     
@@ -57,37 +86,105 @@
       border: none;
       min-height: 700px;
       background: transparent;
+      transition: opacity 0.3s ease;
+      opacity: 0;
     `;
     iframe.setAttribute('scrolling', 'auto');
     iframe.setAttribute('allow', 'payment');
     iframe.setAttribute('title', 'Booking Widget');
 
+    // Create wrapper for loading state
+    const wrapper = document.createElement('div');
+    wrapper.style.position = 'relative';
+    wrapper.style.width = '100%';
+    wrapper.style.minHeight = '700px';
+
+    const loader = document.createElement('div');
+    loader.className = 'tymeslot-loader';
+    loader.style.cssText = `
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-family: sans-serif;
+      color: #64748b;
+    `;
+    
+    const spinner = document.createElement('div');
+    spinner.style.cssText = 'width: 40px; height: 40px; border: 3px solid #f3f3f3; border-top: 3px solid #14B8A6; border-radius: 50%; animation: tymeslot-spin 1s linear infinite;';
+    
+    const loadingText = document.createElement('span');
+    loadingText.style.cssText = 'margin-top: 12px; font-size: 14px;';
+    loadingText.textContent = 'Loading booking page...';
+    
+    const style = document.createElement('style');
+    style.textContent = '@keyframes tymeslot-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }';
+    
+    loader.appendChild(spinner);
+    loader.appendChild(loadingText);
+    loader.appendChild(style);
+    wrapper.appendChild(loader);
+
     // Add loading timeout
-    const timeout = setTimeout(() => {
-      if (iframe.parentNode && !iframe.dataset.loaded) {
-        const error = document.createElement('div');
-        error.style.cssText =
-          'padding: 24px; color: #991b1b; background: #fef2f2; border: 2px solid #fecaca; border-radius: 12px; text-align: center; font-family: sans-serif;';
-        error.innerHTML =
-          '<strong>Booking widget is taking too long to load.</strong><br><p style="margin-top: 8px; font-size: 14px; color: #b91c1c;">Please check your connection or refresh the page.</p>';
-        iframe.parentNode.replaceChild(error, iframe);
+    let retryCount = 0;
+    const maxRetries = 2;
+    const TIMEOUT_MS = 15000;
+
+    const handleTimeout = () => {
+      if (wrapper.parentNode && !iframe.dataset.loaded) {
+        if (retryCount < maxRetries) {
+          retryCount++;
+          const currentUrl = new URL(iframe.src);
+          currentUrl.searchParams.set('_retry', retryCount);
+          iframe.src = currentUrl.toString();
+          setTimeout(handleTimeout, TIMEOUT_MS);
+        } else {
+          showError(wrapper, loader);
+          if (iframe.parentNode) iframe.remove();
+        }
       }
-    }, 15000); // 15s timeout
+    };
+
+    const timeout = setTimeout(handleTimeout, TIMEOUT_MS);
 
     iframe.onload = () => {
       iframe.dataset.loaded = 'true';
+      iframe.style.opacity = '1';
+      if (loader.parentNode) loader.remove();
       clearTimeout(timeout);
     };
-
-    // Handle auto-resize
-    window.addEventListener('message', function(e) {
-      if (e.origin !== BASE_URL) return;
-      if (e.data.type === 'tymeslot-resize' && e.data.height) {
-        iframe.style.height = e.data.height + 'px';
-      }
-    });
     
-    return iframe;
+    wrapper.appendChild(iframe);
+    return wrapper;
+  }
+
+  /**
+   * Show error message in container
+   */
+  function showError(container, elementToReplace) {
+    const error = document.createElement('div');
+    error.style.cssText = 'padding: 24px; color: #991b1b; background: #fef2f2; border: 2px solid #fecaca; border-radius: 12px; text-align: center; font-family: sans-serif;';
+    
+    const title = document.createElement('strong');
+    title.textContent = 'Booking widget is taking too long to load.';
+    
+    const subtext = document.createElement('p');
+    subtext.style.cssText = 'margin-top: 8px; font-size: 14px; color: #b91c1c;';
+    subtext.textContent = 'Please check your connection or refresh the page.';
+    
+    error.appendChild(title);
+    error.appendChild(document.createElement('br'));
+    error.appendChild(subtext);
+    
+    if (elementToReplace && elementToReplace.parentNode === container) {
+      container.replaceChild(error, elementToReplace);
+    } else {
+      container.innerHTML = '';
+      container.appendChild(error);
+    }
   }
 
   /**
@@ -251,7 +348,7 @@
       const options = {
         theme: container.getAttribute('data-theme'),
         primaryColor: container.getAttribute('data-primary-color'),
-        duration: container.getAttribute('data-duration')
+        locale: container.getAttribute('data-locale')
       };
       
       const iframe = createBookingIframe(username, options);
@@ -265,6 +362,19 @@
    */
   window.TymeslotBooking = {
     /**
+     * Display error in a container
+     */
+    showError: function(selectorOrElement) {
+      let container = selectorOrElement;
+      if (typeof selectorOrElement === 'string') {
+        container = document.querySelector(selectorOrElement);
+      }
+      if (container) {
+        showError(container);
+      }
+    },
+
+    /**
      * Open booking in a modal
      */
     open: function(username, options = {}) {
@@ -272,12 +382,20 @@
       this.close();
       
       const { modal, container } = createModal();
-      const iframe = createBookingIframe(username, options);
-      iframe.style.width = '100%';
-      iframe.style.height = '100%';
-      iframe.style.minHeight = '0';
+      const wrapper = createBookingIframe(username, options);
+      const iframe = wrapper.querySelector('iframe');
       
-      container.appendChild(iframe);
+      if (iframe) {
+        iframe.style.width = '100%';
+        iframe.style.height = '100%';
+        iframe.style.minHeight = '0';
+        
+        wrapper.style.height = '100%';
+        wrapper.style.minHeight = '0';
+        
+        container.appendChild(wrapper);
+      }
+      
       document.body.appendChild(modal);
       document.body.style.overflow = 'hidden';
       

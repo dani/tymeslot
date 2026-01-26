@@ -5,28 +5,40 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettings.Helpers do
 
   alias Phoenix.HTML
 
+  alias Tymeslot.Security.FieldValidators.UsernameValidator
+  alias Tymeslot.Security.UniversalSanitizer
+
   @doc """
   Generates the embed code snippet for a given type.
   """
   @spec embed_code(String.t(), map()) :: String.t()
-  def embed_code("inline", %{username: username, base_url: base_url}) do
-    username = escape(username)
+  def embed_code("inline", %{username: username, base_url: base_url} = options) do
+    username = sanitize_username(username)
     base_url = escape(base_url)
+    locale = sanitize_locale(options[:locale])
+    data_locale = if locale != "", do: " data-locale=\"#{locale}\"", else: ""
+
+    theme = sanitize_theme(options[:theme])
+    data_theme = if theme, do: " data-theme=\"#{theme}\"", else: ""
+
+    primary_color = sanitize_primary_color(options[:primary_color])
+    data_primary_color = if primary_color, do: " data-primary-color=\"#{primary_color}\"", else: ""
 
     String.trim("""
-    <div id="tymeslot-booking" data-username="#{username}"></div>
-    <script src="#{base_url}/embed.js"></script>
+    <div id="tymeslot-booking" data-username="#{username}"#{data_locale}#{data_theme}#{data_primary_color}></div>
+    <script src="#{base_url}/embed.js" async onerror="if(window.TymeslotBooking){TymeslotBooking.showError('#tymeslot-booking')}else{var d=document.getElementById('tymeslot-booking');if(d)d.innerHTML='<div style=\"padding:20px;border:1px solid #fecaca;background:#fef2f2;color:#991b1b;border-radius:8px;text-align:center;font-family:sans-serif;\"><strong>Booking could not be loaded.</strong><br>Please check your connection or ad-blocker.</div>'}"></script>
     """)
   end
 
   @spec embed_code(String.t(), map()) :: String.t()
-  def embed_code("popup", %{username: username, base_url: base_url}) do
-    username = escape(username)
+  def embed_code("popup", %{username: username, base_url: base_url} = options) do
+    username = sanitize_username(username)
     base_url = escape(base_url)
+    js_options = build_js_options(options)
 
     String.trim("""
-    <button onclick="TymeslotBooking.open('#{username}')">Book a Meeting</button>
-    <script src="#{base_url}/embed.js"></script>
+    <button onclick="if(window.TymeslotBooking){TymeslotBooking.open('#{username}'#{js_options})}else{alert('Booking system is currently unavailable. Please refresh or check your connection.')}">Book a Meeting</button>
+    <script src="#{base_url}/embed.js" async onerror="console.error('Tymeslot embed failed to load')"></script>
     """)
   end
 
@@ -40,14 +52,24 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettings.Helpers do
   end
 
   @spec embed_code(String.t(), map()) :: String.t()
-  def embed_code("floating", %{username: username, base_url: base_url}) do
-    username = escape(username)
+  def embed_code("floating", %{username: username, base_url: base_url} = options) do
+    username = sanitize_username(username)
     base_url = escape(base_url)
+    js_options = build_js_options(options)
 
     String.trim("""
-    <script src="#{base_url}/embed.js"></script>
+    <script src="#{base_url}/embed.js" async></script>
     <script>
-      TymeslotBooking.initFloating('#{username}');
+      (function() {
+        var init = function() {
+          if (window.TymeslotBooking) {
+            TymeslotBooking.initFloating('#{username}'#{js_options});
+          } else {
+            setTimeout(init, 100);
+          }
+        };
+        init();
+      })();
     </script>
     """)
   end
@@ -55,6 +77,68 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettings.Helpers do
   @spec embed_code(any(), any()) :: String.t()
   def embed_code(_, _), do: ""
 
+  defp build_js_options(options) do
+    %{
+      locale: sanitize_locale(options[:locale]),
+      theme: sanitize_theme(options[:theme]),
+      primaryColor: sanitize_primary_color(options[:primary_color])
+    }
+    |> Enum.reject(fn {_k, v} -> v == nil || v == "" end)
+    |> Enum.map(fn {k, v} -> "#{k}: '#{v}'" end)
+    |> case do
+      [] -> ""
+      list -> ", {" <> Enum.join(list, ", ") <> "}"
+    end
+  end
+
   defp escape(nil), do: ""
   defp escape(val), do: val |> HTML.html_escape() |> HTML.safe_to_string()
+
+  defp sanitize_username(username) do
+    # 1. Apply universal sanitization (strips HTML, SQL patterns, dangerous protocols)
+    # 2. Validate against username-specific rules (length, format, reserved words)
+    # If invalid, we return an empty string to be safe, as the username is used in JS/HTML
+    with {:ok, sanitized} <- UniversalSanitizer.sanitize_and_validate(username || ""),
+         :ok <- UsernameValidator.validate(sanitized) do
+      sanitized
+    else
+      {:error, _reason} -> "invalid-username"
+    end
+  end
+
+  defp sanitize_theme(nil), do: nil
+
+  defp sanitize_theme(theme) do
+    theme = to_string(theme)
+
+    if Regex.match?(~r/^\d+$/, theme) do
+      theme
+    else
+      nil
+    end
+  end
+
+  defp sanitize_primary_color(nil), do: nil
+
+  defp sanitize_primary_color(color) do
+    color = to_string(color)
+
+    if Regex.match?(~r/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, color) do
+      color
+    else
+      nil
+    end
+  end
+
+  defp sanitize_locale(nil), do: ""
+
+  defp sanitize_locale(locale) do
+    locale = to_string(locale)
+
+    if Regex.match?(~r/^[a-z]{2}(-[a-zA-Z0-9]+)?$/, locale) do
+      locale
+    else
+      ""
+    end
+  end
 end
