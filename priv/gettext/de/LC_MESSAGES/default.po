@@ -34,42 +34,42 @@ msgid "submit"
 msgstr "Absenden"
 
 msgid "schedule_another"
-msgstr "Weiteren Termin vereinbaren"
+msgstr "Weiteren Termin buchen"
 
 msgid "close"
 msgstr "Schließen"
 
 #: Overview Step
 msgid "select_meeting_duration"
-msgstr "Besprechungsdauer auswählen"
+msgstr "Dauer wählen"
 
 msgid "choose_meeting_type"
-msgstr "Wählen Sie einen Besprechungstyp"
+msgstr "Besprechungstyp wählen"
 
 msgid "select_duration"
-msgstr "Dauer auswählen"
+msgstr "Dauer wählen"
 
 #: Schedule Step
 msgid "select_date"
-msgstr "Datum auswählen"
+msgstr "Datum wählen"
 
 msgid "select_time"
-msgstr "Uhrzeit auswählen"
+msgstr "Uhrzeit wählen"
 
 msgid "no_available_slots"
-msgstr "Keine verfügbaren Termine an diesem Tag"
+msgstr "An diesem Tag sind keine Termine verfügbar"
 
 msgid "timezone"
 msgstr "Zeitzone"
 
 msgid "search_timezone"
-msgstr "Zeitzone suchen..."
+msgstr "Zeitzone suchen …"
 
 msgid "choose_date_time"
 msgstr "Datum und Uhrzeit wählen"
 
 msgid "select_date_time"
-msgstr "Datum und Uhrzeit auswählen"
+msgstr "Datum und Uhrzeit wählen"
 
 msgid "available"
 msgstr "Verfügbar"
@@ -88,13 +88,13 @@ msgid "message_optional"
 msgstr "Nachricht (optional)"
 
 msgid "enter_full_name"
-msgstr "Geben Sie Ihren vollständigen Namen ein"
+msgstr "Vollständigen Namen eingeben"
 
 msgid "enter_email"
-msgstr "ihre.email@beispiel.de"
+msgstr "ihr.name@beispiel.de"
 
 msgid "add_details"
-msgstr "Fügen Sie Details hinzu..."
+msgstr "Weitere Details …"
 
 #: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:153
 #, elixir-autogen
@@ -107,10 +107,10 @@ msgid "reschedule_meeting"
 msgstr "Termin verschieben"
 
 msgid "enter_details"
-msgstr "Geben Sie Ihre Daten ein"
+msgstr "Ihre Daten"
 
 msgid "your_information"
-msgstr "Ihre Informationen"
+msgstr "Ihre Angaben"
 
 #: lib/tymeslot_web/themes/quill/scheduling/components/confirmation_component.ex:79
 #, elixir-autogen
@@ -118,7 +118,7 @@ msgid "meeting_confirmed"
 msgstr "Termin bestätigt!"
 
 msgid "confirmation_email_sent"
-msgstr "Wir haben eine Bestätigungs-E-Mail an %{email} gesendet"
+msgstr "Eine Bestätigung wurde an %{email} gesendet"
 
 msgid "add_to_calendar"
 msgstr "Zum Kalender hinzufügen"
@@ -133,48 +133,48 @@ msgid "duration"
 msgstr "Dauer"
 
 msgid "location"
-msgstr "Standort"
+msgstr "Ort"
 
 msgid "thank_you"
 msgstr "Vielen Dank!"
 
 msgid "see_you_soon"
-msgstr "Wir sehen uns bald"
+msgstr "Bis bald"
 
 #: Error Messages
 msgid "something_went_wrong"
-msgstr "Es ist ein Fehler aufgetreten"
+msgstr "Ein Fehler ist aufgetreten"
 
 msgid "try_again_later"
-msgstr "Bitte versuchen Sie es später erneut"
+msgstr "Bitte versuchen Sie es später noch einmal"
 
 msgid "invalid_meeting_link"
-msgstr "Ungültiger Besprechungslink"
+msgstr "Ungültiger Link"
 
 msgid "slot_no_longer_available"
-msgstr "Dieser Zeitslot ist nicht mehr verfügbar"
+msgstr "Dieser Termin ist leider nicht mehr verfügbar"
 
 msgid "name_required"
-msgstr "Name ist erforderlich"
+msgstr "Name erforderlich"
 
 msgid "email_required"
-msgstr "E-Mail ist erforderlich"
+msgstr "E-Mail erforderlich"
 
 msgid "email_invalid"
 msgstr "Bitte geben Sie eine gültige E-Mail-Adresse ein"
 
 msgid "calendar_setup_required"
-msgstr "Wir können diese Terminseite noch nicht anzeigen"
+msgstr "Diese Buchungsseite ist noch nicht verfügbar"
 
 msgid "connect_calendar_first"
-msgstr "Wenn Sie der Organisator sind, verbinden Sie bitte einen Kalender in Ihrem Dashboard."
+msgstr "Falls Sie der Veranstalter sind: Bitte verknüpfen Sie einen Kalender in Ihrem Dashboard."
 
 #: Status
 msgid "loading"
-msgstr "Lädt..."
+msgstr "Lädt …"
 
 msgid "submitting"
-msgstr "Wird gesendet..."
+msgstr "Wird gesendet …"
 
 #: Time formats
 msgid "minutes"
@@ -275,22 +275,22 @@ msgstr "Sprache ändern"
 #: lib/tymeslot_web/themes/quill/scheduling/components/confirmation_component.ex:89
 #, elixir-autogen, elixir-format
 msgid "%{name}, your meeting%{organizer} has been rescheduled."
-msgstr "%{name}, Ihr Termin%{organizer} wurde verschoben."
+msgstr "%{name}, Ihr Termin %{organizer} wurde verschoben."
 
 #: lib/tymeslot_web/themes/quill/scheduling/components/confirmation_component.ex:91
 #, elixir-autogen, elixir-format
 msgid "%{name}, your meeting%{organizer} is all set."
-msgstr "%{name}, Ihr Termin%{organizer} ist bestätigt."
+msgstr "%{name}, Ihr Termin %{organizer} ist bestätigt."
 
 #: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:121
 #, elixir-autogen, elixir-format
 msgid "Additional Message (Optional)"
-msgstr "Zusätzliche Nachricht (Optional)"
+msgstr "Zusätzliche Nachricht (optional)"
 
 #: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:176
 #, elixir-autogen, elixir-format
 msgid "Click to schedule your meeting"
-msgstr "Klicken Sie, um Ihren Termin zu buchen"
+msgstr "Hier klicken, um Termin zu buchen"
 
 #: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:107
 #, elixir-autogen, elixir-format
@@ -300,12 +300,12 @@ msgstr "E-Mail-Adresse"
 #: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:62
 #, elixir-autogen, elixir-format
 msgid "Enter Your Details"
-msgstr "Geben Sie Ihre Daten ein"
+msgstr "Bitte geben Sie Ihre Daten ein"
 
 #: lib/tymeslot_web/themes/quill/scheduling/components/overview_component.ex:76
 #, elixir-autogen, elixir-format
 msgid "Hi, I'm %{name}. Select how much time you need for our conversation."
-msgstr "Hallo, ich bin %{name}. Wählen Sie, wie viel Zeit Sie für unser Gespräch benötigen."
+msgstr "Hallo, ich bin %{name}. Bitte wählen Sie die gewünschte Dauer für unser Gespräch."
 
 #: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:95
 #, elixir-autogen, elixir-format
@@ -315,12 +315,12 @@ msgstr "Max Mustermann"
 #: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:122
 #, elixir-autogen, elixir-format
 msgid "Let me know what you'd like to discuss..."
-msgstr "Lassen Sie mich wissen, was Sie besprechen möchten..."
+msgstr "Teilen Sie mir mit, was Sie besprechen möchten …"
 
 #: lib/tymeslot_web/themes/quill/scheduling/components/overview_component.ex:69
 #, elixir-autogen, elixir-format
 msgid "Let's Connect!"
-msgstr "Lass uns verbinden!"
+msgstr "Lassen Sie uns sprechen!"
 
 #: lib/tymeslot_web/themes/quill/scheduling/components/confirmation_component.ex:77
 #, elixir-autogen, elixir-format
@@ -335,42 +335,42 @@ msgstr "Keine Besprechungstypen verfügbar"
 #: lib/tymeslot_web/themes/quill/scheduling/components/overview_component.ex:88
 #, elixir-autogen, elixir-format
 msgid "Please contact the organizer"
-msgstr "Bitte kontaktieren Sie den Organisator"
+msgstr "Bitte kontaktieren Sie den Veranstalter"
 
 #: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:175
 #, elixir-autogen, elixir-format
 msgid "Please fill in all required fields"
-msgstr "Bitte füllen Sie alle erforderlichen Felder aus"
+msgstr "Bitte füllen Sie alle Pflichtfelder aus"
 
 #: lib/tymeslot_web/themes/quill/scheduling/components/overview_component.ex:135
 #, elixir-autogen, elixir-format
 msgid "Please select a meeting duration first"
-msgstr "Bitte wählen Sie zuerst eine Besprechungsdauer"
+msgstr "Bitte wählen Sie zuerst eine Dauer"
 
 #: lib/tymeslot_web/themes/quill/scheduling/components/overview_component.ex:78
 #, elixir-autogen, elixir-format
 msgid "Select how much time you need for our conversation."
-msgstr "Wählen Sie, wie viel Zeit Sie für unser Gespräch benötigen."
+msgstr "Bitte wählen Sie die gewünschte Dauer für unser Gespräch."
 
 #: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:174
 #, elixir-autogen, elixir-format
 msgid "Verifying slot availability and creating your meeting..."
-msgstr "Überprüfe Verfügbarkeit und erstelle Ihren Termin..."
+msgstr "Verfügbarkeit wird geprüft und Termin erstellt …"
 
 #: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:147
 #, elixir-autogen, elixir-format
 msgid "Verifying..."
-msgstr "Überprüfung..."
+msgstr "Prüfung läuft …"
 
 #: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:74
 #, elixir-autogen, elixir-format
 msgid "You're booking a %{duration} meeting"
-msgstr "Sie buchen einen %{duration}-Termin"
+msgstr "Sie buchen einen Termin (%{duration})"
 
 #: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:70
 #, elixir-autogen, elixir-format
 msgid "You're booking a %{duration} meeting with %{name}"
-msgstr "Sie buchen einen %{duration}-Termin mit %{name}"
+msgstr "Sie buchen einen Termin (%{duration}) mit %{name}"
 
 #: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:94
 #, elixir-autogen, elixir-format
@@ -396,7 +396,7 @@ msgstr "Hallo! Ich bin %{name}."
 #: lib/tymeslot_web/themes/rhythm/scheduling/components/overview_component.ex:75
 #, elixir-autogen, elixir-format
 msgid "Pick a meeting duration below."
-msgstr "Wähle unten eine Besprechungsdauer."
+msgstr "Bitte wählen Sie unten eine Dauer aus."
 
 #: lib/tymeslot_web/themes/rhythm/scheduling/components/booking_component.ex:71
 #: lib/tymeslot_web/themes/rhythm/scheduling/components/schedule_component.ex:144
@@ -405,7 +405,7 @@ msgid "Schedule with"
 msgstr "Termin mit"
 
 msgid "Schedule Another Meeting"
-msgstr "Weiteren Termin vereinbaren"
+msgstr "Weiteren Termin buchen"
 
 msgid "Successfully Rescheduled!"
 msgstr "Erfolgreich verschoben!"
@@ -423,19 +423,19 @@ msgid "Sent to"
 msgstr "Gesendet an"
 
 msgid "Need to make changes? Check your email for reschedule options"
-msgstr "Müssen Sie Änderungen vornehmen? Überprüfen Sie Ihre E-Mail auf Verschiebungsoptionen"
+msgstr "Möchten Sie etwas ändern? In Ihrer E-Mail finden Sie Optionen zum Verschieben."
 
 msgid "Select a Date & Time"
-msgstr "Datum & Uhrzeit auswählen"
+msgstr "Datum & Uhrzeit wählen"
 
 msgid "Bookings available up to %{advance}"
-msgstr "Buchungen möglich bis zu %{advance}"
+msgstr "Buchbar bis %{advance}"
 
 msgid "Duration: %{duration}"
 msgstr "Dauer: %{duration}"
 
 msgid "Select a Date"
-msgstr "Datum auswählen"
+msgstr "Datum wählen"
 
 msgid "next_step"
 msgstr "Nächster Schritt"
@@ -444,16 +444,16 @@ msgid "Your timezone"
 msgstr "Ihre Zeitzone"
 
 msgid "Search cities, countries, or timezones..."
-msgstr "Städte, Länder oder Zeitzonen suchen..."
+msgstr "Stadt, Land oder Zeitzone suchen …"
 
 msgid "Available Times"
 msgstr "Verfügbare Zeiten"
 
 msgid "Loading available times..."
-msgstr "Verfügbare Zeiten werden geladen..."
+msgstr "Verfügbare Zeiten werden geladen …"
 
 msgid "This date is fully booked"
-msgstr "Dieser Tag ist ausgebucht"
+msgstr "Dieser Tag ist leider ausgebucht"
 
 msgid "Please select another date"
 msgstr "Bitte wählen Sie ein anderes Datum"
@@ -468,7 +468,7 @@ msgid "local time"
 msgstr "Ortszeit"
 
 msgid "same day only"
-msgstr "nur am selben Tag"
+msgstr "Nur am selben Tag"
 
 msgid "1 day in advance"
 msgstr "1 Tag im Voraus"
@@ -501,7 +501,7 @@ msgid "Confirmation sent to"
 msgstr "Bestätigung gesendet an"
 
 msgid "Need to reschedule? Check your confirmation email."
-msgstr "Müssen Sie den Termin verschieben? Überprüfen Sie Ihre Bestätigungs-E-Mail."
+msgstr "Möchten Sie den Termin verschieben? Prüfen Sie bitte Ihre Bestätigungs-E-Mail."
 
 msgid "with %{name}"
 msgstr "mit %{name}"
@@ -522,10 +522,10 @@ msgid "Retry"
 msgstr "Wiederholen"
 
 msgid "Page not found. Redirected to homepage."
-msgstr "Seite nicht gefunden. Zur Startseite weitergeleitet."
+msgstr "Seite nicht gefunden. Weiterleitung zur Startseite …"
 
 msgid "time_format_type"
-msgstr "24h"
+msgstr "24 Std."
 
 msgid "Monday"
 msgstr "Montag"
@@ -624,7 +624,7 @@ msgid "%{date} at %{time}"
 msgstr "%{date} um %{time}"
 
 msgid "Invalid date/time"
-msgstr "Ungültiges Datum/Uhrzeit"
+msgstr "Datum/Uhrzeit ungültig"
 
 msgid "Date"
 msgstr "Datum"
@@ -642,7 +642,7 @@ msgid "Cancel"
 msgstr "Absagen"
 
 msgid "%{start_month} - %{end_month} %{year}"
-msgstr "%{start_month} - %{end_month} %{year}"
+msgstr "%{start_month} – %{end_month} %{year}"
 
 msgid "%{time} %{timezone}"
 msgstr "%{time} %{timezone}"

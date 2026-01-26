@@ -31,7 +31,7 @@ msgid "continue"
 msgstr "Продовжити"
 
 msgid "submit"
-msgstr "Відправити"
+msgstr "Надіслати"
 
 msgid "schedule_another"
 msgstr "Запланувати ще одну зустріч"
@@ -41,35 +41,35 @@ msgstr "Закрити"
 
 #: Overview Step
 msgid "select_meeting_duration"
-msgstr "Виберіть тривалість зустрічі"
+msgstr "Оберіть тривалість зустрічі"
 
 msgid "choose_meeting_type"
-msgstr "Виберіть тип зустрічі"
+msgstr "Оберіть тип зустрічі"
 
 msgid "select_duration"
-msgstr "Виберіть тривалість"
+msgstr "Оберіть тривалість"
 
 #: Schedule Step
 msgid "select_date"
-msgstr "Виберіть дату"
+msgstr "Оберіть дату"
 
 msgid "select_time"
-msgstr "Виберіть час"
+msgstr "Оберіть час"
 
 msgid "no_available_slots"
-msgstr "Немає доступних слотів у цей день"
+msgstr "На цей день немає вільного часу"
 
 msgid "timezone"
 msgstr "Часовий пояс"
 
 msgid "search_timezone"
-msgstr "Пошук часового поясу..."
+msgstr "Пошук часового поясу…"
 
 msgid "choose_date_time"
-msgstr "Виберіть дату та час"
+msgstr "Оберіть дату й час"
 
 msgid "select_date_time"
-msgstr "Виберіть дату та час"
+msgstr "Оберіть дату й час"
 
 msgid "available"
 msgstr "Доступно"
@@ -79,22 +79,22 @@ msgstr "Недоступно"
 
 #: Booking Step
 msgid "name"
-msgstr "Ім'я"
+msgstr "Ім’я"
 
 msgid "email"
 msgstr "Електронна пошта"
 
 msgid "message_optional"
-msgstr "Повідомлення (необов'язково)"
+msgstr "Повідомлення (необов’язково)"
 
 msgid "enter_full_name"
-msgstr "Введіть ваше повне ім'я"
+msgstr "Введіть повне ім’я"
 
 msgid "enter_email"
-msgstr "ваша.пошта@приклад.ua"
+msgstr "vasha.poshta@pryklad.ua"
 
 msgid "add_details"
-msgstr "Додайте будь-які деталі..."
+msgstr "Вкажіть деталі…"
 
 #: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:153
 #, elixir-autogen
@@ -107,10 +107,10 @@ msgid "reschedule_meeting"
 msgstr "Перенести зустріч"
 
 msgid "enter_details"
-msgstr "Введіть ваші дані"
+msgstr "Введіть свої дані"
 
 msgid "your_information"
-msgstr "Ваша інформація"
+msgstr "Ваші дані"
 
 #: lib/tymeslot_web/themes/quill/scheduling/components/confirmation_component.ex:79
 #, elixir-autogen
@@ -118,16 +118,16 @@ msgid "meeting_confirmed"
 msgstr "Зустріч підтверджено!"
 
 msgid "confirmation_email_sent"
-msgstr "Ми надіслали лист підтвердження на %{email}"
+msgstr "Ми надіслали підтвердження на %{email}"
 
 msgid "add_to_calendar"
-msgstr "Додати до календаря"
+msgstr "Додати в календар"
 
 msgid "meeting_details"
 msgstr "Деталі зустрічі"
 
 msgid "date_and_time"
-msgstr "Дата і час"
+msgstr "Дата й час"
 
 msgid "duration"
 msgstr "Тривалість"
@@ -146,35 +146,35 @@ msgid "something_went_wrong"
 msgstr "Щось пішло не так"
 
 msgid "try_again_later"
-msgstr "Будь ласка, спробуйте пізніше"
+msgstr "Спробуйте пізніше"
 
 msgid "invalid_meeting_link"
-msgstr "Недійсне посилання на зустріч"
+msgstr "Посилання на зустріч недійсне"
 
 msgid "slot_no_longer_available"
-msgstr "Цей часовий слот більше недоступний"
+msgstr "Цей час більше недоступний"
 
 msgid "name_required"
-msgstr "Ім'я обов'язкове"
+msgstr "Вкажіть ім’я"
 
 msgid "email_required"
-msgstr "Електронна пошта обов'язкова"
+msgstr "Вкажіть електронну пошту"
 
 msgid "email_invalid"
-msgstr "Будь ласка, введіть дійсну адресу електронної пошти"
+msgstr "Введіть коректну електронну адресу"
 
 msgid "calendar_setup_required"
-msgstr "Ми ще не можемо показати цю сторінку планування"
+msgstr "Ми поки що не можемо показати цю сторінку планування"
 
 msgid "connect_calendar_first"
-msgstr "Якщо ви організатор, будь ласка, підключіть календар у вашій панелі керування."
+msgstr "Якщо ви організатор, підключіть календар на панелі керування."
 
 #: Status
 msgid "loading"
-msgstr "Завантаження..."
+msgstr "Завантаження…"
 
 msgid "submitting"
-msgstr "Відправка..."
+msgstr "Надсилання…"
 
 #: Time formats
 msgid "minutes"
@@ -242,7 +242,7 @@ msgid "thursday"
 msgstr "Четвер"
 
 msgid "friday"
-msgstr "П'ятниця"
+msgstr "П’ятниця"
 
 msgid "saturday"
 msgstr "Субота"
@@ -275,17 +275,17 @@ msgstr "Змінити мову"
 #: lib/tymeslot_web/themes/quill/scheduling/components/confirmation_component.ex:89
 #, elixir-autogen, elixir-format
 msgid "%{name}, your meeting%{organizer} has been rescheduled."
-msgstr "%{name}, вашу зустріч%{organizer} перенесено."
+msgstr "%{name}, вашу зустріч з %{organizer} перенесено."
 
 #: lib/tymeslot_web/themes/quill/scheduling/components/confirmation_component.ex:91
 #, elixir-autogen, elixir-format
 msgid "%{name}, your meeting%{organizer} is all set."
-msgstr "%{name}, вашу зустріч%{organizer} підтверджено."
+msgstr "%{name}, вашу зустріч з %{organizer} підтверджено."
 
 #: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:121
 #, elixir-autogen, elixir-format
 msgid "Additional Message (Optional)"
-msgstr "Додаткове повідомлення (необов'язково)"
+msgstr "Додаткове повідомлення (необов’язково)"
 
 #: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:176
 #, elixir-autogen, elixir-format
@@ -295,17 +295,17 @@ msgstr "Натисніть, щоб запланувати зустріч"
 #: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:107
 #, elixir-autogen, elixir-format
 msgid "Email Address"
-msgstr "Адреса електронної пошти"
+msgstr "Електронна адреса"
 
 #: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:62
 #, elixir-autogen, elixir-format
 msgid "Enter Your Details"
-msgstr "Введіть ваші дані"
+msgstr "Введіть свої дані"
 
 #: lib/tymeslot_web/themes/quill/scheduling/components/overview_component.ex:76
 #, elixir-autogen, elixir-format
 msgid "Hi, I'm %{name}. Select how much time you need for our conversation."
-msgstr "Привіт, я %{name}. Виберіть, скільки часу вам потрібно для нашої розмови."
+msgstr "Вітаю, я %{name}. Оберіть тривалість нашої розмови."
 
 #: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:95
 #, elixir-autogen, elixir-format
@@ -315,12 +315,12 @@ msgstr "Іван Петренко"
 #: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:122
 #, elixir-autogen, elixir-format
 msgid "Let me know what you'd like to discuss..."
-msgstr "Дайте мені знати, що ви хочете обговорити..."
+msgstr "Напишіть, що ви хочете обговорити…"
 
 #: lib/tymeslot_web/themes/quill/scheduling/components/overview_component.ex:69
 #, elixir-autogen, elixir-format
 msgid "Let's Connect!"
-msgstr "Давайте зв'яжемося!"
+msgstr "Зв’яжімося!"
 
 #: lib/tymeslot_web/themes/quill/scheduling/components/confirmation_component.ex:77
 #, elixir-autogen, elixir-format
@@ -335,32 +335,32 @@ msgstr "Немає доступних типів зустрічей"
 #: lib/tymeslot_web/themes/quill/scheduling/components/overview_component.ex:88
 #, elixir-autogen, elixir-format
 msgid "Please contact the organizer"
-msgstr "Будь ласка, зв'яжіться з організатором"
+msgstr "Зв’яжіться з організатором"
 
 #: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:175
 #, elixir-autogen, elixir-format
 msgid "Please fill in all required fields"
-msgstr "Будь ласка, заповніть всі обов'язкові поля"
+msgstr "Заповніть усі обов’язкові поля"
 
 #: lib/tymeslot_web/themes/quill/scheduling/components/overview_component.ex:135
 #, elixir-autogen, elixir-format
 msgid "Please select a meeting duration first"
-msgstr "Будь ласка, спочатку виберіть тривалість зустрічі"
+msgstr "Спочатку оберіть тривалість зустрічі"
 
 #: lib/tymeslot_web/themes/quill/scheduling/components/overview_component.ex:78
 #, elixir-autogen, elixir-format
 msgid "Select how much time you need for our conversation."
-msgstr "Виберіть, скільки часу вам потрібно для нашої розмови."
+msgstr "Оберіть тривалість нашої розмови."
 
 #: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:174
 #, elixir-autogen, elixir-format
 msgid "Verifying slot availability and creating your meeting..."
-msgstr "Перевірка доступності та створення вашої зустрічі..."
+msgstr "Перевірка доступності та створення зустрічі…"
 
 #: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:147
 #, elixir-autogen, elixir-format
 msgid "Verifying..."
-msgstr "Перевірка..."
+msgstr "Перевірка…"
 
 #: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:74
 #, elixir-autogen, elixir-format
@@ -375,34 +375,34 @@ msgstr "Ви бронюєте зустріч на %{duration} з %{name}"
 #: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:94
 #, elixir-autogen, elixir-format
 msgid "Your Name"
-msgstr "Ваше ім'я"
+msgstr "Ваше ім’я"
 
 #: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:109
 #, elixir-autogen, elixir-format
 msgid "john@example.com"
-msgstr "ivan@приклад.ua"
+msgstr "ivan@pryklad.ua"
 
 #: lib/tymeslot_web/themes/rhythm/scheduling/components/booking_component.ex:75
 #: lib/tymeslot_web/themes/rhythm/scheduling/components/schedule_component.ex:148
 #, elixir-autogen, elixir-format
 msgid "%{duration} minutes"
-msgstr "%{duration} хвилин"
+msgstr "%{duration} хв"
 
 #: lib/tymeslot_web/themes/rhythm/scheduling/components/overview_component.ex:72
 #, elixir-autogen, elixir-format
 msgid "Hi! I'm %{name}."
-msgstr "Привіт! Я %{name}."
+msgstr "Вітаю! Я %{name}."
 
 #: lib/tymeslot_web/themes/rhythm/scheduling/components/overview_component.ex:75
 #, elixir-autogen, elixir-format
 msgid "Pick a meeting duration below."
-msgstr "Виберіть тривалість зустрічі нижче."
+msgstr "Оберіть тривалість зустрічі нижче."
 
 #: lib/tymeslot_web/themes/rhythm/scheduling/components/booking_component.ex:71
 #: lib/tymeslot_web/themes/rhythm/scheduling/components/schedule_component.ex:144
 #, elixir-autogen, elixir-format
 msgid "Schedule with"
-msgstr "Зустріч з"
+msgstr "Зустріч із"
 
 msgid "Schedule Another Meeting"
 msgstr "Запланувати ще одну зустріч"
@@ -411,22 +411,22 @@ msgid "Successfully Rescheduled!"
 msgstr "Успішно перенесено!"
 
 msgid "You're All Set!"
-msgstr "Все готово!"
+msgstr "Усе готово!"
 
 msgid "Meeting Details"
 msgstr "Деталі зустрічі"
 
 msgid "Meeting with"
-msgstr "Зустріч з"
+msgstr "Зустріч із"
 
 msgid "Sent to"
 msgstr "Надіслано на"
 
 msgid "Need to make changes? Check your email for reschedule options"
-msgstr "Потрібно внести зміни? Перевірте свою електронну пошту на наявність варіантів перенесення"
+msgstr "Потрібно внести зміни? Перевірте пошту — там є варіанти перенесення"
 
 msgid "Select a Date & Time"
-msgstr "Виберіть дату та час"
+msgstr "Оберіть дату й час"
 
 msgid "Bookings available up to %{advance}"
 msgstr "Бронювання доступне до %{advance}"
@@ -435,7 +435,7 @@ msgid "Duration: %{duration}"
 msgstr "Тривалість: %{duration}"
 
 msgid "Select a Date"
-msgstr "Виберіть дату"
+msgstr "Оберіть дату"
 
 msgid "next_step"
 msgstr "Наступний крок"
@@ -444,55 +444,55 @@ msgid "Your timezone"
 msgstr "Ваш часовий пояс"
 
 msgid "Search cities, countries, or timezones..."
-msgstr "Пошук міст, країн або часових поясів..."
+msgstr "Пошук міст, країн або часових поясів…"
 
 msgid "Available Times"
 msgstr "Доступний час"
 
 msgid "Loading available times..."
-msgstr "Завантаження доступного часу..."
+msgstr "Завантаження доступного часу…"
 
 msgid "This date is fully booked"
-msgstr "Ця дата повністю заброньована"
+msgstr "Цей день повністю заброньовано"
 
 msgid "Please select another date"
-msgstr "Будь ласка, виберіть іншу дату"
+msgstr "Оберіть іншу дату"
 
 msgid "Please select a date to see available times"
-msgstr "Будь ласка, виберіть дату, щоб побачити доступний час"
+msgstr "Оберіть дату, щоб побачити вільний час"
 
 msgid "%{time} local time"
-msgstr "%{time} місцевий час"
+msgstr "%{time} за місцевим часом"
 
 msgid "local time"
 msgstr "місцевий час"
 
 msgid "same day only"
-msgstr "тільки в той же день"
+msgstr "тільки в цей день"
 
 msgid "1 day in advance"
 msgstr "за 1 день"
 
 msgid "%{days} days in advance"
-msgstr "за %{days} дні(в)"
+msgstr "за %{days} дн."
 
 msgid "1 week in advance"
 msgstr "за 1 тиждень"
 
 msgid "%{weeks} weeks in advance"
-msgstr "за %{weeks} тижні(в)"
+msgstr "за %{weeks} тиж."
 
 msgid "1 month in advance"
 msgstr "за 1 місяць"
 
 msgid "%{months} months in advance"
-msgstr "за %{months} місяці(в)"
+msgstr "за %{months} міс."
 
 msgid "1 year in advance"
 msgstr "за 1 рік"
 
 msgid "%{years} years in advance"
-msgstr "за %{years} роки(ів)"
+msgstr "за %{years} р."
 
 msgid "90 days in advance"
 msgstr "за 90 днів"
@@ -501,31 +501,31 @@ msgid "Confirmation sent to"
 msgstr "Підтвердження надіслано на"
 
 msgid "Need to reschedule? Check your confirmation email."
-msgstr "Потрібно перенести зустріч? Перевірте електронний лист із підтвердженням."
+msgstr "Потрібно перенести зустріч? Перевірте лист із підтвердженням."
 
 msgid "with %{name}"
 msgstr "з %{name}"
 
 msgid "%{name}, your meeting %{organizer} is confirmed"
-msgstr "%{name}, вашу зустріч %{organizer} підтверджено"
+msgstr "%{name}, вашу зустріч із %{organizer} підтверджено"
 
 msgid "%{name}, your meeting %{organizer} has been rescheduled."
-msgstr "%{name}, вашу зустріч %{organizer} перенесено."
+msgstr "%{name}, вашу зустріч із %{organizer} перенесено."
 
 msgid "%{name}, your meeting %{organizer} is all set."
-msgstr "%{name}, вашу зустріч %{organizer} підтверджено."
+msgstr "%{name}, вашу зустріч із %{organizer} підтверджено."
 
 msgid "Theme Error"
 msgstr "Помилка теми"
 
 msgid "Retry"
-msgstr "Повторити"
+msgstr "Спробувати ще раз"
 
 msgid "Page not found. Redirected to homepage."
-msgstr "Сторінку не знайдено. Перенаправлено на головну."
+msgstr "Сторінку не знайдено. Перенаправлення на головну."
 
 msgid "time_format_type"
-msgstr "24h"
+msgstr "24 год"
 
 msgid "Monday"
 msgstr "Понеділок"
@@ -540,7 +540,7 @@ msgid "Thursday"
 msgstr "Четвер"
 
 msgid "Friday"
-msgstr "П'ятниця"
+msgstr "П’ятниця"
 
 msgid "Saturday"
 msgstr "Субота"
@@ -597,25 +597,25 @@ msgid "Evening"
 msgstr "Вечір"
 
 msgid "MON"
-msgstr "ПН"
+msgstr "Пн"
 
 msgid "TUE"
-msgstr "ВТ"
+msgstr "Вт"
 
 msgid "WED"
-msgstr "СР"
+msgstr "Ср"
 
 msgid "THU"
-msgstr "ЧТ"
+msgstr "Чт"
 
 msgid "FRI"
-msgstr "ПТ"
+msgstr "Пт"
 
 msgid "SAT"
-msgstr "СБ"
+msgstr "Сб"
 
 msgid "SUN"
-msgstr "НД"
+msgstr "Нд"
 
 msgid "%{weekday}, %{day} %{month} %{year} at %{time} %{timezone}"
 msgstr "%{weekday}, %{day} %{month} %{year} о %{time} %{timezone}"
@@ -624,7 +624,7 @@ msgid "%{date} at %{time}"
 msgstr "%{date} о %{time}"
 
 msgid "Invalid date/time"
-msgstr "Некоректна дата/час"
+msgstr "Некоректна дата або час"
 
 msgid "Date"
 msgstr "Дата"
@@ -642,13 +642,13 @@ msgid "Cancel"
 msgstr "Скасувати"
 
 msgid "%{start_month} - %{end_month} %{year}"
-msgstr "%{start_month} - %{end_month} %{year}"
+msgstr "%{start_month} — %{end_month} %{year}"
 
 msgid "%{time} %{timezone}"
 msgstr "%{time} %{timezone}"
 
 msgid "%{time} UTC"
-msgstr "%{time} UTC"
+msgstr "%{time} за UTC"
 
 msgid "With"
 msgstr "З"
@@ -661,13 +661,13 @@ msgid "1 minute"
 msgstr "1 хвилина"
 
 msgid "%{minutes} minutes"
-msgstr "%{minutes} хвилин"
+msgstr "%{minutes} хв"
 
 msgid "1 hour"
 msgstr "1 година"
 
 msgid "%{count} hours"
-msgstr "%{count} годин"
+msgstr "%{count} год"
 
 msgid "%{hour_text} %{minute_text}"
 msgstr "%{hour_text} %{minute_text}"
