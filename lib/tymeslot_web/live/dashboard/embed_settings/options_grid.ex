@@ -89,7 +89,7 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettings.OptionsGrid do
           {Helpers.embed_code("popup", %{username: @username, base_url: @base_url})}
         </:code>
         <:footer_info>
-          Opens booking in a fullscreen modal. Great for CTAs and hero sections. See <a href="/docs/embed/advanced" class="text-turquoise-600 underline">Advanced Docs</a> for <code>locale</code>, <code>theme</code>, and <code>primaryColor</code> options.
+          Opens booking in a fullscreen modal. Great for CTAs and hero sections. Supports <code>locale</code>, <code>theme</code>, and <code>primaryColor</code> options.
         </:footer_info>
       </.embed_option_card>
 
@@ -216,7 +216,7 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettings.OptionsGrid do
 
         <!-- Code Snippet -->
         <div class="relative">
-          <pre class="bg-tymeslot-900 text-tymeslot-100 rounded-token-lg p-4 text-token-xs overflow-x-auto"><code><%= render_slot(@code) %></code></pre>
+          <pre class="bg-tymeslot-900 text-tymeslot-100 rounded-token-lg p-4 pr-20 text-token-xs whitespace-pre-wrap break-all"><code class="block"><%= render_slot(@code) %></code></pre>
           <button
             type="button"
             phx-click="copy_code"
@@ -228,7 +228,7 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettings.OptionsGrid do
           </button>
         </div>
 
-        <div class="mt-4 flex items-start space-x-2 text-token-xs text-tymeslot-600">
+        <div class="mt-4 flex items-start space-x-2 text-token-xs text-tymeslot-700">
           <svg class="w-4 h-4 text-turquoise-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
           </svg>

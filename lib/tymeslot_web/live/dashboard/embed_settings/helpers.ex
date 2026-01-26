@@ -26,7 +26,7 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettings.Helpers do
 
     String.trim("""
     <div id="tymeslot-booking" data-username="#{username}"#{data_locale}#{data_theme}#{data_primary_color}></div>
-    <script src="#{base_url}/embed.js" async onerror="if(window.TymeslotBooking){TymeslotBooking.showError('#tymeslot-booking')}else{var d=document.getElementById('tymeslot-booking');if(d)d.innerHTML='<div style=\"padding:20px;border:1px solid #fecaca;background:#fef2f2;color:#991b1b;border-radius:8px;text-align:center;font-family:sans-serif;\"><strong>Booking could not be loaded.</strong><br>Please check your connection or ad-blocker.</div>'}"></script>
+    <script src="#{base_url}/embed.js" async onerror="var d=document.getElementById('tymeslot-booking');if(d)d.innerHTML='<strong>Booking could not be loaded.</strong>'"></script>
     """)
   end
 
@@ -37,8 +37,8 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettings.Helpers do
     js_options = build_js_options(options)
 
     String.trim("""
-    <button onclick="if(window.TymeslotBooking){TymeslotBooking.open('#{username}'#{js_options})}else{alert('Booking system is currently unavailable. Please refresh or check your connection.')}">Book a Meeting</button>
-    <script src="#{base_url}/embed.js" async onerror="console.error('Tymeslot embed failed to load')"></script>
+    <button onclick="if(window.TymeslotBooking){TymeslotBooking.open('#{username}'#{js_options})}else{alert('Booking system is currently unavailable.')}">Book a Meeting</button>
+    <script src="#{base_url}/embed.js" async></script>
     """)
   end
 

@@ -15,8 +15,10 @@
 
 /* Import animations */
 @import "./animations/keyframes.css";
-@import "./animations/hero_preview.css";
-@import "./animations/homepage-2026.css";
+
+/* SaaS Overlay Animations (Marketing) */
+@import "./animations/saas/hero_preview.css";
+@import "./animations/saas/homepage.css";
 
 /* Import components */
 @import "./components.css";

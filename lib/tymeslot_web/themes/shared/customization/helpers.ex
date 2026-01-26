@@ -185,21 +185,6 @@ defmodule TymeslotWeb.Themes.Shared.Customization.Helpers do
   def get_background_value(%{"background_value" => value}), do: value
   def get_background_value(_), do: nil
 
-  defp get_preset_image_style(background_value) do
-    preset = ThemeCustomizationSchema.image_presets()[background_value]
-
-    if preset do
-      """
-      background-image: url('/images/ui/backgrounds/#{preset.file}');
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
-      """
-    else
-      ""
-    end
-  end
-
   # Helper functions for handling map-based customization data
   defp get_gradient_background_style_from_map(customization) do
     background_value =
@@ -215,6 +200,21 @@ defmodule TymeslotWeb.Themes.Shared.Customization.Helpers do
 
     if background_value && valid_color?(background_value) do
       "background-color: #{background_value};"
+    else
+      ""
+    end
+  end
+
+  defp get_preset_image_style(background_value) do
+    preset = ThemeCustomizationSchema.image_presets()[background_value]
+
+    if preset do
+      """
+      background-image: url('/images/themes/backgrounds/#{preset.file}');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      """
     else
       ""
     end

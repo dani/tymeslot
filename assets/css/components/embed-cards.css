@@ -18,8 +18,14 @@
   line-height: var(--line-height-normal);
 }
 
+/* Dark text for inline code in footer (general rule first) */
 .embed-option-card code {
-  @apply text-tymeslot-200;
+  @apply text-tymeslot-700 bg-tymeslot-100 px-1 rounded;
+}
+
+/* Light text for code inside dark pre blocks (more specific rule last) */
+.embed-option-card pre code {
+  @apply text-tymeslot-200 bg-transparent px-0 rounded-none;
 }
 
 /* Animation for copy button */
