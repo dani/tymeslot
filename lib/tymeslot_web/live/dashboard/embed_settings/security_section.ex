@@ -7,7 +7,6 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettings.SecuritySection do
   @doc """
   Renders the security settings section.
   """
-  attr :show_security_section, :boolean, required: true
   attr :allowed_domains_str, :string, required: true
   attr :myself, :any, required: true
 
@@ -27,17 +26,9 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettings.SecuritySection do
             Control which websites can embed your booking page
           </p>
         </div>
-        <button
-          type="button"
-          phx-click="toggle_security_section"
-          phx-target={@myself}
-          class="px-4 py-2 text-token-sm font-semibold text-turquoise-700 hover:bg-turquoise-50 rounded-token-lg transition-colors"
-        >
-          <%= if @show_security_section, do: "Hide", else: "Configure" %>
-        </button>
       </div>
 
-      <div :if={@show_security_section} class="space-y-6">
+      <div class="space-y-6">
         <!-- Explanation -->
         <div class="bg-gradient-to-r from-blue-50 to-cyan-50 border-2 border-blue-200 rounded-token-xl p-6">
           <div class="flex items-start space-x-3">
@@ -119,7 +110,7 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettings.SecuritySection do
                 phx-target={@myself}
                 class="px-6 py-3 bg-tymeslot-200 hover:bg-tymeslot-300 text-tymeslot-700 font-semibold rounded-token-xl transition-colors"
               >
-                Clear & Allow All
+                Disable Embedding
               </button>
             <% end %>
           </div>

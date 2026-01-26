@@ -5,7 +5,6 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypesListComponent do
   """
   use TymeslotWeb, :html
 
-  alias TymeslotWeb.Components.Icons.ProviderIcon
   alias TymeslotWeb.Dashboard.MeetingSettings.Card
 
   attr :meeting_types, :list, required: true

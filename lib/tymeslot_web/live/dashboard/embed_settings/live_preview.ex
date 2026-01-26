@@ -9,7 +9,6 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettings.LivePreview do
   @doc """
   Renders the live preview section.
   """
-  attr :show_preview, :boolean, required: true
   attr :selected_embed_type, :string, required: true
   attr :username, :string, required: true
   attr :base_url, :string, required: true
@@ -22,22 +21,14 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettings.LivePreview do
   def live_preview(assigns) do
     ~H"""
     <div class="bg-gradient-to-br from-tymeslot-50 to-tymeslot-100 rounded-token-2xl border-2 border-tymeslot-200 p-8">
-      <div class="flex items-center justify-between mb-6">
+      <div class="flex items-center mb-6">
         <div>
           <h3 class="text-token-2xl font-bold text-tymeslot-900">Test It Live</h3>
           <p class="text-tymeslot-600 mt-1">Try your booking widget in action</p>
         </div>
-        <button
-          type="button"
-          phx-click="toggle_preview"
-          phx-target={@myself}
-          class="px-6 py-3 bg-gradient-to-r from-turquoise-600 to-cyan-600 hover:from-turquoise-700 hover:to-cyan-700 text-white font-bold rounded-token-xl shadow-lg transition-all transform hover:scale-105"
-        >
-          <%= if @show_preview, do: "Hide Preview", else: "Show Preview" %>
-        </button>
       </div>
 
-      <div :if={@show_preview} class="bg-white rounded-token-xl p-6 border-2 border-tymeslot-300 shadow-xl">
+      <div class="bg-white rounded-token-xl p-6 border-2 border-tymeslot-300 shadow-xl">
         <div class="text-center text-tymeslot-600 mb-4">
           <p class="font-semibold text-turquoise-700">Previewing: <%= String.capitalize(@selected_embed_type) %> Mode</p>
           <p class="text-token-sm">This is how your booking widget will appear on external sites</p>

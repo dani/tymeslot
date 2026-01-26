@@ -42,12 +42,7 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsComponent do
       end
 
     # Format allowed domains for display
-    allowed_domains_str =
-      case profile.allowed_embed_domains do
-        nil -> ""
-        [] -> ""
-        domains -> Enum.join(domains, ", ")
-      end
+    allowed_domains_str = domains_to_string(profile.allowed_embed_domains)
 
     socket =
       socket
@@ -62,9 +57,8 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsComponent do
       |> assign(:error_reason, error_reason)
       |> assign(:allowed_domains_str, allowed_domains_str)
       |> assign_new(:selected_embed_type, fn -> "inline" end)
-      |> assign_new(:show_preview, fn -> false end)
       |> assign_new(:embed_script_url, fn -> ~p"/embed.js" end)
-      |> assign_new(:show_security_section, fn -> false end)
+      |> assign_new(:active_tab, fn -> "options" end)
 
     {:ok, socket}
   end
@@ -80,42 +74,50 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsComponent do
         class="mb-4"
       />
 
-      <p class="text-tymeslot-600 mb-10">
+      <p class="text-tymeslot-600 mb-6">
         Add your booking page to any website. Choose the option that works best for you.
       </p>
 
-      <!-- Embed Options Grid -->
-      <OptionsGrid.options_grid
-        selected_embed_type={@selected_embed_type}
-        username={@username}
-        base_url={@base_url}
-        booking_url={@booking_url}
-        myself={@myself}
-      />
+      <!-- Tabbed Interface -->
+      <.tabs active_tab={@active_tab} target={@myself}>
+        <:tab id="options" label="Embed Options" icon={:code}>
+          <OptionsGrid.options_grid
+            selected_embed_type={@selected_embed_type}
+            username={@username}
+            base_url={@base_url}
+            booking_url={@booking_url}
+            myself={@myself}
+          />
+        </:tab>
 
-      <!-- Security Settings Section -->
-      <SecuritySection.security_section
-        show_security_section={@show_security_section}
-        allowed_domains_str={@allowed_domains_str}
-        myself={@myself}
-      />
+        <:tab id="security" label="Security" icon={:lock}>
+          <SecuritySection.security_section
+            allowed_domains_str={@allowed_domains_str}
+            myself={@myself}
+          />
+        </:tab>
 
-      <!-- Live Preview Section -->
-      <LivePreview.live_preview
-        show_preview={@show_preview}
-        selected_embed_type={@selected_embed_type}
-        username={@username}
-        base_url={@base_url}
-        embed_script_url={@embed_script_url}
-        is_ready={@is_ready}
-        error_reason={@error_reason}
-        myself={@myself}
-      />
+        <:tab id="preview" label="Live Preview" icon={:video}>
+          <LivePreview.live_preview
+            selected_embed_type={@selected_embed_type}
+            username={@username}
+            base_url={@base_url}
+            embed_script_url={@embed_script_url}
+            is_ready={@is_ready}
+            error_reason={@error_reason}
+            myself={@myself}
+          />
+        </:tab>
+      </.tabs>
     </div>
     """
   end
 
   @impl true
+  def handle_event("switch_tab", %{"tab" => tab}, socket) do
+    {:noreply, assign(socket, :active_tab, tab)}
+  end
+
   def handle_event("copy_code", %{"type" => type}, socket) do
     code = Helpers.embed_code(type, socket.assigns)
 
@@ -128,16 +130,8 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsComponent do
      end)}
   end
 
-  def handle_event("toggle_preview", _params, socket) do
-    {:noreply, assign(socket, :show_preview, !socket.assigns.show_preview)}
-  end
-
   def handle_event("select_embed_type", %{"type" => type}, socket) do
     {:noreply, assign(socket, :selected_embed_type, type)}
-  end
-
-  def handle_event("toggle_security_section", _params, socket) do
-    {:noreply, assign(socket, :show_security_section, !socket.assigns.show_security_section)}
   end
 
   def handle_event("save_embed_domains", %{"allowed_domains" => domains_str}, socket) do
@@ -145,7 +139,7 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsComponent do
   end
 
   def handle_event("clear_embed_domains", _params, socket) do
-    perform_domain_update(socket, [], "Embedding is now allowed on all domains")
+    perform_domain_update(socket, ["none"], "Embedding is now disabled")
   end
 
   defp perform_domain_update(socket, domains_payload, success_message) do
@@ -164,12 +158,7 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsComponent do
             send(self(), {:profile_updated, updated_profile})
 
             # Format the domains for display
-            allowed_domains_str =
-              case updated_profile.allowed_embed_domains do
-                nil -> ""
-                [] -> ""
-                domains -> Enum.join(domains, ", ")
-              end
+            allowed_domains_str = domains_to_string(updated_profile.allowed_embed_domains)
 
             {:noreply,
              socket
@@ -185,8 +174,9 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsComponent do
               Enum.map_join(
                 Changeset.traverse_errors(changeset, fn {msg, _opts} -> msg end),
                 "; ",
-                fn {field, messages} ->
-                  "#{field}: #{Enum.join(messages, ", ")}"
+                fn
+                  {:allowed_embed_domains, messages} -> Enum.join(messages, ", ")
+                  {field, messages} -> "#{field}: #{Enum.join(messages, ", ")}"
                 end
               )
 
@@ -201,4 +191,9 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsComponent do
         {:noreply, socket}
     end
   end
+
+  defp domains_to_string(nil), do: ""
+  defp domains_to_string([]), do: ""
+  defp domains_to_string(["none"]), do: ""
+  defp domains_to_string(domains), do: Enum.join(domains, ", ")
 end
