@@ -5,6 +5,7 @@ defmodule Tymeslot.ThemeCustomizations.Storage do
   """
 
   require Logger
+  alias Tymeslot.Utils.MediaValidator
   alias TymeslotWeb.Helpers.UploadHandler
 
   @doc """
@@ -55,8 +56,6 @@ defmodule Tymeslot.ThemeCustomizations.Storage do
         raise "Failed to create upload directory: #{dir_path} (#{reason})"
     end
   end
-
-  alias Tymeslot.Utils.MediaValidator
 
   @doc """
   Stores a background image file and returns {:ok, relative_path}.

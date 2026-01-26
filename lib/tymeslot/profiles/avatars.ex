@@ -114,7 +114,6 @@ defmodule Tymeslot.Profiles.Avatars do
       {:ok, filename}
     else
       {:error, reason} -> {:error, reason}
-      nil -> {:error, :invalid_image_format}
     end
   end
 

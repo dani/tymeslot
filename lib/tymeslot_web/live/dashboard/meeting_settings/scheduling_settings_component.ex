@@ -108,7 +108,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.SchedulingSettingsComponent do
 
     Helpers.handle_profile_update(
       socket,
-      fn profile -> Profiles.update_buffer_minutes(profile, to_string(custom_value)) end,
+      fn profile -> Profiles.update_buffer_minutes(profile, custom_value) end,
       fn _ -> "Buffer time set to custom value" end
     )
   end
@@ -121,7 +121,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.SchedulingSettingsComponent do
 
     Helpers.handle_profile_update(
       socket,
-      fn profile -> Profiles.update_advance_booking_days(profile, to_string(custom_value)) end,
+      fn profile -> Profiles.update_advance_booking_days(profile, custom_value) end,
       fn _ -> "Advance booking set to custom value" end
     )
   end
@@ -134,7 +134,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.SchedulingSettingsComponent do
 
     Helpers.handle_profile_update(
       socket,
-      fn profile -> Profiles.update_min_advance_hours(profile, to_string(custom_value)) end,
+      fn profile -> Profiles.update_min_advance_hours(profile, custom_value) end,
       fn _ -> "Minimum notice set to custom value" end
     )
   end

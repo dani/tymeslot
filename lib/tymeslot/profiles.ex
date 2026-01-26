@@ -5,6 +5,7 @@ defmodule Tymeslot.Profiles do
   specialized tasks to subcomponents.
   """
 
+  alias Tymeslot.Bookings.Validation, as: BookingsValidation
   alias Tymeslot.DatabaseQueries.ProfileQueries
   alias Tymeslot.DatabaseSchemas.ProfileSchema
   alias Tymeslot.MeetingTypes
@@ -16,7 +17,6 @@ defmodule Tymeslot.Profiles do
   alias Tymeslot.Security.RateLimiter
   alias Tymeslot.Security.SettingsInputProcessor
   alias Tymeslot.Themes.Theme
-  alias Tymeslot.Bookings.Validation, as: BookingsValidation
 
   @type user_id :: pos_integer()
   @type username :: String.t()
@@ -362,7 +362,8 @@ defmodule Tymeslot.Profiles do
   @doc """
   Optimized version of resolve_organizer_context.
   """
-  @spec resolve_organizer_context_optimized(username) :: {:ok, map()} | {:error, :profile_not_found}
+  @spec resolve_organizer_context_optimized(username) ::
+          {:ok, map()} | {:error, :profile_not_found}
   def resolve_organizer_context_optimized(username), do: resolve_organizer_context(username)
 
   defp build_organizer_context(profile, username) do

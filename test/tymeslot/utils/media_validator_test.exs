@@ -6,7 +6,11 @@ defmodule Tymeslot.Utils.MediaValidatorTest do
     test "returns true for valid PNG" do
       png_header = <<0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A>>
       # ExImageInfo needs enough bytes to identify
-      assert MediaValidator.valid_image?(png_header <> <<0, 0, 0, 13, "IHDR", 0, 0, 0, 1, 0, 0, 0, 1, 8, 2, 0, 0, 0, 0x90, 0x77, 0x53, 0xDE>>)
+      assert MediaValidator.valid_image?(
+               png_header <>
+                 <<0, 0, 0, 13, "IHDR", 0, 0, 0, 1, 0, 0, 0, 1, 8, 2, 0, 0, 0, 0x90, 0x77, 0x53,
+                   0xDE>>
+             )
     end
 
     test "returns false for invalid image" do
@@ -38,7 +42,10 @@ defmodule Tymeslot.Utils.MediaValidatorTest do
 
   describe "valid_media?/1" do
     test "returns true for image or video" do
-      png_header = <<0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 13, "IHDR", 0, 0, 0, 1, 0, 0, 0, 1, 8, 2, 0, 0, 0, 0x90, 0x77, 0x53, 0xDE>>
+      png_header =
+        <<0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 13, "IHDR", 0, 0, 0, 1, 0, 0,
+          0, 1, 8, 2, 0, 0, 0, 0x90, 0x77, 0x53, 0xDE>>
+
       assert MediaValidator.valid_media?(png_header)
       assert MediaValidator.valid_media?(<<0, 0, 0, 20, "ftypmp42">>)
     end
