@@ -194,6 +194,6 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsComponent do
 
   defp domains_to_string(nil), do: ""
   defp domains_to_string([]), do: ""
-  defp domains_to_string(["none"]), do: ""
+  defp domains_to_string(["none"]), do: "none"
   defp domains_to_string(domains), do: Enum.join(domains, ", ")
 end

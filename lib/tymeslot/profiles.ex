@@ -305,32 +305,45 @@ defmodule Tymeslot.Profiles do
   @spec update_allowed_embed_domains(profile, String.t() | [String.t()]) :: result(profile)
   def update_allowed_embed_domains(%ProfileSchema{} = profile, domains) when is_binary(domains) do
     domain_list =
-      domains |> String.split(",") |> Enum.map(&String.trim/1) |> Enum.reject(&(&1 == ""))
+      domains
+      |> String.split(",")
+      |> Enum.map(&String.trim/1)
+      |> Enum.reject(&(&1 == ""))
 
-    domain_list = if domain_list == [], do: ["none"], else: domain_list
+    # If the user explicitly cleared the field or entered "none", we treat it as disabled.
+    # We allow "none" as a literal string here to support the "Disable" button flow.
+    domain_list = if domain_list == [] or domain_list == ["none"], do: ["none"], else: domain_list
     update_allowed_embed_domains(profile, domain_list)
   end
 
   def update_allowed_embed_domains(%ProfileSchema{} = profile, domains) when is_list(domains) do
     require Logger
 
+    # If the only domain is "none", we skip normalization to preserve the keyword.
     normalized_domains =
-      domains
-      |> Enum.map(&String.trim/1)
-      |> Enum.map(&String.downcase/1)
-      |> Enum.map(fn domain ->
-        domain |> String.replace(~r|^https?://|, "") |> String.split("/") |> List.first()
-      end)
-      |> Enum.reject(&(&1 == ""))
-      |> Enum.uniq()
+      if domains == ["none"] do
+        ["none"]
+      else
+        domains
+        |> Enum.map(&String.trim/1)
+        |> Enum.map(&String.downcase/1)
+        |> Enum.map(fn domain ->
+          domain |> String.replace(~r|^https?://|, "") |> String.split("/") |> List.first()
+        end)
+        |> Enum.reject(&(&1 == "" or &1 == "none"))
+        |> Enum.uniq()
+      end
+
+    # Ensure we don't end up with an empty list if it wasn't explicitly "none"
+    final_domains = if normalized_domains == [], do: ["none"], else: normalized_domains
 
     Logger.info("Updating allowed embed domains",
       user_id: profile.user_id,
       profile_id: profile.id,
-      domain_count: length(normalized_domains)
+      domain_count: length(final_domains)
     )
 
-    update_profile(profile, %{allowed_embed_domains: normalized_domains})
+    update_profile(profile, %{allowed_embed_domains: final_domains})
   end
 
   # --- Organizer Context ---

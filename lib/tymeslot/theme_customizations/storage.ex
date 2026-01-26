@@ -56,13 +56,15 @@ defmodule Tymeslot.ThemeCustomizations.Storage do
     end
   end
 
+  alias Tymeslot.Utils.MediaValidator
+
   @doc """
   Stores a background image file and returns {:ok, relative_path}.
   """
   @spec store_background_image(integer(), String.t(), map()) ::
           {:ok, String.t()} | {:error, term()}
   def store_background_image(profile_id, theme_id, %{path: temp_path, filename: filename}) do
-    if File.exists?(temp_path) do
+    if MediaValidator.valid_image_file?(temp_path) do
       dest_dir = get_theme_upload_directory(profile_id, theme_id, "images")
       ensure_directory_exists(dest_dir)
 
@@ -80,7 +82,7 @@ defmodule Tymeslot.ThemeCustomizations.Storage do
           {:error, reason}
       end
     else
-      {:error, :temp_file_not_found}
+      {:error, :invalid_image_format}
     end
   end
 
@@ -90,21 +92,25 @@ defmodule Tymeslot.ThemeCustomizations.Storage do
   @spec store_background_video(integer(), String.t(), map()) ::
           {:ok, String.t()} | {:error, term()}
   def store_background_video(profile_id, theme_id, %{path: temp_path, filename: filename}) do
-    dest_dir = get_theme_upload_directory(profile_id, theme_id, "videos")
-    ensure_directory_exists(dest_dir)
+    if MediaValidator.valid_video_file?(temp_path) do
+      dest_dir = get_theme_upload_directory(profile_id, theme_id, "videos")
+      ensure_directory_exists(dest_dir)
 
-    case UploadHandler.store_file_atomically(
-           temp_path,
-           dest_dir,
-           filename,
-           %{operation: :store_background_video, profile_id: profile_id, theme_id: theme_id}
-         ) do
-      {:ok, sanitized_filename} ->
-        {:ok,
-         Path.join(["themes", to_string(profile_id), theme_id, "videos", sanitized_filename])}
+      case UploadHandler.store_file_atomically(
+             temp_path,
+             dest_dir,
+             filename,
+             %{operation: :store_background_video, profile_id: profile_id, theme_id: theme_id}
+           ) do
+        {:ok, sanitized_filename} ->
+          {:ok,
+           Path.join(["themes", to_string(profile_id), theme_id, "videos", sanitized_filename])}
 
-      {:error, reason} ->
-        {:error, reason}
+        {:error, reason} ->
+          {:error, reason}
+      end
+    else
+      {:error, :invalid_video_format}
     end
   end
 end

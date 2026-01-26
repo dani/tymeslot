@@ -23,6 +23,9 @@ defmodule TymeslotWeb.Helpers.ThemeUploadHelper do
           {:ok, stored_path} ->
             {:ok, stored_path}
 
+          {:error, :invalid_image_format} ->
+            {:ok, {:error, "Invalid image format. Please upload a valid image file."}}
+
           {:error, reason} ->
             {:ok, {:error, reason}}
         end
@@ -68,6 +71,9 @@ defmodule TymeslotWeb.Helpers.ThemeUploadHelper do
         case ThemeCustomizations.store_background_video(profile.id, theme_id, file_info) do
           {:ok, stored_path} ->
             {:ok, stored_path}
+
+          {:error, :invalid_video_format} ->
+            {:ok, {:error, "Invalid video format. Please upload a valid video file."}}
 
           {:error, reason} ->
             {:ok, {:error, reason}}

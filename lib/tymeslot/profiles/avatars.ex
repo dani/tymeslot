@@ -9,6 +9,8 @@ defmodule Tymeslot.Profiles.Avatars do
   alias Tymeslot.Utils.AvatarUtils
   alias TymeslotWeb.Helpers.UploadHandler
 
+  alias Tymeslot.Utils.MediaValidator
+
   @type profile :: ProfileSchema.t()
   @type uploaded_entry :: map()
   @type result(t) :: {:ok, t} | {:error, any()}
@@ -117,9 +119,10 @@ defmodule Tymeslot.Profiles.Avatars do
   end
 
   defp validate_image_binary(binary) do
-    case ExImageInfo.info(binary) do
-      {mime, _width, _height, _type} when is_binary(mime) -> :ok
-      _ -> {:error, :invalid_image_format}
+    if MediaValidator.valid_image?(binary) do
+      :ok
+    else
+      {:error, :invalid_image_format}
     end
   end
 

@@ -121,11 +121,13 @@ defmodule TymeslotWeb.Plugs.SecurityHeadersPlug do
   defp build_security_headers([]), do: {"'self' *", nil}
 
   defp build_security_headers(nil), do: {"'self' *", nil}
+  defp build_security_headers(["none"]), do: {"'none'", "DENY"}
 
   defp build_security_headers(allowed_domains) when is_list(allowed_domains) do
     # Build CSP frame-ancestors with HTTPS URLs.
     # Modern browsers prioritize this over X-Frame-Options.
     domains = Enum.map_join(allowed_domains, " ", &"https://#{&1}")
+
     frame_ancestors = "'self' #{domains}"
 
     # X-Frame-Options ALLOW-FROM is deprecated and only supports a single domain.

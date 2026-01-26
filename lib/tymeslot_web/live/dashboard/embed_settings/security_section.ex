@@ -37,18 +37,19 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettings.SecuritySection do
             </svg>
             <div class="space-y-2 text-token-sm">
               <p class="font-semibold text-blue-900">How Domain Whitelisting Works</p>
-              <p class="text-blue-800">
-                By default, anyone can embed your booking page on their website if they know your username. 
-                This is similar to how YouTube videos work - public and embeddable everywhere.
-              </p>
+          <p class="text-blue-800">
+            By default, embedding is disabled to prevent unauthorized use of your booking page.
+            You can turn it on and optionally restrict it to specific domains you trust.
+          </p>
               <p class="text-blue-800">
                 For security, you can <strong>optionally restrict embedding</strong> to only specific domains you trust. 
                 This prevents your booking page from appearing on unauthorized websites.
               </p>
               <ul class="list-disc list-inside text-blue-800 space-y-1 mt-2">
-                <li><strong>Leave empty</strong> to allow embedding on any website (default)</li>
-                <li><strong>Add domains</strong> to restrict embedding to only those sites</li>
-                <li>Example: <code class="bg-blue-100 px-2 py-0.5 rounded">example.com, myportfolio.net</code></li>
+            <li><strong>Leave empty</strong> to allow embedding on any website</li>
+            <li><strong>Add domains</strong> to restrict embedding to only those sites</li>
+            <li><strong>Use Disable Embedding</strong> to block all embedding (default)</li>
+            <li>Example: <code class="bg-blue-100 px-2 py-0.5 rounded">example.com, myportfolio.net</code></li>
               </ul>
             </div>
           </div>
@@ -77,12 +78,20 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettings.SecuritySection do
           <div class="bg-tymeslot-50 rounded-token-lg p-4 border-2 border-tymeslot-200">
             <p class="text-token-sm font-semibold text-tymeslot-700 mb-2">Current Status:</p>
             <div class="flex items-center space-x-2">
-              <%= if @allowed_domains_str == "" do %>
+            <%= if @allowed_domains_str == "" do %>
                 <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
                 </svg>
                 <span class="text-token-sm text-tymeslot-700">
-                  <strong>Open:</strong> Anyone can embed your booking page (default)
+                <strong>Open:</strong> Anyone can embed your booking page
+                </span>
+            <% else %>
+              <%= if @allowed_domains_str == "none" do %>
+                <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-12.728 12.728M6.343 6.343l12.728 12.728"></path>
+                </svg>
+                <span class="text-token-sm text-tymeslot-700">
+                  <strong>Disabled:</strong> Embedding is blocked everywhere (default)
                 </span>
               <% else %>
                 <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -92,6 +101,7 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettings.SecuritySection do
                   <strong>Restricted:</strong> Only <%= @allowed_domains_str %> can embed
                 </span>
               <% end %>
+            <% end %>
             </div>
           </div>
 
@@ -103,7 +113,7 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettings.SecuritySection do
             >
               Save Security Settings
             </button>
-            <%= if @allowed_domains_str != "" do %>
+            <%= if @allowed_domains_str != "none" do %>
               <button
                 type="button"
                 phx-click="clear_embed_domains"

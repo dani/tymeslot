@@ -235,7 +235,7 @@ defmodule Tymeslot.DatabaseSchemas.ProfileSchema do
       domain == "" ->
         false
 
-      domain in ["none", "open"] ->
+      domain == "none" ->
         true
 
       # Reject URLs with protocols, paths, query strings, or fragments
