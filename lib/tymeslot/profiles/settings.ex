@@ -1,17 +1,14 @@
 defmodule Tymeslot.Profiles.Settings do
   @moduledoc """
-  Context module for profile settings updates during onboarding and beyond.
+  Subcomponent for profile settings updates during onboarding and beyond.
+  This module coordinates updates across multiple profile aspects.
   """
 
   alias Tymeslot.Profiles
+  alias Tymeslot.Profiles.Usernames
 
   @doc """
   Updates basic profile settings (name, username, timezone) with input validation.
-
-  Note: Input should be pre-validated with OnboardingInputProcessor before calling this function.
-
-  Options:
-  - `dev_mode`: boolean - if true, returns updated profile map without database persistence
   """
   @spec update_basic_settings(term(), map(), keyword()) :: {:ok, term()} | {:error, term()}
   def update_basic_settings(profile, params, opts \\ []) do
@@ -26,37 +23,44 @@ defmodule Tymeslot.Profiles.Settings do
     if Map.has_key?(params, "value") do
       {:ok, profile}
     else
-      if dev_mode do
-        updated_profile =
-          Map.merge(profile, %{
-            full_name: full_name,
-            username: username,
-            timezone: timezone
-          })
-
+      # Validate username format if it changed
+      with :ok <- validate_username_if_changed(profile, username),
+           {:ok, updated_profile} <- perform_basic_update(profile, full_name, username, timezone, dev_mode) do
         {:ok, updated_profile}
-      else
-        attrs = %{
-          full_name: full_name,
-          username: username,
-          timezone: timezone
-        }
-
-        Profiles.update_profile(profile, attrs)
       end
     end
   end
 
+  defp validate_username_if_changed(profile, new_username) do
+    if profile.username != new_username do
+      Usernames.validate_username_format(new_username)
+    else
+      :ok
+    end
+  end
+
+  defp perform_basic_update(profile, full_name, username, timezone, true) do
+    updated_profile = Map.merge(profile, %{
+      full_name: full_name,
+      username: username,
+      timezone: timezone
+    })
+    {:ok, updated_profile}
+  end
+
+  defp perform_basic_update(profile, full_name, username, timezone, false) do
+    attrs = %{
+      full_name: full_name,
+      username: username,
+      timezone: timezone
+    }
+    Profiles.update_profile(profile, attrs)
+  end
+
   @doc """
-  Updates scheduling preferences (buffer time, booking window, advance notice) with input validation.
-
-  Note: Input should be pre-validated with OnboardingInputProcessor before calling this function.
-
-  Options:
-  - `dev_mode`: boolean - if true, returns updated profile map without database persistence
+  Updates scheduling preferences (buffer time, booking window, advance notice).
   """
-  @spec update_scheduling_preferences(term(), map(), keyword()) ::
-          {:ok, term()} | {:error, term()}
+  @spec update_scheduling_preferences(term(), map(), keyword()) :: {:ok, term()} | {:error, term()}
   def update_scheduling_preferences(profile, params, opts \\ []) do
     dev_mode = Keyword.get(opts, :dev_mode, false)
 
@@ -81,8 +85,7 @@ defmodule Tymeslot.Profiles.Settings do
         updated_profile = Map.put(profile, field, value)
         {:ok, updated_profile}
       else
-        attrs = %{field => value}
-        Profiles.update_profile(profile, attrs)
+        Profiles.update_profile_field(profile, field, value)
       end
     else
       {:ok, profile}
@@ -90,12 +93,7 @@ defmodule Tymeslot.Profiles.Settings do
   end
 
   @doc """
-  Updates profile timezone with input validation.
-
-  Note: Input should be pre-validated with OnboardingInputProcessor before calling this function.
-
-  Options:
-  - `dev_mode`: boolean - if true, returns updated profile map without database persistence
+  Updates profile timezone.
   """
   @spec update_timezone(term(), String.t(), keyword()) :: {:ok, term()} | {:error, term()}
   def update_timezone(profile, timezone, opts \\ []) do
