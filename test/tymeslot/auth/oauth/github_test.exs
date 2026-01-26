@@ -13,9 +13,11 @@ defmodule Tymeslot.Auth.OAuth.GitHubTest do
     Application.put_env(:tymeslot, :oauth_helper_module, HelperMock)
 
     on_exit(fn ->
-      if old_helper, do: Application.put_env(:tymeslot, :oauth_helper_module, old_helper),
-      else: Application.delete_env(:tymeslot, :oauth_helper_module)
+      if old_helper,
+        do: Application.put_env(:tymeslot, :oauth_helper_module, old_helper),
+        else: Application.delete_env(:tymeslot, :oauth_helper_module)
     end)
+
     :ok
   end
 
@@ -24,6 +26,7 @@ defmodule Tymeslot.Auth.OAuth.GitHubTest do
     redirect_uri = "http://callback"
 
     expect(HelperMock, :generate_and_store_state, fn ^conn -> {conn, "state123"} end)
+
     expect(HelperMock, :build_oauth_client, fn :github, ^redirect_uri, "state123" ->
       %OAuth2.Client{
         client_id: "test",
@@ -46,9 +49,13 @@ defmodule Tymeslot.Auth.OAuth.GitHubTest do
 
     expect(HelperMock, :validate_state, fn ^conn, ^state -> :ok end)
     expect(HelperMock, :clear_oauth_state, fn ^conn -> conn end)
-    expect(HelperMock, :do_handle_callback, fn _conn, ^code, ^redirect_uri, :github -> {:ok, conn, %{"id" => 1}} end)
 
-    assert {:ok, _updated_conn, %{"id" => 1}} = GitHub.handle_callback(conn, code, state, redirect_uri)
+    expect(HelperMock, :do_handle_callback, fn _conn, ^code, ^redirect_uri, :github ->
+      {:ok, conn, %{"id" => 1}}
+    end)
+
+    assert {:ok, _updated_conn, %{"id" => 1}} =
+             GitHub.handle_callback(conn, code, state, redirect_uri)
   end
 
   test "handle_callback/4 returns error on invalid state" do
@@ -59,6 +66,7 @@ defmodule Tymeslot.Auth.OAuth.GitHubTest do
 
     expect(HelperMock, :validate_state, fn ^conn, ^state -> {:error, :invalid_state} end)
 
-    assert {:error, ^conn, :invalid_state} = GitHub.handle_callback(conn, code, state, redirect_uri)
+    assert {:error, ^conn, :invalid_state} =
+             GitHub.handle_callback(conn, code, state, redirect_uri)
   end
 end

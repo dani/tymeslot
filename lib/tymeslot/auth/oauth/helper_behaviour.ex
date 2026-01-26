@@ -23,7 +23,8 @@ defmodule Tymeslot.Auth.OAuth.HelperBehaviour do
   @callback parse_access_token(String.t()) :: String.t()
 
   @callback handle_oauth_callback(Plug.Conn.t(), map()) :: Plug.Conn.t()
-  @callback handle_oauth_callback(Plug.Conn.t(), String.t(), String.t() | nil, atom(), keyword()) :: Plug.Conn.t()
+  @callback handle_oauth_callback(Plug.Conn.t(), String.t(), String.t() | nil, atom(), keyword()) ::
+              Plug.Conn.t()
 end
 
 defmodule Tymeslot.Auth.OAuth.ProviderBehaviour do

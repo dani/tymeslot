@@ -441,7 +441,11 @@ defmodule Tymeslot.Integrations.Calendar do
   @doc """
   Update an event with optional target integration, meeting context, or user_id.
   """
-  @spec update_event(String.t(), map(), pos_integer() | MeetingSchema.t() | {pos_integer(), pos_integer()} | nil) ::
+  @spec update_event(
+          String.t(),
+          map(),
+          pos_integer() | MeetingSchema.t() | {pos_integer(), pos_integer()} | nil
+        ) ::
           :ok | {:error, term()}
   def update_event(uid, event_data, context \\ nil) do
     behaviour_module().update_event(uid, event_data, context)
@@ -450,7 +454,10 @@ defmodule Tymeslot.Integrations.Calendar do
   @doc """
   Delete an event with optional target integration, meeting context, or user_id.
   """
-  @spec delete_event(String.t(), pos_integer() | MeetingSchema.t() | {pos_integer(), pos_integer()} | nil) ::
+  @spec delete_event(
+          String.t(),
+          pos_integer() | MeetingSchema.t() | {pos_integer(), pos_integer()} | nil
+        ) ::
           :ok | {:error, term()}
   def delete_event(uid, context \\ nil) do
     behaviour_module().delete_event(uid, context)

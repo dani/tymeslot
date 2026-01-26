@@ -114,6 +114,7 @@ defmodule Tymeslot.MixProject do
       {:ecto_sql, "~> 3.13"},
       {:postgrex, "~> 0.21.1"},
       {:magical, "~> 1.0"},
+      {:ex_image_info, "~> 1.0"},
       {:sweet_xml, "~> 0.7"},
       {:dialyxir, "~> 1.4", only: [:dev], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},

@@ -16,16 +16,24 @@ defmodule Tymeslot.Integrations.Calendar.CalendarBehaviour do
   @callback create_event(map(), pos_integer() | MeetingSchema.t() | MeetingTypeSchema.t() | nil) ::
               {:ok, any()} | {:error, any()}
   @callback update_event(
-    binary(),
-    map(),
-    pos_integer() | MeetingSchema.t() | MeetingTypeSchema.t() | {pos_integer(), pos_integer()} | nil
-  ) ::
-    :ok | {:error, any()}
+              binary(),
+              map(),
+              pos_integer()
+              | MeetingSchema.t()
+              | MeetingTypeSchema.t()
+              | {pos_integer(), pos_integer()}
+              | nil
+            ) ::
+              :ok | {:error, any()}
   @callback delete_event(
-    binary(),
-    pos_integer() | MeetingSchema.t() | MeetingTypeSchema.t() | {pos_integer(), pos_integer()} | nil
-  ) ::
-    :ok | {:error, any()}
+              binary(),
+              pos_integer()
+              | MeetingSchema.t()
+              | MeetingTypeSchema.t()
+              | {pos_integer(), pos_integer()}
+              | nil
+            ) ::
+              :ok | {:error, any()}
   @callback get_booking_integration_info(pos_integer() | MeetingTypeSchema.t()) ::
               {:ok, map()} | {:error, any()}
 end

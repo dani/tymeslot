@@ -60,8 +60,12 @@ defmodule Tymeslot.Profiles.Avatars do
 
   def avatar_url(%ProfileSchema{} = profile, _version) do
     case profile.avatar do
-      nil -> AvatarUtils.generate_fallback_data_uri(profile)
-      "" -> AvatarUtils.generate_fallback_data_uri(profile)
+      nil ->
+        AvatarUtils.generate_fallback_data_uri(profile)
+
+      "" ->
+        AvatarUtils.generate_fallback_data_uri(profile)
+
       avatar ->
         if String.starts_with?(avatar, "/") do
           avatar
@@ -120,6 +124,7 @@ defmodule Tymeslot.Profiles.Avatars do
   end
 
   defp maybe_delete_old_avatar(nil, _profile, _context), do: :ok
+
   defp maybe_delete_old_avatar(old_avatar, profile, context) do
     old_file_path = build_avatar_path(old_avatar, profile)
     UploadHandler.delete_file_safely(old_file_path, Map.put(context, :file_type, "old_avatar"))

@@ -32,7 +32,14 @@ defmodule Tymeslot.Integrations.Calendar.Orchestration.WorkflowsTest do
     test "handles discovery error by returning existing list" do
       user = insert(:user)
       existing_list = [%{id: "old", name: "Old"}]
-      integration = insert(:calendar_integration, user: user, provider: "google", calendar_list: existing_list)
+
+      integration =
+        insert(:calendar_integration,
+          user: user,
+          provider: "google",
+          calendar_list: existing_list
+        )
+
       component_id = "comp_err"
 
       expect(GoogleCalendarAPIMock, :list_calendars, fn _ ->
@@ -51,14 +58,17 @@ defmodule Tymeslot.Integrations.Calendar.Orchestration.WorkflowsTest do
   describe "update_integration_with_discovery/1" do
     test "merges discovery with existing selection" do
       user = insert(:user)
-      integration = insert(:calendar_integration,
-        user: user,
-        provider: "google",
-        calendar_list: [%{"id" => "cal_1", "selected" => true, "path" => "p1"}]
-      )
+
+      integration =
+        insert(:calendar_integration,
+          user: user,
+          provider: "google",
+          calendar_list: [%{"id" => "cal_1", "selected" => true, "path" => "p1"}]
+        )
 
       expect(GoogleCalendarAPIMock, :list_calendars, fn _ ->
-        {:ok, [%{"id" => "cal_1", "summary" => "Cal 1"}, %{"id" => "cal_2", "summary" => "Cal 2"}]}
+        {:ok,
+         [%{"id" => "cal_1", "summary" => "Cal 1"}, %{"id" => "cal_2", "summary" => "Cal 2"}]}
       end)
 
       assert {:ok, updated} = Workflows.update_integration_with_discovery(integration)
@@ -74,7 +84,9 @@ defmodule Tymeslot.Integrations.Calendar.Orchestration.WorkflowsTest do
     test "preserves existing list if discovery returns empty" do
       user = insert(:user)
       existing = [%{"id" => "cal_1", "selected" => true}]
-      integration = insert(:calendar_integration, user: user, provider: "google", calendar_list: existing)
+
+      integration =
+        insert(:calendar_integration, user: user, provider: "google", calendar_list: existing)
 
       expect(GoogleCalendarAPIMock, :list_calendars, fn _ ->
         {:ok, []}

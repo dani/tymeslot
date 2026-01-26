@@ -17,9 +17,11 @@ defmodule Tymeslot.Auth.OAuth.GoogleTest do
     Application.put_env(:tymeslot, :oauth_helper_module, HelperMock)
 
     on_exit(fn ->
-      if old_helper, do: Application.put_env(:tymeslot, :oauth_helper_module, old_helper),
-      else: Application.delete_env(:tymeslot, :oauth_helper_module)
+      if old_helper,
+        do: Application.put_env(:tymeslot, :oauth_helper_module, old_helper),
+        else: Application.delete_env(:tymeslot, :oauth_helper_module)
     end)
+
     :ok
   end
 
@@ -28,6 +30,7 @@ defmodule Tymeslot.Auth.OAuth.GoogleTest do
     redirect_uri = "http://callback"
 
     expect(HelperMock, :generate_and_store_state, fn ^conn -> {conn, "state456"} end)
+
     expect(HelperMock, :build_oauth_client, fn :google, ^redirect_uri, "state456" ->
       %OAuth2.Client{
         client_id: "test",
@@ -48,7 +51,8 @@ defmodule Tymeslot.Auth.OAuth.GoogleTest do
     state = "state456"
     redirect_uri = "http://callback"
 
-    expect(HelperMock, :handle_oauth_callback, fn _conn, %{code: ^code, state: ^state, provider: :google} ->
+    expect(HelperMock, :handle_oauth_callback, fn _conn,
+                                                  %{code: ^code, state: ^state, provider: :google} ->
       PlugConn.put_private(conn, :oauth_callback_result, {:ok, %{"id" => 2}})
     end)
 
@@ -62,7 +66,8 @@ defmodule Tymeslot.Auth.OAuth.GoogleTest do
     state = "wrong_state"
     redirect_uri = "http://callback"
 
-    expect(HelperMock, :handle_oauth_callback, fn conn, %{code: ^code, state: ^state, provider: :google} ->
+    expect(HelperMock, :handle_oauth_callback, fn conn,
+                                                  %{code: ^code, state: ^state, provider: :google} ->
       # Mock the error response from FlowHandler
       conn
       |> Controller.fetch_flash([])

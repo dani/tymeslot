@@ -71,9 +71,7 @@ defmodule Tymeslot.Integrations.Calendar.Runtime.ClientManager do
   Gets the booking calendar integration info for a user or meeting type.
   Returns the integration ID and calendar path that will be used for creating bookings.
   """
-  @spec get_booking_integration_info(
-          user_id() | MeetingSchema.t() | MeetingTypeSchema.t()
-        ) ::
+  @spec get_booking_integration_info(user_id() | MeetingSchema.t() | MeetingTypeSchema.t()) ::
           {:ok, %{integration_id: integration_id(), calendar_path: String.t()}}
           | {:error, atom()}
   def get_booking_integration_info(%MeetingSchema{} = meeting) do

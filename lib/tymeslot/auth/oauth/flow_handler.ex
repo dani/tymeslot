@@ -79,11 +79,16 @@ defmodule Tymeslot.Auth.OAuth.FlowHandler do
     case Session.create_session(conn, %{id: user.id}) do
       {:ok, conn, _token} ->
         conn
-        |> Controller.put_flash(:info, "Successfully signed in with #{provider_name(context.provider)}.")
+        |> Controller.put_flash(
+          :info,
+          "Successfully signed in with #{provider_name(context.provider)}."
+        )
         |> Controller.redirect(to: context.success_path)
 
       {:error, reason, _message} ->
-        Logger.error("Failed to create session after #{context.provider} auth: #{inspect(reason)}")
+        Logger.error(
+          "Failed to create session after #{context.provider} auth: #{inspect(reason)}"
+        )
 
         conn
         |> Controller.put_flash(:error, "Authentication succeeded but session creation failed.")
@@ -145,7 +150,10 @@ defmodule Tymeslot.Auth.OAuth.FlowHandler do
     Logger.error("#{provider_name(provider)} authentication error: #{inspect(reason)}")
 
     conn
-    |> Controller.put_flash(:error, "An error occurred during #{provider_name(provider)} authentication.")
+    |> Controller.put_flash(
+      :error,
+      "An error occurred during #{provider_name(provider)} authentication."
+    )
     |> Controller.redirect(to: login_path)
   end
 

@@ -506,15 +506,15 @@ defmodule Tymeslot.DatabaseQueries.MeetingTypeQueriesTest do
   end
 
   describe "reorder_meeting_types/2" do
-    test "reorders meeting types successfully" do
+    test "reorders meeting types and updates sort_order" do
       user = insert(:user)
 
       # Create meeting types with initial sort orders
-      mt1 = insert(:meeting_type, user: user, name: "First", sort_order: 0)
-      mt2 = insert(:meeting_type, user: user, name: "Second", sort_order: 1)
-      mt3 = insert(:meeting_type, user: user, name: "Third", sort_order: 2)
+      mt1 = insert(:meeting_type, user: user, name: "Alpha", sort_order: 0)
+      mt2 = insert(:meeting_type, user: user, name: "Beta", sort_order: 1)
+      mt3 = insert(:meeting_type, user: user, name: "Gamma", sort_order: 2)
 
-      # Reorder: move third to first, first to second, second to third
+      # Reorder: move Gamma to first, Alpha to second, Beta to third
       new_order = [mt3.id, mt1.id, mt2.id]
 
       assert {:ok, _} = MeetingTypeQueries.reorder_meeting_types(user.id, new_order)
@@ -586,11 +586,15 @@ defmodule Tymeslot.DatabaseQueries.MeetingTypeQueriesTest do
 
       # Reverse order
       new_order = [mt3.id, mt2.id, mt1.id]
-      
+
       # Use a slightly older timestamp for initial records to ensure updated_at is greater
-      past_time = NaiveDateTime.add(NaiveDateTime.utc_now(), -10, :second) |> NaiveDateTime.truncate(:second)
+      past_time =
+        NaiveDateTime.utc_now()
+        |> NaiveDateTime.add(-10, :second)
+        |> NaiveDateTime.truncate(:second)
+
       Repo.update_all(Tymeslot.DatabaseSchemas.MeetingTypeSchema, set: [updated_at: past_time])
-      
+
       # Refresh mt3 to get the past_time
       mt3 = Repo.get!(Tymeslot.DatabaseSchemas.MeetingTypeSchema, mt3.id)
 

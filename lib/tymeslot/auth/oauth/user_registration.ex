@@ -149,7 +149,8 @@ defmodule Tymeslot.Auth.OAuth.UserRegistration do
       "provider" => to_string(provider),
       "email" => oauth_user.email,
       "is_verified" => email_verified,
-      "#{provider}_user_id" => Map.get(oauth_user, String.to_existing_atom("#{provider}_user_id")),
+      "#{provider}_user_id" =>
+        Map.get(oauth_user, String.to_existing_atom("#{provider}_user_id")),
       "terms_accepted" =>
         if(Application.get_env(:tymeslot, :enforce_legal_agreements, false),
           do: "true",

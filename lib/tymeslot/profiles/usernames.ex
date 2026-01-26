@@ -53,6 +53,7 @@ defmodule Tymeslot.Profiles.Usernames do
   # Private helpers
 
   defp generate_random_username(base, 0), do: "#{base}_#{random_suffix()}"
+
   defp generate_random_username(base, attempts) do
     candidate = "#{base}_#{random_suffix()}"
 

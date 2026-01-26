@@ -22,7 +22,8 @@ defmodule Tymeslot.Profiles.Scheduling do
     end
   end
 
-  def update_buffer_minutes(%ProfileSchema{} = profile, buffer_minutes) when is_integer(buffer_minutes) do
+  def update_buffer_minutes(%ProfileSchema{} = profile, buffer_minutes)
+      when is_integer(buffer_minutes) do
     if Validation.valid_buffer_minutes?(buffer_minutes) do
       ProfileQueries.update_profile(profile, %{buffer_minutes: buffer_minutes})
     else
@@ -34,7 +35,8 @@ defmodule Tymeslot.Profiles.Scheduling do
   Updates advance booking days with validation.
   """
   @spec update_advance_booking_days(profile, String.t() | integer()) :: result(profile)
-  def update_advance_booking_days(%ProfileSchema{} = profile, days_str) when is_binary(days_str) do
+  def update_advance_booking_days(%ProfileSchema{} = profile, days_str)
+      when is_binary(days_str) do
     case Integer.parse(days_str) do
       {days, _} -> update_advance_booking_days(profile, days)
       _ -> {:error, :invalid_advance_booking_days}
@@ -57,6 +59,7 @@ defmodule Tymeslot.Profiles.Scheduling do
     case Integer.parse(hours_str) do
       {hours, _} when hours >= 0 and hours <= 168 ->
         ProfileQueries.update_profile(profile, %{min_advance_hours: hours})
+
       _ ->
         {:error, :invalid_min_advance_hours}
     end

@@ -32,7 +32,10 @@ defmodule TymeslotWeb.Live.Themes.RhythmMeetingTest do
       ThemeMeetingTestCases.setup_reschedule_view(conn, profile, meeting)
     end
 
-    test "renders the reschedule page with rhythm style and meeting details", %{view: view, meeting: meeting} do
+    test "renders the reschedule page with rhythm style and meeting details", %{
+      view: view,
+      meeting: meeting
+    } do
       ThemeMeetingTestCases.test_reschedule_page_rendering(view)
 
       # Check meeting details

@@ -14,7 +14,8 @@ defmodule Tymeslot.Integrations.Video.UrlsTest do
       # Google Meet example
       assert Urls.extract_room_id("https://meet.google.com/abc-defg-hij") == "abc-defg-hij"
       # Teams example
-      assert Urls.extract_room_id("https://teams.microsoft.com/l/meetup-join/19%3ameeting_test") == "19%3ameeting_test"
+      assert Urls.extract_room_id("https://teams.microsoft.com/l/meetup-join/19%3ameeting_test") ==
+               "19%3ameeting_test"
     end
 
     test "returns nil for invalid input" do

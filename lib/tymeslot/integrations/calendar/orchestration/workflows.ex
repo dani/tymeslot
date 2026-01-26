@@ -41,7 +41,9 @@ defmodule Tymeslot.Integrations.Calendar.Orchestration.Workflows do
               )
 
               # Update the integration's calendar_list in the database so it's persisted
-              CalendarManagement.update_calendar_integration(integration, %{calendar_list: calendars})
+              CalendarManagement.update_calendar_integration(integration, %{
+                calendar_list: calendars
+              })
 
               send(parent, {:calendar_list_refreshed, component_id, integration_id, calendars})
 

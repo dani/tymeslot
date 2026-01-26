@@ -139,7 +139,12 @@ defmodule TymeslotWeb.Integration.GoogleOAuthIntegrationTest do
 
     test "handles calendar integration errors gracefully", %{conn: conn} do
       import Mox
-      expect(Tymeslot.HTTPClientMock, :request, fn :post, "https://oauth2.googleapis.com/token", _body, _headers, _opts ->
+
+      expect(Tymeslot.HTTPClientMock, :request, fn :post,
+                                                   "https://oauth2.googleapis.com/token",
+                                                   _body,
+                                                   _headers,
+                                                   _opts ->
         {:ok, %{status_code: 400, body: Jason.encode!(%{"error" => "invalid_grant"})}}
       end)
 

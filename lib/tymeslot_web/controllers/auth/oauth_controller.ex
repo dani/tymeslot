@@ -170,7 +170,10 @@ defmodule TymeslotWeb.OAuthController do
 
   def github_callback(conn, _params) do
     conn
-    |> put_flash(:error, "GitHub authentication failed - missing authorization code or security token.")
+    |> put_flash(
+      :error,
+      "GitHub authentication failed - missing authorization code or security token."
+    )
     |> redirect(to: "/?auth=login")
   end
 
@@ -198,7 +201,10 @@ defmodule TymeslotWeb.OAuthController do
 
   def google_callback(conn, _params) do
     conn
-    |> put_flash(:error, "Google authentication failed - missing authorization code or security token.")
+    |> put_flash(
+      :error,
+      "Google authentication failed - missing authorization code or security token."
+    )
     |> redirect(to: "/?auth=login")
   end
 

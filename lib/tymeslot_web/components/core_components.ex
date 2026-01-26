@@ -205,6 +205,32 @@ defmodule TymeslotWeb.Components.CoreComponents do
   @spec back_link(map()) :: Phoenix.LiveView.Rendered.t()
   def back_link(assigns), do: Navigation.back_link(assigns)
 
+  @doc """
+  Renders a tabbed navigation interface.
+
+  ## Usage
+
+      <.tabs active_tab={@active_tab} target={@myself}>
+        <:tab id="overview" label="Overview" icon={:home}>
+          <p>Overview content here</p>
+        </:tab>
+        <:tab id="settings" label="Settings" icon={:cog}>
+          <p>Settings content here</p>
+        </:tab>
+      </.tabs>
+  """
+  attr :active_tab, :string, required: true
+  attr :target, :any, default: nil
+
+  slot :tab, required: true do
+    attr :id, :string, required: true
+    attr :label, :string, required: true
+    attr :icon, :atom
+  end
+
+  @spec tabs(map()) :: Phoenix.LiveView.Rendered.t()
+  def tabs(assigns), do: Navigation.tabs(assigns)
+
   # ========== FLASH MESSAGES ==========
 
   @doc """

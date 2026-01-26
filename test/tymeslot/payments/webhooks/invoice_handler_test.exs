@@ -83,7 +83,9 @@ defmodule Tymeslot.Payments.Webhooks.InvoiceHandlerTest do
       assert {:ok, :invoice_processed} = InvoiceHandler.process(event, invoice)
 
       # Verify transaction status was updated to pending_reconciliation
-      assert {:ok, [t]} = PaymentQueries.get_transactions_by_status("pending_reconciliation", user.id)
+      assert {:ok, [t]} =
+               PaymentQueries.get_transactions_by_status("pending_reconciliation", user.id)
+
       assert t.subscription_id == subscription_id
     end
 

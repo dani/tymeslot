@@ -619,23 +619,23 @@ defmodule Tymeslot.MeetingTypesContextTest do
   end
 
   describe "when reordering meeting types" do
-    test "successfully reorders meeting types" do
+    test "reorders meeting types for a user" do
       user = insert(:user)
 
-      mt1 = insert(:meeting_type, user: user, name: "First", sort_order: 0)
-      mt2 = insert(:meeting_type, user: user, name: "Second", sort_order: 1)
-      mt3 = insert(:meeting_type, user: user, name: "Third", sort_order: 2)
+      mt1 = insert(:meeting_type, user: user, name: "Meeting A", sort_order: 0)
+      mt2 = insert(:meeting_type, user: user, name: "Meeting B", sort_order: 1)
+      mt3 = insert(:meeting_type, user: user, name: "Meeting C", sort_order: 2)
 
-      # Reorder: Third, First, Second
-      new_order = [mt3.id, mt1.id, mt2.id]
+      # Reorder: B, C, A
+      new_order = [mt2.id, mt3.id, mt1.id]
 
       assert {:ok, _} = MeetingTypes.reorder_meeting_types(user.id, new_order)
 
       # Verify new order
       types = MeetingTypes.get_all_meeting_types(user.id)
-      assert Enum.at(types, 0).id == mt3.id
-      assert Enum.at(types, 1).id == mt1.id
-      assert Enum.at(types, 2).id == mt2.id
+      assert Enum.at(types, 0).id == mt2.id
+      assert Enum.at(types, 1).id == mt3.id
+      assert Enum.at(types, 2).id == mt1.id
     end
 
     test "does not reorder other users' meeting types" do
