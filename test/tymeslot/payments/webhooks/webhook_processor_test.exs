@@ -9,6 +9,7 @@ defmodule Tymeslot.Payments.Webhooks.WebhookProcessorTest do
   setup :verify_on_exit!
 
   defmodule TestAdminAlerts do
+    @spec alert_unhandled_webhook(String.t(), String.t(), map()) :: :ok
     def alert_unhandled_webhook(event_type, event_id, payload) do
       pid = Application.get_env(:tymeslot, :admin_alerts_test_pid)
       send(pid, {:alert_unhandled_webhook, event_type, event_id, payload})
@@ -80,7 +81,6 @@ defmodule Tymeslot.Payments.Webhooks.WebhookProcessorTest do
       # The processor calls WebhookRegistry.validate(event_type, object)
       # WebhookRegistry.validate(event_type, object) calls handler.validate(object)
       # DisputeHandler.validate expects %{"type" => type, "data" => %{"object" => object}}
-      
       full_event_as_object = %{
         "type" => "charge.dispute.created",
         "data" => %{

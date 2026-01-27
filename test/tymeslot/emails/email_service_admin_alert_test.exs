@@ -6,6 +6,7 @@ defmodule Tymeslot.Emails.EmailServiceAdminAlertTest do
   alias Tymeslot.Emails.EmailService
 
   defmodule RaisingAdminAlerts do
+    @spec send_alert(any(), any(), any()) :: no_return()
     def send_alert(_event, _metadata, _opts) do
       raise "admin alert failure"
     end

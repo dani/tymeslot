@@ -150,25 +150,26 @@ defmodule Tymeslot.Integrations.HealthCheck do
   # Private Functions
 
   defp schedule_integration_jobs do
-    CalendarIntegrationQueries.list_all_active()
-    |> Enum.each(fn int ->
-      Logger.debug("Scheduling calendar health check", id: int.id)
-      enqueue_health_check(:calendar, int.id)
-    end)
-
-    VideoIntegrationQueries.list_all_active()
-    |> Enum.each(fn int ->
-      Logger.debug("Scheduling video health check", id: int.id)
-      enqueue_health_check(:video, int.id)
-    end)
+    Enum.each(CalendarIntegrationQueries.list_all_active(), &schedule_calendar_health_check/1)
+    Enum.each(VideoIntegrationQueries.list_all_active(), &schedule_video_health_check/1)
     :ok
   end
 
+  defp schedule_calendar_health_check(int) do
+    Logger.debug("Scheduling calendar health check", id: int.id)
+    enqueue_health_check(:calendar, int.id)
+  end
+
+  defp schedule_video_health_check(int) do
+    Logger.debug("Scheduling video health check", id: int.id)
+    enqueue_health_check(:video, int.id)
+  end
+
   defp enqueue_health_check(type, integration_id) do
-    %{"type" => Atom.to_string(type), "integration_id" => integration_id}
-    |> IntegrationHealthWorker.new()
-    |> Oban.insert()
-    |> case do
+    job = IntegrationHealthWorker.new(%{"type" => Atom.to_string(type), "integration_id" => integration_id})
+    result = Oban.insert(job)
+
+    case result do
       {:ok, _job} ->
         :ok
 
