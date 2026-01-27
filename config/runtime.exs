@@ -1,5 +1,19 @@
 import Config
 
+# Helper to safely parse integers from environment variables
+parse_int = fn var, default ->
+  case System.get_env(var) do
+    nil ->
+      default
+
+    value ->
+      case Integer.parse(value) do
+        {int, _} -> int
+        :error -> default
+      end
+  end
+end
+
 # config/runtime.exs is executed for all environments, including
 # during releases. It is executed after compilation and before the
 # system starts, so it is typically used to load production configuration
@@ -126,20 +140,6 @@ if config_env() == :prod do
           contents
         end
     end
-
-  # Helper to safely parse integers from environment variables
-  parse_int = fn var, default ->
-    case System.get_env(var) do
-      nil ->
-        default
-
-      value ->
-        case Integer.parse(value) do
-          {int, _} -> int
-          :error -> default
-        end
-    end
-  end
 
   # Determine the URL scheme based on deployment type
   url_scheme =
@@ -300,20 +300,6 @@ end
 
 # Configure mailer for non-production environments
 if config_env() != :prod do
-  # Helper to safely parse integers from environment variables
-  parse_int = fn var, default ->
-    case System.get_env(var) do
-      nil ->
-        default
-
-      value ->
-        case Integer.parse(value) do
-          {int, _} -> int
-          :error -> default
-        end
-    end
-  end
-
   # Default to smtp for self-hosted deployments
   email_adapter_default = Application.get_env(:tymeslot, :email_adapter_default, "smtp")
   email_adapter = System.get_env("EMAIL_ADAPTER", email_adapter_default)
@@ -409,20 +395,6 @@ end
 
 # Development/test environment Stripe configuration
 if config_env() in [:dev, :test] do
-  # Helper to safely parse integers from environment variables
-  parse_int = fn var, default ->
-    case System.get_env(var) do
-      nil ->
-        default
-
-      value ->
-        case Integer.parse(value) do
-          {int, _} -> int
-          :error -> default
-        end
-    end
-  end
-
   config :stripity_stripe,
     api_key: System.get_env("STRIPE_SECRET_KEY", "sk_test_fake")
 
