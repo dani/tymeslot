@@ -53,6 +53,7 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
   end
 
   # Form state helpers
+  @spec setup_form_state(Phoenix.LiveView.Socket.t(), map(), keyword()) :: Phoenix.LiveView.Socket.t()
   def setup_form_state(socket, form_data \\ %{}, opts \\ []) do
     as = Keyword.get(opts, :as)
 
@@ -63,6 +64,7 @@ defmodule TymeslotWeb.Live.Scheduling.Helpers do
     |> assign(:saving, false)
   end
 
+  @spec assign_form_errors(Phoenix.LiveView.Socket.t(), list() | map()) :: Phoenix.LiveView.Socket.t()
   def assign_form_errors(socket, errors) when is_list(errors) do
     error_map = Enum.group_by(errors, &elem(&1, 0), &elem(&1, 1))
     assign(socket, :validation_errors, error_map)

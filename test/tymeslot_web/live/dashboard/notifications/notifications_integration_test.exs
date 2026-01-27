@@ -98,7 +98,6 @@ defmodule TymeslotWeb.Dashboard.Notifications.NotificationsIntegrationTest do
       |> element("button", "Delete Webhook")
       |> render_click()
 
-
       assert render(view) =~ "Webhook deleted successfully"
       assert render(view) =~ "No Webhooks Yet"
 

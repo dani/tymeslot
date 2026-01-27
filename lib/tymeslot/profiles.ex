@@ -328,7 +328,11 @@ defmodule Tymeslot.Profiles do
         |> Enum.map(&String.trim/1)
         |> Enum.map(&String.downcase/1)
         |> Enum.map(fn domain ->
-          domain |> String.replace(~r|^https?://|, "") |> String.split("/") |> List.first()
+          # Extract host if a full URL was provided
+          case URI.parse(domain) do
+            %URI{host: host} when not is_nil(host) -> host
+            _ -> domain
+          end
         end)
         |> Enum.reject(&(&1 == "" or &1 == "none"))
         |> Enum.uniq()

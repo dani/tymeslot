@@ -7,7 +7,6 @@ defmodule Tymeslot.Payments.StripeTest do
   # Avoid alias conflicts by using the full module name for the struct
   # or just use the map form if the struct isn't available at compile time
 
-
   # We mock the underlying Stripe modules that the Stripe wrapper uses
   setup :set_mox_from_context
   setup :verify_on_exit!

@@ -19,6 +19,7 @@ defmodule Tymeslot.Workers.WebhookWorker do
 
   alias Tymeslot.DatabaseQueries.{MeetingQueries, WebhookQueries}
   alias Tymeslot.DatabaseSchemas.WebhookSchema
+  alias Tymeslot.Webhooks
   alias Tymeslot.Webhooks.PayloadBuilder
 
   # 10 second timeout for webhook delivery
@@ -141,94 +142,114 @@ defmodule Tymeslot.Workers.WebhookWorker do
   # Private functions
 
   defp deliver_webhook(%WebhookSchema{} = webhook, event_type, meeting, attempt) do
-    # Check if webhook is still active
     if WebhookSchema.should_be_active?(webhook) do
-      # SSRF Protection: Re-validate URL format immediately before delivery to prevent DNS rebinding
       case WebhookSchema.validate_url_format(webhook.url) do
         :ok ->
-          # Decrypt token
-          webhook = WebhookSchema.decrypt_token(webhook)
-
-          # Build payload
-          payload = PayloadBuilder.build_payload(event_type, meeting, to_string(webhook.id))
-
-          # Create delivery log entry
-          {:ok, delivery} =
-            WebhookQueries.create_delivery(%{
-              webhook_id: webhook.id,
-              event_type: event_type,
-              meeting_id: meeting.id,
-              payload: payload,
-              attempt_count: attempt
-            })
-
-          # Send HTTP request
-          headers = Tymeslot.Webhooks.build_headers(payload, webhook.webhook_token)
-
-          result =
-            case http_client().post(webhook.url, Jason.encode!(payload), headers,
-                   recv_timeout: @delivery_timeout_ms
-                 ) do
-              {:ok, %{status_code: status, body: response_body}} ->
-                {:ok, status, response_body}
-
-              {:error, %{reason: reason}} ->
-                {:error, inspect(reason)}
-
-              {:error, reason} ->
-                {:error, inspect(reason)}
-            end
-
-          # Update delivery log with result
-          {:ok, delivery} =
-            case result do
-              {:ok, status, response_body} ->
-                WebhookQueries.update_delivery(delivery, %{
-                  response_status: status,
-                  response_body: truncate_response(response_body),
-                  delivered_at: DateTime.utc_now()
-                })
-
-              {:error, error_message} ->
-                WebhookQueries.update_delivery(delivery, %{
-                  error_message: truncate_response(error_message)
-                })
-            end
-
-          # Return result for perform/1 to handle success/failure
-          case result do
-            {:ok, status, _body} when status >= 200 and status < 300 ->
-              {:ok, delivery}
-
-            {:ok, status, _body} ->
-              {:error, {:http_error, status}}
-
-            {:error, reason} ->
-              {:error, reason}
-          end
+          do_deliver_webhook(webhook, event_type, meeting, attempt)
 
         {:error, reason} ->
-          Logger.warning("Webhook delivery blocked by SSRF protection",
-            webhook_id: webhook.id,
-            url: webhook.url,
-            reason: reason
-          )
-
-          # Create a delivery log for the blocked attempt
-          WebhookQueries.create_delivery(%{
-            webhook_id: webhook.id,
-            event_type: event_type,
-            meeting_id: meeting.id,
-            payload: %{},
-            attempt_count: attempt,
-            error_message: "Blocked by SSRF protection: #{reason}"
-          })
-
-          {:error, :blocked_by_ssrf}
+          handle_ssrf_blocked(webhook, event_type, meeting, attempt, reason)
       end
     else
       {:error, :disabled}
     end
+  end
+
+  defp do_deliver_webhook(webhook, event_type, meeting, attempt) do
+    # Decrypt token
+    webhook = WebhookSchema.decrypt_token(webhook)
+
+    # Build payload
+    payload = PayloadBuilder.build_payload(event_type, meeting, to_string(webhook.id))
+
+    # Send HTTP request
+    headers = Webhooks.build_headers(payload, webhook.webhook_token)
+    result = perform_http_request(webhook.url, payload, headers)
+
+    # Log delivery and update webhook status
+    log_and_update_status(webhook, event_type, meeting, payload, attempt, result)
+  end
+
+  defp log_and_update_status(webhook, event_type, meeting, payload, attempt, result) do
+    # Create delivery log entry
+    delivery_attrs = %{
+      webhook_id: webhook.id,
+      event_type: event_type,
+      meeting_id: meeting.id,
+      payload: payload,
+      attempt_count: attempt
+    }
+
+    delivery_attrs =
+      case result do
+        {:ok, status, response_body} ->
+          Map.merge(delivery_attrs, %{
+            response_status: status,
+            response_body: truncate_response(response_body),
+            delivered_at: DateTime.utc_now()
+          })
+
+        {:error, error_message} ->
+          Map.put(delivery_attrs, :error_message, truncate_response(error_message))
+      end
+
+    {:ok, delivery} = WebhookQueries.create_delivery(delivery_attrs)
+
+    # Update webhook status (success/failure)
+    # We only record success/failure on the first attempt or if it's a success
+    # to avoid double-counting failures if Oban retries.
+    case result do
+      {:ok, status, _body} when status >= 200 and status < 300 ->
+        WebhookQueries.record_success(webhook)
+        {:ok, delivery}
+
+      {:ok, status, _body} ->
+        if attempt == 1, do: WebhookQueries.record_failure(webhook, "HTTP #{status}")
+        {:error, {:http_error, status}}
+
+      {:error, reason} ->
+        if attempt == 1, do: WebhookQueries.record_failure(webhook, to_string(reason))
+        {:error, reason}
+    end
+  end
+
+  defp perform_http_request(url, payload, headers) do
+    case http_client().post(url, Jason.encode!(payload), headers,
+           recv_timeout: @delivery_timeout_ms
+         ) do
+      {:ok, %{status_code: status, body: response_body}} ->
+        {:ok, status, response_body}
+
+      {:error, %{reason: reason}} ->
+        {:error, inspect(reason)}
+
+      {:error, reason} ->
+        {:error, inspect(reason)}
+    end
+  end
+
+  defp handle_ssrf_blocked(webhook, event_type, meeting, attempt, reason) do
+    Logger.warning("Webhook delivery blocked by SSRF protection",
+      webhook_id: webhook.id,
+      url: webhook.url,
+      reason: reason
+    )
+
+    # SSRF block should also count as a failure to eventually disable the webhook
+    if attempt == 1, do: WebhookQueries.record_failure(webhook, "SSRF Blocked: #{reason}")
+
+    # Create a delivery log for the blocked attempt
+    {:ok, _delivery} =
+      WebhookQueries.create_delivery(%{
+        webhook_id: webhook.id,
+        event_type: event_type,
+        meeting_id: meeting.id,
+        payload: %{},
+        attempt_count: attempt,
+        error_message: "Blocked by SSRF protection: #{reason}"
+      })
+
+    {:error, :blocked_by_ssrf}
   end
 
   # Truncate response to prevent database bloat and ensure UTF-8 compatibility
