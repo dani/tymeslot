@@ -1,6 +1,7 @@
 defmodule Tymeslot.Integrations.HealthCheckTest do
   use Tymeslot.DataCase, async: false
 
+  use Oban.Testing, repo: Tymeslot.Repo
   import Tymeslot.Factory
   import Mox
 
@@ -11,11 +12,13 @@ defmodule Tymeslot.Integrations.HealthCheckTest do
     # Start the GenServer with initial_delay: 0 to disable automatic checks
     {:ok, pid} = HealthCheck.start_link(check_interval: 1_000_000, initial_delay: 0)
 
-    # Allow the HealthCheck process to use mocks defined in the test process
-    Mox.allow(GoogleCalendarAPIMock, self(), pid)
-    Mox.allow(Tymeslot.HTTPClientMock, self(), pid)
+    # Use global mode for mocks because HealthCheck uses Oban workers
+    # and GenServer calls that might cross process boundaries
+    Mox.set_mox_global()
 
     on_exit(fn ->
+      Mox.set_mox_private()
+
       if Process.alive?(pid) do
         Process.exit(pid, :kill)
       end
@@ -38,7 +41,7 @@ defmodule Tymeslot.Integrations.HealthCheckTest do
       end)
 
       # 1st failure
-      HealthCheck.check_all_integrations()
+      run_health_checks()
       assert_receive :mock_called, 1000
       sync_with_server()
       status = HealthCheck.get_health_status(:calendar, integration.id)
@@ -46,7 +49,7 @@ defmodule Tymeslot.Integrations.HealthCheckTest do
       assert status.failures == 1
 
       # 2nd failure
-      HealthCheck.check_all_integrations()
+      run_health_checks()
       assert_receive :mock_called, 1000
       sync_with_server()
       status = HealthCheck.get_health_status(:calendar, integration.id)
@@ -54,7 +57,7 @@ defmodule Tymeslot.Integrations.HealthCheckTest do
       assert status.failures == 2
 
       # 3rd failure
-      HealthCheck.check_all_integrations()
+      run_health_checks()
       assert_receive :mock_called, 1000
       sync_with_server()
       status = HealthCheck.get_health_status(:calendar, integration.id)
@@ -77,7 +80,7 @@ defmodule Tymeslot.Integrations.HealthCheckTest do
         {:error, :unauthorized}
       end)
 
-      HealthCheck.check_all_integrations()
+      run_health_checks()
       assert_receive :mock_called, 1000
       sync_with_server()
       assert HealthCheck.get_health_status(:calendar, integration.id).status == :degraded
@@ -89,16 +92,68 @@ defmodule Tymeslot.Integrations.HealthCheckTest do
       end)
 
       # 1st success
-      HealthCheck.check_all_integrations()
+      run_health_checks()
       assert_receive :mock_called, 1000
       sync_with_server()
       assert HealthCheck.get_health_status(:calendar, integration.id).status == :degraded
 
       # 2nd success
-      HealthCheck.check_all_integrations()
+      run_health_checks()
       assert_receive :mock_called, 1000
       sync_with_server()
       assert HealthCheck.get_health_status(:calendar, integration.id).status == :healthy
+    end
+
+    test "handles integration check timeout" do
+      user = insert(:user)
+      integration = insert(:calendar_integration, user: user, is_active: true, provider: "google")
+      test_pid = self()
+
+      # Mock a slow response
+      # Note: Oban doesn't have a built-in "timeout" return value like Task.yield,
+      # but the underlying integration call might timeout.
+      expect(GoogleCalendarAPIMock, :list_primary_events, 1, fn _int, _start, _end ->
+        send(test_pid, :mock_called)
+        {:error, :timeout}
+      end)
+
+      # Trigger check
+      run_health_checks()
+
+      # Wait for mock to be called
+      assert_receive :mock_called, 1000
+
+      # Wait for the processing to finish
+      sync_with_server()
+
+      status = HealthCheck.get_health_status(:calendar, integration.id)
+      assert status.status == :degraded
+      assert status.failures == 1
+    end
+
+    test "handles integration check crash" do
+      user = insert(:user)
+      integration = insert(:calendar_integration, user: user, is_active: true, provider: "google")
+      test_pid = self()
+
+      # Mock a crash
+      expect(GoogleCalendarAPIMock, :list_primary_events, 1, fn _int, _start, _end ->
+        send(test_pid, :mock_called)
+        raise "Unexpected crash"
+      end)
+
+      # Trigger check
+      run_health_checks()
+
+      # Wait for mock to be called
+      assert_receive :mock_called, 1000
+
+      # Wait for the processing to finish
+      sync_with_server()
+
+      status = HealthCheck.get_health_status(:calendar, integration.id)
+      assert status.status == :degraded
+      assert status.failures == 1
     end
   end
 
@@ -120,7 +175,7 @@ defmodule Tymeslot.Integrations.HealthCheckTest do
         {:ok, %HTTPoison.Response{status_code: 200}}
       end)
 
-      HealthCheck.check_all_integrations()
+      run_health_checks()
       assert_receive :calendar_mock_called, 1000
       assert_receive :video_mock_called, 1000
       sync_with_server()
@@ -138,7 +193,12 @@ defmodule Tymeslot.Integrations.HealthCheckTest do
   end
 
   # Helper to ensure the GenServer has finished processing its message queue
-  defp sync_with_server do
-    _ = :sys.get_state(HealthCheck)
+  defp sync_with_server(timeout \\ 5000) do
+    _ = :sys.get_state(HealthCheck, timeout)
+  end
+
+  defp run_health_checks do
+    HealthCheck.check_all_integrations()
+    Oban.drain_queue(queue: :calendar_integrations, with_limit: 100)
   end
 end

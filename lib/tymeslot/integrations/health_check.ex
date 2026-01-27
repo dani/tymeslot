@@ -17,10 +17,21 @@ defmodule Tymeslot.Integrations.HealthCheck do
   alias Tymeslot.DatabaseSchemas.VideoIntegrationSchema
   alias Tymeslot.Integrations.Calendar
   alias Tymeslot.Integrations.Video.Providers.ProviderAdapter
+  alias Tymeslot.Workers.IntegrationHealthWorker
 
   @check_interval :timer.minutes(5)
   @failure_threshold 3
   @recovery_threshold 2
+
+  @doc """
+  Performs a single health check for an integration.
+  Called by Oban worker.
+  """
+  @spec perform_single_check(integration_type(), integer()) :: :ok | {:error, any()}
+  def perform_single_check(type, integration_id) do
+    Logger.debug("Performing single health check", type: type, id: integration_id)
+    GenServer.call(__MODULE__, {:perform_single_check, type, integration_id}, 60_000)
+  end
 
   # Type definitions
   @type health_status :: :healthy | :degraded | :unhealthy
@@ -57,7 +68,7 @@ defmodule Tymeslot.Integrations.HealthCheck do
   """
   @spec check_all_integrations() :: :ok
   def check_all_integrations do
-    GenServer.cast(__MODULE__, :check_all)
+    GenServer.call(__MODULE__, :check_all)
   end
 
   @doc """
@@ -98,13 +109,17 @@ defmodule Tymeslot.Integrations.HealthCheck do
   end
 
   @impl true
-  def handle_cast(:check_all, state) do
+  def handle_call(:check_all, _from, state) do
     Logger.info("Manual health check triggered for all integrations")
-    new_state = perform_all_health_checks(state)
-    {:noreply, new_state}
+    schedule_integration_jobs()
+    {:reply, :ok, state}
   end
 
-  @impl true
+  def handle_call({:perform_single_check, type, id}, _from, state) do
+    {result, new_state} = do_perform_single_check(type, id, state)
+    {:reply, result, new_state}
+  end
+
   def handle_call({:get_health_status, :calendar, id}, _from, state) do
     status = Map.get(state.calendar_health, id)
     {:reply, status, state}
@@ -122,61 +137,95 @@ defmodule Tymeslot.Integrations.HealthCheck do
 
   @impl true
   def handle_info(:scheduled_check, state) do
-    Logger.debug("Running scheduled health check for all integrations")
+    Logger.debug("Scheduling health check jobs for all integrations")
 
-    new_state = perform_all_health_checks(state)
+    schedule_integration_jobs()
 
     # Schedule next check
     timer = schedule_next_check(@check_interval)
 
-    {:noreply, %{new_state | check_timer: timer}}
+    {:noreply, %{state | check_timer: timer}}
   end
 
   # Private Functions
 
-  @spec perform_all_health_checks(State.t()) :: State.t()
-  defp perform_all_health_checks(state) do
-    state
-    |> check_calendar_integrations()
-    |> check_video_integrations()
+  defp schedule_integration_jobs do
+    CalendarIntegrationQueries.list_all_active()
+    |> Enum.each(fn int ->
+      Logger.debug("Scheduling calendar health check", id: int.id)
+      enqueue_health_check(:calendar, int.id)
+    end)
+
+    VideoIntegrationQueries.list_all_active()
+    |> Enum.each(fn int ->
+      Logger.debug("Scheduling video health check", id: int.id)
+      enqueue_health_check(:video, int.id)
+    end)
+    :ok
   end
 
-  @spec check_calendar_integrations(State.t()) :: State.t()
-  defp check_calendar_integrations(state) do
-    integrations = CalendarIntegrationQueries.list_all_active()
+  defp enqueue_health_check(type, integration_id) do
+    %{"type" => Atom.to_string(type), "integration_id" => integration_id}
+    |> IntegrationHealthWorker.new()
+    |> Oban.insert()
+    |> case do
+      {:ok, _job} ->
+        :ok
 
-    new_health_states =
-      Enum.reduce(integrations, state.calendar_health, fn integration, health_acc ->
-        health_state = Map.get(health_acc, integration.id, initial_health_state())
-        new_health_state = check_integration_health(:calendar, integration, health_state)
-
-        Map.put(health_acc, integration.id, new_health_state)
-      end)
-
-    %{state | calendar_health: new_health_states}
+      {:error, changeset} ->
+        Logger.error("Failed to enqueue integration health check",
+          type: type,
+          integration_id: integration_id,
+          errors: changeset.errors
+        )
+    end
   end
 
-  @spec check_video_integrations(State.t()) :: State.t()
-  defp check_video_integrations(state) do
-    integrations = VideoIntegrationQueries.list_all_active()
+  defp do_perform_single_check(type, id, state) do
+    {integration_result, _queries_mod} =
+      case type do
+        :calendar -> {CalendarIntegrationQueries.get(id), CalendarIntegrationQueries}
+        :video -> {VideoIntegrationQueries.get(id), VideoIntegrationQueries}
+      end
 
-    new_health_states =
-      Enum.reduce(integrations, state.video_health, fn integration, health_acc ->
-        health_state = Map.get(health_acc, integration.id, initial_health_state())
-        new_health_state = check_integration_health(:video, integration, health_state)
+    case integration_result do
+      {:ok, integration} ->
+        health_map_key = if type == :calendar, do: :calendar_health, else: :video_health
+        current_health_map = Map.get(state, health_map_key)
+        old_health_state = Map.get(current_health_map, id, initial_health_state())
 
-        Map.put(health_acc, integration.id, new_health_state)
-      end)
+        {result, new_health_state} = perform_check_logic(type, integration, old_health_state)
 
-    %{state | video_health: new_health_states}
+        handle_health_transition(type, integration, old_health_state, new_health_state)
+
+        new_health_map = Map.put(current_health_map, id, new_health_state)
+
+        new_state =
+          if type == :calendar do
+            %{state | calendar_health: new_health_map}
+          else
+            %{state | video_health: new_health_map}
+          end
+
+        {result, new_state}
+
+      {:error, :not_found} ->
+        {:ok, state}
+
+      {:error, reason} ->
+        Logger.warning("Failed to load integration for health check",
+          type: type,
+          integration_id: id,
+          reason: reason
+        )
+
+        {{:error, reason}, state}
+    end
   end
 
-  @spec check_integration_health(integration_type(), map(), health_state()) :: health_state()
-  defp check_integration_health(type, integration, health_state) do
+  defp perform_check_logic(type, integration, health_state) do
     start_time = System.monotonic_time(:millisecond)
-
     result = do_check_integration_health(type, integration)
-
     duration = System.monotonic_time(:millisecond) - start_time
 
     # Record telemetry
@@ -194,11 +243,7 @@ defmodule Tymeslot.Integrations.HealthCheck do
 
     # Update health state
     new_health_state = update_health_state(health_state, result)
-
-    # Handle state transitions
-    handle_health_transition(type, integration, health_state, new_health_state)
-
-    new_health_state
+    {result, new_health_state}
   end
 
   defp do_check_integration_health(:calendar, integration) do
