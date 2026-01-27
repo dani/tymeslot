@@ -153,7 +153,11 @@ defmodule TymeslotWeb.Plugs.SecurityHeadersPlug do
       "'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://www.gstatic.com https://js.stripe.com"
 
     connect_src =
-      "'self' wss: https://www.google.com https://accounts.google.com https://api.stripe.com"
+      if Application.get_env(:tymeslot, :environment) == :dev do
+        "'self' ws://localhost:* ws://127.0.0.1:* http://localhost:* http://127.0.0.1:* ws: wss: https://www.google.com https://accounts.google.com https://api.stripe.com"
+      else
+        "'self' wss: https://www.google.com https://accounts.google.com https://api.stripe.com"
+      end
 
     Enum.join(
       [
