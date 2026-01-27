@@ -94,6 +94,10 @@ defmodule StripeSubscriptionBehaviour do
   @callback cancel(String.t(), map(), list()) :: {:ok, map()} | {:error, any()}
 end
 
+defmodule StripeChargeBehaviour do
+  @callback retrieve(String.t(), map(), list()) :: {:ok, map()} | {:error, any()}
+end
+
 defmodule StripeWebhookBehaviour do
   @callback construct_event(binary(), String.t(), String.t()) :: {:ok, map()} | {:error, any()}
 end
@@ -101,6 +105,7 @@ end
 Mox.defmock(StripeCustomerMock, for: StripeCustomerBehaviour)
 Mox.defmock(StripeSessionMock, for: StripeSessionBehaviour)
 Mox.defmock(StripeSubscriptionMock, for: StripeSubscriptionBehaviour)
+Mox.defmock(StripeChargeMock, for: StripeChargeBehaviour)
 Mox.defmock(StripeWebhookMock, for: StripeWebhookBehaviour)
 
 ExUnit.start(exclude: [:backup_tests, :oauth_integration, :calendar_integration])

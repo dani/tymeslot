@@ -12,7 +12,10 @@ defmodule Tymeslot.Payments.Webhooks.WebhookRegistry do
     Tymeslot.Payments.Webhooks.PaymentIntentHandler,
     Tymeslot.Payments.Webhooks.CustomerHandler,
     Tymeslot.Payments.Webhooks.SubscriptionHandler,
-    Tymeslot.Payments.Webhooks.InvoiceHandler
+    Tymeslot.Payments.Webhooks.InvoiceHandler,
+    Tymeslot.Payments.Webhooks.RefundHandler,
+    Tymeslot.Payments.Webhooks.TrialWillEndHandler,
+    Tymeslot.Payments.Webhooks.DisputeHandler
   ]
 
   # Map of handler modules to their supported event types
@@ -33,6 +36,18 @@ defmodule Tymeslot.Payments.Webhooks.WebhookRegistry do
     Tymeslot.Payments.Webhooks.InvoiceHandler => [
       "invoice.payment_succeeded",
       "invoice.payment_failed"
+    ],
+    Tymeslot.Payments.Webhooks.RefundHandler => [
+      "charge.refunded",
+      "charge.refund.updated"
+    ],
+    Tymeslot.Payments.Webhooks.TrialWillEndHandler => [
+      "customer.subscription.trial_will_end"
+    ],
+    Tymeslot.Payments.Webhooks.DisputeHandler => [
+      "charge.dispute.created",
+      "charge.dispute.updated",
+      "charge.dispute.closed"
     ]
   }
 

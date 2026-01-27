@@ -31,6 +31,9 @@ defmodule Tymeslot.Payments.Behaviours.StripeProvider do
   @callback get_subscription(subscription_id :: String.t()) ::
               {:ok, map()} | {:error, term()}
 
+  @callback get_charge(charge_id :: String.t()) ::
+              {:ok, map()} | {:error, term()}
+
   @callback construct_webhook_event(
               payload :: binary(),
               signature :: String.t(),

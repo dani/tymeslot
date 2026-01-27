@@ -23,6 +23,8 @@ defmodule Tymeslot.Payments.Stripe do
 
   defp webhook_mod, do: Application.get_env(:tymeslot, :stripe_webhook_mod, Webhook)
 
+  defp charge_mod, do: Application.get_env(:tymeslot, :stripe_charge_mod, Stripe.Charge)
+
   @doc """
   Creates a Stripe customer for the given email.
   """
@@ -267,6 +269,18 @@ defmodule Tymeslot.Payments.Stripe do
 
     execute_with_retry(fn ->
       subscription_mod().retrieve(subscription_id, %{}, api_key_opts())
+    end)
+  end
+
+  @doc """
+  Retrieves a Stripe charge.
+  """
+  @spec get_charge(String.t()) :: stripe_result()
+  def get_charge(charge_id) when is_binary(charge_id) do
+    Logger.info("Retrieving Stripe charge: #{charge_id}")
+
+    execute_with_retry(fn ->
+      charge_mod().retrieve(charge_id, %{}, api_key_opts())
     end)
   end
 
