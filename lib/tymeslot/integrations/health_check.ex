@@ -212,15 +212,6 @@ defmodule Tymeslot.Integrations.HealthCheck do
 
       {:error, :not_found} ->
         {:ok, state}
-
-      {:error, reason} ->
-        Logger.warning("Failed to load integration for health check",
-          type: type,
-          integration_id: id,
-          reason: reason
-        )
-
-        {{:error, reason}, state}
     end
   end
 
@@ -278,10 +269,8 @@ defmodule Tymeslot.Integrations.HealthCheck do
   defp safe_to_existing_atom(value) when is_binary(value) do
     String.to_existing_atom(value)
   rescue
-    ArgumentError -> nil
+    _ -> nil
   end
-
-  defp safe_to_existing_atom(_), do: nil
 
   defp video_provider_config(:mirotalk, integration, decrypted),
     do: %{api_key: decrypted.api_key, base_url: integration.base_url}

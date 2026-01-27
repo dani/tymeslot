@@ -555,21 +555,6 @@ defmodule Tymeslot.Emails.EmailService do
     end
   end
 
-  defp maybe_call_legacy_alert(module, :calendar_sync_error, %{
-         meeting_id: meeting_id,
-         owner_email: owner_email,
-         reason: error_reason
-       }) do
-    if function_exported?(module, :alert_calendar_sync_error, 3) do
-      module.alert_calendar_sync_error(meeting_id, owner_email, error_reason)
-    else
-      Logger.warning("Admin alerts module missing expected function",
-        module: module,
-        event: :calendar_sync_error
-      )
-    end
-  end
-
   defp maybe_call_legacy_alert(module, event, _metadata) do
     Logger.warning("Admin alerts module missing expected function",
       module: module,
