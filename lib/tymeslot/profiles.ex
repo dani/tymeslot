@@ -312,7 +312,7 @@ defmodule Tymeslot.Profiles do
 
     # If the user explicitly cleared the field or entered "none", we treat it as disabled.
     # We allow "none" as a literal string here to support the "Disable" button flow.
-    domain_list = if domain_list == [] or domain_list == ["none"], do: ["none"], else: domain_list
+    domain_list = if domain_list == [], do: ["none"], else: domain_list
     update_allowed_embed_domains(profile, domain_list)
   end
 
@@ -335,7 +335,7 @@ defmodule Tymeslot.Profiles do
       end
 
     # Ensure we don't end up with an empty list if it wasn't explicitly "none"
-    final_domains = if normalized_domains == [], do: ["none"], else: normalized_domains
+    final_domains = normalized_domains
 
     Logger.info("Updating allowed embed domains",
       user_id: profile.user_id,

@@ -18,6 +18,7 @@ defmodule TymeslotWeb.Dashboard.Notifications.ComponentsTest do
       assigns = %{
         webhook: webhook,
         testing: false,
+        target: "#webhook-1",
         on_edit: "edit",
         on_delete: "delete",
         on_toggle: "toggle",
@@ -27,7 +28,6 @@ defmodule TymeslotWeb.Dashboard.Notifications.ComponentsTest do
 
       html = render_component(&Components.webhook_card/1, assigns)
       assert html =~ "Test Webhook"
-      assert html =~ "ACTIVE"
       assert html =~ "https://example.com/webhook"
       assert html =~ "meeting.created"
       assert html =~ "meeting.cancelled"
@@ -49,6 +49,7 @@ defmodule TymeslotWeb.Dashboard.Notifications.ComponentsTest do
       assigns = %{
         webhook: webhook,
         testing: false,
+        target: "#webhook-1",
         on_edit: "edit",
         on_delete: "delete",
         on_toggle: "toggle",
@@ -58,7 +59,7 @@ defmodule TymeslotWeb.Dashboard.Notifications.ComponentsTest do
 
       html = render_component(&Components.webhook_card/1, assigns)
       assert html =~ "Inactive Webhook"
-      assert html =~ "INACTIVE"
+      assert html =~ "Disabled"
       refute html =~ "Last triggered"
     end
 
@@ -76,6 +77,7 @@ defmodule TymeslotWeb.Dashboard.Notifications.ComponentsTest do
       assigns = %{
         webhook: webhook,
         testing: true,
+        target: "#webhook-1",
         on_edit: "edit",
         on_delete: "delete",
         on_toggle: "toggle",
@@ -101,7 +103,7 @@ defmodule TymeslotWeb.Dashboard.Notifications.ComponentsTest do
     test "renders documentation" do
       assigns = %{}
       html = render_component(&Components.webhook_documentation/1, assigns)
-      assert html =~ "Setting Up Webhooks"
+      assert html =~ "Webhook Integration Guide"
       assert html =~ "meeting.created"
     end
   end

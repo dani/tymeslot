@@ -9,7 +9,8 @@ defmodule Tymeslot.Workers.EmailWorkerTest do
 
   describe "schedule_confirmation_emails/1" do
     test "creates high priority job with uniqueness constraint" do
-      meeting = insert(:meeting)
+      user = insert(:user)
+      meeting = insert(:meeting, organizer_user: user)
 
       assert :ok = EmailWorker.schedule_confirmation_emails(meeting.id)
 
@@ -27,7 +28,8 @@ defmodule Tymeslot.Workers.EmailWorkerTest do
     end
 
     test "prevents duplicate jobs within 5 minute window" do
-      meeting = insert(:meeting)
+      user = insert(:user)
+      meeting = insert(:meeting, organizer_user: user)
 
       assert :ok = EmailWorker.schedule_confirmation_emails(meeting.id)
       assert :ok = EmailWorker.schedule_confirmation_emails(meeting.id)
@@ -38,7 +40,8 @@ defmodule Tymeslot.Workers.EmailWorkerTest do
     end
 
     test "uses emails queue" do
-      meeting = insert(:meeting)
+      user = insert(:user)
+      meeting = insert(:meeting, organizer_user: user)
 
       assert :ok = EmailWorker.schedule_confirmation_emails(meeting.id)
 
@@ -49,7 +52,8 @@ defmodule Tymeslot.Workers.EmailWorkerTest do
 
   describe "schedule_reminder_emails/4" do
     test "creates medium priority job" do
-      meeting = insert(:meeting)
+      user = insert(:user)
+      meeting = insert(:meeting, organizer_user: user)
       scheduled_at = DateTime.add(DateTime.utc_now(), 30, :minute)
 
       assert :ok = EmailWorker.schedule_reminder_emails(meeting.id, 30, "minutes", scheduled_at)
@@ -69,7 +73,8 @@ defmodule Tymeslot.Workers.EmailWorkerTest do
     end
 
     test "schedules job at specified time" do
-      meeting = insert(:meeting)
+      user = insert(:user)
+      meeting = insert(:meeting, organizer_user: user)
       scheduled_at = DateTime.truncate(DateTime.add(DateTime.utc_now(), 1, :hour), :second)
 
       assert :ok = EmailWorker.schedule_reminder_emails(meeting.id, 1, "hours", scheduled_at)
@@ -79,7 +84,8 @@ defmodule Tymeslot.Workers.EmailWorkerTest do
     end
 
     test "prevents duplicate jobs" do
-      meeting = insert(:meeting)
+      user = insert(:user)
+      meeting = insert(:meeting, organizer_user: user)
       scheduled_at = DateTime.truncate(DateTime.add(DateTime.utc_now(), 30, :minute), :second)
 
       assert :ok = EmailWorker.schedule_reminder_emails(meeting.id, 30, "minutes", scheduled_at)
@@ -94,7 +100,8 @@ defmodule Tymeslot.Workers.EmailWorkerTest do
     end
 
     test "reschedules reminder by replacing existing job" do
-      meeting = insert(:meeting)
+      user = insert(:user)
+      meeting = insert(:meeting, organizer_user: user)
       scheduled_at = DateTime.truncate(DateTime.add(DateTime.utc_now(), 30, :minute), :second)
       new_scheduled_at = DateTime.truncate(DateTime.add(DateTime.utc_now(), 45, :minute), :second)
 
@@ -193,7 +200,7 @@ defmodule Tymeslot.Workers.EmailWorkerTest do
 
     test "discards job if meeting is cancelled for reminders" do
       profile = insert(:profile)
-      meeting = insert(:meeting, organizer_user_id: profile.user_id, status: "cancelled")
+      meeting = insert(:meeting, organizer_user: profile.user, status: "cancelled")
 
       assert {:discard, "Meeting cancelled"} =
                perform_job(EmailWorker, %{
@@ -240,7 +247,8 @@ defmodule Tymeslot.Workers.EmailWorkerTest do
     test "worker is configured with correct queue and max_attempts" do
       # Oban worker configuration is compile-time
       # We can verify through job creation
-      meeting = insert(:meeting)
+      user = insert(:user)
+      meeting = insert(:meeting, organizer_user: user)
 
       EmailWorker.schedule_confirmation_emails(meeting.id)
 
@@ -250,7 +258,8 @@ defmodule Tymeslot.Workers.EmailWorkerTest do
     end
 
     test "confirmation emails have priority 0 (highest)" do
-      meeting = insert(:meeting)
+      user = insert(:user)
+      meeting = insert(:meeting, organizer_user: user)
 
       EmailWorker.schedule_confirmation_emails(meeting.id)
 
@@ -259,7 +268,8 @@ defmodule Tymeslot.Workers.EmailWorkerTest do
     end
 
     test "reminder emails have priority 2 (medium)" do
-      meeting = insert(:meeting)
+      user = insert(:user)
+      meeting = insert(:meeting, organizer_user: user)
       scheduled_at = DateTime.add(DateTime.utc_now(), 30, :minute)
 
       EmailWorker.schedule_reminder_emails(meeting.id, 30, "minutes", scheduled_at)

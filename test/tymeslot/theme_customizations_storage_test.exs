@@ -66,13 +66,14 @@ defmodule Tymeslot.ThemeCustomizationsStorageTest do
           filename: "test.jpg"
         })
 
-      assert result == {:error, :temp_file_not_found}
+      assert result == {:error, :invalid_image_format}
     end
 
     test "store_background_image/3 stores file successfully" do
       temp_dir = System.tmp_dir!()
       temp_file = Path.join(temp_dir, "test_image_#{:rand.uniform(100_000)}.jpg")
-      File.write!(temp_file, "fake image data")
+      # GIF magic bytes: GIF89a
+      File.write!(temp_file, "GIF89a" <> "fake image data")
 
       try do
         assert {:ok, stored_path} =
@@ -90,7 +91,8 @@ defmodule Tymeslot.ThemeCustomizationsStorageTest do
     test "store_background_video/3 stores file" do
       temp_dir = System.tmp_dir!()
       temp_file = Path.join(temp_dir, "test_video_#{:rand.uniform(100_000)}.mp4")
-      File.write!(temp_file, "fake video data")
+      # MP4 magic bytes: 00 00 00 18 66 74 79 70 69 73 6F 6D
+      File.write!(temp_file, <<0x00, 0x00, 0x00, 0x18, "ftypisom", "fake video data">>)
 
       try do
         assert {:ok, stored_path} =

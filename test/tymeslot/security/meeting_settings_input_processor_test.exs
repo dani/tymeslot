@@ -86,7 +86,7 @@ defmodule Tymeslot.Security.MeetingSettingsInputProcessorTest do
 
   describe "validate_buffer_minutes" do
     test "accepts valid buffer" do
-      assert {:ok, "15"} = MeetingSettingsInputProcessor.validate_buffer_minutes("15")
+      assert {:ok, 15} = MeetingSettingsInputProcessor.validate_buffer_minutes("15")
     end
 
     test "rejects buffer over 120" do
@@ -102,7 +102,7 @@ defmodule Tymeslot.Security.MeetingSettingsInputProcessorTest do
 
   describe "validate_advance_booking_days" do
     test "accepts valid days" do
-      assert {:ok, "90"} = MeetingSettingsInputProcessor.validate_advance_booking_days("90")
+      assert {:ok, 90} = MeetingSettingsInputProcessor.validate_advance_booking_days("90")
     end
 
     test "rejects days over 365" do
@@ -113,7 +113,7 @@ defmodule Tymeslot.Security.MeetingSettingsInputProcessorTest do
 
   describe "validate_min_advance_hours" do
     test "accepts valid hours" do
-      assert {:ok, "24"} = MeetingSettingsInputProcessor.validate_min_advance_hours("24")
+      assert {:ok, 24} = MeetingSettingsInputProcessor.validate_min_advance_hours("24")
     end
 
     test "rejects hours over 168" do

@@ -71,14 +71,35 @@ defmodule Tymeslot.DatabaseSchemas.WebhookSchema do
   @doc false
   @spec changeset(t(), map()) :: Ecto.Changeset.t()
   def changeset(webhook, attrs) do
-    webhook
-    |> cast(attrs, @required_fields ++ @optional_fields)
-    |> validate_required(@required_fields)
-    |> validate_length(:name, min: 1, max: 255)
-    |> validate_length(:url, min: 1, max: 2048)
-    |> validate_url()
-    |> validate_events()
-    |> foreign_key_constraint(:user_id)
+    # Ensure attrs is a map
+    attrs = attrs || %{}
+
+    # If webhook_token is explicitly set to nil in attrs, ensure it stays nil after cast
+    # so generate_token can detect it.
+    changeset =
+      webhook
+      |> cast(attrs, @required_fields ++ @optional_fields)
+      |> validate_required(@required_fields)
+      |> validate_length(:name, min: 1, max: 255)
+      |> validate_length(:url, min: 1, max: 2048)
+      |> validate_url()
+      |> validate_events()
+      |> foreign_key_constraint(:user_id)
+
+    changeset =
+      if Map.has_key?(attrs, :webhook_token) or Map.has_key?(attrs, "webhook_token") do
+        val = attrs[:webhook_token] || attrs["webhook_token"]
+
+        if is_nil(val) or val == "" do
+          put_change(changeset, :webhook_token, generate_secure_token())
+        else
+          changeset
+        end
+      else
+        changeset
+      end
+
+    changeset
     |> generate_token()
     |> encrypt_token()
   end
@@ -248,19 +269,11 @@ defmodule Tymeslot.DatabaseSchemas.WebhookSchema do
   end
 
   defp generate_token(changeset) do
-    case fetch_change(changeset, :webhook_token) do
-      {:ok, token} when is_binary(token) and token != "" ->
-        changeset
-
-      {:ok, _} ->
-        put_change(changeset, :webhook_token, generate_secure_token())
-
-      :error ->
-        if get_field(changeset, :webhook_token_encrypted) do
-          changeset
-        else
-          put_change(changeset, :webhook_token, generate_secure_token())
-        end
+    # For new records, generate a token if not already present
+    if get_field(changeset, :webhook_token_encrypted) || get_change(changeset, :webhook_token) do
+      changeset
+    else
+      put_change(changeset, :webhook_token, generate_secure_token())
     end
   end
 

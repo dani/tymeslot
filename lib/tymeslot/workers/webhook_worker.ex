@@ -214,6 +214,16 @@ defmodule Tymeslot.Workers.WebhookWorker do
             reason: reason
           )
 
+          # Create a delivery log for the blocked attempt
+          WebhookQueries.create_delivery(%{
+            webhook_id: webhook.id,
+            event_type: event_type,
+            meeting_id: meeting.id,
+            payload: %{},
+            attempt_count: attempt,
+            error_message: "Blocked by SSRF protection: #{reason}"
+          })
+
           {:error, :blocked_by_ssrf}
       end
     else

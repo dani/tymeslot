@@ -3,7 +3,7 @@ defmodule Tymeslot.Auth.OAuth.AuthenticatorTest do
 
   alias Plug.Test, as: PlugTest
   alias Tymeslot.Auth.OAuth.Authenticator
-  alias Tymeslot.Auth.OAuth.HelperMock
+  alias Tymeslot.Auth.OAuth.ClientMock
   alias Tymeslot.Auth.SessionMock
   import Mox
 
@@ -12,17 +12,17 @@ defmodule Tymeslot.Auth.OAuth.AuthenticatorTest do
 
   setup do
     # Configure mocks
-    old_helper = Application.get_env(:tymeslot, :oauth_helper_module)
+    old_client = Application.get_env(:tymeslot, :oauth_client_module)
     old_session = Application.get_env(:tymeslot, :session_module)
 
-    Application.put_env(:tymeslot, :oauth_helper_module, HelperMock)
+    Application.put_env(:tymeslot, :oauth_client_module, ClientMock)
     Application.put_env(:tymeslot, :session_module, SessionMock)
 
     on_exit(fn ->
-      if old_helper do
-        Application.put_env(:tymeslot, :oauth_helper_module, old_helper)
+      if old_client do
+        Application.put_env(:tymeslot, :oauth_client_module, old_client)
       else
-        Application.delete_env(:tymeslot, :oauth_helper_module)
+        Application.delete_env(:tymeslot, :oauth_client_module)
       end
 
       if old_session do
@@ -42,15 +42,15 @@ defmodule Tymeslot.Auth.OAuth.AuthenticatorTest do
       provider = :github
       callback_url = "http://callback"
 
-      expect(HelperMock, :build_oauth_client, fn :github, ^callback_url, "" ->
+      expect(ClientMock, :build, fn :github, ^callback_url, "" ->
         %OAuth2.Client{}
       end)
 
-      expect(HelperMock, :exchange_code_for_token, fn _client, ^code ->
+      expect(ClientMock, :exchange_code_for_token, fn _client, ^code ->
         {:ok, %OAuth2.Client{}}
       end)
 
-      expect(HelperMock, :get_user_info, fn _client, :github ->
+      expect(ClientMock, :get_user_info, fn _client, :github ->
         {:ok, %{email: "test@example.com"}}
       end)
 
@@ -78,15 +78,15 @@ defmodule Tymeslot.Auth.OAuth.AuthenticatorTest do
       provider = :google
       callback_url = "http://callback"
 
-      expect(HelperMock, :build_oauth_client, fn :google, ^callback_url, "" ->
+      expect(ClientMock, :build, fn :google, ^callback_url, "" ->
         %OAuth2.Client{}
       end)
 
-      expect(HelperMock, :exchange_code_for_token, fn _client, ^code ->
+      expect(ClientMock, :exchange_code_for_token, fn _client, ^code ->
         {:ok, %OAuth2.Client{}}
       end)
 
-      expect(HelperMock, :get_user_info, fn _client, :google ->
+      expect(ClientMock, :get_user_info, fn _client, :google ->
         {:ok, %{email: "test@example.com"}}
       end)
 
@@ -108,9 +108,9 @@ defmodule Tymeslot.Auth.OAuth.AuthenticatorTest do
     end
 
     test "returns error when code exchange fails due to OAuth error", %{conn: conn} do
-      expect(HelperMock, :build_oauth_client, fn _, _, _ -> %OAuth2.Client{} end)
+      expect(ClientMock, :build, fn _, _, _ -> %OAuth2.Client{} end)
 
-      expect(HelperMock, :exchange_code_for_token, fn _client, _code ->
+      expect(ClientMock, :exchange_code_for_token, fn _client, _code ->
         {:error, %OAuth2.Error{reason: "invalid_code"}}
       end)
 
@@ -127,13 +127,13 @@ defmodule Tymeslot.Auth.OAuth.AuthenticatorTest do
     end
 
     test "returns error when other authentication errors occur", %{conn: conn} do
-      expect(HelperMock, :build_oauth_client, fn _, _, _ -> %OAuth2.Client{} end)
+      expect(ClientMock, :build, fn _, _, _ -> %OAuth2.Client{} end)
 
-      expect(HelperMock, :exchange_code_for_token, fn _client, _code ->
+      expect(ClientMock, :exchange_code_for_token, fn _client, _code ->
         {:ok, %OAuth2.Client{}}
       end)
 
-      expect(HelperMock, :get_user_info, fn _client, _ -> {:error, :unreachable} end)
+      expect(ClientMock, :get_user_info, fn _client, _ -> {:error, :unreachable} end)
 
       assert {:error, ^conn, :authentication_error,
               "An error occurred during Github authentication."} =
@@ -150,13 +150,13 @@ defmodule Tymeslot.Auth.OAuth.AuthenticatorTest do
 
     test "returns error when session creation fails", %{conn: conn} do
       user = %{id: 1}
-      expect(HelperMock, :build_oauth_client, fn _, _, _ -> %OAuth2.Client{} end)
+      expect(ClientMock, :build, fn _, _, _ -> %OAuth2.Client{} end)
 
-      expect(HelperMock, :exchange_code_for_token, fn _client, _code ->
+      expect(ClientMock, :exchange_code_for_token, fn _client, _code ->
         {:ok, %OAuth2.Client{}}
       end)
 
-      expect(HelperMock, :get_user_info, fn _client, _ -> {:ok, %{}} end)
+      expect(ClientMock, :get_user_info, fn _client, _ -> {:ok, %{}} end)
 
       expect(SessionMock, :create_session, fn _conn, ^user -> {:error, :failed, "message"} end)
 

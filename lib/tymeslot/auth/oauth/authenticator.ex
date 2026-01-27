@@ -60,12 +60,11 @@ defmodule Tymeslot.Auth.OAuth.Authenticator do
         registration_complete_fun,
         build_registration_params_fun
       ) do
-    alias Tymeslot.Auth.OAuth.Client
-    client = Client.build(provider, callback_url, "")
+    client = client_module().build(provider, callback_url, "")
     provider_name = provider |> to_string() |> String.capitalize()
 
-    with {:ok, client} <- Client.exchange_code_for_token(client, code),
-         {:ok, user_info} <- Client.get_user_info(client, provider),
+    with {:ok, client} <- client_module().exchange_code_for_token(client, code),
+         {:ok, user_info} <- client_module().get_user_info(client, provider),
          {:ok, user} <- process_user_fun.(user_info) do
       # If account is complete, log them in
       if registration_complete_fun.(user) do
@@ -99,7 +98,11 @@ defmodule Tymeslot.Auth.OAuth.Authenticator do
     end
   end
 
-  # Use dependency injection for the Session module
+  # Use dependency injection for the Client and Session modules
+  defp client_module do
+    Application.get_env(:tymeslot, :oauth_client_module, Tymeslot.Auth.OAuth.Client)
+  end
+
   defp session_module do
     Application.get_env(:tymeslot, :session_module, Session)
   end

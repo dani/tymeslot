@@ -51,7 +51,7 @@ defmodule Tymeslot.Emails.Templates.SystemEmailsTest do
 
     test "converts meeting time to owner's timezone" do
       profile = insert(:profile, timezone: "America/New_York")
-      meeting = insert(:meeting, organizer_user_id: profile.user_id)
+      meeting = insert(:meeting, organizer_user: profile.user)
       error_reason = :rate_limited
 
       html = CalendarSyncError.render(meeting, error_reason)

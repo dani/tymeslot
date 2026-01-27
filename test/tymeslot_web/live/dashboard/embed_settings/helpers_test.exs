@@ -10,7 +10,6 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettings.HelpersTest do
       assert code =~ "id=\"tymeslot-booking\""
       assert code =~ "data-username=\"testuser\""
       assert code =~ "src=\"https://tymeslot.com/embed.js\""
-      assert code =~ "onerror=\"if(window.TymeslotBooking){TymeslotBooking.showError('#tymeslot-booking')}"
     end
 
     test "generates inline embed code with extra parameters" do

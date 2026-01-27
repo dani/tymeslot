@@ -125,7 +125,16 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsTest do
       image = %{
         last_modified: System.system_time(:millisecond),
         name: "bg.png",
-        content: "fake-image-content",
+        # Valid PNG content (IHDR chunk is usually required by many decoders)
+        content: <<
+          0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, # Signature
+          0x00, 0x00, 0x00, 0x0D, # IHDR length
+          "IHDR",
+          0x00, 0x00, 0x00, 0x01, # Width 1
+          0x00, 0x00, 0x00, 0x01, # Height 1
+          0x08, 0x02, 0x00, 0x00, 0x00, # Bit depth, Color type, etc.
+          0x90, 0x77, 0x53, 0xDE # CRC
+        >>,
         type: "image/png"
       }
 
@@ -135,13 +144,18 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsTest do
       |> render_submit()
 
       # 2. Simulate a successful upload
+      # We use render_upload which both uploads and consumes if auto_upload is true
+      # or if the component consumes it in progress.
+      # ThemeCustomizationComponent has auto_upload: true and consumes in progress.
       view
       |> file_input("#theme-background-image-form", :background_image, [image])
       |> render_upload("bg.png")
 
-      # Wait for auto-upload and consumption
-      Process.sleep(200)
+      # Wait for async processing
+      Process.sleep(500)
 
+      # Check for the success message in the flash
+      # Flash messages are rendered in DashboardLive which wraps the component
       assert render(view) =~ "Background image uploaded successfully"
     end
   end

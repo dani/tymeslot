@@ -4,6 +4,8 @@ defmodule Tymeslot.Auth.OAuth.Client do
   Also contains provider configuration and header handling.
   """
 
+  @behaviour Tymeslot.Auth.OAuth.ClientBehaviour
+
   alias OAuth2.Client
 
   @type provider :: :github | :google

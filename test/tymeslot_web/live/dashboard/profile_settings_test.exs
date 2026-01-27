@@ -15,11 +15,15 @@ defmodule TymeslotWeb.Dashboard.ProfileSettingsTest do
     test "successfully uploads an avatar", %{conn: conn, profile: profile} do
       {:ok, view, _html} = live(conn, ~p"/dashboard/settings")
 
-      # Prepare file for upload
+      # Prepare file for upload with valid PNG magic bytes
+      png_content =
+        <<0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 13, "IHDR", 0, 0, 0, 1, 0, 0, 0,
+          1, 8, 2, 0, 0, 0, 0x90, 0x77, 0x53, 0xDE>>
+
       avatar = %{
         last_modified: System.system_time(:millisecond),
         name: "avatar.png",
-        content: "fake-image-content",
+        content: png_content,
         type: "image/png"
       }
 

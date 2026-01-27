@@ -25,31 +25,40 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettings.ComponentsTest do
   end
 
   describe "SecuritySection component" do
-    test "renders when hidden" do
+    test "renders security section" do
       assigns = %{
-        show_security_section: false,
         allowed_domains_str: "",
         myself: "myself"
       }
 
       html = render_component(&SecuritySection.security_section/1, assigns)
       assert html =~ "Security & Domain Control"
-      assert html =~ "Configure"
-      refute html =~ "Allowed Domains (Optional)"
+      assert html =~ "Allowed Domains (Optional)"
+      assert html =~ "Open:"
     end
 
-    test "renders when shown" do
+    test "renders when restricted" do
       assigns = %{
-        show_security_section: true,
         allowed_domains_str: "example.com",
         myself: "myself"
       }
 
       html = render_component(&SecuritySection.security_section/1, assigns)
-      assert html =~ "Hide"
+      assert html =~ "Security & Domain Control"
       assert html =~ "Allowed Domains (Optional)"
       assert html =~ "example.com"
       assert html =~ "Restricted"
+    end
+
+    test "renders when disabled" do
+      assigns = %{
+        allowed_domains_str: "none",
+        myself: "myself"
+      }
+
+      html = render_component(&SecuritySection.security_section/1, assigns)
+      assert html =~ "Security & Domain Control"
+      assert html =~ "Disabled"
     end
   end
 

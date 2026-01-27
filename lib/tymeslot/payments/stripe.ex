@@ -131,8 +131,8 @@ defmodule Tymeslot.Payments.Stripe do
     end
   end
 
-  defp retryable_error?(%Stripe.Error{extra: %{http_status: status}}) when status >= 500, do: true
-  defp retryable_error?(%Stripe.Error{source: :network}), do: true
+  defp retryable_error?(%{source: :network}), do: true
+  defp retryable_error?(%{extra: %{http_status: status}}) when status >= 500, do: true
   defp retryable_error?(_), do: false
 
   defp build_session_params(customer, amount, transaction, success_url, cancel_url) do

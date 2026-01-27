@@ -30,11 +30,12 @@ defmodule TymeslotWeb.StripeWebhookControllerTest do
         Application.put_env(:tymeslot, :skip_webhook_verification, previous_skip)
       end)
 
-      payload = ~s({"type":"checkout.session.completed"})
+      payload = ~s({"type":"checkout.session.completed", "id":"evt_123"})
 
       conn =
         conn
         |> put_req_header("content-type", "application/json")
+        |> assign(:raw_body, payload)
         |> post("/webhooks/stripe", payload)
 
       assert json_response(conn, 400)
@@ -55,12 +56,13 @@ defmodule TymeslotWeb.StripeWebhookControllerTest do
         Application.put_env(:tymeslot, :stripe_webhook_secret, previous_secret)
       end)
 
-      payload = ~s({"type":"checkout.session.completed"})
+      payload = ~s({"type":"checkout.session.completed", "id":"evt_123"})
 
       conn =
         conn
         |> put_req_header("content-type", "application/json")
         |> put_req_header("stripe-signature", "invalid_signature")
+        |> assign(:raw_body, payload)
         |> post("/webhooks/stripe", payload)
 
       assert json_response(conn, 400)
@@ -77,6 +79,7 @@ defmodule TymeslotWeb.StripeWebhookControllerTest do
       conn =
         conn
         |> put_req_header("content-type", "application/json")
+        |> assign(:raw_body, payload)
         |> post("/webhooks/stripe", payload)
 
       # Should return 200 OK (controller returns empty string, not JSON)
@@ -93,6 +96,7 @@ defmodule TymeslotWeb.StripeWebhookControllerTest do
       conn1 =
         build_conn()
         |> put_req_header("content-type", "application/json")
+        |> assign(:raw_body, payload)
         |> post("/webhooks/stripe", payload)
 
       assert response(conn1, 200) == ""
@@ -101,6 +105,7 @@ defmodule TymeslotWeb.StripeWebhookControllerTest do
       conn2 =
         build_conn()
         |> put_req_header("content-type", "application/json")
+        |> assign(:raw_body, payload)
         |> post("/webhooks/stripe", payload)
 
       # The plug halts with 200 for already processed events
@@ -126,6 +131,7 @@ defmodule TymeslotWeb.StripeWebhookControllerTest do
       conn =
         conn
         |> put_req_header("content-type", "application/json")
+        |> assign(:raw_body, payload)
         |> post("/webhooks/stripe", payload)
 
       assert response(conn, 200) == ""
@@ -156,6 +162,7 @@ defmodule TymeslotWeb.StripeWebhookControllerTest do
       conn1 =
         build_conn()
         |> put_req_header("content-type", "application/json")
+        |> assign(:raw_body, payload)
         |> post("/webhooks/stripe", payload)
 
       assert response(conn1, 503)
@@ -164,6 +171,7 @@ defmodule TymeslotWeb.StripeWebhookControllerTest do
       conn2 =
         build_conn()
         |> put_req_header("content-type", "application/json")
+        |> assign(:raw_body, payload)
         |> post("/webhooks/stripe", payload)
 
       assert response(conn2, 503)
@@ -176,6 +184,7 @@ defmodule TymeslotWeb.StripeWebhookControllerTest do
       conn =
         conn
         |> put_req_header("content-type", "application/json")
+        |> assign(:raw_body, payload)
         |> post("/webhooks/stripe", payload)
 
       # Should return 200 OK even for unknown events (controller returns empty string, not JSON)

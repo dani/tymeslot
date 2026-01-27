@@ -11,7 +11,7 @@ defmodule TymeslotWeb.MeetingManagement.SharedHelpersTest do
   setup do
     user = insert(:user)
     profile = insert(:profile, user: user, booking_theme: "2")
-    meeting = insert(:meeting, organizer_user_id: user.id, status: "confirmed")
+    meeting = insert(:meeting, organizer_user: user, status: "confirmed")
 
     # We need a socket for some tests
     socket = %Socket{}

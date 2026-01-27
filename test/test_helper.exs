@@ -64,6 +64,10 @@ Mox.defmock(Tymeslot.Payments.SubscriptionManagerMock,
   for: Tymeslot.Payments.Behaviours.SubscriptionManager
 )
 
+Mox.defmock(Tymeslot.Auth.OAuth.ClientMock,
+  for: Tymeslot.Auth.OAuth.ClientBehaviour
+)
+
 Mox.defmock(Tymeslot.Auth.OAuth.HelperMock,
   for: Tymeslot.Auth.OAuth.HelperBehaviour
 )
@@ -71,6 +75,33 @@ Mox.defmock(Tymeslot.Auth.OAuth.HelperMock,
 Mox.defmock(Tymeslot.Auth.SessionMock,
   for: Tymeslot.Infrastructure.SessionBehaviour
 )
+
+# Stripe internal mocks for testing the wrapper
+# We define the callbacks explicitly so Mox knows about them
+defmodule StripeCustomerBehaviour do
+  @callback create(map(), list()) :: {:ok, map()} | {:error, any()}
+end
+
+defmodule StripeSessionBehaviour do
+  @callback create(map(), list()) :: {:ok, map()} | {:error, any()}
+  @callback retrieve(String.t(), map(), list()) :: {:ok, map()} | {:error, any()}
+end
+
+defmodule StripeSubscriptionBehaviour do
+  @callback create(map(), list()) :: {:ok, map()} | {:error, any()}
+  @callback retrieve(String.t(), map(), list()) :: {:ok, map()} | {:error, any()}
+  @callback update(String.t(), map(), list()) :: {:ok, map()} | {:error, any()}
+  @callback cancel(String.t(), map(), list()) :: {:ok, map()} | {:error, any()}
+end
+
+defmodule StripeWebhookBehaviour do
+  @callback construct_event(binary(), String.t(), String.t()) :: {:ok, map()} | {:error, any()}
+end
+
+Mox.defmock(StripeCustomerMock, for: StripeCustomerBehaviour)
+Mox.defmock(StripeSessionMock, for: StripeSessionBehaviour)
+Mox.defmock(StripeSubscriptionMock, for: StripeSubscriptionBehaviour)
+Mox.defmock(StripeWebhookMock, for: StripeWebhookBehaviour)
 
 ExUnit.start(exclude: [:backup_tests, :oauth_integration, :calendar_integration])
 

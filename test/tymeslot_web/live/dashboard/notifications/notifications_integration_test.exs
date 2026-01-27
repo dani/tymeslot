@@ -42,27 +42,28 @@ defmodule TymeslotWeb.Dashboard.Notifications.NotificationsIntegrationTest do
 
       assert render(view) =~ "Webhook created successfully"
       assert render(view) =~ "My n8n Webhook"
-      assert render(view) =~ "ACTIVE"
+      assert render(view) =~ "meeting.created"
 
       # Verify DB
       [webhook] = Webhooks.list_webhooks(user.id)
       assert webhook.name == "My n8n Webhook"
       assert webhook.url == "https://example.com/webhook"
+      assert webhook.is_active
 
       # 4. Toggle status
       view
-      |> element("button[title='Disable']")
+      |> element("button[role='switch']")
       |> render_click()
 
       assert render(view) =~ "Webhook status updated"
-      assert render(view) =~ "INACTIVE"
+      assert render(view) =~ "Disabled"
 
       [webhook] = Webhooks.list_webhooks(user.id)
       refute webhook.is_active
 
       # 5. Open edit form
       view
-      |> element("button[title='Edit']")
+      |> element("button[title='Edit Webhook']")
       |> render_click()
 
       assert render(view) =~ "Edit Webhook"
@@ -88,7 +89,7 @@ defmodule TymeslotWeb.Dashboard.Notifications.NotificationsIntegrationTest do
 
       # 7. Delete webhook
       view
-      |> element("button[title='Delete']")
+      |> element("button[title='Delete Webhook']")
       |> render_click()
 
       assert render(view) =~ "Delete Webhook?"
@@ -96,6 +97,7 @@ defmodule TymeslotWeb.Dashboard.Notifications.NotificationsIntegrationTest do
       view
       |> element("button", "Delete Webhook")
       |> render_click()
+
 
       assert render(view) =~ "Webhook deleted successfully"
       assert render(view) =~ "No Webhooks Yet"

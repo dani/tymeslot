@@ -47,10 +47,7 @@ defmodule Tymeslot.Auth.OAuth.GitHubTest do
     state = "state123"
     redirect_uri = "http://callback"
 
-    expect(HelperMock, :validate_state, fn ^conn, ^state -> :ok end)
-    expect(HelperMock, :clear_oauth_state, fn ^conn -> conn end)
-
-    expect(HelperMock, :do_handle_callback, fn _conn, ^code, ^redirect_uri, :github ->
+    expect(HelperMock, :handle_oauth_callback, fn _conn, %{code: ^code, state: ^state, provider: :github} ->
       {:ok, conn, %{"id" => 1}}
     end)
 
@@ -64,7 +61,9 @@ defmodule Tymeslot.Auth.OAuth.GitHubTest do
     state = "wrong_state"
     redirect_uri = "http://callback"
 
-    expect(HelperMock, :validate_state, fn ^conn, ^state -> {:error, :invalid_state} end)
+    expect(HelperMock, :handle_oauth_callback, fn _conn, %{code: ^code, state: ^state, provider: :github} ->
+      {:error, conn, :invalid_state}
+    end)
 
     assert {:error, ^conn, :invalid_state} =
              GitHub.handle_callback(conn, code, state, redirect_uri)

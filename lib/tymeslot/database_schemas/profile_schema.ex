@@ -204,7 +204,7 @@ defmodule Tymeslot.DatabaseSchemas.ProfileSchema do
         add_error(
           changeset,
           :allowed_embed_domains,
-          "Some domains are too long (max 255 characters): #{format_error_list(too_long_domains)}"
+          "Some domains exceed maximum length (max 255 characters): #{format_error_list(too_long_domains)}"
         )
 
       invalid_domains != [] ->

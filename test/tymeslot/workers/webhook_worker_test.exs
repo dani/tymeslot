@@ -268,14 +268,17 @@ defmodule Tymeslot.Workers.WebhookWorkerTest do
 
       meeting = insert(:meeting)
       # AWS metadata endpoint (common SSRF target)
-      webhook = insert(:webhook, url: "http://169.254.169.254/latest/meta-data")
+      # Use HTTPS to trigger the private network check instead of the HTTPS check
+      webhook = insert(:webhook, url: "https://169.254.169.254/latest/meta-data")
 
       # HTTP client should never be called
       expect(Tymeslot.HTTPClientMock, :post, 0, fn _, _, _, _ ->
         {:ok, %{status_code: 200, body: "Should not reach here"}}
       end)
 
-      assert {:error, _reason} =
+      # In production, the URL is validated before delivery and returns {:error, :blocked_by_ssrf}
+      # which perform/1 then records as a failure and returns {:error, :blocked_by_ssrf}
+      assert {:error, :blocked_by_ssrf} =
                perform_job(WebhookWorker, %{
                  "webhook_id" => webhook.id,
                  "event_type" => "meeting.created",
@@ -284,6 +287,7 @@ defmodule Tymeslot.Workers.WebhookWorkerTest do
 
       # Verify delivery was logged with error
       delivery = Repo.one(WebhookDeliverySchema)
+      assert delivery, "Expected delivery log to exist"
       assert delivery.error_message =~ "private or local network"
       refute delivery.delivered_at
 

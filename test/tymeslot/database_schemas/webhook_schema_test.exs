@@ -25,9 +25,14 @@ defmodule Tymeslot.DatabaseSchemas.WebhookSchemaTest do
       }
 
       # Passing nil should trigger regeneration
-      changeset = WebhookSchema.changeset(webhook, %{webhook_token: nil})
+      # We need to pass it in the attributes for the changeset to see it
+      # Using string keys to simulate external input (e.g. from a form)
+      changeset = WebhookSchema.changeset(webhook, %{"webhook_token" => nil})
 
-      assert token = get_change(changeset, :webhook_token)
+      # The change should be present in the changeset
+      # Note: We use get_field here because generate_token uses put_change.
+      token = get_field(changeset, :webhook_token)
+      assert is_binary(token), "Expected token to be a binary, got #{inspect(token)}"
       assert token != "old_token"
       assert String.starts_with?(token, "ts_")
       assert new_encrypted = get_change(changeset, :webhook_token_encrypted)
