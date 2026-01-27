@@ -232,4 +232,22 @@ defmodule Tymeslot.Emails.Shared.SharedHelpers do
     |> HTML.html_escape()
     |> HTML.safe_to_string()
   end
+
+  @doc """
+  Formats currency based on cents and currency code.
+  Defaults to EUR (€) if currency is not provided or recognized.
+  """
+  @spec format_currency(integer(), String.t() | nil) :: String.t()
+  def format_currency(cents, currency \\ "eur") do
+    symbol =
+      case String.downcase(currency || "eur") do
+        "usd" -> "$"
+        "gbp" -> "£"
+        "jpy" -> "¥"
+        _ -> "€"
+      end
+
+    amount = cents / 100
+    "#{symbol}#{:erlang.float_to_binary(amount / 1, [decimals: 2])}"
+  end
 end
