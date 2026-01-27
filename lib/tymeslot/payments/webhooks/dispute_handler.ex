@@ -92,7 +92,7 @@ defmodule Tymeslot.Payments.Webhooks.DisputeHandler do
       user_id ->
         # Create dispute record in database
         case create_dispute_record(dispute, user_id) do
-          {:ok, _dispute_record} ->
+          {:ok, result} when result in [:skipped, :ok] or is_map(result) ->
             Logger.info("DISPUTE RECORDED - Created dispute record for user #{user_id}",
               user_id: user_id,
               dispute_id: dispute_id,
@@ -111,21 +111,6 @@ defmodule Tymeslot.Payments.Webhooks.DisputeHandler do
             {:ok, :dispute_created}
 
           {:error, %Ecto.Changeset{errors: [stripe_dispute_id: {_, [constraint: :unique, constraint_name: _]}]}} ->
-            Logger.info("DISPUTE EXISTS - Dispute record #{dispute_id} already exists",
-              dispute_id: dispute_id
-            )
-
-            {:ok, :dispute_already_recorded}
-
-          {:ok, :skipped} ->
-            Logger.debug("Dispute recording skipped (SaaS not available)",
-              dispute_id: dispute_id,
-              user_id: user_id
-            )
-
-            {:ok, :dispute_logged}
-
-          {:error, reason} ->
             Logger.error("DISPUTE ERROR - Failed to create dispute record: #{inspect(reason)}",
               user_id: user_id,
               dispute_id: dispute_id,
@@ -147,16 +132,9 @@ defmodule Tymeslot.Payments.Webhooks.DisputeHandler do
 
     # Update dispute record
     case update_dispute_status_in_db(dispute_id, status) do
-      {:ok, _} ->
+      {:ok, result} when result in [:skipped, :ok] or is_map(result) ->
         Logger.info("Updated dispute #{dispute_id} status to #{status}")
         {:ok, :dispute_updated}
-
-      {:ok, :skipped} ->
-        Logger.debug("Dispute update skipped (SaaS not available)",
-          dispute_id: dispute_id
-        )
-
-        {:ok, :dispute_not_tracked}
 
       {:error, :not_found} ->
         Logger.warning("Dispute #{dispute_id} not found in database")
@@ -179,63 +157,15 @@ defmodule Tymeslot.Payments.Webhooks.DisputeHandler do
 
     # Update dispute record
     case update_dispute_status_in_db(dispute_id, status) do
-      {:ok, dispute_record} ->
-        # Only send notifications if the status actually changed to a final state
-        # and wasn't already in that state.
-        case status do
-          "lost" ->
-            # Dispute lost - funds returned to customer
-            Logger.warning("DISPUTE LOST - Funds returned to customer",
-              dispute_id: dispute_id,
-              user_id: dispute_record.user_id,
-              amount: dispute_record.amount
-            )
-
-            # Alert admin (manual review required per user request)
-            alert_admin_dispute_lost(dispute_id, dispute_record.user_id)
-
-            # Send admin alert email
-            send_dispute_lost_alert(dispute_record)
-
-            {:ok, :dispute_lost}
-
-          "won" ->
-            # Dispute won - funds kept
-            Logger.info("DISPUTE WON - Funds retained",
-              dispute_id: dispute_id,
-              user_id: dispute_record.user_id,
-              amount: dispute_record.amount
-            )
-
-            # Send admin notification email
-            send_dispute_won_notification(dispute_record)
-
-            {:ok, :dispute_won}
-
-          _ ->
-            {:ok, :dispute_closed}
-        end
+      {:ok, result} when result in [:skipped, :ok] or is_map(result) ->
+        handle_dispute_outcome(status, dispute_id, result)
 
       {:error, :already_in_state} ->
-        Logger.info("DISPUTE STATUS UNCHANGED - Dispute #{dispute_id} already in status #{status}",
-          dispute_id: dispute_id,
-          status: status
-        )
-        {:ok, :dispute_already_processed}
-
-      {:ok, :skipped} ->
-        Logger.debug("Dispute close update skipped (SaaS not available)",
-          dispute_id: dispute_id,
-          status: status
-        )
-
-        {:ok, :dispute_not_tracked}
-
-      {:error, :not_found} ->
         Logger.warning("DISPUTE NOT FOUND - Dispute #{dispute_id} not found in database",
           dispute_id: dispute_id,
           status: status
         )
+
         {:ok, :dispute_not_tracked}
 
       {:error, reason} ->
@@ -243,8 +173,50 @@ defmodule Tymeslot.Payments.Webhooks.DisputeHandler do
           dispute_id: dispute_id,
           error: reason
         )
+
         {:error, reason}
     end
+  end
+
+  defp handle_dispute_outcome("lost", dispute_id, result) do
+    user_id = (is_map(result) && Map.get(result, :user_id)) || "unknown"
+    amount = (is_map(result) && Map.get(result, :amount)) || "unknown"
+
+    # Dispute lost - funds returned to customer
+    Logger.warning("DISPUTE LOST - Funds returned to customer",
+      dispute_id: dispute_id,
+      user_id: user_id,
+      amount: amount
+    )
+
+    # Alert admin (manual review required per user request)
+    alert_admin_dispute_lost(dispute_id, (is_map(result) && Map.get(result, :user_id)))
+
+    # Send admin alert email
+    if is_map(result), do: send_dispute_lost_alert(result)
+
+    {:ok, :dispute_lost}
+  end
+
+  defp handle_dispute_outcome("won", dispute_id, result) do
+    user_id = (is_map(result) && Map.get(result, :user_id)) || "unknown"
+    amount = (is_map(result) && Map.get(result, :amount)) || "unknown"
+
+    # Dispute won - funds kept
+    Logger.info("DISPUTE WON - Funds retained",
+      dispute_id: dispute_id,
+      user_id: user_id,
+      amount: amount
+    )
+
+    # Send admin notification email
+    if is_map(result), do: send_dispute_won_notification(result)
+
+    {:ok, :dispute_won}
+  end
+
+  defp handle_dispute_outcome(_status, _dispute_id, _result) do
+    {:ok, :dispute_closed}
   end
 
   defp find_user_by_charge(charge_id) do

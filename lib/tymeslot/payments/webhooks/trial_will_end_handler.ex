@@ -47,7 +47,7 @@ defmodule Tymeslot.Payments.Webhooks.TrialWillEndHandler do
           subscription ->
             # Update trial_ends_at field in database
             case update_trial_end_date(subscription_id, trial_ends_at) do
-              {:ok, _updated_subscription} ->
+              {:ok, result} when result in [:skipped, :ok] or is_map(result) ->
                 Logger.info("TRIAL ENDING UPDATED - Updated trial end date for user #{subscription.user_id}",
                   user_id: subscription.user_id,
                   subscription_id: subscription_id,
@@ -62,14 +62,6 @@ defmodule Tymeslot.Payments.Webhooks.TrialWillEndHandler do
 
                 # Broadcast event for real-time UI updates
                 broadcast_trial_ending_event(subscription.user_id, days_remaining, trial_ends_at)
-
-                {:ok, :trial_ending_notified}
-
-              {:ok, :skipped} ->
-                Logger.debug("Trial end update skipped (SaaS not available)",
-                  user_id: subscription.user_id,
-                  subscription_id: subscription_id
-                )
 
                 {:ok, :trial_ending_notified}
 
