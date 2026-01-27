@@ -254,6 +254,13 @@ defmodule Tymeslot.Emails.EmailService do
       organizer_email: owner_email
     )
 
+    # Alert admin about calendar sync error if SaaS is present
+    maybe_send_admin_alert(:calendar_sync_error, %{
+      meeting_id: meeting.id,
+      owner_email: owner_email,
+      reason: error_reason
+    }, level: :error)
+
     html_body = CalendarSyncError.render(meeting, error_reason)
 
     email =
@@ -518,4 +525,55 @@ defmodule Tymeslot.Emails.EmailService do
   defp email_retriable?(:closed), do: true
   defp email_retriable?(:econnrefused), do: true
   defp email_retriable?(_), do: false
+
+  defp maybe_send_admin_alert(event, metadata, opts) do
+    alerts_module = Application.get_env(:tymeslot, :admin_alerts)
+
+    with module when not is_nil(module) <- alerts_module,
+         true <- Code.ensure_loaded?(module) do
+      try do
+        if function_exported?(module, :send_alert, 3) do
+          module.send_alert(event, metadata, opts)
+        else
+          maybe_call_legacy_alert(module, event, metadata)
+        end
+      rescue
+        exception ->
+          Logger.error("Failed to send admin alert",
+            module: module,
+            event: event,
+            error: Exception.message(exception)
+          )
+      catch
+        kind, reason ->
+          Logger.error("Failed to send admin alert",
+            module: module,
+            event: event,
+            error: {kind, reason}
+          )
+      end
+    end
+  end
+
+  defp maybe_call_legacy_alert(module, :calendar_sync_error, %{
+         meeting_id: meeting_id,
+         owner_email: owner_email,
+         reason: error_reason
+       }) do
+    if function_exported?(module, :alert_calendar_sync_error, 3) do
+      module.alert_calendar_sync_error(meeting_id, owner_email, error_reason)
+    else
+      Logger.warning("Admin alerts module missing expected function",
+        module: module,
+        event: :calendar_sync_error
+      )
+    end
+  end
+
+  defp maybe_call_legacy_alert(module, event, _metadata) do
+    Logger.warning("Admin alerts module missing expected function",
+      module: module,
+      event: event
+    )
+  end
 end
