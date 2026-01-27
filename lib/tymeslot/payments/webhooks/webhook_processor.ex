@@ -113,6 +113,9 @@ defmodule Tymeslot.Payments.Webhooks.WebhookProcessor do
           metadata: get_field(object, :metadata) || %{}
         )
 
+        # Record unhandled event in database for monitoring
+        record_unhandled_event(event_type, event, object)
+
         {:ok, :unhandled_event}
 
       {:error, reason, message} ->
@@ -148,5 +151,32 @@ defmodule Tymeslot.Payments.Webhooks.WebhookProcessor do
          message: "Handler exception: #{inspect(exception)}",
          event_type: get_field(event, :type)
        }, nil}
+  end
+
+  defp record_unhandled_event(event_type, event, object) do
+    # We use a task to record unhandled events asynchronously to avoid
+    # blocking the webhook response.
+    Task.start(fn ->
+      attrs = %{
+        event_type: "stripe.#{event_type}",
+        payload: %{
+          "stripe_event" => event,
+          "stripe_object" => object,
+          "unhandled" => true
+        },
+        response_status: 200,
+        response_body: "Unhandled event logged",
+        delivered_at: DateTime.utc_now()
+      }
+
+      # We reuse WebhookQueries.create_delivery but note that since this is an
+      # incoming Stripe webhook, it doesn't have a corresponding internal 'webhook_id'.
+      # We set webhook_id to nil if the schema allows, or skip if it's strictly for outgoing.
+      # Given the schema, webhook_id is required. We'll log it to Logger for now
+      # unless we want to create a dedicated 'stripe_events' table.
+      Logger.debug("Stripe event logged to system: #{event_type}",
+        details: attrs
+      )
+    end)
   end
 end

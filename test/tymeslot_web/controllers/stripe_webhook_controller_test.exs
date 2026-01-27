@@ -178,9 +178,11 @@ defmodule TymeslotWeb.StripeWebhookControllerTest do
     end
 
     test "handles unknown event types gracefully", %{conn: conn} do
-      event = PaymentTestHelpers.mock_stripe_webhook_event("unknown.event.type", %{})
+      event = PaymentTestHelpers.mock_stripe_webhook_event("unknown.event.type", %{"id" => "evt_unknown"})
       payload = Jason.encode!(event)
 
+      # We can't easily assert on the Task.start or Logger output without more complex setup,
+      # but we can ensure the request completes successfully.
       conn =
         conn
         |> put_req_header("content-type", "application/json")
