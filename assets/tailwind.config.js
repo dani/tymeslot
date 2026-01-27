@@ -11,10 +11,7 @@ module.exports = {
     "../lib/tymeslot_web.ex",
     "../lib/tymeslot_web/**/*.*ex",
     "../lib/tymeslot_web/controllers/auth/**/*.ex",
-    "../lib/tymeslot_web/components/auth/**/*.ex",
-    // Include SaaS app files for homepage
-    "../../tymeslot_saas/lib/tymeslot_saas_web.ex",
-    "../../tymeslot_saas/lib/tymeslot_saas_web/**/*.*ex"
+    "../lib/tymeslot_web/components/auth/**/*.ex"
   ],
   safelist: [
     // Ensure all meeting type icons are included in the CSS build
