@@ -13,14 +13,14 @@ defmodule Tymeslot.Emails.EmailServiceAdminAlertTest do
   end
 
   test "calendar sync error still sends email when admin alert fails" do
-    original_alerts = Application.get_env(:tymeslot, :admin_alerts)
-    Application.put_env(:tymeslot, :admin_alerts, RaisingAdminAlerts)
+    original_alerts = Application.get_env(:tymeslot, :admin_alerts_impl)
+    Application.put_env(:tymeslot, :admin_alerts_impl, RaisingAdminAlerts)
 
     on_exit(fn ->
       if is_nil(original_alerts) do
-        Application.delete_env(:tymeslot, :admin_alerts)
+        Application.delete_env(:tymeslot, :admin_alerts_impl)
       else
-        Application.put_env(:tymeslot, :admin_alerts, original_alerts)
+        Application.put_env(:tymeslot, :admin_alerts_impl, original_alerts)
       end
     end)
 

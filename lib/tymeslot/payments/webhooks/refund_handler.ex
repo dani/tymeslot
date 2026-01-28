@@ -67,18 +67,12 @@ defmodule Tymeslot.Payments.Webhooks.RefundHandler do
           customer_id: customer_id
         )
 
-        # Alert admin about unlinked refund if SaaS is present
-        if alerts_module = Application.get_env(:tymeslot, :admin_alerts) do
-          if function_exported?(alerts_module, :send_alert, 3) do
-            alerts_module.send_alert(:unlinked_refund, %{
-              charge_id: charge_id,
-              customer_id: customer_id,
-              amount: refund_amount
-            })
-          else
-            alerts_module.alert_unlinked_refund(charge_id, customer_id, refund_amount)
-          end
-        end
+        # Alert admin about unlinked refund
+        Tymeslot.Infrastructure.AdminAlerts.send_alert(:unlinked_refund, %{
+          charge_id: charge_id,
+          customer_id: customer_id,
+          amount: refund_amount
+        })
 
         {:ok, :refund_logged}
 
@@ -92,18 +86,16 @@ defmodule Tymeslot.Payments.Webhooks.RefundHandler do
               customer_id: customer_id
             )
 
-            # Alert admin about processed refund if SaaS is present
-            if alerts_module = Application.get_env(:tymeslot, :admin_alerts) do
-              if function_exported?(alerts_module, :send_alert, 3) do
-                alerts_module.send_alert(:refund_processed, %{
-                  user_id: subscription.user_id,
-                  charge_id: charge_id,
-                  amount: refund_amount
-                }, level: :info)
-              else
-                alerts_module.alert_refund_processed(subscription.user_id, charge_id, refund_amount)
-              end
-            end
+            # Alert admin about processed refund
+            Tymeslot.Infrastructure.AdminAlerts.send_alert(
+              :refund_processed,
+              %{
+                user_id: subscription.user_id,
+                charge_id: charge_id,
+                amount: refund_amount
+              },
+              level: :info
+            )
 
             # Send email notification to user
             send_refund_email(subscription, refund_amount)

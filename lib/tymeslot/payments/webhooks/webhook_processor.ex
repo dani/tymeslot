@@ -116,22 +116,11 @@ defmodule Tymeslot.Payments.Webhooks.WebhookProcessor do
         # Record unhandled event in database for monitoring
         record_unhandled_event(event_type, event, object)
 
-        # Alert admin about unhandled event if SaaS is present
-        if alerts_module = Application.get_env(:tymeslot, :admin_alerts) do
-          if function_exported?(alerts_module, :send_alert, 3) do
-            alerts_module.send_alert(
-              :unhandled_webhook,
-              sanitize_alert_payload(event, object)
-            )
-          else
-            # Fallback to legacy method if present
-            alerts_module.alert_unhandled_webhook(
-              event_type,
-              get_field(event, :id),
-              sanitize_alert_payload(event, object)
-            )
-          end
-        end
+        # Alert admin about unhandled event
+        Tymeslot.Infrastructure.AdminAlerts.send_alert(
+          :unhandled_webhook,
+          sanitize_alert_payload(event, object)
+        )
 
         {:ok, :unhandled_event}
 

@@ -297,45 +297,19 @@ defmodule Tymeslot.Payments.Webhooks.DisputeHandler do
   end
 
   defp alert_admin_dispute_created(dispute_id, user_id, amount, reason) do
-    if alerts_module = Application.get_env(:tymeslot, :admin_alerts) do
-      if function_exported?(alerts_module, :send_alert, 3) do
-        alerts_module.send_alert(:dispute_created, %{
-          dispute_id: dispute_id,
-          user_id: user_id,
-          amount: amount,
-          reason: reason
-        })
-      else
-        alerts_module.alert_dispute_created(dispute_id, user_id, amount, reason)
-      end
-    else
-      Logger.warning(
-        "🚨 ADMIN ALERT: New dispute created - Manual review required",
-        dispute_id: dispute_id,
-        user_id: user_id,
-        amount: amount,
-        reason: reason
-      )
-    end
+    Tymeslot.Infrastructure.AdminAlerts.send_alert(:dispute_created, %{
+      dispute_id: dispute_id,
+      user_id: user_id,
+      amount: amount,
+      reason: reason
+    })
   end
 
   defp alert_admin_dispute_lost(dispute_id, user_id) do
-    if alerts_module = Application.get_env(:tymeslot, :admin_alerts) do
-      if function_exported?(alerts_module, :send_alert, 3) do
-        alerts_module.send_alert(:dispute_lost, %{
-          dispute_id: dispute_id,
-          user_id: user_id
-        })
-      else
-        alerts_module.alert_dispute_lost(dispute_id, user_id)
-      end
-    else
-      Logger.warning(
-        "🚨 ADMIN ALERT: Dispute lost - Consider manual access revocation",
-        dispute_id: dispute_id,
-        user_id: user_id
-      )
-    end
+    Tymeslot.Infrastructure.AdminAlerts.send_alert(:dispute_lost, %{
+      dispute_id: dispute_id,
+      user_id: user_id
+    })
   end
 
   defp broadcast_dispute_event(user_id, event_type, dispute_id) do

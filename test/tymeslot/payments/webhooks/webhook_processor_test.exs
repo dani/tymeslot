@@ -9,24 +9,24 @@ defmodule Tymeslot.Payments.Webhooks.WebhookProcessorTest do
   setup :verify_on_exit!
 
   defmodule TestAdminAlerts do
-    @spec alert_unhandled_webhook(String.t(), String.t(), map()) :: :ok
-    def alert_unhandled_webhook(event_type, event_id, payload) do
+    @spec send_alert(atom(), map(), keyword()) :: :ok
+    def send_alert(event_type, payload, _opts) do
       pid = Application.get_env(:tymeslot, :admin_alerts_test_pid)
-      send(pid, {:alert_unhandled_webhook, event_type, event_id, payload})
+      send(pid, {:send_alert, event_type, payload})
       :ok
     end
   end
 
   describe "process_event/1 unhandled events" do
     test "sends sanitized alert payloads for unhandled events" do
-      original_alerts = Application.get_env(:tymeslot, :admin_alerts)
+      original_alerts = Application.get_env(:tymeslot, :admin_alerts_impl)
       original_pid = Application.get_env(:tymeslot, :admin_alerts_test_pid)
 
-      Application.put_env(:tymeslot, :admin_alerts, TestAdminAlerts)
+      Application.put_env(:tymeslot, :admin_alerts_impl, TestAdminAlerts)
       Application.put_env(:tymeslot, :admin_alerts_test_pid, self())
 
       on_exit(fn ->
-        Application.put_env(:tymeslot, :admin_alerts, original_alerts)
+        Application.put_env(:tymeslot, :admin_alerts_impl, original_alerts)
         Application.put_env(:tymeslot, :admin_alerts_test_pid, original_pid)
       end)
 
@@ -46,7 +46,7 @@ defmodule Tymeslot.Payments.Webhooks.WebhookProcessorTest do
 
       assert {:ok, :unhandled_event} = WebhookProcessor.process_event(event)
 
-      assert_receive {:alert_unhandled_webhook, "charge.unknown", "evt_999", payload}
+      assert_receive {:send_alert, :unhandled_webhook, payload}
       assert payload.event_id == "evt_999"
       assert payload.event_type == "charge.unknown"
       assert payload.object_id == "obj_123"

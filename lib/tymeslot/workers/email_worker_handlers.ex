@@ -6,7 +6,6 @@ defmodule Tymeslot.Workers.EmailWorkerHandlers do
   require Logger
   alias Tymeslot.DatabaseQueries.{MeetingQueries, UserQueries}
   alias Tymeslot.Emails.AppointmentBuilder
-  alias Tymeslot.Infrastructure.ValidationHelpers
   alias Tymeslot.Utils.ReminderUtils
 
   @doc """
@@ -32,11 +31,8 @@ defmodule Tymeslot.Workers.EmailWorkerHandlers do
       "send_reschedule_request" ->
         handle_reschedule_request(args)
 
-      "send_contact_form" ->
-        handle_contact_form(args)
-
-      "send_support_request" ->
-        handle_support_request(args)
+      "send_email_change_confirmations" ->
+        handle_email_change_confirmations(args)
 
       "send_email_verification" ->
         handle_email_verification(args)
@@ -49,9 +45,6 @@ defmodule Tymeslot.Workers.EmailWorkerHandlers do
 
       "send_email_change_notification" ->
         handle_email_change_notification(args)
-
-      "send_email_change_confirmations" ->
-        handle_email_change_confirmations(args)
 
       _ ->
         {:discard, "Unknown action: #{action}"}
@@ -334,55 +327,6 @@ defmodule Tymeslot.Workers.EmailWorkerHandlers do
         _ -> false
       end
     end)
-  end
-
-  defp handle_contact_form(args) do
-    handle_form_submission(args, "contact form", fn name, email, subj, msg ->
-      email_service_module().send_contact_form(name, email, subj, msg)
-    end)
-  end
-
-  defp handle_support_request(args) do
-    handle_form_submission(args, "support request", fn name, email, subj, msg ->
-      email_service_module().send_support_request(name, email, subj, msg)
-    end)
-  end
-
-  defp handle_form_submission(args, type, send_fn) do
-    required = ["sender_name", "sender_email", "subject", "message"]
-
-    case ValidationHelpers.validate_required_fields(args, required) do
-      {:ok, _} ->
-        sender_name = Map.fetch!(args, "sender_name")
-        sender_email = Map.fetch!(args, "sender_email")
-        subject = Map.fetch!(args, "subject")
-        message = Map.fetch!(args, "message")
-
-        Logger.info("Sending #{type} email", sender_email: sender_email, subject: subject)
-
-        case send_fn.(sender_name, sender_email, subject, message) do
-          {:ok, _result} ->
-            Logger.info("#{type} email sent successfully",
-              sender_email: sender_email,
-              subject: subject
-            )
-
-            :ok
-
-          {:error, reason} ->
-            Logger.error("Failed to send #{type} email",
-              sender_email: sender_email,
-              subject: subject,
-              error: inspect(reason)
-            )
-
-            {:error, reason}
-        end
-
-      {:error, errors} ->
-        Logger.error("#{type} email missing required fields", errors: errors)
-        {:discard, "Missing required fields: #{inspect(Map.keys(errors))}"}
-    end
   end
 
   defp handle_email_verification(%{"user_id" => user_id, "verification_url" => verification_url}) do

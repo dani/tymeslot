@@ -254,12 +254,16 @@ defmodule Tymeslot.Emails.EmailService do
       organizer_email: owner_email
     )
 
-    # Alert admin about calendar sync error if SaaS is present
-    maybe_send_admin_alert(:calendar_sync_error, %{
-      meeting_id: meeting.id,
-      owner_email: owner_email,
-      reason: error_reason
-    }, level: :error)
+    # Alert admin about calendar sync error
+    Tymeslot.Infrastructure.AdminAlerts.send_alert(
+      :calendar_sync_error,
+      %{
+        meeting_id: meeting.id,
+        owner_email: owner_email,
+        reason: error_reason
+      },
+      level: :error
+    )
 
     html_body = CalendarSyncError.render(meeting, error_reason)
 
@@ -399,50 +403,6 @@ defmodule Tymeslot.Emails.EmailService do
   end
 
   @doc """
-  Sends a contact form email.
-  """
-  @spec send_contact_form(String.t(), String.t(), String.t(), String.t()) ::
-          {:ok, any()} | {:error, any()}
-  def send_contact_form(name, from_email, subject, message) do
-    template = Application.get_env(:tymeslot, :contact_form_template)
-
-    if template && Code.ensure_loaded?(template) do
-      Logger.info("Sending contact form email",
-        from: from_email,
-        subject: subject
-      )
-
-      email = template.contact_form_email(name, from_email, subject, message)
-      deliver(email)
-    else
-      Logger.warning("ContactForm template not available (SaaS app not loaded)")
-      {:error, :contact_form_not_available}
-    end
-  end
-
-  @doc """
-  Sends a support request email.
-  """
-  @spec send_support_request(String.t(), String.t(), String.t(), String.t()) ::
-          {:ok, any()} | {:error, any()}
-  def send_support_request(name, from_email, subject, message) do
-    template = Application.get_env(:tymeslot, :support_request_template)
-
-    if template && Code.ensure_loaded?(template) do
-      Logger.info("Sending support request email",
-        from: from_email,
-        subject: subject
-      )
-
-      email = template.support_request_email(name, from_email, subject, message)
-      deliver(email)
-    else
-      Logger.warning("SupportRequest template not available (SaaS app not loaded)")
-      {:error, :support_request_not_available}
-    end
-  end
-
-  @doc """
   Sends a reschedule request email.
   """
   @spec send_reschedule_request(map()) :: {:ok, any()} | {:error, any()}
@@ -525,40 +485,4 @@ defmodule Tymeslot.Emails.EmailService do
   defp email_retriable?(:closed), do: true
   defp email_retriable?(:econnrefused), do: true
   defp email_retriable?(_), do: false
-
-  defp maybe_send_admin_alert(event, metadata, opts) do
-    alerts_module = Application.get_env(:tymeslot, :admin_alerts)
-
-    with module when not is_nil(module) <- alerts_module,
-         true <- Code.ensure_loaded?(module) do
-      try do
-        if function_exported?(module, :send_alert, 3) do
-          module.send_alert(event, metadata, opts)
-        else
-          maybe_call_legacy_alert(module, event, metadata)
-        end
-      rescue
-        exception ->
-          Logger.error("Failed to send admin alert",
-            module: module,
-            event: event,
-            error: Exception.message(exception)
-          )
-      catch
-        kind, reason ->
-          Logger.error("Failed to send admin alert",
-            module: module,
-            event: event,
-            error: {kind, reason}
-          )
-      end
-    end
-  end
-
-  defp maybe_call_legacy_alert(module, event, _metadata) do
-    Logger.warning("Admin alerts module missing expected function",
-      module: module,
-      event: event
-    )
-  end
 end

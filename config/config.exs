@@ -32,8 +32,6 @@ config :tymeslot,
 
   # Default email settings for standalone use
   email_adapter_default: "smtp",
-  contact_form_template: nil,
-  support_request_template: nil,
   trial_ending_reminder_template: nil,
   refund_processed_template: nil,
   dispute_alert_template: nil,
@@ -51,7 +49,7 @@ config :tymeslot,
   subscription_manager: nil,
 
   # Admin alerts module - nil by default (can be provided by external layers)
-  admin_alerts: nil,
+  admin_alerts_impl: Tymeslot.Infrastructure.AdminAlerts.Default,
 
   # Dashboard Extensions
   dashboard_sidebar_extensions: [],
