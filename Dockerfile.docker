@@ -31,8 +31,6 @@ WORKDIR /app
 # Copy mix.exs and mix.lock files
 COPY mix.exs mix.lock ./
 COPY apps/tymeslot/mix.exs apps/tymeslot/mix.exs
-# Copy SaaS mix.exs if it exists (using glob to avoid failure if missing)
-COPY apps/tymeslot_saas/mix.exs* apps/tymeslot_saas/
 
 # Install hex and rebar
 RUN mix local.hex --force && mix local.rebar --force

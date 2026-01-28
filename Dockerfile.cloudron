@@ -25,7 +25,6 @@ RUN mix local.hex --force && \
 # Install dependencies (cached if mix.exs/mix.lock haven't changed)
 COPY mix.exs mix.lock ./
 COPY apps/tymeslot/mix.exs apps/tymeslot/mix.exs
-COPY apps/tymeslot_saas/mix.exs* apps/tymeslot_saas/
 
 RUN mix deps.get --only $MIX_ENV
 RUN mix deps.compile
