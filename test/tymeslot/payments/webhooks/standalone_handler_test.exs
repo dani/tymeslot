@@ -8,6 +8,7 @@ defmodule Tymeslot.Payments.Webhooks.StandaloneHandlerTest do
   alias Tymeslot.Repo
 
   import Mox
+  import Tymeslot.Factory
 
   setup :set_mox_from_context
   setup :verify_on_exit!
@@ -44,32 +45,18 @@ defmodule Tymeslot.Payments.Webhooks.StandaloneHandlerTest do
     def get(_schema, _id), do: %Tymeslot.Payments.Webhooks.StandaloneHandlerTest.TestUser{id: 123, email: "test@example.com", name: "Test User"}
   end
 
-  defmodule TestSubscriptionManager do
-    @spec record_dispute(any()) :: {:ok, map()}
-    def record_dispute(_attrs), do: {:ok, %{id: "dp_recorded"}}
-
-    @spec update_dispute_status(any(), any()) :: {:ok, map()}
-    def update_dispute_status(_stripe_dispute_id, _status), do: {:ok, %{id: "dp_updated"}}
-
-    @spec update_trial_end_date(any(), any()) :: {:ok, map()}
-    def update_trial_end_date(_stripe_subscription_id, _trial_ends_at), do: {:ok, %{id: "sub_updated"}}
-  end
-
   defp setup_test_configs do
     original_repo = Application.get_env(:tymeslot, :repo)
     original_schema = Application.get_env(:tymeslot, :subscription_schema)
-    original_manager = Application.get_env(:tymeslot, :saas_subscription_manager)
     original_provider = Application.get_env(:tymeslot, :stripe_provider)
 
     Application.put_env(:tymeslot, :repo, TestRepo)
     Application.put_env(:tymeslot, :subscription_schema, TestSubscriptionSchema)
-    Application.put_env(:tymeslot, :saas_subscription_manager, TestSubscriptionManager)
     Application.put_env(:tymeslot, :stripe_provider, Tymeslot.Payments.StripeMock)
 
     on_exit(fn ->
       Application.put_env(:tymeslot, :repo, original_repo)
       Application.put_env(:tymeslot, :subscription_schema, original_schema)
-      Application.put_env(:tymeslot, :saas_subscription_manager, original_manager)
       Application.put_env(:tymeslot, :stripe_provider, original_provider)
     end)
   end
@@ -143,16 +130,13 @@ defmodule Tymeslot.Payments.Webhooks.StandaloneHandlerTest do
     test "processes trial ending events when subscription exists" do
       original_repo = Application.get_env(:tymeslot, :repo)
       original_schema = Application.get_env(:tymeslot, :subscription_schema)
-      original_manager = Application.get_env(:tymeslot, :saas_subscription_manager)
 
       Application.put_env(:tymeslot, :repo, TestRepo)
       Application.put_env(:tymeslot, :subscription_schema, TestSubscriptionSchema)
-      Application.put_env(:tymeslot, :saas_subscription_manager, TestSubscriptionManager)
 
       on_exit(fn ->
         Application.put_env(:tymeslot, :repo, original_repo)
         Application.put_env(:tymeslot, :subscription_schema, original_schema)
-        Application.put_env(:tymeslot, :saas_subscription_manager, original_manager)
       end)
 
       trial_end = DateTime.add(DateTime.utc_now(), 2, :day)
@@ -200,6 +184,15 @@ defmodule Tymeslot.Payments.Webhooks.StandaloneHandlerTest do
 
     test "processes disputes even when evidence details are missing" do
       setup_test_configs()
+      user = insert(:user)
+
+      _transaction =
+        insert(:payment_transaction,
+          user: user,
+          status: "completed",
+          stripe_customer_id: "cus_123",
+          subscription_id: nil
+        )
 
       expect(Tymeslot.Payments.StripeMock, :get_charge, fn "ch_123" ->
         {:ok, %{"customer" => "cus_123"}}
@@ -220,6 +213,15 @@ defmodule Tymeslot.Payments.Webhooks.StandaloneHandlerTest do
 
     test "processes disputes with invalid evidence due dates" do
       setup_test_configs()
+      user = insert(:user)
+
+      _transaction =
+        insert(:payment_transaction,
+          user: user,
+          status: "completed",
+          stripe_customer_id: "cus_456",
+          subscription_id: nil
+        )
 
       expect(Tymeslot.Payments.StripeMock, :get_charge, fn "ch_456" ->
         {:ok, %{"customer" => "cus_456"}}

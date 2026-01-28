@@ -78,27 +78,11 @@ defmodule Tymeslot.Payments.Webhooks.WebhookProcessorTest do
         "reason" => "fraudulent"
       }
 
-      # The processor calls WebhookRegistry.validate(event_type, object)
-      # WebhookRegistry.validate(event_type, object) calls handler.validate(object)
-      # DisputeHandler.validate expects %{"type" => type, "data" => %{"object" => object}}
-      full_event_as_object = %{
-        "type" => "charge.dispute.created",
-        "data" => %{
-          "object" => object
-        }
-      }
-
       event = %{
         "id" => "evt_outage",
         "type" => "charge.dispute.created",
         "data" => %{
-          "object" => full_event_as_object
-        },
-        :id => "evt_outage",
-        :type => "charge.dispute.created",
-        :data => %{
-          "object" => full_event_as_object,
-          :object => full_event_as_object
+          "object" => object
         }
       }
 
