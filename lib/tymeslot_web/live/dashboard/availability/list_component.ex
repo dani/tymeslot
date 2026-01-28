@@ -16,7 +16,10 @@ defmodule TymeslotWeb.Dashboard.Availability.ListComponent do
 
   @impl true
   def mount(socket) do
-    {:ok, ModalHook.mount_modal(socket, delete_break: false, clear_day: false)}
+    {:ok,
+     socket
+     |> ModalHook.mount_modal(delete_break: false, clear_day: false)
+     |> assign(show_add_break_form: nil)}
   end
 
   @impl true
@@ -31,6 +34,7 @@ defmodule TymeslotWeb.Dashboard.Availability.ListComponent do
       |> assign(timezone_info)
       |> assign(break_duration_presets: Breaks.get_break_duration_presets())
       |> assign(form_errors: %{})
+      |> assign_new(:show_add_break_form, fn -> nil end)
       |> assign_new(:show_delete_break_modal, fn -> false end)
       |> assign_new(:show_clear_day_modal, fn -> false end)
       |> assign_new(:delete_break_modal_data, fn -> nil end)
@@ -129,7 +133,12 @@ defmodule TymeslotWeb.Dashboard.Availability.ListComponent do
         {:ok, _break} ->
           Flash.info("Break added")
           send(self(), {:reload_schedule})
-          socket = assign(socket, :form_errors, %{})
+
+          socket =
+            socket
+            |> assign(:form_errors, %{})
+            |> assign(:show_add_break_form, nil)
+
           {:noreply, socket}
 
         {:error, :invalid_time_format} ->
@@ -161,6 +170,20 @@ defmodule TymeslotWeb.Dashboard.Availability.ListComponent do
 
   def handle_event("hide_delete_break_modal", _params, socket) do
     {:noreply, ModalHook.hide_modal(socket, :delete_break)}
+  end
+
+  def handle_event("show_add_break_form", %{"day" => day_str}, socket) do
+    case parse_day(day_str) do
+      {:ok, day} ->
+        {:noreply, assign(socket, :show_add_break_form, day)}
+
+      _ ->
+        {:noreply, socket}
+    end
+  end
+
+  def handle_event("hide_add_break_form", _params, socket) do
+    {:noreply, assign(socket, :show_add_break_form, nil)}
   end
 
   def handle_event("confirm_delete_break", _params, socket) do
@@ -204,7 +227,12 @@ defmodule TymeslotWeb.Dashboard.Availability.ListComponent do
         {:ok, _break} ->
           Flash.info("Quick break added")
           send(self(), {:reload_schedule})
-          socket = assign(socket, :form_errors, %{})
+
+          socket =
+            socket
+            |> assign(:form_errors, %{})
+            |> assign(:show_add_break_form, nil)
+
           {:noreply, socket}
 
         {:error, :invalid_time_format} ->
@@ -402,6 +430,7 @@ defmodule TymeslotWeb.Dashboard.Availability.ListComponent do
             day_name={AvailabilityActions.day_name(day_availability.day_of_week)}
             break_duration_presets={@break_duration_presets}
             form_errors={@form_errors}
+            show_add_break_form={@show_add_break_form}
             myself={@myself}
           />
         <% end %>
@@ -513,17 +542,33 @@ defmodule TymeslotWeb.Dashboard.Availability.ListComponent do
         
     <!-- Breaks -->
         <div class="space-y-4">
-          <div class="flex items-center gap-3">
-            <h4 class="text-token-lg font-black text-tymeslot-900 tracking-tight">Breaks</h4>
-            <% breaks =
-              case @day_availability.breaks do
-                %Ecto.Association.NotLoaded{} -> []
-                b when is_list(b) -> b
-                _ -> []
-              end %>
-            <span class="bg-tymeslot-100 text-tymeslot-500 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md">
-              {length(breaks)} total
-            </span>
+          <div class="flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <h4 class="text-token-lg font-black text-tymeslot-900 tracking-tight">Breaks</h4>
+              <% breaks =
+                case @day_availability.breaks do
+                  %Ecto.Association.NotLoaded{} -> []
+                  b when is_list(b) -> b
+                  _ -> []
+                end %>
+              <span class="bg-tymeslot-100 text-tymeslot-500 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md">
+                {length(breaks)} total
+              </span>
+            </div>
+
+            <%= if @show_add_break_form != @day_availability.day_of_week do %>
+              <button
+                phx-click="show_add_break_form"
+                phx-value-day={@day_availability.day_of_week}
+                phx-target={@myself}
+                class="btn-secondary py-2 px-3 text-token-xs flex items-center whitespace-nowrap"
+              >
+                <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+                </svg>
+                Add Break
+              </button>
+            <% end %>
           </div>
 
           <%= if breaks != [] do %>
@@ -549,54 +594,67 @@ defmodule TymeslotWeb.Dashboard.Availability.ListComponent do
               <% end %>
             </div>
           <% end %>
-          
+
     <!-- Add Break Form -->
-          <form
-            phx-submit="add_break"
-            phx-change="validate_break"
-            phx-target={@myself}
-            class="grid grid-cols-1 lg:grid-cols-4 gap-4 items-end bg-tymeslot-50/50 p-4 rounded-token-2xl border-2 border-tymeslot-50"
-          >
-            <input type="hidden" name="day" value={@day_availability.day_of_week} />
-            <div class="lg:col-span-1">
-              <.input
-                name="label"
-                label="Label"
-                placeholder="e.g. Lunch"
-                errors={@form_errors[:label] || []}
-              />
-            </div>
-            <div>
-              <.input
-                type="select"
-                name="start"
-                label="From"
-                required
-                prompt="Start"
-                options={TimeOptions.time_options()}
-                errors={@form_errors[:start_time] || []}
-              />
-            </div>
-            <div>
-              <.input
-                type="select"
-                name="end"
-                label="Until"
-                required
-                prompt="End"
-                options={TimeOptions.time_options()}
-                errors={@form_errors[:end_time] || []}
-              />
-            </div>
-            <div>
-              <button type="submit" class="btn-primary w-full py-3 flex items-center justify-center whitespace-nowrap">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
-                </svg>
-                Add
-              </button>
-            </div>
-          </form>
+          <%= if @show_add_break_form == @day_availability.day_of_week do %>
+            <form
+              phx-submit="add_break"
+              phx-change="validate_break"
+              phx-target={@myself}
+              class="grid grid-cols-1 lg:grid-cols-4 gap-4 items-end bg-tymeslot-50/50 p-4 rounded-token-2xl border-2 border-tymeslot-50"
+            >
+              <input type="hidden" name="day" value={@day_availability.day_of_week} />
+              <div class="lg:col-span-1">
+                <.input
+                  name="label"
+                  label="Label"
+                  placeholder="e.g. Lunch"
+                  errors={@form_errors[:label] || []}
+                />
+              </div>
+              <div>
+                <.input
+                  type="select"
+                  name="start"
+                  label="From"
+                  required
+                  prompt="Start"
+                  options={TimeOptions.time_options()}
+                  errors={@form_errors[:start_time] || []}
+                />
+              </div>
+              <div>
+                <.input
+                  type="select"
+                  name="end"
+                  label="Until"
+                  required
+                  prompt="End"
+                  options={TimeOptions.time_options()}
+                  errors={@form_errors[:end_time] || []}
+                />
+              </div>
+              <div class="flex gap-2">
+                <button type="submit" class="btn-primary flex-1 py-3 flex items-center justify-center whitespace-nowrap">
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add
+                </button>
+                <button
+                  type="button"
+                  phx-click="hide_add_break_form"
+                  phx-target={@myself}
+                  class="btn-secondary px-3 py-3"
+                  title="Cancel"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </form>
+          <% end %>
         </div>
         
     <!-- Action Bar -->
