@@ -51,6 +51,22 @@ defmodule Tymeslot.Infrastructure.Config do
     get_module(:oauth_helper_module, Tymeslot.Auth.OAuth.Helper)
   end
 
+  # Configuration Modules
+
+  @doc """
+  Gets the app configuration module configured for the application.
+  """
+  @spec app_config_module() :: module()
+  def app_config_module do
+    module = get_module(:app_config_module, Tymeslot.Infrastructure.AppConfig)
+
+    if Code.ensure_loaded?(module) do
+      module
+    else
+      Tymeslot.Infrastructure.AppConfig
+    end
+  end
+
   # Configuration Values
 
   @doc """
@@ -102,7 +118,23 @@ defmodule Tymeslot.Infrastructure.Config do
   """
   @spec saas_mode?() :: boolean()
   def saas_mode? do
-    Application.get_env(:tymeslot, :saas_mode, false)
+    app_config_module().saas_mode?()
+  end
+
+  @doc """
+  Checks if legal agreements should be enforced.
+  """
+  @spec enforce_legal_agreements?() :: boolean()
+  def enforce_legal_agreements? do
+    app_config_module().enforce_legal_agreements?()
+  end
+
+  @doc """
+  Gets the site home path.
+  """
+  @spec site_home_path() :: String.t()
+  def site_home_path do
+    app_config_module().site_home_path()
   end
 
   # Private Helpers

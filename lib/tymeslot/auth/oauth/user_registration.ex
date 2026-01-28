@@ -95,7 +95,7 @@ defmodule Tymeslot.Auth.OAuth.UserRegistration do
       end
 
     missing =
-      if Config.saas_mode?() or Application.get_env(:tymeslot, :enforce_legal_agreements, false) do
+      if Config.saas_mode?() or Config.enforce_legal_agreements?() do
         [:terms | missing]
       else
         missing
@@ -152,7 +152,7 @@ defmodule Tymeslot.Auth.OAuth.UserRegistration do
       "#{provider}_user_id" =>
         Map.get(oauth_user, String.to_existing_atom("#{provider}_user_id")),
       "terms_accepted" =>
-        if(Application.get_env(:tymeslot, :enforce_legal_agreements, false),
+        if(Config.enforce_legal_agreements?(),
           do: "true",
           else: "false"
         ),
