@@ -57,7 +57,6 @@ defmodule TymeslotWeb do
         plug TymeslotWeb.Plugs.FetchCurrentUser
         plug TymeslotWeb.Plugs.LocalePlug
         plug TymeslotWeb.Plugs.ThemePlug
-        # Distribution-specific theme protections (e.g., for SaaS)
         plug TymeslotWeb.Plugs.ThemeProtectionPlug
       end
 

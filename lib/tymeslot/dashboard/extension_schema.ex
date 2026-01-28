@@ -2,7 +2,7 @@ defmodule Tymeslot.Dashboard.ExtensionSchema do
   @moduledoc """
   Schema validation for dashboard extensions.
 
-  Dashboard extensions allow external applications (like SaaS) to register
+  Dashboard extensions allow external applications to register
   new navigation items and components in the Core dashboard without Core
   having any knowledge of the extension source.
 

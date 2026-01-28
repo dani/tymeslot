@@ -70,7 +70,7 @@
 - **Secure iframe Embedding**: White-label booking widgets for your website
 - **Domain Controls**: Restrict embedding to authorized domains only
 - **Webhook System**: Real-time event notifications for meeting lifecycle (booked, rescheduled, cancelled)
-- **Custom Branding**: Remove Tymeslot branding with Pro subscription (SaaS only)
+- **Custom Branding**: Remove Tymeslot branding with Pro subscription (Cloud version only)
 
 ### ⏰ Advanced Reminder System
 - **Multiple Reminders**: Configure unlimited reminders per appointment type
