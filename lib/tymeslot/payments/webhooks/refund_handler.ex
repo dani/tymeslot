@@ -14,6 +14,7 @@ defmodule Tymeslot.Payments.Webhooks.RefundHandler do
 
   require Logger
 
+  alias Tymeslot.Infrastructure.AdminAlerts
   alias Tymeslot.Payments.Webhooks.WebhookUtils
 
   @impl true
@@ -68,7 +69,7 @@ defmodule Tymeslot.Payments.Webhooks.RefundHandler do
         )
 
         # Alert admin about unlinked refund
-        Tymeslot.Infrastructure.AdminAlerts.send_alert(:unlinked_refund, %{
+        AdminAlerts.send_alert(:unlinked_refund, %{
           charge_id: charge_id,
           customer_id: customer_id,
           amount: refund_amount
@@ -87,7 +88,7 @@ defmodule Tymeslot.Payments.Webhooks.RefundHandler do
             )
 
             # Alert admin about processed refund
-            Tymeslot.Infrastructure.AdminAlerts.send_alert(
+            AdminAlerts.send_alert(
               :refund_processed,
               %{
                 user_id: subscription.user_id,

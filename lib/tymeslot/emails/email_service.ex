@@ -7,7 +7,7 @@ defmodule Tymeslot.Emails.EmailService do
 
   require Logger
 
-  alias Tymeslot.Infrastructure.{CircuitBreaker, Retry}
+  alias Tymeslot.Infrastructure.{AdminAlerts, CircuitBreaker, Retry}
   alias Tymeslot.Mailer
 
   alias Tymeslot.Emails.Templates.{
@@ -255,7 +255,7 @@ defmodule Tymeslot.Emails.EmailService do
     )
 
     # Alert admin about calendar sync error
-    Tymeslot.Infrastructure.AdminAlerts.send_alert(
+    AdminAlerts.send_alert(
       :calendar_sync_error,
       %{
         meeting_id: meeting.id,

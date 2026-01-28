@@ -23,27 +23,25 @@ defmodule Tymeslot.Infrastructure.AdminAlerts do
   Sends an administrative alert using the configured implementation.
   """
   def send_alert(type, metadata \\ %{}, opts \\ []) do
-    try do
-      impl().send_alert(type, metadata, opts)
-    rescue
-      exception ->
-        Logger.error("Failed to send admin alert",
-          type: type,
-          error: Exception.message(exception),
-          stacktrace: __STACKTRACE__
-        )
+    impl().send_alert(type, metadata, opts)
+  rescue
+    exception ->
+      Logger.error("Failed to send admin alert",
+        type: type,
+        error: Exception.message(exception),
+        stacktrace: __STACKTRACE__
+      )
 
-        {:error, exception}
-    catch
-      kind, reason ->
-        Logger.error("Failed to send admin alert",
-          type: type,
-          error: {kind, reason},
-          stacktrace: __STACKTRACE__
-        )
+      {:error, exception}
+  catch
+    kind, reason ->
+      Logger.error("Failed to send admin alert",
+        type: type,
+        error: {kind, reason},
+        stacktrace: __STACKTRACE__
+      )
 
-        {:error, {kind, reason}}
-    end
+      {:error, {kind, reason}}
   end
 
   defp impl do

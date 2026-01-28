@@ -15,6 +15,7 @@ defmodule Tymeslot.Payments.Webhooks.DisputeHandler do
 
   require Logger
 
+  alias Tymeslot.Infrastructure.AdminAlerts
   alias Tymeslot.Mailer
 
   @impl true
@@ -297,7 +298,7 @@ defmodule Tymeslot.Payments.Webhooks.DisputeHandler do
   end
 
   defp alert_admin_dispute_created(dispute_id, user_id, amount, reason) do
-    Tymeslot.Infrastructure.AdminAlerts.send_alert(:dispute_created, %{
+    AdminAlerts.send_alert(:dispute_created, %{
       dispute_id: dispute_id,
       user_id: user_id,
       amount: amount,
@@ -306,7 +307,7 @@ defmodule Tymeslot.Payments.Webhooks.DisputeHandler do
   end
 
   defp alert_admin_dispute_lost(dispute_id, user_id) do
-    Tymeslot.Infrastructure.AdminAlerts.send_alert(:dispute_lost, %{
+    AdminAlerts.send_alert(:dispute_lost, %{
       dispute_id: dispute_id,
       user_id: user_id
     })

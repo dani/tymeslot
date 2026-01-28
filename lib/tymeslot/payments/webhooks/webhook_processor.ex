@@ -5,13 +5,12 @@ defmodule Tymeslot.Payments.Webhooks.WebhookProcessor do
 
   require Logger
 
+  alias Tymeslot.Infrastructure.AdminAlerts
   alias Tymeslot.Payments.Errors.WebhookError
   alias Tymeslot.Payments.Webhooks.WebhookRegistry
 
   @doc """
   Process a webhook event using the appropriate handler.
-
-  Returns {:ok, status} on success or {:error, reason, message} on failure.
   """
   @spec process_event(map()) :: {:ok, atom()} | {:error, atom() | Exception.t(), String.t() | nil}
   def process_event(event) do
@@ -117,7 +116,7 @@ defmodule Tymeslot.Payments.Webhooks.WebhookProcessor do
         record_unhandled_event(event_type, event, object)
 
         # Alert admin about unhandled event
-        Tymeslot.Infrastructure.AdminAlerts.send_alert(
+        AdminAlerts.send_alert(
           :unhandled_webhook,
           sanitize_alert_payload(event, object)
         )
