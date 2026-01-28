@@ -15,6 +15,7 @@ defmodule Tymeslot.Payments.Webhooks.DisputeHandler do
 
   require Logger
 
+  alias Tymeslot.DatabaseQueries.PaymentQueries
   alias Tymeslot.Infrastructure.AdminAlerts
   alias Tymeslot.Mailer
 
@@ -44,17 +45,16 @@ defmodule Tymeslot.Payments.Webhooks.DisputeHandler do
   end
 
   @impl true
-  def validate(%{"type" => type, "data" => %{"object" => object}})
-      when type in ["charge.dispute.created", "charge.dispute.updated", "charge.dispute.closed"] do
+  def validate(dispute) when is_map(dispute) do
     required_fields = ["id", "charge", "amount", "status"]
 
-    case Enum.all?(required_fields, &Map.has_key?(object, &1)) do
+    case Enum.all?(required_fields, &Map.has_key?(dispute, &1)) do
       true -> :ok
-      false -> {:error, :missing_fields, "Missing required fields in #{type} event"}
+      false -> {:error, :missing_fields, "Missing required fields in dispute object"}
     end
   end
 
-  def validate(_event), do: {:error, :invalid_structure, "Invalid event structure"}
+  def validate(_event), do: {:error, :invalid_structure, "Invalid dispute object"}
 
   # Private functions
 
@@ -73,94 +73,125 @@ defmodule Tymeslot.Payments.Webhooks.DisputeHandler do
       status: status
     )
 
-    # Find user by charge ID
-    case find_user_by_charge(charge_id) do
-      {:error, :stripe_api_error} ->
-        # If Stripe is down, we should fail so the webhook can be retried
-        {:error, :retry_later, "Stripe API unavailable"}
+    with {:ok, charge} <- fetch_charge(charge_id) do
+      customer_id = get_charge_customer_id(charge)
 
-      nil ->
-        Logger.warning("DISPUTE UNLINKED - Could not find user for dispute on charge: #{charge_id}",
-          dispute_id: dispute_id,
-          charge_id: charge_id
-        )
-
-        # Alert admin about unlinked dispute
-        alert_admin_dispute_created(dispute_id, nil, amount, reason)
-
-        {:ok, :dispute_logged}
-
-      user_id ->
-        # Broadcast event for SaaS to record dispute
+      if subscription_charge?(charge) do
         Tymeslot.Payments.PubSub.broadcast_payment_event(:dispute_created, %{
           event_id: event["id"],
-          user_id: user_id,
+          stripe_customer_id: customer_id,
           dispute: dispute
         })
 
-        Logger.info("DISPUTE BROADCASTED - Sent dispute_created event for user #{user_id}",
-          user_id: user_id,
+        Logger.info("DISPUTE FORWARDED - Subscription dispute sent to SaaS",
           dispute_id: dispute_id,
           charge_id: charge_id
         )
 
-        # Alert admin (log and potentially other notifications)
-        alert_admin_dispute_created(dispute_id, user_id, amount, reason)
+        {:ok, :subscription_dispute_forwarded}
+      else
+        case find_user_by_customer(customer_id) do
+          nil ->
+            Logger.warning(
+              "DISPUTE UNLINKED - Could not find user for dispute on charge: #{charge_id}",
+              dispute_id: dispute_id,
+              charge_id: charge_id
+            )
 
-        # Send email to admin
-        send_dispute_created_alert(dispute)
+            # Alert admin about unlinked dispute
+            alert_admin_dispute_created(dispute_id, nil, amount, reason)
 
-        # Broadcast event
-        broadcast_dispute_event(user_id, :dispute_created, dispute_id)
+            {:ok, :dispute_logged}
 
-        {:ok, :dispute_created}
+          user_id ->
+            Logger.info("DISPUTE LOGGED - One-time dispute for user #{user_id}",
+              user_id: user_id,
+              dispute_id: dispute_id,
+              charge_id: charge_id
+            )
+
+            # Alert admin (log and potentially other notifications)
+            alert_admin_dispute_created(dispute_id, user_id, amount, reason)
+
+            # Send email to admin
+            send_dispute_created_alert(dispute)
+
+            # Broadcast event
+            broadcast_dispute_event(user_id, :dispute_created, dispute_id)
+
+            {:ok, :dispute_created}
+        end
+      end
+    else
+      {:error, :stripe_api_error} ->
+        {:error, :retry_later, "Stripe API unavailable"}
     end
   end
 
   defp handle_updated(event, dispute) do
     dispute_id = dispute["id"]
     status = dispute["status"]
+    charge_id = dispute["charge"]
 
     Logger.info("Dispute #{dispute_id} status updated to: #{status}")
 
-    # Broadcast event for SaaS to update dispute status
-    Tymeslot.Payments.PubSub.broadcast_payment_event(:dispute_updated, %{
-      event_id: event["id"],
-      stripe_dispute_id: dispute_id,
-      status: status
-    })
+    with {:ok, charge} <- fetch_charge(charge_id) do
+      if subscription_charge?(charge) do
+        # Broadcast event for SaaS to update dispute status
+        Tymeslot.Payments.PubSub.broadcast_payment_event(:dispute_updated, %{
+          event_id: event["id"],
+          stripe_dispute_id: dispute_id,
+          status: status
+        })
 
-    {:ok, :dispute_updated}
+        {:ok, :dispute_updated}
+      else
+        {:ok, :dispute_updated}
+      end
+    else
+      {:error, :stripe_api_error} ->
+        {:error, :retry_later, "Stripe API unavailable"}
+    end
   end
 
   defp handle_closed(event, dispute) do
     dispute_id = dispute["id"]
     status = dispute["status"]
+    charge_id = dispute["charge"]
 
     Logger.info("DISPUTE CLOSED - Dispute #{dispute_id} closed with status: #{status}",
       dispute_id: dispute_id,
       status: status
     )
 
-    # Broadcast event for SaaS to update dispute status and handle outcome
-    Tymeslot.Payments.PubSub.broadcast_payment_event(:dispute_closed, %{
-      event_id: event["id"],
-      stripe_dispute_id: dispute_id,
-      status: status,
-      dispute: dispute
-    })
+    with {:ok, charge} <- fetch_charge(charge_id) do
+      if subscription_charge?(charge) do
+        # Broadcast event for SaaS to update dispute status and handle outcome
+        Tymeslot.Payments.PubSub.broadcast_payment_event(:dispute_closed, %{
+          event_id: event["id"],
+          stripe_dispute_id: dispute_id,
+          status: status,
+          dispute: dispute
+        })
 
-    # We still alert admin in Core for visibility
-    if status == "lost" do
-      alert_admin_dispute_lost(dispute_id, nil)
-      send_dispute_lost_alert(dispute)
+        {:ok, :dispute_closed}
+      else
+        # We still alert admin in Core for visibility
+        if status == "lost" do
+          alert_admin_dispute_lost(dispute_id, nil)
+          send_dispute_lost_alert(dispute)
+        end
+
+        if status == "won" do
+          send_dispute_won_notification(dispute)
+        end
+
+        {:ok, :dispute_closed}
+      end
+    else
+      {:error, :stripe_api_error} ->
+        {:error, :retry_later, "Stripe API unavailable"}
     end
-
-    if status == "won" do
-      send_dispute_won_notification(dispute)
-    end
-
-    {:ok, :dispute_closed}
   end
 
   defp alert_admin_dispute_lost(dispute_id, user_id) do
@@ -170,35 +201,36 @@ defmodule Tymeslot.Payments.Webhooks.DisputeHandler do
     })
   end
 
-  defp find_user_by_charge(charge_id) do
-    # Look up user by charge ID through subscription
-    # This requires finding the subscription by customer ID from the charge
-    # For now, we'll need to expand the Stripe charge to get customer ID
+  defp fetch_charge(charge_id) do
     case stripe_provider().get_charge(charge_id) do
       {:ok, charge} ->
-        customer_id = Map.get(charge, "customer") || Map.get(charge, :customer)
-        subscription_schema = Application.get_env(:tymeslot, :subscription_schema)
-
-        if subscription_schema && Code.ensure_loaded?(subscription_schema) do
-          repo = Application.get_env(:tymeslot, :repo, Tymeslot.Repo)
-
-          case repo.get_by(subscription_schema,
-                 stripe_customer_id: customer_id
-               ) do
-            nil -> nil
-            subscription -> subscription.user_id
-          end
-        else
-          nil
-        end
+        {:ok, charge}
 
       {:error, reason} ->
         Logger.error("DISPUTE LINK ERROR - Failed to fetch charge from Stripe: #{inspect(reason)}",
           charge_id: charge_id
         )
 
-        # Return a special error tuple to allow the caller to decide on retries
         {:error, :stripe_api_error}
+    end
+  end
+
+  defp get_charge_customer_id(charge) do
+    Map.get(charge, "customer") || Map.get(charge, :customer)
+  end
+
+  defp subscription_charge?(charge) do
+    invoice = Map.get(charge, "invoice") || Map.get(charge, :invoice)
+    subscription = Map.get(charge, "subscription") || Map.get(charge, :subscription)
+    not is_nil(invoice) or not is_nil(subscription)
+  end
+
+  defp find_user_by_customer(nil), do: nil
+
+  defp find_user_by_customer(customer_id) do
+    case PaymentQueries.get_latest_one_time_transaction_by_customer(customer_id) do
+      {:ok, transaction} -> transaction.user_id
+      {:error, :transaction_not_found} -> nil
     end
   end
 

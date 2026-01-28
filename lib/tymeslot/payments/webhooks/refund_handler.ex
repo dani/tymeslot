@@ -34,17 +34,16 @@ defmodule Tymeslot.Payments.Webhooks.RefundHandler do
   end
 
   @impl true
-  def validate(%{"type" => type, "data" => %{"object" => object}})
-      when type in ["charge.refunded", "charge.refund.updated"] do
+  def validate(refund_object) when is_map(refund_object) do
     required_fields = ["id"]
 
-    case Enum.all?(required_fields, &Map.has_key?(object, &1)) do
+    case Enum.all?(required_fields, &Map.has_key?(refund_object, &1)) do
       true -> :ok
-      false -> {:error, :missing_fields, "Missing required fields in #{type} event"}
+      false -> {:error, :missing_fields, "Missing required fields in refund object"}
     end
   end
 
-  def validate(_event), do: {:error, :invalid_structure, "Invalid event structure"}
+  def validate(_event), do: {:error, :invalid_structure, "Invalid refund object"}
 
   # Private functions
 

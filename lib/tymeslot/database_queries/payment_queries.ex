@@ -70,6 +70,27 @@ defmodule Tymeslot.DatabaseQueries.PaymentQueries do
   end
 
   @doc """
+  Gets the most recent one-time transaction by Stripe customer ID.
+  """
+  @spec get_latest_one_time_transaction_by_customer(String.t()) ::
+          {:ok, PaymentTransaction.t()} | {:error, :transaction_not_found}
+  def get_latest_one_time_transaction_by_customer(stripe_customer_id) do
+    query =
+      from(t in PaymentTransaction,
+        where: t.stripe_customer_id == ^stripe_customer_id,
+        where: is_nil(t.subscription_id),
+        where: t.status == "completed",
+        order_by: [desc: t.inserted_at],
+        limit: 1
+      )
+
+    case Repo.one(query) do
+      nil -> {:error, :transaction_not_found}
+      transaction -> {:ok, transaction}
+    end
+  end
+
+  @doc """
   Coordinates successful subscription renewal payment by creating a new transaction record.
   """
   @spec coordinate_subscription_renewal(String.t(), map()) ::
