@@ -9,12 +9,13 @@ config :tymeslot,
   ecto_repos: [Tymeslot.Repo],
   generators: [timestamp_type: :utc_datetime],
 
-  # --- Mode Detection ---
-  # Enables specific behaviors when running in a distributed environment
-  saas_mode: false,
-
+  # --- Feature Flags ---
   # Controls whether users must accept T&C/Privacy during registration
   enforce_legal_agreements: false,
+  # Whether to show marketing-related links (Docs, etc) in navigation
+  show_marketing_links: false,
+  # Whether the logo links to a marketing site or the login page
+  logo_links_to_marketing: false,
   legal_terms_url: nil,
   legal_privacy_url: nil,
 

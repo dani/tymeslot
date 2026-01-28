@@ -3,8 +3,9 @@ defmodule Tymeslot.Infrastructure.AppConfigBehaviour do
   Behaviour for application-wide configuration that might differ between Core and SaaS.
   """
 
-  @callback saas_mode?() :: boolean()
   @callback enforce_legal_agreements?() :: boolean()
+  @callback show_marketing_links?() :: boolean()
+  @callback logo_links_to_marketing?() :: boolean()
   @callback site_home_path() :: String.t()
 end
 
@@ -15,13 +16,18 @@ defmodule Tymeslot.Infrastructure.AppConfig do
   @behaviour Tymeslot.Infrastructure.AppConfigBehaviour
 
   @impl true
-  def saas_mode? do
-    Application.get_env(:tymeslot, :saas_mode, false)
+  def enforce_legal_agreements? do
+    Application.get_env(:tymeslot, :enforce_legal_agreements, false)
   end
 
   @impl true
-  def enforce_legal_agreements? do
-    Application.get_env(:tymeslot, :enforce_legal_agreements, false)
+  def show_marketing_links? do
+    Application.get_env(:tymeslot, :show_marketing_links, false)
+  end
+
+  @impl true
+  def logo_links_to_marketing? do
+    Application.get_env(:tymeslot, :logo_links_to_marketing, false)
   end
 
   @impl true

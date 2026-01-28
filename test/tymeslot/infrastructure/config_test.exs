@@ -18,15 +18,19 @@ defmodule Tymeslot.Infrastructure.ConfigTest do
   end
 
   describe "AppConfig default values" do
-    test "saas_mode? returns configured value" do
-      # In test environment, this might be true or false depending on config/test.exs
-      expected = Application.get_env(:tymeslot, :saas_mode, false)
-      assert AppConfig.saas_mode?() == expected
-    end
-
     test "enforce_legal_agreements? returns configured value" do
       expected = Application.get_env(:tymeslot, :enforce_legal_agreements, false)
       assert AppConfig.enforce_legal_agreements?() == expected
+    end
+
+    test "show_marketing_links? returns configured value" do
+      expected = Application.get_env(:tymeslot, :show_marketing_links, false)
+      assert AppConfig.show_marketing_links?() == expected
+    end
+
+    test "logo_links_to_marketing? returns configured value" do
+      expected = Application.get_env(:tymeslot, :logo_links_to_marketing, false)
+      assert AppConfig.logo_links_to_marketing?() == expected
     end
 
     test "site_home_path returns configured value" do
@@ -36,15 +40,16 @@ defmodule Tymeslot.Infrastructure.ConfigTest do
   end
 
   describe "Config delegation" do
-    test "saas_mode? delegates to app_config_module" do
-      # Since we can't easily mock the module without Mox or similar, 
-      # and we've verified app_config_module returns AppConfig,
-      # we just verify it returns the expected default.
-      assert Config.saas_mode?() == AppConfig.saas_mode?()
-    end
-
     test "enforce_legal_agreements? delegates to app_config_module" do
       assert Config.enforce_legal_agreements?() == AppConfig.enforce_legal_agreements?()
+    end
+
+    test "show_marketing_links? delegates to app_config_module" do
+      assert Config.show_marketing_links?() == AppConfig.show_marketing_links?()
+    end
+
+    test "logo_links_to_marketing? delegates to app_config_module" do
+      assert Config.logo_links_to_marketing?() == AppConfig.logo_links_to_marketing?()
     end
 
     test "site_home_path delegates to app_config_module" do

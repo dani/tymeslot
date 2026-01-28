@@ -8,11 +8,9 @@ defmodule TymeslotWeb.RootRedirectControllerTest do
   setup do
     # Save original env and config to restore them later
     original_type = System.get_env("DEPLOYMENT_TYPE")
-    original_saas_mode = Application.get_env(:tymeslot, :saas_mode)
     original_router = Application.get_env(:tymeslot, :router)
 
     # Force standalone mode for these tests
-    Application.put_env(:tymeslot, :saas_mode, false)
     Application.put_env(:tymeslot, :router, TymeslotWeb.Router)
 
     on_exit(fn ->
@@ -22,7 +20,6 @@ defmodule TymeslotWeb.RootRedirectControllerTest do
         System.delete_env("DEPLOYMENT_TYPE")
       end
 
-      Application.put_env(:tymeslot, :saas_mode, original_saas_mode)
       Application.put_env(:tymeslot, :router, original_router)
     end)
 

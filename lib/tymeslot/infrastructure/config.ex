@@ -113,20 +113,27 @@ defmodule Tymeslot.Infrastructure.Config do
   end
 
   @doc """
-  Checks if the application is running in SaaS mode.
-  SaaS mode includes marketing pages and distribution-specific behaviors.
-  """
-  @spec saas_mode?() :: boolean()
-  def saas_mode? do
-    app_config_module().saas_mode?()
-  end
-
-  @doc """
   Checks if legal agreements should be enforced.
   """
   @spec enforce_legal_agreements?() :: boolean()
   def enforce_legal_agreements? do
     app_config_module().enforce_legal_agreements?()
+  end
+
+  @doc """
+  Checks if marketing-related links should be shown.
+  """
+  @spec show_marketing_links?() :: boolean()
+  def show_marketing_links? do
+    app_config_module().show_marketing_links?()
+  end
+
+  @doc """
+  Checks if the logo should link to the marketing site.
+  """
+  @spec logo_links_to_marketing?() :: boolean()
+  def logo_links_to_marketing? do
+    app_config_module().logo_links_to_marketing?()
   end
 
   @doc """

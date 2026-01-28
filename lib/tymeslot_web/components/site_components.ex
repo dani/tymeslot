@@ -34,13 +34,15 @@ defmodule TymeslotWeb.Components.SiteComponents do
         
     <!-- Desktop Navigation -->
         <div class="hidden md:flex items-center gap-6">
-          <%= if docs_url = Application.get_env(:tymeslot, :docs_url) do %>
-            <.link
-              navigate={docs_url}
-              class="px-6 py-2 font-black text-slate-700 hover:text-turquoise-600 hover:bg-turquoise-50 transition-all rounded-2xl"
-            >
-              Docs
-            </.link>
+          <%= if Config.show_marketing_links?() do %>
+            <%= if docs_url = Application.get_env(:tymeslot, :docs_url) do %>
+              <.link
+                navigate={docs_url}
+                class="px-6 py-2 font-black text-slate-700 hover:text-turquoise-600 hover:bg-turquoise-50 transition-all rounded-2xl"
+              >
+                Docs
+              </.link>
+            <% end %>
           <% end %>
           <%= if @current_user do %>
             <.link
@@ -97,21 +99,23 @@ defmodule TymeslotWeb.Components.SiteComponents do
           class="mobile-menu md:hidden absolute top-full left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200 shadow-lg hidden"
         >
           <div class="container mx-auto px-4 py-4 space-y-3">
-            <%= if docs_url = Application.get_env(:tymeslot, :docs_url) do %>
-              <.link
-                navigate={docs_url}
-                class="mobile-nav-link block px-4 py-3 text-gray-800 hover:bg-turquoise-50 hover:text-turquoise-600 rounded-lg transition-colors"
-              >
-                Docs
-              </.link>
-            <% end %>
-            <%= if contact_url = Application.get_env(:tymeslot, :contact_url) do %>
-              <.link
-                navigate={contact_url}
-                class="mobile-nav-link block px-4 py-3 text-gray-800 hover:bg-turquoise-50 hover:text-turquoise-600 rounded-lg transition-colors"
-              >
-                Contact
-              </.link>
+            <%= if Config.show_marketing_links?() do %>
+              <%= if docs_url = Application.get_env(:tymeslot, :docs_url) do %>
+                <.link
+                  navigate={docs_url}
+                  class="mobile-nav-link block px-4 py-3 text-gray-800 hover:bg-turquoise-50 hover:text-turquoise-600 rounded-lg transition-colors"
+                >
+                  Docs
+                </.link>
+              <% end %>
+              <%= if contact_url = Application.get_env(:tymeslot, :contact_url) do %>
+                <.link
+                  navigate={contact_url}
+                  class="mobile-nav-link block px-4 py-3 text-gray-800 hover:bg-turquoise-50 hover:text-turquoise-600 rounded-lg transition-colors"
+                >
+                  Contact
+                </.link>
+              <% end %>
             <% end %>
             <%= if @current_user do %>
               <.link
@@ -161,29 +165,31 @@ defmodule TymeslotWeb.Components.SiteComponents do
             © {DateTime.utc_now().year} Tymeslot. All rights reserved.
           </p>
           <div class="flex gap-6 justify-center">
-            <%= if contact_url = Application.get_env(:tymeslot, :contact_url) do %>
-              <.link
-                navigate={contact_url}
-                class="text-gray-400 hover:text-turquoise-400 transition-colors"
-              >
-                Contact
-              </.link>
-            <% end %>
-            <%= if privacy_url = Application.get_env(:tymeslot, :privacy_policy_url) do %>
-              <.link
-                navigate={privacy_url}
-                class="text-gray-400 hover:text-turquoise-400 transition-colors"
-              >
-                Privacy Policy
-              </.link>
-            <% end %>
-            <%= if terms_url = Application.get_env(:tymeslot, :terms_and_conditions_url) do %>
-              <.link
-                navigate={terms_url}
-                class="text-gray-400 hover:text-turquoise-400 transition-colors"
-              >
-                Terms of Service
-              </.link>
+            <%= if Config.show_marketing_links?() do %>
+              <%= if contact_url = Application.get_env(:tymeslot, :contact_url) do %>
+                <.link
+                  navigate={contact_url}
+                  class="text-gray-400 hover:text-turquoise-400 transition-colors"
+                >
+                  Contact
+                </.link>
+              <% end %>
+              <%= if privacy_url = Application.get_env(:tymeslot, :privacy_policy_url) do %>
+                <.link
+                  navigate={privacy_url}
+                  class="text-gray-400 hover:text-turquoise-400 transition-colors"
+                >
+                  Privacy Policy
+                </.link>
+              <% end %>
+              <%= if terms_url = Application.get_env(:tymeslot, :terms_and_conditions_url) do %>
+                <.link
+                  navigate={terms_url}
+                  class="text-gray-400 hover:text-turquoise-400 transition-colors"
+                >
+                  Terms of Service
+                </.link>
+              <% end %>
             <% end %>
           </div>
           <div class="mt-6 pt-4 border-t border-gray-700">
@@ -228,9 +234,9 @@ defmodule TymeslotWeb.Components.SiteComponents do
       current_user ->
         ~p"/dashboard"
 
-      # If SaaS mode, go to the marketing homepage
-      Config.saas_mode?() ->
-        Application.get_env(:tymeslot, :site_home_path, "/")
+      # If logo should link to marketing, go to the site home path
+      Config.logo_links_to_marketing?() ->
+        Config.site_home_path()
 
       # If standalone, go to login
       true ->

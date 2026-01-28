@@ -95,7 +95,7 @@ defmodule Tymeslot.Auth.OAuth.UserRegistration do
       end
 
     missing =
-      if Config.saas_mode?() or Config.enforce_legal_agreements?() do
+      if Config.enforce_legal_agreements?() do
         [:terms | missing]
       else
         missing

@@ -38,9 +38,9 @@ defmodule TymeslotWeb.Shared.Auth.LayoutComponents do
   @spec auth_back_link(map()) :: Phoenix.LiveView.Rendered.t()
   def auth_back_link(assigns) do
     ~H"""
-    <%= if Config.saas_mode?() or Config.enforce_legal_agreements?() do %>
+    <%= if Config.logo_links_to_marketing?() do %>
       <a
-        href={if Config.saas_mode?(), do: "/", else: Config.site_home_path()}
+        href={Config.site_home_path()}
         class="flex fixed top-6 left-6 items-center px-6 py-3 text-base font-bold bg-gradient-to-br from-turquoise-600 to-cyan-600 text-white rounded-token-2xl shadow-lg shadow-turquoise-500/20 hover:from-turquoise-700 hover:to-cyan-700 hover:-translate-y-1 hover:shadow-xl hover:shadow-turquoise-500/40 transition-glass duration-300 group z-50"
       >
         <svg
