@@ -213,3 +213,15 @@ config :tymeslot, :integration_locks,
   google: 60_000,
   outlook: 60_000,
   teams: 120_000
+
+# Payment rate limiting configuration
+config :tymeslot, :payment_rate_limits,
+  # Maximum number of payment initiation attempts per user
+  max_attempts: 5,
+  # Time window in milliseconds (10 minutes)
+  window_ms: 600_000
+
+# Payment amount bounds in cents to prevent extreme charges
+config :tymeslot, :payment_amount_limits,
+  min_cents: 50,
+  max_cents: 1_000_000_00

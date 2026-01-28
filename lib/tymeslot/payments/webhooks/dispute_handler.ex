@@ -73,56 +73,57 @@ defmodule Tymeslot.Payments.Webhooks.DisputeHandler do
       status: status
     )
 
-    with {:ok, charge} <- fetch_charge(charge_id) do
-      customer_id = get_charge_customer_id(charge)
+    case fetch_charge(charge_id) do
+      {:ok, charge} ->
+        customer_id = get_charge_customer_id(charge)
 
-      if subscription_charge?(charge) do
-        Tymeslot.Payments.PubSub.broadcast_payment_event(:dispute_created, %{
-          event_id: event["id"],
-          stripe_customer_id: customer_id,
-          dispute: dispute
-        })
+        if subscription_charge?(charge) do
+          Tymeslot.Payments.PubSub.broadcast_payment_event(:dispute_created, %{
+            event_id: event["id"],
+            stripe_customer_id: customer_id,
+            dispute: dispute
+          })
 
-        Logger.info("DISPUTE FORWARDED - Subscription dispute sent to SaaS",
-          dispute_id: dispute_id,
-          charge_id: charge_id
-        )
+          Logger.info("DISPUTE FORWARDED - Subscription dispute sent to SaaS",
+            dispute_id: dispute_id,
+            charge_id: charge_id
+          )
 
-        {:ok, :subscription_dispute_forwarded}
-      else
-        case find_user_by_customer(customer_id) do
-          nil ->
-            Logger.warning(
-              "DISPUTE UNLINKED - Could not find user for dispute on charge: #{charge_id}",
-              dispute_id: dispute_id,
-              charge_id: charge_id
-            )
+          {:ok, :subscription_dispute_forwarded}
+        else
+          case find_user_by_customer(customer_id) do
+            nil ->
+              Logger.warning(
+                "DISPUTE UNLINKED - Could not find user for dispute on charge: #{charge_id}",
+                dispute_id: dispute_id,
+                charge_id: charge_id
+              )
 
-            # Alert admin about unlinked dispute
-            alert_admin_dispute_created(dispute_id, nil, amount, reason)
+              # Alert admin about unlinked dispute
+              alert_admin_dispute_created(dispute_id, nil, amount, reason)
 
-            {:ok, :dispute_logged}
+              {:ok, :dispute_logged}
 
-          user_id ->
-            Logger.info("DISPUTE LOGGED - One-time dispute for user #{user_id}",
-              user_id: user_id,
-              dispute_id: dispute_id,
-              charge_id: charge_id
-            )
+            user_id ->
+              Logger.info("DISPUTE LOGGED - One-time dispute for user #{user_id}",
+                user_id: user_id,
+                dispute_id: dispute_id,
+                charge_id: charge_id
+              )
 
-            # Alert admin (log and potentially other notifications)
-            alert_admin_dispute_created(dispute_id, user_id, amount, reason)
+              # Alert admin (log and potentially other notifications)
+              alert_admin_dispute_created(dispute_id, user_id, amount, reason)
 
-            # Send email to admin
-            send_dispute_created_alert(dispute)
+              # Send email to admin
+              send_dispute_created_alert(dispute)
 
-            # Broadcast event
-            broadcast_dispute_event(user_id, :dispute_created, dispute_id)
+              # Broadcast event
+              broadcast_dispute_event(user_id, :dispute_created, dispute_id)
 
-            {:ok, :dispute_created}
+              {:ok, :dispute_created}
+          end
         end
-      end
-    else
+
       {:error, :stripe_api_error} ->
         {:error, :retry_later, "Stripe API unavailable"}
     end
@@ -135,20 +136,21 @@ defmodule Tymeslot.Payments.Webhooks.DisputeHandler do
 
     Logger.info("Dispute #{dispute_id} status updated to: #{status}")
 
-    with {:ok, charge} <- fetch_charge(charge_id) do
-      if subscription_charge?(charge) do
-        # Broadcast event for SaaS to update dispute status
-        Tymeslot.Payments.PubSub.broadcast_payment_event(:dispute_updated, %{
-          event_id: event["id"],
-          stripe_dispute_id: dispute_id,
-          status: status
-        })
+    case fetch_charge(charge_id) do
+      {:ok, charge} ->
+        if subscription_charge?(charge) do
+          # Broadcast event for SaaS to update dispute status
+          Tymeslot.Payments.PubSub.broadcast_payment_event(:dispute_updated, %{
+            event_id: event["id"],
+            stripe_dispute_id: dispute_id,
+            status: status
+          })
 
-        {:ok, :dispute_updated}
-      else
-        {:ok, :dispute_updated}
-      end
-    else
+          {:ok, :dispute_updated}
+        else
+          {:ok, :dispute_updated}
+        end
+
       {:error, :stripe_api_error} ->
         {:error, :retry_later, "Stripe API unavailable"}
     end
@@ -164,31 +166,32 @@ defmodule Tymeslot.Payments.Webhooks.DisputeHandler do
       status: status
     )
 
-    with {:ok, charge} <- fetch_charge(charge_id) do
-      if subscription_charge?(charge) do
-        # Broadcast event for SaaS to update dispute status and handle outcome
-        Tymeslot.Payments.PubSub.broadcast_payment_event(:dispute_closed, %{
-          event_id: event["id"],
-          stripe_dispute_id: dispute_id,
-          status: status,
-          dispute: dispute
-        })
+    case fetch_charge(charge_id) do
+      {:ok, charge} ->
+        if subscription_charge?(charge) do
+          # Broadcast event for SaaS to update dispute status and handle outcome
+          Tymeslot.Payments.PubSub.broadcast_payment_event(:dispute_closed, %{
+            event_id: event["id"],
+            stripe_dispute_id: dispute_id,
+            status: status,
+            dispute: dispute
+          })
 
-        {:ok, :dispute_closed}
-      else
-        # We still alert admin in Core for visibility
-        if status == "lost" do
-          alert_admin_dispute_lost(dispute_id, nil)
-          send_dispute_lost_alert(dispute)
+          {:ok, :dispute_closed}
+        else
+          # We still alert admin in Core for visibility
+          if status == "lost" do
+            alert_admin_dispute_lost(dispute_id, nil)
+            send_dispute_lost_alert(dispute)
+          end
+
+          if status == "won" do
+            send_dispute_won_notification(dispute)
+          end
+
+          {:ok, :dispute_closed}
         end
 
-        if status == "won" do
-          send_dispute_won_notification(dispute)
-        end
-
-        {:ok, :dispute_closed}
-      end
-    else
       {:error, :stripe_api_error} ->
         {:error, :retry_later, "Stripe API unavailable"}
     end

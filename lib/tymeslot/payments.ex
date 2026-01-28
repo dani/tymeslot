@@ -8,7 +8,8 @@ defmodule Tymeslot.Payments do
 
   alias Tymeslot.DatabaseQueries.PaymentQueries
   alias Tymeslot.DatabaseSchemas.PaymentTransactionSchema, as: PaymentTransaction
-  alias Tymeslot.Payments.DatabaseOperations
+  alias Tymeslot.Payments.{DatabaseOperations, MetadataSanitizer}
+  alias Tymeslot.Security.RateLimiter
 
   @type transaction :: PaymentTransaction.t()
   @type stripe_id :: String.t()
@@ -58,27 +59,19 @@ defmodule Tymeslot.Payments do
         cancel_url,
         metadata \\ %{}
       ) do
-    # Check for existing pending transaction for this user
-    case get_pending_transaction_for_user(user_id) do
-      nil ->
-        # No pending transaction, create a new one
-        create_new_payment_transaction(
-          amount,
-          product_identifier,
-          user_id,
-          email,
-          success_url,
-          cancel_url,
-          metadata
-        )
+    # Check rate limiting and sanitize metadata before processing
+    system_metadata = %{
+      user_id: user_id,
+      product_identifier: product_identifier
+    }
 
-      existing_transaction ->
-        # Pending transaction exists, supersede it and create a new checkout session
-        Logger.info(
-          "Superseding existing pending transaction #{existing_transaction.id} for user #{user_id}"
-        )
-
-        with :ok <- supersede_pending_transaction(existing_transaction) do
+    with :ok <- validate_amount(amount),
+         :ok <- RateLimiter.check_payment_initiation_rate_limit(user_id),
+         {:ok, sanitized_metadata} <- MetadataSanitizer.sanitize(metadata, system_metadata) do
+      # Check for existing pending transaction for this user
+      case get_pending_transaction_for_user(user_id) do
+        nil ->
+          # No pending transaction, create a new one
           create_new_payment_transaction(
             amount,
             product_identifier,
@@ -86,9 +79,27 @@ defmodule Tymeslot.Payments do
             email,
             success_url,
             cancel_url,
-            metadata
+            sanitized_metadata
           )
-        end
+
+        existing_transaction ->
+          # Pending transaction exists, supersede it and create a new checkout session
+          Logger.info(
+            "Superseding existing pending transaction #{existing_transaction.id} for user #{user_id}"
+          )
+
+          with :ok <- supersede_pending_transaction(existing_transaction) do
+            create_new_payment_transaction(
+              amount,
+              product_identifier,
+              user_id,
+              email,
+              success_url,
+              cancel_url,
+              sanitized_metadata
+            )
+          end
+      end
     end
   end
 
@@ -304,18 +315,27 @@ defmodule Tymeslot.Payments do
         metadata \\ %{}
       ) do
     manager = subscription_manager()
-    subscription_metadata = Map.put(metadata, "payment_type", "subscription")
 
-    if manager do
-      case manager.create_subscription_checkout(
-             stripe_price_id,
-             product_identifier,
-             amount,
-             user_id,
-             email,
-             urls,
-             subscription_metadata
-           ) do
+    system_metadata = %{
+      user_id: user_id,
+      product_identifier: product_identifier,
+      payment_type: "subscription",
+      checkout_request_id: Ecto.UUID.generate()
+    }
+
+    with :ok <- validate_amount(amount),
+         :ok <- RateLimiter.check_payment_initiation_rate_limit(user_id),
+         {:ok, subscription_metadata} <- MetadataSanitizer.sanitize(metadata, system_metadata) do
+      if manager do
+        case manager.create_subscription_checkout(
+               stripe_price_id,
+               product_identifier,
+               amount,
+               user_id,
+               email,
+               urls,
+               subscription_metadata
+             ) do
         {:ok, checkout_session} ->
           transaction_attrs = %{
             user_id: user_id,
@@ -332,12 +352,13 @@ defmodule Tymeslot.Payments do
             {:ok, %{checkout_url: checkout_session["url"]}}
           end
 
-        {:error, reason} ->
-          {:error, reason}
+          {:error, reason} ->
+            {:error, reason}
+        end
+      else
+        Logger.error("Subscription manager not configured")
+        {:error, :subscriptions_not_supported}
       end
-    else
-      Logger.error("Subscription manager not configured")
-      {:error, :subscriptions_not_supported}
     end
   end
 
@@ -401,6 +422,20 @@ defmodule Tymeslot.Payments do
       {:error, :subscriptions_not_supported}
     end
   end
+
+  defp validate_amount(amount) when is_integer(amount) do
+    limits = Application.get_env(:tymeslot, :payment_amount_limits, [])
+    min_cents = Keyword.get(limits, :min_cents, 50)
+    max_cents = Keyword.get(limits, :max_cents, 1_000_000_00)
+
+    cond do
+      amount < min_cents -> {:error, :invalid_amount}
+      amount > max_cents -> {:error, :invalid_amount}
+      true -> :ok
+    end
+  end
+
+  defp validate_amount(_amount), do: {:error, :invalid_amount}
 
   # Private helper functions
 

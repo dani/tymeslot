@@ -47,8 +47,10 @@ defmodule Tymeslot.Payments.Stripe do
         Map.take(params, [:name, :phone, :address])
       )
 
+    idempotency_key = generate_idempotency_key("customer_create", email)
+
     execute_with_retry(fn ->
-      customer_mod().create(customer_params, api_key_opts())
+      customer_mod().create(customer_params, api_key_opts(idempotency_key))
     end)
   end
 
@@ -61,9 +63,10 @@ defmodule Tymeslot.Payments.Stripe do
     Logger.info("Creating Stripe session for customer: #{customer.id}")
 
     session_params = build_session_params(customer, amount, transaction, success_url, cancel_url)
+    idempotency_key = generate_idempotency_key("session_create", transaction.id)
 
     execute_with_retry(fn ->
-      session_mod().create(session_params, api_key_opts())
+      session_mod().create(session_params, api_key_opts(idempotency_key))
     end)
   end
 
@@ -85,16 +88,39 @@ defmodule Tymeslot.Payments.Stripe do
 
   # Private functions
 
-  defp api_key_opts do
-    case stripe_api_key() do
-      nil -> []
-      key -> [api_key: key]
+  defp api_key_opts(idempotency_key \\ nil) do
+    base_opts =
+      case stripe_api_key() do
+        nil -> []
+        key -> [api_key: key]
+      end
+
+    if idempotency_key do
+      Keyword.put(base_opts, :idempotency_key, idempotency_key)
+    else
+      base_opts
     end
   end
 
   defp stripe_api_key do
     Application.get_env(:stripity_stripe, :api_key) ||
       Application.get_env(:tymeslot, :stripe_secret_key)
+  end
+
+  @doc false
+  # Generates an idempotency key for Stripe API calls to prevent duplicate operations
+  # Format: <operation>_<identifier>_<timestamp>
+  defp generate_idempotency_key(operation, identifier) do
+    # Hash the identifier to keep key length reasonable
+    hashed_id =
+      :crypto.hash(:sha256, to_string(identifier))
+      |> Base.encode16(case: :lower)
+      |> String.slice(0, 16)
+
+    # Include date (not full timestamp) to allow retries on different days if needed
+    date = Date.utc_today() |> Date.to_string() |> String.replace("-", "")
+
+    "#{operation}_#{hashed_id}_#{date}"
   end
 
   defp execute_with_retry(operation) do
@@ -185,8 +211,15 @@ defmodule Tymeslot.Payments.Stripe do
   def create_checkout_session_for_subscription(params) when is_map(params) do
     Logger.info("Creating Stripe subscription checkout session")
 
+    request_id =
+      params
+      |> Map.get(:metadata, %{})
+      |> Map.get("checkout_request_id", Ecto.UUID.generate())
+
+    idempotency_key = generate_idempotency_key("subscription_checkout", request_id)
+
     execute_with_retry(fn ->
-      session_mod().create(params, api_key_opts())
+      session_mod().create(params, api_key_opts(idempotency_key))
     end)
   end
 
@@ -206,11 +239,14 @@ defmodule Tymeslot.Payments.Stripe do
         %{}
       end
 
+    operation = if at_period_end, do: "cancel_at_period_end", else: "cancel_now"
+    idempotency_key = generate_idempotency_key("subscription_#{operation}", subscription_id)
+
     execute_with_retry(fn ->
       if at_period_end do
-        subscription_mod().update(subscription_id, params, api_key_opts())
+        subscription_mod().update(subscription_id, params, api_key_opts(idempotency_key))
       else
-        subscription_mod().cancel(subscription_id, %{}, api_key_opts())
+        subscription_mod().cancel(subscription_id, %{}, api_key_opts(idempotency_key))
       end
     end)
   end
@@ -222,6 +258,9 @@ defmodule Tymeslot.Payments.Stripe do
   def update_subscription(subscription_id, new_price_id, opts \\ %{})
       when is_binary(subscription_id) and is_binary(new_price_id) do
     Logger.info("Updating Stripe subscription: #{subscription_id} to price: #{new_price_id}")
+
+    idempotency_key =
+      generate_idempotency_key("subscription_update", "#{subscription_id}_#{new_price_id}")
 
     execute_with_retry(fn ->
       # First, get the current subscription to get the subscription item ID
@@ -250,7 +289,7 @@ defmodule Tymeslot.Payments.Stripe do
                 }
               ]
             },
-            api_key_opts()
+            api_key_opts(idempotency_key)
           )
         else
           Logger.error("No subscription items found for subscription: #{subscription_id}")

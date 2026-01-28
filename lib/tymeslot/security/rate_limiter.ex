@@ -414,6 +414,24 @@ defmodule Tymeslot.Security.RateLimiter do
     )
   end
 
+  @doc """
+  Rate limit payment initiation attempts.
+  Returns :ok if allowed, {:error, :rate_limited} if exceeded.
+
+  Prevents abuse by limiting how often users can initiate payment or subscription checkouts.
+  This protects against API spam and potential DoS attacks via the payment endpoint.
+  """
+  @spec check_payment_initiation_rate_limit(integer()) ::
+          :ok | {:error, :rate_limited}
+  def check_payment_initiation_rate_limit(user_id) do
+    config = Application.get_env(:tymeslot, :payment_rate_limits, [])
+    max_attempts = Keyword.get(config, :max_attempts, 5)
+    window_ms = Keyword.get(config, :window_ms, 600_000)
+
+    bucket_key = "payment_initiation:user:#{user_id}"
+    check_rate_limit(bucket_key, max_attempts, window_ms)
+  end
+
   # Private helper for consistent error handling and logging
   @spec check_with_logging(bucket_key(), pos_integer(), pos_integer(), String.t(), String.t()) ::
           :ok | {:error, :rate_limited, String.t()}

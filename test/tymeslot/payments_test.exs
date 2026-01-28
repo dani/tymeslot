@@ -1,9 +1,10 @@
 defmodule Tymeslot.PaymentsTest do
-  use Tymeslot.DataCase, async: true
+  use Tymeslot.DataCase, async: false
   alias Tymeslot.DatabaseQueries.PaymentQueries
   alias Tymeslot.DatabaseSchemas.PaymentTransactionSchema
   alias Tymeslot.Payments
   alias Tymeslot.Repo
+  alias Tymeslot.Security.RateLimiter
   import Mox
 
   setup do
@@ -15,6 +16,11 @@ defmodule Tymeslot.PaymentsTest do
       :subscription_manager,
       Tymeslot.Payments.SubscriptionManagerMock
     )
+
+    on_exit(fn ->
+      Application.delete_env(:tymeslot, :payment_rate_limits)
+      Application.delete_env(:tymeslot, :payment_amount_limits)
+    end)
 
     :ok
   end
@@ -51,6 +57,79 @@ defmodule Tymeslot.PaymentsTest do
       assert {:ok, [transaction]} = PaymentQueries.get_transactions_by_status("pending", user.id)
       assert transaction.amount == amount
       assert transaction.stripe_id == "sess_123"
+    end
+
+    test "enforces rate limiting" do
+      user = insert(:user)
+      email = user.email
+
+      # Configure low rate limit for testing
+      Application.put_env(:tymeslot, :payment_rate_limits,
+        max_attempts: 2,
+        window_ms: 60_000
+      )
+
+      # Clear any existing rate limit state
+      RateLimiter.clear_bucket("payment_initiation:user:#{user.id}")
+
+      # Use unique session IDs to avoid constraint violations
+      expect(Tymeslot.Payments.StripeMock, :create_customer, 2, fn _ ->
+        {:ok, %{id: "cus_#{:rand.uniform(100_000)}"}}
+      end)
+
+      expect(Tymeslot.Payments.StripeMock, :create_session, 2, fn _, _, _, _, _ ->
+        {:ok, %{id: "sess_#{:rand.uniform(100_000)}", url: "http://stripe.com/pay"}}
+      end)
+
+      # First two attempts should succeed
+      assert {:ok, _} = Payments.initiate_payment(1000, "pro", user.id, email, "s", "c")
+      assert {:ok, _} = Payments.initiate_payment(1000, "pro", user.id, email, "s", "c")
+
+      # Third attempt should be rate limited
+      assert {:error, :rate_limited} =
+               Payments.initiate_payment(1000, "pro", user.id, email, "s", "c")
+
+      # Cleanup
+      RateLimiter.clear_bucket("payment_initiation:user:#{user.id}")
+    end
+
+    test "rejects amounts outside configured bounds" do
+      user = insert(:user)
+      email = user.email
+
+      Application.put_env(:tymeslot, :payment_amount_limits, min_cents: 100, max_cents: 10_000)
+
+      assert {:error, :invalid_amount} =
+               Payments.initiate_payment(50, "pro", user.id, email, "s", "c")
+
+      assert {:error, :invalid_amount} =
+               Payments.initiate_payment(20_000, "pro", user.id, email, "s", "c")
+    end
+
+    test "sanitizes user metadata" do
+      user = insert(:user)
+      email = user.email
+
+      # Metadata with both allowed and disallowed keys
+      metadata = %{
+        "referral_code" => "ABC123",
+        "malicious_key" => "<script>alert('xss')</script>"
+      }
+
+      expect(Tymeslot.Payments.StripeMock, :create_customer, fn _ ->
+        {:ok, %{id: "cus_123"}}
+      end)
+
+      expect(Tymeslot.Payments.StripeMock, :create_session, fn _, _, transaction, _, _ ->
+        # Verify sanitization happened
+        assert transaction.metadata["referral_code"] == "ABC123"
+        refute Map.has_key?(transaction.metadata, "malicious_key")
+        assert transaction.metadata["user_id"] == user.id
+        {:ok, %{id: "sess_123", url: "http://stripe.com/pay"}}
+      end)
+
+      assert {:ok, _} =
+               Payments.initiate_payment(1000, "pro", user.id, email, "s", "c", metadata)
     end
 
     test "supersedes existing pending transaction" do
@@ -133,6 +212,83 @@ defmodule Tymeslot.PaymentsTest do
       assert {:ok, [transaction]} = PaymentQueries.get_transactions_by_status("pending", user.id)
       assert transaction.stripe_id == "sess_sub"
       assert transaction.subscription_id == "sub_123"
+    end
+
+    test "enforces rate limiting on subscriptions" do
+      user = insert(:user)
+      urls = %{success: "s", cancel: "c"}
+
+      Application.put_env(:tymeslot, :payment_rate_limits,
+        max_attempts: 1,
+        window_ms: 60_000
+      )
+
+      RateLimiter.clear_bucket("payment_initiation:user:#{user.id}")
+
+      expect(Tymeslot.Payments.SubscriptionManagerMock, :create_subscription_checkout, fn _,
+                                                                                          _,
+                                                                                          _,
+                                                                                          _,
+                                                                                          _,
+                                                                                          _,
+                                                                                          _ ->
+        {:ok, %{"id" => "sess_sub", "url" => "http://sub", "subscription" => "sub_123"}}
+      end)
+
+      # First attempt succeeds
+      assert {:ok, _} =
+               Payments.initiate_subscription("price_1", "pro", 1000, user.id, user.email, urls)
+
+      # Second attempt is rate limited
+      assert {:error, :rate_limited} =
+               Payments.initiate_subscription("price_1", "pro", 1000, user.id, user.email, urls)
+
+      RateLimiter.clear_bucket("payment_initiation:user:#{user.id}")
+    end
+
+    test "rejects subscription amounts outside configured bounds" do
+      user = insert(:user)
+      urls = %{success: "s", cancel: "c"}
+
+      Application.put_env(:tymeslot, :payment_amount_limits, min_cents: 100, max_cents: 10_000)
+
+      assert {:error, :invalid_amount} =
+               Payments.initiate_subscription("price_1", "pro", 50, user.id, user.email, urls)
+
+      assert {:error, :invalid_amount} =
+               Payments.initiate_subscription("price_1", "pro", 20_000, user.id, user.email, urls)
+    end
+
+    test "sanitizes subscription metadata" do
+      user = insert(:user)
+      urls = %{success: "s", cancel: "c"}
+      metadata = %{"referral_code" => "REF123", "bad_key" => "value"}
+
+      expect(Tymeslot.Payments.SubscriptionManagerMock, :create_subscription_checkout, fn _,
+                                                                                          _,
+                                                                                          _,
+                                                                                          _,
+                                                                                          _,
+                                                                                          _,
+                                                                                          sanitized_metadata ->
+        # Verify metadata was sanitized
+        assert sanitized_metadata["referral_code"] == "REF123"
+        refute Map.has_key?(sanitized_metadata, "bad_key")
+        assert sanitized_metadata["user_id"] == user.id
+        assert sanitized_metadata["payment_type"] == "subscription"
+        {:ok, %{"id" => "sess_sub", "url" => "http://sub", "subscription" => "sub_123"}}
+      end)
+
+      assert {:ok, _} =
+               Payments.initiate_subscription(
+                 "price_1",
+                 "pro",
+                 1000,
+                 user.id,
+                 user.email,
+                 urls,
+                 metadata
+               )
     end
   end
 end
