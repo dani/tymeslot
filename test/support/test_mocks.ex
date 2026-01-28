@@ -122,6 +122,32 @@ defmodule Tymeslot.TestMocks do
     setup_subscription_mocks()
   end
 
+  # Internal Stripe behaviours for testing the Stripe wrapper.
+  # These are defined here to avoid duplication in test helpers.
+  defmodule StripeCustomerBehaviour do
+    @callback create(map(), list()) :: {:ok, map()} | {:error, any()}
+  end
+
+  defmodule StripeSessionBehaviour do
+    @callback create(map(), list()) :: {:ok, map()} | {:error, any()}
+    @callback retrieve(String.t(), map(), list()) :: {:ok, map()} | {:error, any()}
+  end
+
+  defmodule StripeSubscriptionBehaviour do
+    @callback create(map(), list()) :: {:ok, map()} | {:error, any()}
+    @callback retrieve(String.t(), map(), list()) :: {:ok, map()} | {:error, any()}
+    @callback update(String.t(), map(), list()) :: {:ok, map()} | {:error, any()}
+    @callback cancel(String.t(), map(), list()) :: {:ok, map()} | {:error, any()}
+  end
+
+  defmodule StripeChargeBehaviour do
+    @callback retrieve(String.t(), map(), list()) :: {:ok, map()} | {:error, any()}
+  end
+
+  defmodule StripeWebhookBehaviour do
+    @callback construct_event(binary(), String.t(), String.t()) :: {:ok, map()} | {:error, any()}
+  end
+
   @doc """
   Sets up mocks for error scenarios.
   """

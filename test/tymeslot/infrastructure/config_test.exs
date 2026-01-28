@@ -1,8 +1,8 @@
 defmodule Tymeslot.Infrastructure.ConfigTest do
   use ExUnit.Case, async: true
 
-  alias Tymeslot.Infrastructure.Config
   alias Tymeslot.Infrastructure.AppConfig
+  alias Tymeslot.Infrastructure.Config
 
   describe "app_config_module/0" do
     test "returns default module when not configured" do

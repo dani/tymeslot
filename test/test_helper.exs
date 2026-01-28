@@ -77,30 +77,14 @@ Mox.defmock(Tymeslot.Auth.SessionMock,
 )
 
 # Stripe internal mocks for testing the wrapper
-# We define the callbacks explicitly so Mox knows about them
-defmodule StripeCustomerBehaviour do
-  @callback create(map(), list()) :: {:ok, map()} | {:error, any()}
-end
-
-defmodule StripeSessionBehaviour do
-  @callback create(map(), list()) :: {:ok, map()} | {:error, any()}
-  @callback retrieve(String.t(), map(), list()) :: {:ok, map()} | {:error, any()}
-end
-
-defmodule StripeSubscriptionBehaviour do
-  @callback create(map(), list()) :: {:ok, map()} | {:error, any()}
-  @callback retrieve(String.t(), map(), list()) :: {:ok, map()} | {:error, any()}
-  @callback update(String.t(), map(), list()) :: {:ok, map()} | {:error, any()}
-  @callback cancel(String.t(), map(), list()) :: {:ok, map()} | {:error, any()}
-end
-
-defmodule StripeChargeBehaviour do
-  @callback retrieve(String.t(), map(), list()) :: {:ok, map()} | {:error, any()}
-end
-
-defmodule StripeWebhookBehaviour do
-  @callback construct_event(binary(), String.t(), String.t()) :: {:ok, map()} | {:error, any()}
-end
+# We use the behaviours defined in Tymeslot.TestMocks
+alias Tymeslot.TestMocks.{
+  StripeCustomerBehaviour,
+  StripeSessionBehaviour,
+  StripeSubscriptionBehaviour,
+  StripeChargeBehaviour,
+  StripeWebhookBehaviour
+}
 
 Mox.defmock(StripeCustomerMock, for: StripeCustomerBehaviour)
 Mox.defmock(StripeSessionMock, for: StripeSessionBehaviour)
