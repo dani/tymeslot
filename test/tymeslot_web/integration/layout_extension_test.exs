@@ -17,7 +17,7 @@ defmodule TymeslotWeb.Integration.LayoutExtensionTest do
   end
 
   describe "Core Layout Extensions" do
-    test "scheduling pages render without SaaS branding in Core-only mode", %{conn: conn} do
+    test "scheduling pages render without branding in Core-only mode", %{conn: conn} do
       # Setup: Create a user with a profile and a calendar integration
       user = create_user_fixture(%{username: "coreuser"})
 
@@ -33,7 +33,7 @@ defmodule TymeslotWeb.Integration.LayoutExtensionTest do
       # Action: Visit the scheduling page
       conn = get(conn, "/coreuser")
 
-      # Assert: Page renders but SaaS branding is ABSENT
+      # Assert: Page renders but branding is ABSENT
       response = html_response(conn, 200)
       assert response =~ "Core User"
       refute response =~ "Scheduling powered by Tymeslot"

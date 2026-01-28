@@ -44,7 +44,7 @@ defmodule Tymeslot.Payments.Webhooks.StandaloneHandlerTest do
     def get(_schema, _id), do: %Tymeslot.Payments.Webhooks.StandaloneHandlerTest.TestUser{id: 123, email: "test@example.com", name: "Test User"}
   end
 
-  defmodule TestSaasManager do
+  defmodule TestSubscriptionManager do
     @spec record_dispute(any()) :: {:ok, map()}
     def record_dispute(_attrs), do: {:ok, %{id: "dp_recorded"}}
 
@@ -63,7 +63,7 @@ defmodule Tymeslot.Payments.Webhooks.StandaloneHandlerTest do
 
     Application.put_env(:tymeslot, :repo, TestRepo)
     Application.put_env(:tymeslot, :subscription_schema, TestSubscriptionSchema)
-    Application.put_env(:tymeslot, :saas_subscription_manager, TestSaasManager)
+    Application.put_env(:tymeslot, :saas_subscription_manager, TestSubscriptionManager)
     Application.put_env(:tymeslot, :stripe_provider, Tymeslot.Payments.StripeMock)
 
     on_exit(fn ->
@@ -147,7 +147,7 @@ defmodule Tymeslot.Payments.Webhooks.StandaloneHandlerTest do
 
       Application.put_env(:tymeslot, :repo, TestRepo)
       Application.put_env(:tymeslot, :subscription_schema, TestSubscriptionSchema)
-      Application.put_env(:tymeslot, :saas_subscription_manager, TestSaasManager)
+      Application.put_env(:tymeslot, :saas_subscription_manager, TestSubscriptionManager)
 
       on_exit(fn ->
         Application.put_env(:tymeslot, :repo, original_repo)

@@ -7,7 +7,7 @@ defmodule Tymeslot.PaymentsTest do
   import Mox
 
   setup do
-    # Explicitly set the mocks to override SaaS runtime configuration
+    # Explicitly set the mocks to override runtime configuration
     Application.put_env(:tymeslot, :stripe_provider, Tymeslot.Payments.StripeMock)
 
     Application.put_env(

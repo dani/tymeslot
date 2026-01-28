@@ -80,13 +80,19 @@ defmodule Tymeslot.DataCase do
     shared = not tags[:async]
     pid = Sandbox.start_owner!(Repo, shared: shared)
 
-    if Code.ensure_loaded?(Tymeslot.SaasRepo) and Tymeslot.SaasRepo != Repo do
-      try do
-        Sandbox.start_owner!(Tymeslot.SaasRepo, shared: shared)
-      rescue
-        _ -> :ok
+    # Allow other repos to be registered via config for testing
+    # This avoids direct references to Tymeslot.SaasRepo in Core
+    extra_repos = Application.get_env(:tymeslot, :extra_test_repos, [])
+
+    Enum.each(extra_repos, fn repo ->
+      if Code.ensure_loaded?(repo) and repo != Repo do
+        try do
+          Sandbox.start_owner!(repo, shared: shared)
+        rescue
+          _ -> :ok
+        end
       end
-    end
+    end)
 
     on_exit(fn -> Sandbox.stop_owner(pid) end)
   end
