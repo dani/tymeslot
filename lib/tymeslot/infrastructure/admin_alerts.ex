@@ -62,7 +62,7 @@ defmodule Tymeslot.Infrastructure.AdminAlerts.Default do
     level = Keyword.get(opts, :level, :warning)
 
     Logger.log(level, "ADMIN ALERT: #{type}",
-      alert_type: type,
+      event_type: type,
       metadata: metadata
     )
 
