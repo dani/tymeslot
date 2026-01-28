@@ -22,7 +22,7 @@ defmodule Tymeslot.Payments.Webhooks.TrialWillEndHandler do
   def can_handle?(_), do: false
 
   @impl true
-  def process(_event, subscription_object) do
+  def process(event, subscription_object) do
     subscription_id = subscription_object["id"]
     # customer_id = subscription_object["customer"]
     trial_end = subscription_object["trial_end"]
@@ -35,7 +35,14 @@ defmodule Tymeslot.Payments.Webhooks.TrialWillEndHandler do
     # Convert Unix timestamp to DateTime
     case is_integer(trial_end) && DateTime.from_unix(trial_end) do
       {:ok, trial_ends_at} ->
-        # Find subscription in our database
+        # Broadcast event for SaaS to update trial end date and handle notifications
+        Tymeslot.Payments.PubSub.broadcast_payment_event(:trial_will_end, %{
+          event_id: event["id"],
+          stripe_subscription_id: subscription_id,
+          trial_ends_at: trial_ends_at
+        })
+
+        # Find subscription in our database for local notifications
         case find_subscription(subscription_id) do
           nil ->
             Logger.warning("TRIAL ENDING UNKNOWN - Subscription not found: #{subscription_id}",
@@ -45,35 +52,16 @@ defmodule Tymeslot.Payments.Webhooks.TrialWillEndHandler do
             {:ok, :subscription_not_found}
 
           subscription ->
-            # Update trial_ends_at field in database
-            case update_trial_end_date(subscription_id, trial_ends_at) do
-              {:ok, result} when result in [:skipped, :ok] or is_map(result) ->
-                Logger.info("TRIAL ENDING UPDATED - Updated trial end date for user #{subscription.user_id}",
-                  user_id: subscription.user_id,
-                  subscription_id: subscription_id,
-                  trial_ends_at: trial_ends_at
-                )
+            # Calculate days remaining
+            days_remaining = calculate_days_remaining(trial_ends_at)
 
-                # Calculate days remaining
-                days_remaining = calculate_days_remaining(trial_ends_at)
+            # Send reminder email
+            send_trial_ending_email(subscription)
 
-                # Send reminder email
-                send_trial_ending_email(subscription)
+            # Broadcast event for real-time UI updates
+            broadcast_trial_ending_event(subscription.user_id, days_remaining, trial_ends_at)
 
-                # Broadcast event for real-time UI updates
-                broadcast_trial_ending_event(subscription.user_id, days_remaining, trial_ends_at)
-
-                {:ok, :trial_ending_notified}
-
-              {:error, reason} ->
-                Logger.error("TRIAL ENDING ERROR - Failed to update trial end date for user #{subscription.user_id}: #{inspect(reason)}",
-                  user_id: subscription.user_id,
-                  subscription_id: subscription_id,
-                  error: reason
-                )
-
-                {:error, reason}
-            end
+            {:ok, :trial_ending_notified}
         end
 
       _ ->
@@ -110,16 +98,6 @@ defmodule Tymeslot.Payments.Webhooks.TrialWillEndHandler do
     end
   end
 
-  defp update_trial_end_date(stripe_subscription_id, trial_ends_at) do
-    manager = saas_subscription_manager()
-
-    if manager && Code.ensure_loaded?(manager) do
-      manager.update_trial_end_date(stripe_subscription_id, trial_ends_at)
-    else
-      {:ok, :skipped}
-    end
-  end
-
   defp calculate_days_remaining(trial_ends_at) do
     diff_seconds = DateTime.diff(trial_ends_at, DateTime.utc_now(), :second)
     max(0, ceil(diff_seconds / 86_400))
@@ -146,9 +124,5 @@ defmodule Tymeslot.Payments.Webhooks.TrialWillEndHandler do
       error_msg: "Failed to send trial ending reminder: ",
       standalone_msg: "Trial ending reminder template not configured (Standalone mode)"
     )
-  end
-
-  defp saas_subscription_manager do
-    Application.get_env(:tymeslot, :saas_subscription_manager)
   end
 end

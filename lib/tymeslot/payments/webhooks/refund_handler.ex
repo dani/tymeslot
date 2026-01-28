@@ -60,7 +60,15 @@ defmodule Tymeslot.Payments.Webhooks.RefundHandler do
       stripe_event_id: event["id"]
     )
 
-    # Find the subscription by Stripe customer ID
+    # Broadcast event for SaaS to handle subscription revocation
+    Tymeslot.Payments.PubSub.broadcast_payment_event(:charge_refunded, %{
+      event_id: event["id"],
+      charge_id: charge_id,
+      customer_id: customer_id,
+      refund_amount: refund_amount
+    })
+
+    # Find the subscription by Stripe customer ID for local notifications
     case find_subscription_by_customer(customer_id) do
       nil ->
         Logger.warning("REFUND UNLINKED - No subscription found for customer #{customer_id}",
@@ -78,42 +86,25 @@ defmodule Tymeslot.Payments.Webhooks.RefundHandler do
         {:ok, :refund_logged}
 
       subscription ->
-        # CRITICAL: Revoke Pro access immediately
-        case revoke_subscription_access(customer_id) do
-          {:ok, _} ->
-            Logger.info("REFUND PROCESSED - Revoked Pro access for user #{subscription.user_id}",
+        with :ok <- ensure_revoked_access(subscription, charge_id, customer_id) do
+          # Alert admin about processed refund
+          AdminAlerts.send_alert(
+            :refund_processed,
+            %{
               user_id: subscription.user_id,
               charge_id: charge_id,
-              customer_id: customer_id
-            )
+              amount: refund_amount
+            },
+            level: :info
+          )
 
-            # Alert admin about processed refund
-            AdminAlerts.send_alert(
-              :refund_processed,
-              %{
-                user_id: subscription.user_id,
-                charge_id: charge_id,
-                amount: refund_amount
-              },
-              level: :info
-            )
+          # Send email notification to user
+          send_refund_email(subscription, refund_amount)
 
-            # Send email notification to user
-            send_refund_email(subscription, refund_amount)
+          # Broadcast event for real-time UI updates
+          broadcast_refund_event(subscription.user_id, event["id"])
 
-            # Broadcast event for real-time UI updates
-            broadcast_refund_event(subscription.user_id, event["id"])
-
-            {:ok, :refund_processed}
-
-          {:error, reason} ->
-            Logger.error("REFUND ERROR - Failed to revoke access for user #{subscription.user_id}: #{inspect(reason)}",
-              user_id: subscription.user_id,
-              charge_id: charge_id,
-              error: reason
-            )
-
-            {:error, reason}
+          {:ok, :refund_processed}
         end
     end
   end
@@ -139,17 +130,6 @@ defmodule Tymeslot.Payments.Webhooks.RefundHandler do
       repo.get_by(subscription_schema, stripe_customer_id: stripe_customer_id)
     else
       nil
-    end
-  end
-
-  defp revoke_subscription_access(stripe_customer_id) do
-    # Update subscription status to canceled via SaaS manager
-    manager = saas_subscription_manager()
-
-    if manager && Code.ensure_loaded?(manager) do
-      manager.update_subscription_status(stripe_customer_id, "canceled", DateTime.utc_now())
-    else
-      {:error, :saas_not_available}
     end
   end
 
@@ -182,7 +162,48 @@ defmodule Tymeslot.Payments.Webhooks.RefundHandler do
     )
   end
 
-  defp saas_subscription_manager do
-    Application.get_env(:tymeslot, :saas_subscription_manager)
+  defp revoke_subscription_access(stripe_customer_id) do
+    manager = subscription_manager()
+
+    if manager && Code.ensure_loaded?(manager) do
+      manager.update_subscription_status(stripe_customer_id, "canceled", DateTime.utc_now())
+    else
+      {:error, :subscription_manager_unavailable}
+    end
   end
+
+  defp subscription_manager do
+    Application.get_env(:tymeslot, :subscription_manager)
+  end
+
+  defp ensure_revoked_access(subscription, charge_id, customer_id) do
+    case revoke_subscription_access(customer_id) do
+      {:ok, _} ->
+        Logger.info("REFUND PROCESSED - Revoked Pro access for user #{subscription.user_id}",
+          user_id: subscription.user_id,
+          charge_id: charge_id,
+          customer_id: customer_id
+        )
+
+        :ok
+
+      {:error, :subscription_manager_unavailable} ->
+        Logger.info("REFUND SKIPPED - Subscription manager not configured",
+          charge_id: charge_id,
+          customer_id: customer_id
+        )
+
+        :ok
+
+      {:error, reason} ->
+        Logger.error("REFUND ERROR - Failed to revoke access for user #{subscription.user_id}: #{inspect(reason)}",
+          user_id: subscription.user_id,
+          charge_id: charge_id,
+          error: reason
+        )
+
+        {:error, :retry_later, "Subscription revocation failed"}
+    end
+  end
+
 end

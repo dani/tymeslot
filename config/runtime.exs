@@ -239,14 +239,7 @@ if config_env() == :prod do
          {"0 4 * * *", Tymeslot.Workers.WebhookCleanupWorker, args: %{retention_days: 60}}
        ]}
     ],
-    queues: [
-      default: 10,
-      emails: 5,
-      webhooks: 5,
-      video_rooms: 3,
-      calendar_events: 3,
-      calendar_integrations: 2
-    ]
+    queues: Application.get_env(:tymeslot, :oban_queues, [])
 
   # Configure tzdata to use writable directory in production
   tzdata_dir = "/app/data/tzdata"

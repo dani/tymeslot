@@ -55,6 +55,16 @@ config :tymeslot,
   dashboard_sidebar_extensions: [],
   dashboard_action_components: %{}
 
+# Oban queues shared across environments
+config :tymeslot, :oban_queues,
+  default: 10,
+  emails: 5,
+  webhooks: 5,
+  payments: 5,
+  video_rooms: 3,
+  calendar_events: 3,
+  calendar_integrations: 2
+
 
 # Webhook configuration
 config :tymeslot, :webhook_paths, ["/webhooks/stripe"]

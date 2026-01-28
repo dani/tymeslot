@@ -58,7 +58,7 @@ defmodule Tymeslot.Payments.Webhooks.DisputeHandler do
 
   # Private functions
 
-  defp handle_created(_event, dispute) do
+  defp handle_created(event, dispute) do
     dispute_id = dispute["id"]
     charge_id = dispute["charge"]
     amount = dispute["amount"]
@@ -91,63 +91,49 @@ defmodule Tymeslot.Payments.Webhooks.DisputeHandler do
         {:ok, :dispute_logged}
 
       user_id ->
-        # Create dispute record in database
-        case create_dispute_record(dispute, user_id) do
-          {:ok, result} when result in [:skipped, :ok] or is_map(result) ->
-            Logger.info("DISPUTE RECORDED - Created dispute record for user #{user_id}",
-              user_id: user_id,
-              dispute_id: dispute_id,
-              charge_id: charge_id
-            )
+        # Broadcast event for SaaS to record dispute
+        Tymeslot.Payments.PubSub.broadcast_payment_event(:dispute_created, %{
+          event_id: event["id"],
+          user_id: user_id,
+          dispute: dispute
+        })
 
-            # Alert admin (log and potentially other notifications)
-            alert_admin_dispute_created(dispute_id, user_id, amount, reason)
+        Logger.info("DISPUTE BROADCASTED - Sent dispute_created event for user #{user_id}",
+          user_id: user_id,
+          dispute_id: dispute_id,
+          charge_id: charge_id
+        )
 
-            # Send email to admin
-            send_dispute_created_alert(dispute)
+        # Alert admin (log and potentially other notifications)
+        alert_admin_dispute_created(dispute_id, user_id, amount, reason)
 
-            # Broadcast event
-            broadcast_dispute_event(user_id, :dispute_created, dispute_id)
+        # Send email to admin
+        send_dispute_created_alert(dispute)
 
-            {:ok, :dispute_created}
+        # Broadcast event
+        broadcast_dispute_event(user_id, :dispute_created, dispute_id)
 
-          {:error, %Ecto.Changeset{errors: [stripe_dispute_id: {_, [constraint: :unique, constraint_name: _]}]}} ->
-            Logger.error("DISPUTE ERROR - Failed to create dispute record: #{inspect(reason)}",
-              user_id: user_id,
-              dispute_id: dispute_id,
-              error: reason
-            )
-
-            # Do NOT alert admin here to avoid duplicates on retry
-            # The error return will trigger a retry
-            {:error, reason}
-        end
+        {:ok, :dispute_created}
     end
   end
 
-  defp handle_updated(_event, dispute) do
+  defp handle_updated(event, dispute) do
     dispute_id = dispute["id"]
     status = dispute["status"]
 
     Logger.info("Dispute #{dispute_id} status updated to: #{status}")
 
-    # Update dispute record
-    case update_dispute_status_in_db(dispute_id, status) do
-      {:ok, result} when result in [:skipped, :ok] or is_map(result) ->
-        Logger.info("Updated dispute #{dispute_id} status to #{status}")
-        {:ok, :dispute_updated}
+    # Broadcast event for SaaS to update dispute status
+    Tymeslot.Payments.PubSub.broadcast_payment_event(:dispute_updated, %{
+      event_id: event["id"],
+      stripe_dispute_id: dispute_id,
+      status: status
+    })
 
-      {:error, :not_found} ->
-        Logger.warning("Dispute #{dispute_id} not found in database")
-        {:ok, :dispute_not_tracked}
-
-      {:error, reason} ->
-        Logger.error("Failed to update dispute: #{inspect(reason)}")
-        {:error, reason}
-    end
+    {:ok, :dispute_updated}
   end
 
-  defp handle_closed(_event, dispute) do
+  defp handle_closed(event, dispute) do
     dispute_id = dispute["id"]
     status = dispute["status"]
 
@@ -156,68 +142,32 @@ defmodule Tymeslot.Payments.Webhooks.DisputeHandler do
       status: status
     )
 
-    # Update dispute record
-    case update_dispute_status_in_db(dispute_id, status) do
-      {:ok, result} when result in [:skipped, :ok] or is_map(result) ->
-        handle_dispute_outcome(status, dispute_id, result)
+    # Broadcast event for SaaS to update dispute status and handle outcome
+    Tymeslot.Payments.PubSub.broadcast_payment_event(:dispute_closed, %{
+      event_id: event["id"],
+      stripe_dispute_id: dispute_id,
+      status: status,
+      dispute: dispute
+    })
 
-      {:error, :already_in_state} ->
-        Logger.warning("DISPUTE NOT FOUND - Dispute #{dispute_id} not found in database",
-          dispute_id: dispute_id,
-          status: status
-        )
-
-        {:ok, :dispute_not_tracked}
-
-      {:error, reason} ->
-        Logger.error("DISPUTE UPDATE ERROR - Failed to update dispute: #{inspect(reason)}",
-          dispute_id: dispute_id,
-          error: reason
-        )
-
-        {:error, reason}
+    # We still alert admin in Core for visibility
+    if status == "lost" do
+      alert_admin_dispute_lost(dispute_id, nil)
+      send_dispute_lost_alert(dispute)
     end
-  end
 
-  defp handle_dispute_outcome("lost", dispute_id, result) do
-    user_id = (is_map(result) && Map.get(result, :user_id)) || "unknown"
-    amount = (is_map(result) && Map.get(result, :amount)) || "unknown"
+    if status == "won" do
+      send_dispute_won_notification(dispute)
+    end
 
-    # Dispute lost - funds returned to customer
-    Logger.warning("DISPUTE LOST - Funds returned to customer",
-      dispute_id: dispute_id,
-      user_id: user_id,
-      amount: amount
-    )
-
-    # Alert admin (manual review required per user request)
-    alert_admin_dispute_lost(dispute_id, (is_map(result) && Map.get(result, :user_id)))
-
-    # Send admin alert email
-    if is_map(result), do: send_dispute_lost_alert(result)
-
-    {:ok, :dispute_lost}
-  end
-
-  defp handle_dispute_outcome("won", dispute_id, result) do
-    user_id = (is_map(result) && Map.get(result, :user_id)) || "unknown"
-    amount = (is_map(result) && Map.get(result, :amount)) || "unknown"
-
-    # Dispute won - funds kept
-    Logger.info("DISPUTE WON - Funds retained",
-      dispute_id: dispute_id,
-      user_id: user_id,
-      amount: amount
-    )
-
-    # Send admin notification email
-    if is_map(result), do: send_dispute_won_notification(result)
-
-    {:ok, :dispute_won}
-  end
-
-  defp handle_dispute_outcome(_status, _dispute_id, _result) do
     {:ok, :dispute_closed}
+  end
+
+  defp alert_admin_dispute_lost(dispute_id, user_id) do
+    AdminAlerts.send_alert(:dispute_lost, %{
+      dispute_id: dispute_id,
+      user_id: user_id
+    })
   end
 
   defp find_user_by_charge(charge_id) do
@@ -252,64 +202,12 @@ defmodule Tymeslot.Payments.Webhooks.DisputeHandler do
     end
   end
 
-  defp create_dispute_record(dispute, user_id) do
-    evidence_due_by =
-      case get_in(dispute, ["evidence_details", "due_by"]) do
-        ts when is_integer(ts) ->
-          case DateTime.from_unix(ts) do
-            {:ok, datetime} -> datetime
-            {:error, _} -> nil
-          end
-
-        _ ->
-          nil
-      end
-
-    attrs = %{
-      stripe_dispute_id: dispute["id"],
-      user_id: user_id,
-      charge_id: dispute["charge"],
-      amount: dispute["amount"],
-      currency: dispute["currency"],
-      reason: dispute["reason"],
-      status: dispute["status"],
-      evidence_due_by: evidence_due_by,
-      created_at: DateTime.utc_now(),
-      updated_at: DateTime.utc_now()
-    }
-
-    manager = saas_subscription_manager()
-
-    if manager && Code.ensure_loaded?(manager) do
-      manager.record_dispute(attrs)
-    else
-      {:ok, :skipped}
-    end
-  end
-
-  defp update_dispute_status_in_db(stripe_dispute_id, status) do
-    manager = saas_subscription_manager()
-
-    if manager && Code.ensure_loaded?(manager) do
-      manager.update_dispute_status(stripe_dispute_id, status)
-    else
-      {:ok, :skipped}
-    end
-  end
-
   defp alert_admin_dispute_created(dispute_id, user_id, amount, reason) do
     AdminAlerts.send_alert(:dispute_created, %{
       dispute_id: dispute_id,
       user_id: user_id,
       amount: amount,
       reason: reason
-    })
-  end
-
-  defp alert_admin_dispute_lost(dispute_id, user_id) do
-    AdminAlerts.send_alert(:dispute_lost, %{
-      dispute_id: dispute_id,
-      user_id: user_id
     })
   end
 
@@ -367,10 +265,6 @@ defmodule Tymeslot.Payments.Webhooks.DisputeHandler do
     # Get admin email from configuration
     # Default to support@tymeslot.app if not configured
     Application.get_env(:tymeslot, :admin_email) || "support@tymeslot.app"
-  end
-
-  defp saas_subscription_manager do
-    Application.get_env(:tymeslot, :saas_subscription_manager)
   end
 
   defp stripe_provider do
