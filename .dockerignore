@@ -132,8 +132,5 @@ data/
 uploads/
 coveralls.json
 
-# SaaS app (not needed for core-only builds)
-../tymeslot_saas/
-
 # Dev support (not needed in production)
 dev_support/
