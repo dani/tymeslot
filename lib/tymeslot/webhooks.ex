@@ -253,5 +253,4 @@ defmodule Tymeslot.Webhooks do
   defp http_client do
     Application.get_env(:tymeslot, :http_client_module, Tymeslot.Infrastructure.HTTPClient)
   end
-
 end

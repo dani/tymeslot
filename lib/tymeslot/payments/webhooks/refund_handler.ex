@@ -66,7 +66,8 @@ defmodule Tymeslot.Payments.Webhooks.RefundHandler do
     total_refunded = calculate_total_refunded(charge)
     customer_id = charge["customer"]
 
-    Logger.info("REFUND RECEIVED - Processing refund for charge: #{charge_id}, total refunded: #{total_refunded}/#{charge_amount}",
+    Logger.info(
+      "REFUND RECEIVED - Processing refund for charge: #{charge_id}, total refunded: #{total_refunded}/#{charge_amount}",
       charge_id: charge_id,
       customer_id: customer_id,
       total_refunded: total_refunded,
@@ -109,9 +110,16 @@ defmodule Tymeslot.Payments.Webhooks.RefundHandler do
 
         result =
           if should_revoke do
-            ensure_revoked_access(subscription, charge_id, customer_id, total_refunded, charge_amount)
+            ensure_revoked_access(
+              subscription,
+              charge_id,
+              customer_id,
+              total_refunded,
+              charge_amount
+            )
           else
-            Logger.info("REFUND BELOW THRESHOLD - Not revoking access for user #{subscription.user_id}",
+            Logger.info(
+              "REFUND BELOW THRESHOLD - Not revoking access for user #{subscription.user_id}",
               user_id: subscription.user_id,
               charge_id: charge_id,
               total_refunded: total_refunded,
@@ -201,8 +209,7 @@ defmodule Tymeslot.Payments.Webhooks.RefundHandler do
   def calculate_refund_percentage(_refunded, 0), do: 0.0
 
   def calculate_refund_percentage(refunded, charge_amount) do
-    (refunded / charge_amount * 100.0)
-    |> Float.round(2)
+    Float.round(refunded / charge_amount * 100.0, 2)
   end
 
   # Determines if access should be revoked based on refund threshold.
@@ -285,7 +292,8 @@ defmodule Tymeslot.Payments.Webhooks.RefundHandler do
         :ok
 
       {:error, reason} ->
-        Logger.error("REFUND ERROR - Failed to revoke access for user #{subscription.user_id}: #{inspect(reason)}",
+        Logger.error(
+          "REFUND ERROR - Failed to revoke access for user #{subscription.user_id}: #{inspect(reason)}",
           user_id: subscription.user_id,
           charge_id: charge_id,
           error: reason
@@ -294,5 +302,4 @@ defmodule Tymeslot.Payments.Webhooks.RefundHandler do
         {:error, :retry_later, "Subscription revocation failed"}
     end
   end
-
 end

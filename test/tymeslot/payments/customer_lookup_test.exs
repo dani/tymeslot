@@ -2,6 +2,7 @@ defmodule Tymeslot.Payments.CustomerLookupTest do
   use Tymeslot.DataCase, async: false
 
   alias Tymeslot.Payments.CustomerLookup
+  alias Tymeslot.SaasRepo
   alias TymeslotSaas.Schemas.Subscription
 
   import Tymeslot.TestFixtures
@@ -47,8 +48,10 @@ defmodule Tymeslot.Payments.CustomerLookupTest do
       stripe_customer_id = "cus_test_123"
 
       # Create subscription
-      now = DateTime.utc_now() |> DateTime.truncate(:second)
-      Tymeslot.SaasRepo.insert!(%Subscription{
+      now =
+        DateTime.truncate(DateTime.utc_now(), :second)
+
+      SaasRepo.insert!(%Subscription{
         user_id: user.id,
         stripe_subscription_id: "sub_123",
         stripe_customer_id: stripe_customer_id,
@@ -76,16 +79,19 @@ defmodule Tymeslot.Payments.CustomerLookupTest do
       stripe_customer_id = "cus_test_456"
 
       # Create subscription
-      now = DateTime.utc_now() |> DateTime.truncate(:second)
-      subscription = Tymeslot.SaasRepo.insert!(%Subscription{
-        user_id: user.id,
-        stripe_subscription_id: "sub_456",
-        stripe_customer_id: stripe_customer_id,
-        plan: "pro",
-        status: "active",
-        current_period_start: now,
-        current_period_end: DateTime.add(now, 30, :day)
-      })
+      now =
+        DateTime.truncate(DateTime.utc_now(), :second)
+
+      subscription =
+        SaasRepo.insert!(%Subscription{
+          user_id: user.id,
+          stripe_subscription_id: "sub_456",
+          stripe_customer_id: stripe_customer_id,
+          plan: "pro",
+          status: "active",
+          current_period_start: now,
+          current_period_end: DateTime.add(now, 30, :day)
+        })
 
       result = CustomerLookup.get_subscription_by_customer_id(stripe_customer_id)
 

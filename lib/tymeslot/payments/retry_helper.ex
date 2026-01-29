@@ -24,7 +24,7 @@ defmodule Tymeslot.Payments.RetryHelper do
   require Logger
 
   @type retry_result :: {:ok, term()} | {:error, term()}
-  @type operation :: (() -> retry_result())
+  @type operation :: (-> retry_result())
 
   @doc """
   Executes an operation with automatic retry on transient failures.
@@ -63,25 +63,12 @@ defmodule Tymeslot.Payments.RetryHelper do
   # Private functions
 
   defp do_retry(operation, attempt, max_attempts, base_delay_ms, backoff_multiplier, retryable_fn) do
-    try do
-      case operation.() do
-        {:ok, result} ->
-          {:ok, result}
+    case operation.() do
+      {:ok, result} ->
+        {:ok, result}
 
-        {:error, error} ->
-          handle_error(
-            error,
-            attempt,
-            max_attempts,
-            base_delay_ms,
-            backoff_multiplier,
-            retryable_fn,
-            operation
-          )
-      end
-    rescue
-      error ->
-        handle_exception(
+      {:error, error} ->
+        handle_error(
           error,
           attempt,
           max_attempts,
@@ -91,6 +78,17 @@ defmodule Tymeslot.Payments.RetryHelper do
           operation
         )
     end
+  rescue
+    error ->
+      handle_exception(
+        error,
+        attempt,
+        max_attempts,
+        base_delay_ms,
+        backoff_multiplier,
+        retryable_fn,
+        operation
+      )
   end
 
   defp handle_error(
@@ -106,7 +104,15 @@ defmodule Tymeslot.Payments.RetryHelper do
       delay = calculate_delay(attempt, base_delay_ms, backoff_multiplier)
       Logger.warning("Retrying operation after #{delay}ms (attempt #{attempt}/#{max_attempts})")
       Process.sleep(delay)
-      do_retry(operation, attempt + 1, max_attempts, base_delay_ms, backoff_multiplier, retryable_fn)
+
+      do_retry(
+        operation,
+        attempt + 1,
+        max_attempts,
+        base_delay_ms,
+        backoff_multiplier,
+        retryable_fn
+      )
     else
       log_final_error(error, attempt)
       {:error, error}
@@ -125,9 +131,21 @@ defmodule Tymeslot.Payments.RetryHelper do
     # Treat exceptions as retryable errors
     if attempt < max_attempts and retryable_fn.(exception) do
       delay = calculate_delay(attempt, base_delay_ms, backoff_multiplier)
-      Logger.warning("Retrying operation after exception (attempt #{attempt}/#{max_attempts}): #{inspect(exception)}")
+
+      Logger.warning(
+        "Retrying operation after exception (attempt #{attempt}/#{max_attempts}): #{inspect(exception)}"
+      )
+
       Process.sleep(delay)
-      do_retry(operation, attempt + 1, max_attempts, base_delay_ms, backoff_multiplier, retryable_fn)
+
+      do_retry(
+        operation,
+        attempt + 1,
+        max_attempts,
+        base_delay_ms,
+        backoff_multiplier,
+        retryable_fn
+      )
     else
       log_final_error(exception, attempt)
       {:error, exception}
@@ -156,6 +174,7 @@ defmodule Tymeslot.Payments.RetryHelper do
   - 5xx server errors from Stripe
   - RuntimeError and ErlangError exceptions
   """
+  @spec default_retryable_error?(any()) :: boolean()
   def default_retryable_error?(%{source: :network}), do: true
   def default_retryable_error?(%{extra: %{http_status: status}}) when status >= 500, do: true
   def default_retryable_error?(%RuntimeError{}), do: true

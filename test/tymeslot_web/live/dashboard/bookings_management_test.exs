@@ -36,7 +36,13 @@ defmodule TymeslotWeb.Dashboard.BookingsManagementTest do
     end
 
     test "renders upcoming meetings", %{conn: conn, user: user} do
-      _meeting = insert(:meeting, organizer_user: user, organizer_email: user.email, attendee_name: "John Doe")
+      _meeting =
+        insert(:meeting,
+          organizer_user: user,
+          organizer_email: user.email,
+          attendee_name: "John Doe"
+        )
+
       {:ok, view, _html} = live(conn, ~p"/dashboard/meetings")
 
       assert render(view) =~ "John Doe"
@@ -63,7 +69,11 @@ defmodule TymeslotWeb.Dashboard.BookingsManagementTest do
     end
 
     test "filters meetings by status", %{conn: conn, user: user} do
-      insert(:meeting, organizer_user: user, organizer_email: user.email, attendee_name: "Upcoming Meeting")
+      insert(:meeting,
+        organizer_user: user,
+        organizer_email: user.email,
+        attendee_name: "Upcoming Meeting"
+      )
 
       insert(:meeting,
         organizer_user_id: user.id,
@@ -101,7 +111,13 @@ defmodule TymeslotWeb.Dashboard.BookingsManagementTest do
 
   describe "Meeting actions" do
     test "cancels a meeting", %{conn: conn, user: user} do
-      meeting = insert(:meeting, organizer_user: user, organizer_email: user.email, attendee_name: "To Cancel")
+      meeting =
+        insert(:meeting,
+          organizer_user: user,
+          organizer_email: user.email,
+          attendee_name: "To Cancel"
+        )
+
       {:ok, view, _html} = live(conn, ~p"/dashboard/meetings")
 
       assert render(view) =~ "To Cancel"
@@ -121,7 +137,13 @@ defmodule TymeslotWeb.Dashboard.BookingsManagementTest do
     end
 
     test "sends reschedule request", %{conn: conn, user: user} do
-      meeting = insert(:meeting, organizer_user: user, organizer_email: user.email, attendee_name: "To Reschedule")
+      meeting =
+        insert(:meeting,
+          organizer_user: user,
+          organizer_email: user.email,
+          attendee_name: "To Reschedule"
+        )
+
       {:ok, view, _html} = live(conn, ~p"/dashboard/meetings")
 
       assert render(view) =~ "To Reschedule"

@@ -248,6 +248,6 @@ defmodule Tymeslot.Emails.Shared.SharedHelpers do
       end
 
     amount = cents / 100
-    "#{symbol}#{:erlang.float_to_binary(amount / 1, [decimals: 2])}"
+    "#{symbol}#{:erlang.float_to_binary(amount / 1, decimals: 2)}"
   end
 end

@@ -127,13 +127,42 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsTest do
         name: "bg.png",
         # Valid PNG content (IHDR chunk is usually required by many decoders)
         content: <<
-          0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, # Signature
-          0x00, 0x00, 0x00, 0x0D, # IHDR length
+          # Signature
+          0x89,
+          0x50,
+          0x4E,
+          0x47,
+          0x0D,
+          0x0A,
+          0x1A,
+          0x0A,
+          # IHDR length
+          0x00,
+          0x00,
+          0x00,
+          0x0D,
           "IHDR",
-          0x00, 0x00, 0x00, 0x01, # Width 1
-          0x00, 0x00, 0x00, 0x01, # Height 1
-          0x08, 0x02, 0x00, 0x00, 0x00, # Bit depth, Color type, etc.
-          0x90, 0x77, 0x53, 0xDE # CRC
+          # Width 1
+          0x00,
+          0x00,
+          0x00,
+          0x01,
+          # Height 1
+          0x00,
+          0x00,
+          0x00,
+          0x01,
+          # Bit depth, Color type, etc.
+          0x08,
+          0x02,
+          0x00,
+          0x00,
+          0x00,
+          # CRC
+          0x90,
+          0x77,
+          0x53,
+          0xDE
         >>,
         type: "image/png"
       }

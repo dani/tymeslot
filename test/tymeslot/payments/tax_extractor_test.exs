@@ -176,7 +176,8 @@ defmodule Tymeslot.Payments.TaxExtractorTest do
     end
 
     test "checks all EU country codes" do
-      eu_countries = ~w(AT BE BG HR CY CZ DK EE FI FR DE GR HU IE IT LV LT LU MT NL PL PT RO SK SI ES SE)
+      eu_countries =
+        ~w(AT BE BG HR CY CZ DK EE FI FR DE GR HU IE IT LV LT LU MT NL PL PT RO SK SI ES SE)
 
       for country <- eu_countries do
         session = %{

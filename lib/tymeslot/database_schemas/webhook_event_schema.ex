@@ -9,11 +9,11 @@ defmodule Tymeslot.DatabaseSchemas.WebhookEventSchema do
   import Ecto.Changeset
 
   @type t :: %__MODULE__{
-          id: integer(),
-          stripe_event_id: String.t(),
-          event_type: String.t(),
-          processed_at: DateTime.t(),
-          inserted_at: DateTime.t()
+          id: integer() | nil,
+          stripe_event_id: String.t() | nil,
+          event_type: String.t() | nil,
+          processed_at: DateTime.t() | nil,
+          inserted_at: NaiveDateTime.t() | nil
         }
 
   schema "webhook_events" do
@@ -27,6 +27,7 @@ defmodule Tymeslot.DatabaseSchemas.WebhookEventSchema do
   @doc """
   Changeset for creating a webhook event record.
   """
+  @spec changeset(t() | Ecto.Changeset.t(), map()) :: Ecto.Changeset.t()
   def changeset(webhook_event, attrs) do
     webhook_event
     |> cast(attrs, [:stripe_event_id, :event_type, :processed_at])

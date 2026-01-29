@@ -77,11 +77,13 @@ defmodule Tymeslot.Payments.PubSub do
   @spec broadcast_payment_event(atom(), map()) :: :ok
   def broadcast_payment_event(event_type, event_data) do
     topic = "payment_events:tymeslot"
+
     message = %{
       event: event_type,
       data: event_data,
       timestamp: DateTime.utc_now()
     }
+
     _ = broadcast(topic, message)
     :ok
   end

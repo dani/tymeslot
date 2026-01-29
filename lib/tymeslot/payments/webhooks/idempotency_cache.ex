@@ -8,12 +8,14 @@ defmodule Tymeslot.Payments.Webhooks.IdempotencyCache do
   Uses the centralized CacheStore infrastructure for ETS tier.
   """
 
-  alias Tymeslot.Infrastructure.CacheStore
   alias Tymeslot.DatabaseSchemas.WebhookEventSchema, as: WebhookEvent
+  alias Tymeslot.Infrastructure.CacheStore
 
   use CacheStore,
     table_name: :webhook_idempotency_cache,
-    default_ttl: get_in(Application.compile_env(:tymeslot, :webhook_idempotency, []), [:processed_ttl_ms]) || :timer.hours(24),
+    default_ttl:
+      get_in(Application.compile_env(:tymeslot, :webhook_idempotency, []), [:processed_ttl_ms]) ||
+        :timer.hours(24),
     cleanup_interval: :timer.hours(1)
 
   @doc """
@@ -76,14 +78,14 @@ defmodule Tymeslot.Payments.Webhooks.IdempotencyCache do
   @doc """
   Mark an event as processed in both cache and database.
   """
-  @spec mark_processed(String.t(), String.t()) :: :ok
+  @spec mark_processed(String.t(), String.t() | nil) :: :ok
   def mark_processed(event_id, event_type \\ "unknown") do
+    event_type = event_type || "unknown"
     # Mark as processed in ETS cache with configured TTL (default 24 hours)
     put(event_id, :processed, processed_ttl())
 
     # Also store in database for long-term deduplication
     store_in_database(event_id, event_type)
-
     :ok
   end
 
@@ -130,13 +132,12 @@ defmodule Tymeslot.Payments.Webhooks.IdempotencyCache do
     attrs = %{
       stripe_event_id: event_id,
       event_type: event_type,
-      processed_at: DateTime.utc_now() |> DateTime.truncate(:second)
+      processed_at: DateTime.truncate(DateTime.utc_now(), :second)
     }
 
-    %WebhookEvent{}
-    |> WebhookEvent.changeset(attrs)
-    |> repo().insert(on_conflict: :nothing, conflict_target: :stripe_event_id)
+    changeset = WebhookEvent.changeset(%WebhookEvent{}, attrs)
 
+    repo().insert(changeset, on_conflict: :nothing, conflict_target: :stripe_event_id)
     :ok
   end
 

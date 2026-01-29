@@ -7,6 +7,7 @@ defmodule Tymeslot.Payments.Stripe do
 
   require Logger
 
+  alias Ecto.UUID
   alias Stripe.{Checkout.Session, Customer, Subscription, Webhook}
   alias Tymeslot.Payments.RetryHelper
 
@@ -157,7 +158,6 @@ defmodule Tymeslot.Payments.Stripe do
     "#{operation}_#{hashed_id}_#{date}"
   end
 
-
   defp build_session_params(customer, amount, transaction, success_url, cancel_url) do
     currency = Application.get_env(:tymeslot, :currency, "eur")
 
@@ -195,7 +195,6 @@ defmodule Tymeslot.Payments.Stripe do
     }
   end
 
-
   @doc """
   Creates a Stripe checkout session for subscription processing.
   """
@@ -206,7 +205,7 @@ defmodule Tymeslot.Payments.Stripe do
     request_id =
       params
       |> Map.get(:metadata, %{})
-      |> Map.get("checkout_request_id", Ecto.UUID.generate())
+      |> Map.get("checkout_request_id", UUID.generate())
 
     idempotency_key = generate_idempotency_key("subscription_checkout", request_id)
 
@@ -255,9 +254,15 @@ defmodule Tymeslot.Payments.Stripe do
       generate_idempotency_key("subscription_update", "#{subscription_id}_#{new_price_id}")
 
     RetryHelper.execute_with_retry(fn ->
-      with {:ok, subscription} <- subscription_mod().retrieve(subscription_id, %{}, api_key_opts()),
+      with {:ok, subscription} <-
+             subscription_mod().retrieve(subscription_id, %{}, api_key_opts()),
            {:ok, subscription_item} <- find_subscription_item(subscription, opts) do
-        update_subscription_item(subscription_id, subscription_item, new_price_id, idempotency_key)
+        update_subscription_item(
+          subscription_id,
+          subscription_item,
+          new_price_id,
+          idempotency_key
+        )
       end
     end)
   end

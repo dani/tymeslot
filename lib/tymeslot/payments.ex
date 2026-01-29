@@ -7,6 +7,7 @@ defmodule Tymeslot.Payments do
   require Logger
   import Ecto.Query
 
+  alias Ecto.UUID
   alias Tymeslot.DatabaseQueries.PaymentQueries
   alias Tymeslot.DatabaseSchemas.PaymentTransactionSchema, as: PaymentTransaction
   alias Tymeslot.Payments.{DatabaseOperations, MetadataSanitizer}
@@ -321,7 +322,7 @@ defmodule Tymeslot.Payments do
       user_id: user_id,
       product_identifier: product_identifier,
       payment_type: "subscription",
-      checkout_request_id: Ecto.UUID.generate()
+      checkout_request_id: UUID.generate()
     }
 
     with :ok <- validate_amount(amount),
@@ -337,21 +338,21 @@ defmodule Tymeslot.Payments do
                urls,
                subscription_metadata
              ) do
-        {:ok, checkout_session} ->
-          transaction_attrs = %{
-            user_id: user_id,
-            amount: amount,
-            product_identifier: product_identifier,
-            status: "pending",
-            metadata: subscription_metadata,
-            stripe_id: checkout_session["id"],
-            subscription_id: checkout_session["subscription"]
-          }
+          {:ok, checkout_session} ->
+            transaction_attrs = %{
+              user_id: user_id,
+              amount: amount,
+              product_identifier: product_identifier,
+              status: "pending",
+              metadata: subscription_metadata,
+              stripe_id: checkout_session["id"],
+              subscription_id: checkout_session["subscription"]
+            }
 
-          with {:ok, _transaction} <-
-                 DatabaseOperations.create_payment_transaction(transaction_attrs) do
-            {:ok, %{checkout_url: checkout_session["url"]}}
-          end
+            with {:ok, _transaction} <-
+                   DatabaseOperations.create_payment_transaction(transaction_attrs) do
+              {:ok, %{checkout_url: checkout_session["url"]}}
+            end
 
           {:error, reason} ->
             {:error, reason}
@@ -555,7 +556,7 @@ defmodule Tymeslot.Payments do
   defp validate_amount(amount) when is_integer(amount) do
     limits = Application.get_env(:tymeslot, :payment_amount_limits, [])
     min_cents = Keyword.get(limits, :min_cents, 50)
-    max_cents = Keyword.get(limits, :max_cents, 1_000_000_00)
+    max_cents = Keyword.get(limits, :max_cents, 100_000_000)
 
     cond do
       amount < min_cents -> {:error, :invalid_amount}

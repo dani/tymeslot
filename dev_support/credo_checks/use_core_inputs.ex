@@ -43,7 +43,8 @@ defmodule CredoChecks.UseCoreInputs do
       input_regex = ~r/<(input|textarea|select)(?![^>]*type=["']hidden["'])[\s\/>]/i
 
       # Regex to find standard Phoenix form helpers in .ex files
-      helper_regex = ~r/\.(text_input|textarea|select|password_input|email_input|number_input|checkbox)\(/
+      helper_regex =
+        ~r/\.(text_input|textarea|select|password_input|email_input|number_input|checkbox)\(/
 
       Enum.reduce(lines, [], fn {line_no, line}, issues ->
         cond do
@@ -74,7 +75,10 @@ defmodule CredoChecks.UseCoreInputs do
 
         :helper ->
           helper =
-            case Regex.run(~r/\.(text_input|textarea|select|password_input|email_input|number_input|checkbox)\(/, line) do
+            case Regex.run(
+                   ~r/\.(text_input|textarea|select|password_input|email_input|number_input|checkbox)\(/,
+                   line
+                 ) do
               [_, helper] -> helper
               _ -> "input_helper"
             end

@@ -99,14 +99,14 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsTest do
 
       view |> element("button#tab-security") |> render_click()
 
-    long_domain = String.duplicate("a", 256) <> ".com"
+      long_domain = String.duplicate("a", 256) <> ".com"
 
-    view
-    |> form("form", %{allowed_domains: long_domain})
-    |> render_submit()
+      view
+      |> form("form", %{allowed_domains: long_domain})
+      |> render_submit()
 
-    assert render(view) =~ "exceed maximum length"
-  end
+      assert render(view) =~ "exceed maximum length"
+    end
 
     test "clears domains successfully", %{conn: conn, profile: profile} do
       # First set some domains

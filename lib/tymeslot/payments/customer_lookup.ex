@@ -15,12 +15,14 @@ defmodule Tymeslot.Payments.CustomerLookup do
   @spec parse_user_id(any()) :: integer() | nil
   def parse_user_id(nil), do: nil
   def parse_user_id(id) when is_integer(id), do: id
+
   def parse_user_id(id) when is_binary(id) do
     case Integer.parse(id) do
       {int_id, _} -> int_id
       _ -> nil
     end
   end
+
   def parse_user_id(_), do: nil
 
   @doc """
@@ -48,22 +50,9 @@ defmodule Tymeslot.Payments.CustomerLookup do
   def find_user_id_by_stripe_customer(nil), do: nil
 
   def find_user_id_by_stripe_customer(stripe_customer_id) do
-    repo = Application.get_env(:tymeslot, :repo, Tymeslot.Repo)
-    subscription_schema = Application.get_env(:tymeslot, :subscription_schema)
-
-    if subscription_schema && Code.ensure_loaded?(subscription_schema) do
-      case repo.get_by(subscription_schema, stripe_customer_id: stripe_customer_id) do
-        nil ->
-          Logger.debug("No subscription found for Stripe customer: #{stripe_customer_id}")
-          nil
-
-        subscription ->
-          Logger.debug("Found user #{subscription.user_id} for Stripe customer: #{stripe_customer_id}")
-          subscription.user_id
-      end
-    else
-      Logger.error("CRITICAL: Subscription schema not configured or not loaded. Customer lookup failed for: #{stripe_customer_id}")
-      nil
+    case get_subscription_by_customer_id(stripe_customer_id) do
+      nil -> nil
+      subscription -> subscription.user_id
     end
   end
 
@@ -106,7 +95,10 @@ defmodule Tymeslot.Payments.CustomerLookup do
           subscription
       end
     else
-      Logger.error("CRITICAL: Subscription schema not configured or not loaded. Customer lookup failed for: #{stripe_customer_id}")
+      Logger.error(
+        "CRITICAL: Subscription schema not configured or not loaded. Customer lookup failed for: #{stripe_customer_id}"
+      )
+
       nil
     end
   end

@@ -39,7 +39,7 @@ defmodule Tymeslot.Payments.Webhooks.RefundHandlerTest do
     end
 
     test "handles missing refunds field" do
-      charge = %{"amount" => 10000}
+      charge = %{"amount" => 10_000}
       assert RefundHandler.calculate_total_refunded(charge) == 0
     end
 
@@ -55,13 +55,13 @@ defmodule Tymeslot.Payments.Webhooks.RefundHandlerTest do
 
   describe "get_charge_amount/1" do
     test "extracts charge amount with string keys" do
-      charge = %{"amount" => 10000}
-      assert RefundHandler.get_charge_amount(charge) == 10000
+      charge = %{"amount" => 10_000}
+      assert RefundHandler.get_charge_amount(charge) == 10_000
     end
 
     test "extracts charge amount with atom keys" do
-      charge = %{amount: 10000}
-      assert RefundHandler.get_charge_amount(charge) == 10000
+      charge = %{amount: 10_000}
+      assert RefundHandler.get_charge_amount(charge) == 10_000
     end
 
     test "returns 0 for missing amount" do
@@ -72,13 +72,13 @@ defmodule Tymeslot.Payments.Webhooks.RefundHandlerTest do
 
   describe "calculate_refund_percentage/2" do
     test "calculates percentage correctly" do
-      assert RefundHandler.calculate_refund_percentage(5000, 10000) == 50.0
-      assert RefundHandler.calculate_refund_percentage(9000, 10000) == 90.0
-      assert RefundHandler.calculate_refund_percentage(9500, 10000) == 95.0
+      assert RefundHandler.calculate_refund_percentage(5000, 10_000) == 50.0
+      assert RefundHandler.calculate_refund_percentage(9000, 10_000) == 90.0
+      assert RefundHandler.calculate_refund_percentage(9500, 10_000) == 95.0
     end
 
     test "rounds to 2 decimal places" do
-      assert RefundHandler.calculate_refund_percentage(3333, 10000) == 33.33
+      assert RefundHandler.calculate_refund_percentage(3333, 10_000) == 33.33
     end
 
     test "handles zero charge amount" do
@@ -86,27 +86,27 @@ defmodule Tymeslot.Payments.Webhooks.RefundHandlerTest do
     end
 
     test "handles full refund" do
-      assert RefundHandler.calculate_refund_percentage(10000, 10000) == 100.0
+      assert RefundHandler.calculate_refund_percentage(10_000, 10_000) == 100.0
     end
   end
 
   describe "should_revoke_access?/2" do
     test "revokes when refund >= 90% threshold (default)" do
       # Exactly 90%
-      assert RefundHandler.should_revoke_access?(9000, 10000) == true
+      assert RefundHandler.should_revoke_access?(9000, 10_000) == true
       # Above 90%
-      assert RefundHandler.should_revoke_access?(9500, 10000) == true
+      assert RefundHandler.should_revoke_access?(9500, 10_000) == true
       # Full refund
-      assert RefundHandler.should_revoke_access?(10000, 10000) == true
+      assert RefundHandler.should_revoke_access?(10_000, 10_000) == true
     end
 
     test "does not revoke when refund < 90% threshold" do
       # 89%
-      assert RefundHandler.should_revoke_access?(8900, 10000) == false
+      assert RefundHandler.should_revoke_access?(8900, 10_000) == false
       # 50%
-      assert RefundHandler.should_revoke_access?(5000, 10000) == false
+      assert RefundHandler.should_revoke_access?(5000, 10_000) == false
       # 10%
-      assert RefundHandler.should_revoke_access?(1000, 10000) == false
+      assert RefundHandler.should_revoke_access?(1000, 10_000) == false
     end
 
     test "handles zero charge amount" do
@@ -114,7 +114,7 @@ defmodule Tymeslot.Payments.Webhooks.RefundHandlerTest do
     end
 
     test "handles zero refund amount" do
-      assert RefundHandler.should_revoke_access?(0, 10000) == false
+      assert RefundHandler.should_revoke_access?(0, 10_000) == false
     end
   end
 

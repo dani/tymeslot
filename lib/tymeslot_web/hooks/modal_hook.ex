@@ -62,6 +62,7 @@ defmodule TymeslotWeb.Hooks.ModalHook do
   defp resolve_keys(:create), do: {:show_create_modal, :create_modal_data}
   defp resolve_keys(:edit), do: {:show_edit_modal, :edit_modal_data}
   defp resolve_keys(:deliveries), do: {:show_deliveries_modal, :deliveries_modal_data}
+
   defp resolve_keys(:regenerate_token),
     do: {:show_regenerate_token_modal, :regenerate_token_modal_data}
 
@@ -82,6 +83,7 @@ defmodule TymeslotWeb.Hooks.ModalHook do
   defp resolve_keys("create"), do: {:show_create_modal, :create_modal_data}
   defp resolve_keys("edit"), do: {:show_edit_modal, :edit_modal_data}
   defp resolve_keys("deliveries"), do: {:show_deliveries_modal, :deliveries_modal_data}
+
   defp resolve_keys("regenerate_token"),
     do: {:show_regenerate_token_modal, :regenerate_token_modal_data}
 

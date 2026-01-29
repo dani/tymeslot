@@ -65,7 +65,6 @@ config :tymeslot, :oban_queues,
   calendar_events: 3,
   calendar_integrations: 2
 
-
 # Webhook configuration
 config :tymeslot, :webhook_paths, ["/webhooks/stripe"]
 
@@ -169,8 +168,7 @@ config :tailwind,
   ]
 
 # Configures Elixir's Logger
-config :logger, :console,
-  format: "$time $metadata[$level] $message\n"
+config :logger, :console, format: "$time $metadata[$level] $message\n"
 
 import_config "logger_metadata.exs"
 

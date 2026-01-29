@@ -210,7 +210,8 @@ defmodule Tymeslot.Payments.Webhooks.DisputeHandler do
         {:ok, charge}
 
       {:error, reason} ->
-        Logger.error("DISPUTE LINK ERROR - Failed to fetch charge from Stripe: #{inspect(reason)}",
+        Logger.error(
+          "DISPUTE LINK ERROR - Failed to fetch charge from Stripe: #{inspect(reason)}",
           charge_id: charge_id
         )
 

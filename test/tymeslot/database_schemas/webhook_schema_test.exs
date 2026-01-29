@@ -6,12 +6,13 @@ defmodule Tymeslot.DatabaseSchemas.WebhookSchemaTest do
 
   describe "generate_token/1" do
     test "generates a new token if one doesn't exist" do
-      changeset = WebhookSchema.changeset(%WebhookSchema{}, %{
-        name: "Test Webhook",
-        url: "https://example.com/webhook",
-        user_id: 1,
-        events: ["meeting.created"]
-      })
+      changeset =
+        WebhookSchema.changeset(%WebhookSchema{}, %{
+          name: "Test Webhook",
+          url: "https://example.com/webhook",
+          user_id: 1,
+          events: ["meeting.created"]
+        })
 
       assert token = get_change(changeset, :webhook_token)
       assert String.starts_with?(token, "ts_")
@@ -41,6 +42,7 @@ defmodule Tymeslot.DatabaseSchemas.WebhookSchemaTest do
 
     test "does not regenerate token if it already exists and not changing" do
       encrypted = Encryption.encrypt("existing_token")
+
       webhook = %WebhookSchema{
         webhook_token_encrypted: encrypted
       }

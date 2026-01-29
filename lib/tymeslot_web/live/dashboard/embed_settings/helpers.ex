@@ -22,7 +22,9 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettings.Helpers do
     data_theme = if theme, do: " data-theme=\"#{theme}\"", else: ""
 
     primary_color = sanitize_primary_color(options[:primary_color])
-    data_primary_color = if primary_color, do: " data-primary-color=\"#{primary_color}\"", else: ""
+
+    data_primary_color =
+      if primary_color, do: " data-primary-color=\"#{primary_color}\"", else: ""
 
     String.trim("""
     <!-- Tymeslot Inline -->

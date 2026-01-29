@@ -31,11 +31,21 @@ defmodule Tymeslot.Payments.Webhooks.WebhookUtils do
               :ok
 
             {:error, reason} ->
-              Logger.error(Keyword.get(opts, :error_msg, "Failed to send email to user #{user_id}: #{inspect(reason)}"))
+              Logger.error(
+                Keyword.get(
+                  opts,
+                  :error_msg,
+                  "Failed to send email to user #{user_id}: #{inspect(reason)}"
+                )
+              )
+
               :ok
           end
         else
-          Logger.debug(Keyword.get(opts, :standalone_msg, "Template not configured (Standalone mode)"))
+          Logger.debug(
+            Keyword.get(opts, :standalone_msg, "Template not configured (Standalone mode)")
+          )
+
           :ok
         end
     end

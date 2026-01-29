@@ -27,7 +27,8 @@ defmodule Tymeslot.Payments.Webhooks.TrialWillEndHandler do
     # customer_id = subscription_object["customer"]
     trial_end = subscription_object["trial_end"]
 
-    Logger.info("TRIAL ENDING SOON - Processing trial_will_end for subscription: #{subscription_id}",
+    Logger.info(
+      "TRIAL ENDING SOON - Processing trial_will_end for subscription: #{subscription_id}",
       subscription_id: subscription_id,
       trial_end: trial_end
     )
@@ -107,10 +108,11 @@ defmodule Tymeslot.Payments.Webhooks.TrialWillEndHandler do
     Phoenix.PubSub.broadcast(
       Tymeslot.PubSub,
       "user:#{user_id}",
-      {:trial_will_end, %{
-        days_remaining: days_remaining,
-        trial_ends_at: trial_ends_at
-      }}
+      {:trial_will_end,
+       %{
+         days_remaining: days_remaining,
+         trial_ends_at: trial_ends_at
+       }}
     )
   end
 

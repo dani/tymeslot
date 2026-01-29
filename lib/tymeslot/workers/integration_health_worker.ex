@@ -14,7 +14,10 @@ defmodule Tymeslot.Workers.IntegrationHealthWorker do
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"type" => type_str, "integration_id" => integration_id}} = job)
       when is_binary(type_str) and is_integer(integration_id) do
-    Logger.debug("IntegrationHealthWorker performing job", args: inspect(job.args), job_id: job.id)
+    Logger.debug("IntegrationHealthWorker performing job",
+      args: inspect(job.args),
+      job_id: job.id
+    )
 
     case parse_type(type_str) do
       nil ->

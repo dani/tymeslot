@@ -20,7 +20,8 @@ defmodule TymeslotWeb.Components.CoreComponents.Forms do
 
   attr :type, :string,
     default: "text",
-    values: ~w(checkbox color date datetime-local email file month number password range radio search select tel text textarea time url week)
+    values:
+      ~w(checkbox color date datetime-local email file month number password range radio search select tel text textarea time url week)
 
   attr :field, Phoenix.HTML.FormField,
     doc: "a form field struct retrieved from the form, for example: @form[:email]"
@@ -37,7 +38,11 @@ defmodule TymeslotWeb.Components.CoreComponents.Forms do
   attr :validate_on_blur, :boolean, default: false
   attr :class, :string, default: nil
   attr :rows, :integer, default: 4, doc: "the number of rows for textarea inputs"
-  attr :hidden_input, :boolean, default: true, doc: "whether to render a hidden input for checkboxes"
+
+  attr :hidden_input, :boolean,
+    default: true,
+    doc: "whether to render a hidden input for checkboxes"
+
   attr :min, :any
   attr :max, :any
   attr :step, :any

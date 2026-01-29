@@ -38,11 +38,18 @@ defmodule Tymeslot.Payments.Webhooks.StandaloneHandlerTest do
   end
 
   defmodule TestRepo do
-    @spec get_by(any(), any()) :: Tymeslot.Payments.Webhooks.StandaloneHandlerTest.TestSubscriptionSchema
-    def get_by(_schema, _attrs), do: %Tymeslot.Payments.Webhooks.StandaloneHandlerTest.TestSubscriptionSchema{user_id: 123}
+    @spec get_by(any(), any()) ::
+            Tymeslot.Payments.Webhooks.StandaloneHandlerTest.TestSubscriptionSchema
+    def get_by(_schema, _attrs),
+      do: %Tymeslot.Payments.Webhooks.StandaloneHandlerTest.TestSubscriptionSchema{user_id: 123}
 
     @spec get(any(), any()) :: Tymeslot.Payments.Webhooks.StandaloneHandlerTest.TestUser
-    def get(_schema, _id), do: %Tymeslot.Payments.Webhooks.StandaloneHandlerTest.TestUser{id: 123, email: "test@example.com", name: "Test User"}
+    def get(_schema, _id),
+      do: %Tymeslot.Payments.Webhooks.StandaloneHandlerTest.TestUser{
+        id: 123,
+        email: "test@example.com",
+        name: "Test User"
+      }
   end
 
   defp setup_test_configs do
@@ -98,6 +105,7 @@ defmodule Tymeslot.Payments.Webhooks.StandaloneHandlerTest do
   describe "TrialWillEndHandler standalone" do
     test "acknowledges trial ending events in standalone mode" do
       trial_end = DateTime.add(DateTime.utc_now(), 3, :day)
+
       event = %{
         "type" => "customer.subscription.trial_will_end",
         "data" => %{
@@ -109,7 +117,8 @@ defmodule Tymeslot.Payments.Webhooks.StandaloneHandlerTest do
         }
       }
 
-      assert {:ok, :subscription_not_found} = TrialWillEndHandler.process(event, event["data"]["object"])
+      assert {:ok, :subscription_not_found} =
+               TrialWillEndHandler.process(event, event["data"]["object"])
     end
 
     test "rejects trial ending events with invalid timestamps" do
@@ -124,7 +133,8 @@ defmodule Tymeslot.Payments.Webhooks.StandaloneHandlerTest do
         }
       }
 
-      assert {:error, :invalid_timestamp} = TrialWillEndHandler.process(event, event["data"]["object"])
+      assert {:error, :invalid_timestamp} =
+               TrialWillEndHandler.process(event, event["data"]["object"])
     end
 
     test "processes trial ending events when subscription exists" do
@@ -140,6 +150,7 @@ defmodule Tymeslot.Payments.Webhooks.StandaloneHandlerTest do
       end)
 
       trial_end = DateTime.add(DateTime.utc_now(), 2, :day)
+
       event = %{
         "type" => "customer.subscription.trial_will_end",
         "data" => %{
@@ -151,7 +162,8 @@ defmodule Tymeslot.Payments.Webhooks.StandaloneHandlerTest do
         }
       }
 
-      assert {:ok, :trial_ending_notified} = TrialWillEndHandler.process(event, event["data"]["object"])
+      assert {:ok, :trial_ending_notified} =
+               TrialWillEndHandler.process(event, event["data"]["object"])
     end
   end
 

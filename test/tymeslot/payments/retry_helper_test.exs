@@ -18,11 +18,10 @@ defmodule Tymeslot.Payments.RetryHelperTest do
 
     test "retries on network errors" do
       # Simulate network error followed by success
-      agent = Agent.start_link(fn -> 0 end)
-      {:ok, agent_pid} = agent
+      {:ok, agent_pid} = start_counter_agent()
 
       operation = fn ->
-        count = Agent.get_and_update(agent_pid, fn count -> {count, count + 1} end)
+        count = increment_counter(agent_pid)
 
         if count < 2 do
           {:error, %{source: :network}}
@@ -34,16 +33,15 @@ defmodule Tymeslot.Payments.RetryHelperTest do
       assert {:ok, "success"} = RetryHelper.execute_with_retry(operation)
 
       # Should have called 3 times (2 failures + 1 success)
-      assert Agent.get(agent_pid, fn count -> count end) == 3
-      Agent.stop(agent_pid)
+      assert get_counter(agent_pid) == 3
+      stop_counter_agent(agent_pid)
     end
 
     test "retries on 5xx errors" do
-      agent = Agent.start_link(fn -> 0 end)
-      {:ok, agent_pid} = agent
+      {:ok, agent_pid} = start_counter_agent()
 
       operation = fn ->
-        count = Agent.get_and_update(agent_pid, fn count -> {count, count + 1} end)
+        count = increment_counter(agent_pid)
 
         if count < 1 do
           {:error, %{extra: %{http_status: 503}}}
@@ -53,7 +51,7 @@ defmodule Tymeslot.Payments.RetryHelperTest do
       end
 
       assert {:ok, "recovered"} = RetryHelper.execute_with_retry(operation)
-      Agent.stop(agent_pid)
+      stop_counter_agent(agent_pid)
     end
 
     test "does not retry on 4xx errors" do
@@ -63,11 +61,10 @@ defmodule Tymeslot.Payments.RetryHelperTest do
     end
 
     test "respects max_attempts option" do
-      agent = Agent.start_link(fn -> 0 end)
-      {:ok, agent_pid} = agent
+      {:ok, agent_pid} = start_counter_agent()
 
       operation = fn ->
-        Agent.update(agent_pid, &(&1 + 1))
+        increment_counter(agent_pid)
         {:error, %{source: :network}}
       end
 
@@ -75,8 +72,8 @@ defmodule Tymeslot.Payments.RetryHelperTest do
                RetryHelper.execute_with_retry(operation, max_attempts: 2)
 
       # Should have attempted exactly 2 times
-      assert Agent.get(agent_pid, fn count -> count end) == 2
-      Agent.stop(agent_pid)
+      assert get_counter(agent_pid) == 2
+      stop_counter_agent(agent_pid)
     end
 
     test "uses custom retryable error function" do
@@ -85,11 +82,10 @@ defmodule Tymeslot.Payments.RetryHelperTest do
         _ -> false
       end
 
-      agent = Agent.start_link(fn -> 0 end)
-      {:ok, agent_pid} = agent
+      {:ok, agent_pid} = start_counter_agent()
 
       operation = fn ->
-        count = Agent.get_and_update(agent_pid, fn count -> {count, count + 1} end)
+        count = increment_counter(agent_pid)
 
         if count < 1 do
           {:error, :custom_retry}
@@ -101,15 +97,14 @@ defmodule Tymeslot.Payments.RetryHelperTest do
       assert {:ok, "success"} =
                RetryHelper.execute_with_retry(operation, retryable_error?: custom_retryable)
 
-      Agent.stop(agent_pid)
+      stop_counter_agent(agent_pid)
     end
 
     test "handles exceptions and retries" do
-      agent = Agent.start_link(fn -> 0 end)
-      {:ok, agent_pid} = agent
+      {:ok, agent_pid} = start_counter_agent()
 
       operation = fn ->
-        count = Agent.get_and_update(agent_pid, fn count -> {count, count + 1} end)
+        count = increment_counter(agent_pid)
 
         if count < 1 do
           raise RuntimeError, "transient error"
@@ -119,13 +114,14 @@ defmodule Tymeslot.Payments.RetryHelperTest do
       end
 
       assert {:ok, "recovered"} = RetryHelper.execute_with_retry(operation)
-      Agent.stop(agent_pid)
+      stop_counter_agent(agent_pid)
     end
 
     test "returns error after max retries for exceptions" do
       operation = fn -> raise RuntimeError, "persistent error" end
 
-      assert {:error, %RuntimeError{}} = RetryHelper.execute_with_retry(operation, max_attempts: 2)
+      assert {:error, %RuntimeError{}} =
+               RetryHelper.execute_with_retry(operation, max_attempts: 2)
     end
 
     test "respects base_delay_ms option" do
@@ -134,17 +130,22 @@ defmodule Tymeslot.Payments.RetryHelperTest do
 
       operation = fn ->
         # Record timestamp
-        Agent.update(agent_pid, fn timestamps -> [System.monotonic_time(:millisecond) | timestamps] end)
+        Agent.update(agent_pid, fn timestamps ->
+          [System.monotonic_time(:millisecond) | timestamps]
+        end)
+
         {:error, %{source: :network}}
       end
 
       RetryHelper.execute_with_retry(operation, max_attempts: 3, base_delay_ms: 50)
 
-      timestamps = Agent.get(agent_pid, & &1) |> Enum.reverse()
+      timestamps = Enum.reverse(Agent.get(agent_pid, & &1))
 
       # Check delays between attempts (should be ~50ms and ~100ms for linear backoff)
       if length(timestamps) >= 2 do
-        delay1 = Enum.at(timestamps, 1) - Enum.at(timestamps, 0)
+        delay1 =
+          Enum.at(timestamps, 1) -
+            Enum.at(timestamps, 0)
         # Allow some margin for test execution time
         assert delay1 >= 45 and delay1 <= 100
       end
@@ -187,19 +188,36 @@ defmodule Tymeslot.Payments.RetryHelperTest do
   describe "configuration" do
     test "uses default config when not specified" do
       # Default: max_attempts: 3, base_delay_ms: 1000
-      agent = Agent.start_link(fn -> 0 end)
-      {:ok, agent_pid} = agent
+      {:ok, agent_pid} = start_counter_agent()
 
       operation = fn ->
-        Agent.update(agent_pid, &(&1 + 1))
+        increment_counter(agent_pid)
         {:error, %{source: :network}}
       end
 
       RetryHelper.execute_with_retry(operation)
 
       # Should attempt 3 times by default
-      assert Agent.get(agent_pid, fn count -> count end) == 3
-      Agent.stop(agent_pid)
+      assert get_counter(agent_pid) == 3
+      stop_counter_agent(agent_pid)
     end
+  end
+
+  # Helper functions
+
+  defp start_counter_agent do
+    Agent.start_link(fn -> 0 end)
+  end
+
+  defp increment_counter(agent_pid) do
+    Agent.get_and_update(agent_pid, fn count -> {count, count + 1} end)
+  end
+
+  defp get_counter(agent_pid) do
+    Agent.get(agent_pid, fn count -> count end)
+  end
+
+  defp stop_counter_agent(agent_pid) do
+    Agent.stop(agent_pid)
   end
 end

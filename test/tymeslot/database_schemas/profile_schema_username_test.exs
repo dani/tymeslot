@@ -48,14 +48,14 @@ defmodule Tymeslot.Database.ProfileSchemaUsernameTest do
          "must be 3-30 characters long, start with a letter or number, and contain only lowercase letters, numbers, underscores, and hyphens"}
       ]
 
-    for {username, expected_error} <- invalid_usernames do
-      changeset =
-        ProfileSchema.changeset(%ProfileSchema{}, %{username: username, timezone: "Europe/Kyiv"})
+      for {username, expected_error} <- invalid_usernames do
+        changeset =
+          ProfileSchema.changeset(%ProfileSchema{}, %{username: username, timezone: "Europe/Kyiv"})
 
-      refute changeset.valid?, "Username '#{username}' should be invalid"
-      assert expected_error in (errors_on(changeset)[:username] || [])
+        refute changeset.valid?, "Username '#{username}' should be invalid"
+        assert expected_error in (errors_on(changeset)[:username] || [])
+      end
     end
-  end
 
     test "rejects reserved usernames" do
       reserved = [
@@ -95,15 +95,17 @@ defmodule Tymeslot.Database.ProfileSchemaUsernameTest do
         "terms"
       ]
 
-    for username <- reserved do
-      changeset =
-        ProfileSchema.changeset(%ProfileSchema{}, %{username: username, timezone: "Europe/Kyiv"})
+      for username <- reserved do
+        changeset =
+          ProfileSchema.changeset(%ProfileSchema{}, %{username: username, timezone: "Europe/Kyiv"})
 
-      refute changeset.valid?, "Username '#{username}' should be reserved"
-      errors = errors_on(changeset)[:username] || []
-      assert "is reserved" in errors, "Expected 'is reserved' in #{inspect(errors)} for username '#{username}'"
+        refute changeset.valid?, "Username '#{username}' should be reserved"
+        errors = errors_on(changeset)[:username] || []
+
+        assert "is reserved" in errors,
+               "Expected 'is reserved' in #{inspect(errors)} for username '#{username}'"
+      end
     end
-  end
 
     test "username uniqueness constraint" do
       user = insert(:user)

@@ -45,7 +45,11 @@ defmodule Tymeslot.Infrastructure.AdminAlerts do
   end
 
   defp impl do
-    Application.get_env(:tymeslot, :admin_alerts_impl, Tymeslot.Infrastructure.AdminAlerts.Default)
+    Application.get_env(
+      :tymeslot,
+      :admin_alerts_impl,
+      Tymeslot.Infrastructure.AdminAlerts.Default
+    )
   end
 end
 

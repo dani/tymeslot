@@ -166,7 +166,12 @@ defmodule Tymeslot.Integrations.HealthCheck do
   end
 
   defp enqueue_health_check(type, integration_id) do
-    job = IntegrationHealthWorker.new(%{"type" => Atom.to_string(type), "integration_id" => integration_id})
+    job =
+      IntegrationHealthWorker.new(%{
+        "type" => Atom.to_string(type),
+        "integration_id" => integration_id
+      })
+
     result = Oban.insert(job)
 
     case result do
