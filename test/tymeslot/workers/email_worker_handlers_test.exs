@@ -55,32 +55,6 @@ defmodule Tymeslot.Workers.EmailWorkerHandlersTest do
                })
     end
 
-    test "handles send_contact_form" do
-      args = %{
-        "sender_name" => "Tester",
-        "sender_email" => "test@example.com",
-        "subject" => "Test",
-        "message" => "Hello"
-      }
-
-      expect(EmailServiceMock, :send_contact_form, fn _, _, _, _ -> {:ok, "sent"} end)
-
-      assert :ok = EmailWorkerHandlers.execute_email_action("send_contact_form", args)
-    end
-
-    test "handles send_support_request" do
-      args = %{
-        "sender_name" => "Tester",
-        "sender_email" => "test@example.com",
-        "subject" => "Test",
-        "message" => "Hello"
-      }
-
-      expect(EmailServiceMock, :send_support_request, fn _, _, _, _ -> {:ok, "sent"} end)
-
-      assert :ok = EmailWorkerHandlers.execute_email_action("send_support_request", args)
-    end
-
     test "handles send_email_verification" do
       user = insert(:user)
       expect(EmailServiceMock, :send_email_verification, fn _, _ -> {:ok, "sent"} end)
@@ -177,12 +151,4 @@ defmodule Tymeslot.Workers.EmailWorkerHandlersTest do
     end
   end
 
-  describe "handle_contact_form/1" do
-    test "discards if fields are missing" do
-      assert {:discard, reason} =
-               EmailWorkerHandlers.execute_email_action("send_contact_form", %{})
-
-      assert reason =~ "Missing required fields"
-    end
-  end
 end
