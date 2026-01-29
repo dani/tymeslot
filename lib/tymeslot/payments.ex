@@ -5,6 +5,7 @@ defmodule Tymeslot.Payments do
   """
 
   require Logger
+  import Ecto.Query
 
   alias Tymeslot.DatabaseQueries.PaymentQueries
   alias Tymeslot.DatabaseSchemas.PaymentTransactionSchema, as: PaymentTransaction
@@ -423,6 +424,95 @@ defmodule Tymeslot.Payments do
     end
   end
 
+  @doc """
+  Gets abandoned transaction candidates for email reminders.
+  Returns list of {user_id, count} tuples for users with pending transactions
+  older than the configured threshold that haven't received an email yet.
+
+  ## Options
+    * :threshold_seconds - Custom threshold in seconds (defaults to config)
+    * :product_identifiers - List of product identifiers to include
+    * :payment_type - Filter on metadata payment_type (e.g., "subscription")
+
+  ## Returns
+    * `{:ok, [{user_id, count}]}` - List of user IDs and their pending transaction counts
+  """
+  @spec get_abandoned_transaction_candidates(keyword()) :: {:ok, [{pos_integer(), integer()}]}
+  def get_abandoned_transaction_candidates(opts \\ []) do
+    threshold_seconds =
+      Keyword.get(opts, :threshold_seconds) ||
+        Application.get_env(:tymeslot, :abandoned_transaction_threshold_seconds, 600)
+
+    cutoff_time = DateTime.add(DateTime.utc_now(), -threshold_seconds, :second)
+    product_identifiers = Keyword.get(opts, :product_identifiers)
+    payment_type = Keyword.get(opts, :payment_type)
+
+    query =
+      from(t in PaymentTransaction,
+        where: t.status == "pending",
+        where: t.inserted_at < ^cutoff_time,
+        where:
+          fragment(
+            "? ->> 'abandoned_email_sent' IS NULL OR ? ->> 'abandoned_email_sent' = 'false'",
+            t.metadata,
+            t.metadata
+          )
+      )
+
+    query =
+      if product_identifiers do
+        from(t in query, where: t.product_identifier in ^product_identifiers)
+      else
+        query
+      end
+
+    query =
+      if payment_type do
+        from(t in query,
+          where: fragment("? ->> 'payment_type' = ?", t.metadata, ^payment_type)
+        )
+      else
+        query
+      end
+
+    query =
+      from(t in query,
+        group_by: t.user_id,
+        select: {t.user_id, count(t.id)}
+      )
+
+    {:ok, repo().all(query)}
+  end
+
+  @doc """
+  Marks abandoned transaction email as sent for a user's pending transactions.
+
+  ## Parameters
+    * user_id - The ID of the user
+
+  ## Returns
+    * `{count, nil}` - Number of transactions updated
+  """
+  @spec mark_abandoned_transaction_email_sent(pos_integer()) :: {integer(), nil}
+  def mark_abandoned_transaction_email_sent(user_id) do
+    query =
+      from(t in PaymentTransaction,
+        where: t.user_id == ^user_id,
+        where: t.status == "pending",
+        update: [
+          set: [
+            metadata:
+              fragment(
+                "jsonb_set(?, '{abandoned_email_sent}', 'true')",
+                t.metadata
+              )
+          ]
+        ]
+      )
+
+    repo().update_all(query, [])
+  end
+
   defp validate_amount(amount) when is_integer(amount) do
     limits = Application.get_env(:tymeslot, :payment_amount_limits, [])
     min_cents = Keyword.get(limits, :min_cents, 50)
@@ -438,6 +528,10 @@ defmodule Tymeslot.Payments do
   defp validate_amount(_amount), do: {:error, :invalid_amount}
 
   # Private helper functions
+
+  defp repo do
+    Application.get_env(:tymeslot, :repo, Tymeslot.Repo)
+  end
 
   defp subscription_manager do
     Application.get_env(:tymeslot, :subscription_manager)

@@ -69,6 +69,13 @@ config :tymeslot, :oban_queues,
 # Webhook configuration
 config :tymeslot, :webhook_paths, ["/webhooks/stripe"]
 
+# Webhook idempotency cache TTLs
+config :tymeslot, :webhook_idempotency,
+  # How long to reserve an event while processing (prevents duplicate processing)
+  processing_ttl_ms: :timer.minutes(10),
+  # How long to remember a processed event (prevents replay attacks)
+  processed_ttl_ms: :timer.hours(24)
+
 # =============================================================================
 # INTERNATIONALIZATION (I18N) CONFIGURATION
 # =============================================================================
@@ -225,3 +232,29 @@ config :tymeslot, :payment_rate_limits,
 config :tymeslot, :payment_amount_limits,
   min_cents: 50,
   max_cents: 1_000_000_00
+
+# Payment retry configuration
+config :tymeslot, :payment_retry,
+  # Maximum number of retry attempts for transient failures
+  max_attempts: 3,
+  # Base delay between retries in milliseconds
+  base_delay_ms: 1000,
+  # Multiplier for exponential backoff (1 = linear backoff)
+  backoff_multiplier: 1
+
+# Subscription trial configuration
+config :tymeslot,
+  # Default trial period for new subscriptions (in days)
+  trial_period_days: 7
+
+# Refund handling configuration
+config :tymeslot,
+  # Percentage threshold for revoking access after refund (0-100)
+  # Access is revoked only if total refunds >= this percentage of original charge
+  refund_revocation_threshold_percent: 90.0
+
+# Abandoned transaction configuration
+config :tymeslot,
+  # Time threshold in seconds before a pending transaction is considered abandoned
+  # Used for sending reminder emails to users who didn't complete checkout
+  abandoned_transaction_threshold_seconds: 600

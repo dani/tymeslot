@@ -8,9 +8,7 @@ defmodule Tymeslot.Payments.Stripe do
   require Logger
 
   alias Stripe.{Checkout.Session, Customer, Subscription, Webhook}
-
-  @max_retries 3
-  @retry_delay_ms 1000
+  alias Tymeslot.Payments.RetryHelper
 
   @type stripe_result :: {:ok, map()} | {:error, any()}
 
@@ -49,7 +47,7 @@ defmodule Tymeslot.Payments.Stripe do
 
     idempotency_key = generate_idempotency_key("customer_create", email)
 
-    execute_with_retry(fn ->
+    RetryHelper.execute_with_retry(fn ->
       customer_mod().create(customer_params, api_key_opts(idempotency_key))
     end)
   end
@@ -65,7 +63,7 @@ defmodule Tymeslot.Payments.Stripe do
     session_params = build_session_params(customer, amount, transaction, success_url, cancel_url)
     idempotency_key = generate_idempotency_key("session_create", transaction.id)
 
-    execute_with_retry(fn ->
+    RetryHelper.execute_with_retry(fn ->
       session_mod().create(session_params, api_key_opts(idempotency_key))
     end)
   end
@@ -107,6 +105,42 @@ defmodule Tymeslot.Payments.Stripe do
       Application.get_env(:tymeslot, :stripe_secret_key)
   end
 
+  # Finds the subscription item to update
+  # Can either use the subscription_item_id from opts or default to the first item
+  defp find_subscription_item(subscription, opts) do
+    items = Map.get(subscription, :items) || %{data: []}
+
+    subscription_item =
+      if item_id = Map.get(opts, :subscription_item_id) do
+        Enum.find(items.data, fn item -> item.id == item_id end)
+      else
+        List.first(items.data)
+      end
+
+    if subscription_item do
+      {:ok, subscription_item}
+    else
+      Logger.error("No subscription items found for subscription")
+      {:error, :no_subscription_items}
+    end
+  end
+
+  # Updates a subscription item with a new price
+  defp update_subscription_item(subscription_id, subscription_item, new_price_id, idempotency_key) do
+    subscription_mod().update(
+      subscription_id,
+      %{
+        items: [
+          %{
+            id: subscription_item.id,
+            price: new_price_id
+          }
+        ]
+      },
+      api_key_opts(idempotency_key)
+    )
+  end
+
   @doc false
   # Generates an idempotency key for Stripe API calls to prevent duplicate operations
   # Format: <operation>_<identifier>_<timestamp>
@@ -123,45 +157,6 @@ defmodule Tymeslot.Payments.Stripe do
     "#{operation}_#{hashed_id}_#{date}"
   end
 
-  defp execute_with_retry(operation) do
-    if is_nil(stripe_api_key()) do
-      Logger.error("Stripe API key is not configured")
-      {:error, :missing_api_key}
-    else
-      Stream.iterate(1, &(&1 + 1))
-      |> Stream.take(@max_retries)
-      |> Enum.reduce_while({:error, :not_attempted}, fn attempt, _acc ->
-        try do
-          case operation.() do
-            {:ok, result} ->
-              {:halt, {:ok, result}}
-
-            {:error, error} ->
-              if attempt < @max_retries and retryable_error?(error) do
-                Process.sleep(attempt * @retry_delay_ms)
-                {:cont, {:error, :retry}}
-              else
-                log_final_error(error)
-                {:halt, {:error, error}}
-              end
-          end
-        rescue
-          e in [RuntimeError, ErlangError] ->
-            if attempt == @max_retries do
-              log_final_error(e)
-              {:halt, {:error, e}}
-            else
-              Process.sleep(attempt * @retry_delay_ms)
-              {:cont, {:error, :retry}}
-            end
-        end
-      end)
-    end
-  end
-
-  defp retryable_error?(%{source: :network}), do: true
-  defp retryable_error?(%{extra: %{http_status: status}}) when status >= 500, do: true
-  defp retryable_error?(_), do: false
 
   defp build_session_params(customer, amount, transaction, success_url, cancel_url) do
     currency = Application.get_env(:tymeslot, :currency, "eur")
@@ -200,9 +195,6 @@ defmodule Tymeslot.Payments.Stripe do
     }
   end
 
-  defp log_final_error(error) do
-    Logger.error("Stripe operation failed after #{@max_retries} attempts: #{inspect(error)}")
-  end
 
   @doc """
   Creates a Stripe checkout session for subscription processing.
@@ -218,7 +210,7 @@ defmodule Tymeslot.Payments.Stripe do
 
     idempotency_key = generate_idempotency_key("subscription_checkout", request_id)
 
-    execute_with_retry(fn ->
+    RetryHelper.execute_with_retry(fn ->
       session_mod().create(params, api_key_opts(idempotency_key))
     end)
   end
@@ -242,7 +234,7 @@ defmodule Tymeslot.Payments.Stripe do
     operation = if at_period_end, do: "cancel_at_period_end", else: "cancel_now"
     idempotency_key = generate_idempotency_key("subscription_#{operation}", subscription_id)
 
-    execute_with_retry(fn ->
+    RetryHelper.execute_with_retry(fn ->
       if at_period_end do
         subscription_mod().update(subscription_id, params, api_key_opts(idempotency_key))
       else
@@ -262,39 +254,10 @@ defmodule Tymeslot.Payments.Stripe do
     idempotency_key =
       generate_idempotency_key("subscription_update", "#{subscription_id}_#{new_price_id}")
 
-    execute_with_retry(fn ->
-      # First, get the current subscription to get the subscription item ID
-      with {:ok, subscription} <-
-             subscription_mod().retrieve(subscription_id, %{}, api_key_opts()) do
-        # Find the subscription item that represents the main plan
-        # We can pass the subscription_item_id in opts if we have it, otherwise look for the first one
-        items = Map.get(subscription, :items) || %{data: []}
-
-        subscription_item =
-          if item_id = Map.get(opts, :subscription_item_id) do
-            Enum.find(items.data, fn item -> item.id == item_id end)
-          else
-            List.first(items.data)
-          end
-
-        if subscription_item do
-          # Update the subscription item with the new price
-          subscription_mod().update(
-            subscription_id,
-            %{
-              items: [
-                %{
-                  id: subscription_item.id,
-                  price: new_price_id
-                }
-              ]
-            },
-            api_key_opts(idempotency_key)
-          )
-        else
-          Logger.error("No subscription items found for subscription: #{subscription_id}")
-          {:error, :no_subscription_items}
-        end
+    RetryHelper.execute_with_retry(fn ->
+      with {:ok, subscription} <- subscription_mod().retrieve(subscription_id, %{}, api_key_opts()),
+           {:ok, subscription_item} <- find_subscription_item(subscription, opts) do
+        update_subscription_item(subscription_id, subscription_item, new_price_id, idempotency_key)
       end
     end)
   end
@@ -306,7 +269,7 @@ defmodule Tymeslot.Payments.Stripe do
   def get_subscription(subscription_id) when is_binary(subscription_id) do
     Logger.info("Retrieving Stripe subscription: #{subscription_id}")
 
-    execute_with_retry(fn ->
+    RetryHelper.execute_with_retry(fn ->
       subscription_mod().retrieve(subscription_id, %{}, api_key_opts())
     end)
   end
@@ -318,7 +281,7 @@ defmodule Tymeslot.Payments.Stripe do
   def get_charge(charge_id) when is_binary(charge_id) do
     Logger.info("Retrieving Stripe charge: #{charge_id}")
 
-    execute_with_retry(fn ->
+    RetryHelper.execute_with_retry(fn ->
       charge_mod().retrieve(charge_id, %{}, api_key_opts())
     end)
   end

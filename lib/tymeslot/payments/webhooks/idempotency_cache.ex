@@ -8,11 +8,8 @@ defmodule Tymeslot.Payments.Webhooks.IdempotencyCache do
 
   use CacheStore,
     table_name: :webhook_idempotency_cache,
-    default_ttl: :timer.hours(24),
+    default_ttl: get_in(Application.compile_env(:tymeslot, :webhook_idempotency, []), [:processed_ttl_ms]) || :timer.hours(24),
     cleanup_interval: :timer.hours(1)
-
-  @processing_ttl :timer.minutes(10)
-  @processed_ttl :timer.hours(24)
 
   @doc """
   Check if an event has already been processed.
@@ -38,7 +35,7 @@ defmodule Tymeslot.Payments.Webhooks.IdempotencyCache do
   @spec reserve(String.t()) :: {:ok, :reserved | :in_progress | :already_processed}
   def reserve(event_id) do
     now = System.monotonic_time(:millisecond)
-    expiry = now + @processing_ttl
+    expiry = now + processing_ttl()
 
     case :ets.insert_new(:webhook_idempotency_cache, {event_id, :processing, expiry}) do
       true ->
@@ -70,8 +67,8 @@ defmodule Tymeslot.Payments.Webhooks.IdempotencyCache do
   """
   @spec mark_processed(String.t()) :: :ok
   def mark_processed(event_id) do
-    # Mark as processed with a 24-hour TTL
-    put(event_id, :processed, @processed_ttl)
+    # Mark as processed with configured TTL (default 24 hours)
+    put(event_id, :processed, processed_ttl())
   end
 
   @doc """
@@ -90,5 +87,17 @@ defmodule Tymeslot.Payments.Webhooks.IdempotencyCache do
       [{^event_id, value, expiry}] when expiry > now -> {:ok, value}
       _ -> :miss
     end
+  end
+
+  # Configuration helpers
+
+  defp processing_ttl do
+    get_in(Application.get_env(:tymeslot, :webhook_idempotency, []), [:processing_ttl_ms]) ||
+      :timer.minutes(10)
+  end
+
+  defp processed_ttl do
+    get_in(Application.get_env(:tymeslot, :webhook_idempotency, []), [:processed_ttl_ms]) ||
+      :timer.hours(24)
   end
 end
