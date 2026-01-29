@@ -5,6 +5,18 @@ defmodule Tymeslot.Payments.Webhooks.RefundHandler do
   CRITICAL: This handler protects revenue by revoking Pro access when refunds are issued.
   Without this handler, users could receive refunds while keeping Pro access indefinitely.
 
+  ## Partial Refund Handling
+
+  The handler now supports proper partial refund handling:
+  - Calculates total refunded amount across all refunds for a charge
+  - Only revokes access when total refunds exceed a configurable threshold
+  - Default threshold: 90% of the original charge amount
+  - Prevents unfair subscription cancellations for small partial refunds
+
+  ## Configuration
+
+      config :tymeslot, :refund_revocation_threshold_percent, 90
+
   Events handled:
   - charge.refunded: Refund has been issued
   - charge.refund.updated: Refund status changed
@@ -15,6 +27,7 @@ defmodule Tymeslot.Payments.Webhooks.RefundHandler do
   require Logger
 
   alias Tymeslot.Infrastructure.AdminAlerts
+  alias Tymeslot.Payments.CustomerLookup
   alias Tymeslot.Payments.Webhooks.WebhookUtils
 
   @impl true
@@ -49,13 +62,16 @@ defmodule Tymeslot.Payments.Webhooks.RefundHandler do
 
   defp handle_refunded(event, charge) do
     charge_id = charge["id"]
-    refund_amount = get_refund_amount(charge)
+    charge_amount = get_charge_amount(charge)
+    total_refunded = calculate_total_refunded(charge)
     customer_id = charge["customer"]
 
-    Logger.info("REFUND RECEIVED - Processing refund for charge: #{charge_id}, amount: #{refund_amount}",
+    Logger.info("REFUND RECEIVED - Processing refund for charge: #{charge_id}, total refunded: #{total_refunded}/#{charge_amount}",
       charge_id: charge_id,
       customer_id: customer_id,
-      amount: refund_amount,
+      total_refunded: total_refunded,
+      charge_amount: charge_amount,
+      refund_percentage: calculate_refund_percentage(total_refunded, charge_amount),
       stripe_event_id: event["id"]
     )
 
@@ -64,11 +80,13 @@ defmodule Tymeslot.Payments.Webhooks.RefundHandler do
       event_id: event["id"],
       charge_id: charge_id,
       customer_id: customer_id,
-      refund_amount: refund_amount
+      total_refunded: total_refunded,
+      charge_amount: charge_amount,
+      refund_percentage: calculate_refund_percentage(total_refunded, charge_amount)
     })
 
     # Find the subscription by Stripe customer ID for local notifications
-    case find_subscription_by_customer(customer_id) do
+    case CustomerLookup.get_subscription_by_customer_id(customer_id) do
       nil ->
         Logger.warning("REFUND UNLINKED - No subscription found for customer #{customer_id}",
           charge_id: charge_id,
@@ -79,31 +97,57 @@ defmodule Tymeslot.Payments.Webhooks.RefundHandler do
         AdminAlerts.send_alert(:unlinked_refund, %{
           charge_id: charge_id,
           customer_id: customer_id,
-          amount: refund_amount
+          total_refunded: total_refunded,
+          charge_amount: charge_amount
         })
 
         {:ok, :refund_logged}
 
       subscription ->
-        with :ok <- ensure_revoked_access(subscription, charge_id, customer_id) do
-          # Alert admin about processed refund
-          AdminAlerts.send_alert(
-            :refund_processed,
-            %{
+        # Check if refund exceeds threshold before revoking access
+        should_revoke = should_revoke_access?(total_refunded, charge_amount)
+
+        result =
+          if should_revoke do
+            ensure_revoked_access(subscription, charge_id, customer_id, total_refunded, charge_amount)
+          else
+            Logger.info("REFUND BELOW THRESHOLD - Not revoking access for user #{subscription.user_id}",
               user_id: subscription.user_id,
               charge_id: charge_id,
-              amount: refund_amount
-            },
-            level: :info
-          )
+              total_refunded: total_refunded,
+              charge_amount: charge_amount,
+              refund_percentage: calculate_refund_percentage(total_refunded, charge_amount),
+              threshold: refund_revocation_threshold_percent()
+            )
 
-          # Send email notification to user
-          send_refund_email(subscription, refund_amount)
+            :ok
+          end
 
-          # Broadcast event for real-time UI updates
-          broadcast_refund_event(subscription.user_id, event["id"])
+        case result do
+          :ok ->
+            # Alert admin about processed refund
+            AdminAlerts.send_alert(
+              :refund_processed,
+              %{
+                user_id: subscription.user_id,
+                charge_id: charge_id,
+                total_refunded: total_refunded,
+                charge_amount: charge_amount,
+                access_revoked: should_revoke
+              },
+              level: :info
+            )
 
-          {:ok, :refund_processed}
+            # Send email notification to user
+            send_refund_email(subscription, total_refunded, should_revoke)
+
+            # Broadcast event for real-time UI updates
+            broadcast_refund_event(subscription.user_id, event["id"], should_revoke)
+
+            {:ok, :refund_processed}
+
+          error ->
+            error
         end
     end
   end
@@ -119,37 +163,80 @@ defmodule Tymeslot.Payments.Webhooks.RefundHandler do
     {:ok, :refund_status_updated}
   end
 
-  defp find_subscription_by_customer(stripe_customer_id) do
-    # This is a bit of a leak, but we're just checking existence/user_id
-    # We use the repo directly if available, otherwise we skip
-    repo = Application.get_env(:tymeslot, :repo, Tymeslot.Repo)
-    subscription_schema = Application.get_env(:tymeslot, :subscription_schema)
+  # Calculates the total amount refunded across all refunds for a charge.
+  # Handles both Stripe's expanded refunds list and the amount_refunded summary field.
+  # Made public for testing purposes but should be considered internal API.
+  @doc false
+  @spec calculate_total_refunded(map()) :: non_neg_integer()
+  def calculate_total_refunded(charge) do
+    # First try to get from amount_refunded (most reliable)
+    case Map.get(charge, "amount_refunded") || Map.get(charge, :amount_refunded) do
+      amount when is_integer(amount) and amount > 0 ->
+        amount
 
-    if subscription_schema && Code.ensure_loaded?(subscription_schema) do
-      repo.get_by(subscription_schema, stripe_customer_id: stripe_customer_id)
-    else
-      nil
+      _ ->
+        # Fall back to summing individual refunds
+        refunds = get_in(charge, ["refunds", "data"]) || get_in(charge, [:refunds, :data]) || []
+
+        refunds
+        |> Enum.map(fn refund ->
+          refund["amount"] || refund[:amount] || 0
+        end)
+        |> Enum.sum()
     end
   end
 
-  defp get_refund_amount(charge) do
-    refunds = get_in(charge, ["refunds", "data"]) || get_in(charge, [:refunds, :data])
-
-    case refunds do
-      [refund | _] -> refund["amount"] || refund[:amount]
-      _ -> Map.get(charge, "amount_refunded") || Map.get(charge, :amount_refunded) || 0
-    end
+  # Gets the original charge amount.
+  # Made public for testing purposes but should be considered internal API.
+  @doc false
+  @spec get_charge_amount(map()) :: non_neg_integer()
+  def get_charge_amount(charge) do
+    Map.get(charge, "amount") || Map.get(charge, :amount) || 0
   end
 
-  defp broadcast_refund_event(user_id, event_id) do
+  # Calculates the refund percentage.
+  # Made public for testing purposes but should be considered internal API.
+  @doc false
+  @spec calculate_refund_percentage(non_neg_integer(), non_neg_integer()) :: float()
+  def calculate_refund_percentage(_refunded, 0), do: 0.0
+
+  def calculate_refund_percentage(refunded, charge_amount) do
+    (refunded / charge_amount * 100.0)
+    |> Float.round(2)
+  end
+
+  # Determines if access should be revoked based on refund threshold.
+  # Access is revoked if total refunded amount exceeds the configured threshold
+  # percentage of the original charge amount.
+  # Made public for testing purposes but should be considered internal API.
+  @doc false
+  @spec should_revoke_access?(non_neg_integer(), non_neg_integer()) :: boolean()
+  def should_revoke_access?(_refunded, 0), do: false
+
+  def should_revoke_access?(refunded, charge_amount) do
+    threshold_percent = refund_revocation_threshold_percent()
+    refund_percent = calculate_refund_percentage(refunded, charge_amount)
+
+    refund_percent >= threshold_percent
+  end
+
+  # Gets the refund revocation threshold percentage from config.
+  # Made public for testing purposes but should be considered internal API.
+  @doc false
+  @spec refund_revocation_threshold_percent() :: float()
+  def refund_revocation_threshold_percent do
+    Application.get_env(:tymeslot, :refund_revocation_threshold_percent, 90.0)
+  end
+
+  defp broadcast_refund_event(user_id, event_id, access_revoked) do
     Phoenix.PubSub.broadcast(
       Tymeslot.PubSub,
       "user:#{user_id}",
-      {:refund_processed, %{event_id: event_id}}
+      {:refund_processed, %{event_id: event_id, access_revoked: access_revoked}}
     )
   end
 
-  defp send_refund_email(subscription, refund_amount_cents) do
+  defp send_refund_email(subscription, refund_amount_cents, _access_revoked) do
     WebhookUtils.deliver_user_email(
       subscription.user_id,
       :refund_processed_template,
@@ -175,13 +262,16 @@ defmodule Tymeslot.Payments.Webhooks.RefundHandler do
     Application.get_env(:tymeslot, :subscription_manager)
   end
 
-  defp ensure_revoked_access(subscription, charge_id, customer_id) do
+  defp ensure_revoked_access(subscription, charge_id, customer_id, total_refunded, charge_amount) do
     case revoke_subscription_access(customer_id) do
       {:ok, _} ->
         Logger.info("REFUND PROCESSED - Revoked Pro access for user #{subscription.user_id}",
           user_id: subscription.user_id,
           charge_id: charge_id,
-          customer_id: customer_id
+          customer_id: customer_id,
+          total_refunded: total_refunded,
+          charge_amount: charge_amount,
+          refund_percentage: calculate_refund_percentage(total_refunded, charge_amount)
         )
 
         :ok

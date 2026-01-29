@@ -8,6 +8,7 @@ defmodule Tymeslot.Payments.Webhooks.CheckoutSessionHandler do
   alias DBConnection.ConnectionError
   alias Stripe.Error, as: StripeError
   alias Tymeslot.Payments
+  alias Tymeslot.Payments.TaxExtractor
 
   @impl true
   def can_handle?(event_type), do: event_type == "checkout.session.completed"
@@ -39,7 +40,7 @@ defmodule Tymeslot.Payments.Webhooks.CheckoutSessionHandler do
 
   defp handle_payment_completion(session) do
     session_id = session["id"]
-    tax_info = extract_tax_info(session)
+    tax_info = TaxExtractor.extract_tax_info(session)
 
     case Payments.process_successful_payment(session_id, tax_info) do
       {:ok, :payment_processed} ->
@@ -82,70 +83,6 @@ defmodule Tymeslot.Payments.Webhooks.CheckoutSessionHandler do
       Logger.error("Subscription manager not configured for subscription completion")
       {:error, :subscriptions_not_supported, "Subscription manager not configured"}
     end
-  end
-
-  defp extract_tax_info(session) do
-    # Stripe sends tax amounts in cents, ensure it's an integer
-    raw_tax_amount = get_in(session, ["total_details", "amount_tax"])
-
-    tax_amount =
-      case raw_tax_amount do
-        nil ->
-          0
-
-        amount when is_integer(amount) ->
-          amount
-
-        amount when is_binary(amount) ->
-          case Integer.parse(amount) do
-            {parsed, _} -> parsed
-            :error -> 0
-          end
-
-        _ ->
-          0
-      end
-
-    %{
-      tax_amount: tax_amount,
-      country_code: get_in(session, ["customer_details", "address", "country"]),
-      tax_id: extract_tax_id(session),
-      is_eu_business: eu_business?(session),
-      billing_address: get_in(session, ["customer_details", "address"])
-    }
-  end
-
-  defp extract_tax_id(session) do
-    case get_in(session, ["customer_details", "tax_ids"]) do
-      tax_ids when is_list(tax_ids) and tax_ids != [] ->
-        tax_ids |> List.first() |> Map.get("value", nil)
-
-      _ ->
-        nil
-    end
-  end
-
-  @spec eu_business?(map()) :: boolean()
-  defp eu_business?(session) do
-    tax_ids = get_in(session, ["customer_details", "tax_ids"]) || []
-    country = get_in(session, ["customer_details", "address", "country"])
-
-    has_eu_vat =
-      Enum.any?(tax_ids, fn
-        %{"type" => "eu_vat"} -> true
-        _ -> false
-      end)
-
-    has_eu_vat and country != nil and country in eu_country_codes()
-  end
-
-  @spec eu_country_codes() :: [String.t()]
-  defp eu_country_codes do
-    Application.get_env(
-      :tymeslot,
-      :eu_country_codes,
-      ~w(AT BE BG HR CY CZ DK EE FI FR DE GR HU IE IT LV LT LU MT NL PL PT RO SK SI ES SE)
-    )
   end
 
   defp handle_retryable_error(error, session_id) do
