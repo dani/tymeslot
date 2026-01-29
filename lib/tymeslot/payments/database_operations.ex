@@ -167,9 +167,6 @@ defmodule Tymeslot.Payments.DatabaseOperations do
         else
           {:error, changeset}
         end
-
-      {:error, reason} ->
-        {:error, reason}
     end
   end
 

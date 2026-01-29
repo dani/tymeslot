@@ -89,7 +89,9 @@ defmodule Tymeslot.Payments.Stripe do
 
   defp api_key_opts(idempotency_key \\ nil) do
     case stripe_api_key() do
-      nil -> throw({:error, :missing_api_key})
+      nil ->
+        throw({:error, :missing_api_key})
+
       key ->
         base_opts = [api_key: key]
 
@@ -331,7 +333,10 @@ defmodule Tymeslot.Payments.Stripe do
     Logger.info("Creating Stripe billing portal session for customer: #{customer_id}")
 
     RetryHelper.execute_with_retry(fn ->
-      BillingPortal.Session.create(%{customer: customer_id, return_url: return_url}, api_key_opts())
+      BillingPortal.Session.create(
+        %{customer: customer_id, return_url: return_url},
+        api_key_opts()
+      )
     end)
   end
 end

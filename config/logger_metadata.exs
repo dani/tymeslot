@@ -220,5 +220,7 @@ config :logger, :console,
     :params,
     :stripe_subscription_id,
     :expected_user_id,
-    :actual_user_id
+    :actual_user_id,
+    :setup_intent_id,
+    :payment_method_id
   ]

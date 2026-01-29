@@ -15,8 +15,8 @@ defmodule Tymeslot.Payments.Webhooks.TrialWillEndHandler do
 
   require Logger
 
-  alias Tymeslot.Payments.Webhooks.WebhookUtils
   alias Tymeslot.Payments.Config
+  alias Tymeslot.Payments.Webhooks.WebhookUtils
 
   @impl true
   def can_handle?("customer.subscription.trial_will_end"), do: true

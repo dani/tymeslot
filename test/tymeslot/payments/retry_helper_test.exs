@@ -146,6 +146,7 @@ defmodule Tymeslot.Payments.RetryHelperTest do
         delay1 =
           Enum.at(timestamps, 1) -
             Enum.at(timestamps, 0)
+
         # Allow some margin for test execution time
         assert delay1 >= 45 and delay1 <= 100
       end

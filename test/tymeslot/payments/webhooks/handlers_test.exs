@@ -1,7 +1,17 @@
 defmodule Tymeslot.Payments.Webhooks.HandlersTest do
   use Tymeslot.DataCase, async: true
 
-  alias Tymeslot.Payments.Webhooks.{ChargeHandler, CheckoutSessionHandler, CheckoutSessionExpiredHandler, CustomerHandler, PaymentIntentHandler}
+  alias Tymeslot.Payments.Webhooks.{
+    ChargeHandler,
+    CheckoutSessionExpiredHandler,
+    CheckoutSessionHandler,
+    CustomerHandler,
+    PaymentIntentHandler
+  }
+  alias Tymeslot.DatabaseSchemas.PaymentTransactionSchema
+  alias Tymeslot.Factory
+  alias Tymeslot.Repo
+
   import Mox
 
   setup :set_mox_from_context
@@ -19,11 +29,13 @@ defmodule Tymeslot.Payments.Webhooks.HandlersTest do
     end
 
     test "process/2 logs and returns success for charge.succeeded" do
-      assert {:ok, :charge_logged} = ChargeHandler.process(%{type: "charge.succeeded"}, %{"id" => "ch_123"})
+      assert {:ok, :charge_logged} =
+               ChargeHandler.process(%{type: "charge.succeeded"}, %{"id" => "ch_123"})
     end
 
     test "process/2 logs and returns success for charge.failed" do
-      assert {:ok, :charge_failed_logged} = ChargeHandler.process(%{type: "charge.failed"}, %{"id" => "ch_123"})
+      assert {:ok, :charge_failed_logged} =
+               ChargeHandler.process(%{type: "charge.failed"}, %{"id" => "ch_123"})
     end
   end
 
@@ -40,7 +52,8 @@ defmodule Tymeslot.Payments.Webhooks.HandlersTest do
     end
 
     test "process/2 returns success for customer.created" do
-      assert {:ok, :customer_created} = CustomerHandler.process(%{type: "customer.created"}, %{"id" => "cus_123"})
+      assert {:ok, :customer_created} =
+               CustomerHandler.process(%{type: "customer.created"}, %{"id" => "cus_123"})
     end
   end
 
@@ -56,11 +69,15 @@ defmodule Tymeslot.Payments.Webhooks.HandlersTest do
     end
 
     test "process/2 returns success for payment_intent.succeeded" do
-      assert {:ok, :payment_intent_logged} = PaymentIntentHandler.process(%{type: "payment_intent.succeeded"}, %{"id" => "pi_123"})
+      assert {:ok, :payment_intent_logged} =
+               PaymentIntentHandler.process(%{type: "payment_intent.succeeded"}, %{
+                 "id" => "pi_123"
+               })
     end
 
     test "process/2 returns success for payment_intent.created" do
-      assert {:ok, :payment_intent_logged} = PaymentIntentHandler.process(%{type: "payment_intent.created"}, %{"id" => "pi_123"})
+      assert {:ok, :payment_intent_logged} =
+               PaymentIntentHandler.process(%{type: "payment_intent.created"}, %{"id" => "pi_123"})
     end
   end
 
@@ -73,57 +90,64 @@ defmodule Tymeslot.Payments.Webhooks.HandlersTest do
     test "validate/1 checks for id" do
       assert CheckoutSessionHandler.validate(%{"id" => "cs_123"}) == :ok
       assert {:error, :missing_field, "Session ID missing"} = CheckoutSessionHandler.validate(%{})
-      assert {:error, :missing_field, "Session ID empty"} = CheckoutSessionHandler.validate(%{"id" => ""})
+
+      assert {:error, :missing_field, "Session ID empty"} =
+               CheckoutSessionHandler.validate(%{"id" => ""})
     end
 
     test "process/2 handles payment mode" do
       session = %{"id" => "cs_123", "mode" => "payment"}
-      
+
       # We need to mock Tymeslot.Payments.process_successful_payment indirectly
       # or just mock the stripe provider it uses.
       # Actually CheckoutSessionHandler calls Tymeslot.Payments.process_successful_payment
       # which calls Config.stripe_provider().verify_session(stripe_id)
-      
+
       Application.put_env(:tymeslot, :stripe_provider, Tymeslot.Payments.StripeMock)
-      
+
       expect(Tymeslot.Payments.StripeMock, :verify_session, fn "cs_123" ->
         {:ok, %{id: "cs_123"}}
       end)
-      
+
       # It also calls DatabaseOperations.process_successful_payment
       # which we can't easily mock as it's not a behaviour.
       # But we can use the real one if we have a transaction in the DB.
-      
-      user = Tymeslot.Factory.insert(:user)
-      Tymeslot.Factory.insert(:payment_transaction, 
-        user: user, 
-        stripe_id: "cs_123", 
+
+      user = Factory.insert(:user)
+
+      Factory.insert(:payment_transaction,
+        user: user,
+        stripe_id: "cs_123",
         status: "pending"
       )
-      
-      assert {:ok, :payment_processed} = CheckoutSessionHandler.process(%{type: "checkout.session.completed"}, session)
+
+      assert {:ok, :payment_processed} =
+               CheckoutSessionHandler.process(%{type: "checkout.session.completed"}, session)
     end
 
     test "process/2 handles subscription mode" do
       session = %{"id" => "cs_123", "mode" => "subscription"}
-      
+
       # Mock subscription manager
       defmodule MockSubManager do
+        @spec handle_checkout_completed(map()) :: {:ok, map()}
         def handle_checkout_completed(_session), do: {:ok, %{}}
       end
-      
+
       Application.put_env(:tymeslot, :subscription_manager, MockSubManager)
-      
-      assert {:ok, :subscription_processed} = CheckoutSessionHandler.process(%{type: "checkout.session.completed"}, session)
-      
+
+      assert {:ok, :subscription_processed} =
+               CheckoutSessionHandler.process(%{type: "checkout.session.completed"}, session)
+
       Application.delete_env(:tymeslot, :subscription_manager)
     end
 
     test "process/2 returns error when subscription manager is missing" do
       session = %{"id" => "cs_123", "mode" => "subscription"}
       Application.delete_env(:tymeslot, :subscription_manager)
-      
-      assert {:error, :subscriptions_not_supported, _} = CheckoutSessionHandler.process(%{type: "checkout.session.completed"}, session)
+
+      assert {:error, :subscriptions_not_supported, _} =
+               CheckoutSessionHandler.process(%{type: "checkout.session.completed"}, session)
     end
   end
 
@@ -135,18 +159,33 @@ defmodule Tymeslot.Payments.Webhooks.HandlersTest do
 
     test "validate/1 checks for id" do
       assert CheckoutSessionExpiredHandler.validate(%{"id" => "cs_123"}) == :ok
-      assert {:error, :missing_field, "Session ID missing"} = CheckoutSessionExpiredHandler.validate(%{})
-      assert {:error, :missing_field, "Session ID empty"} = CheckoutSessionExpiredHandler.validate(%{"id" => ""})
+
+      assert {:error, :missing_field, "Session ID missing"} =
+               CheckoutSessionExpiredHandler.validate(%{})
+
+      assert {:error, :missing_field, "Session ID empty"} =
+               CheckoutSessionExpiredHandler.validate(%{"id" => ""})
     end
 
     test "process/2 handles expired session" do
-      user = Tymeslot.Factory.insert(:user)
-      Tymeslot.Factory.insert(:payment_transaction, user: user, stripe_id: "cs_expired", status: "pending")
-      
+      user = Factory.insert(:user)
+
+      Factory.insert(:payment_transaction,
+        user: user,
+        stripe_id: "cs_expired",
+        status: "pending"
+      )
+
       session = %{"id" => "cs_expired"}
-      assert {:ok, :event_processed} = CheckoutSessionExpiredHandler.process(%{type: "checkout.session.expired"}, session)
-      
-      tx = Tymeslot.Repo.get_by(Tymeslot.DatabaseSchemas.PaymentTransactionSchema, stripe_id: "cs_expired")
+
+      assert {:ok, :event_processed} =
+               CheckoutSessionExpiredHandler.process(%{type: "checkout.session.expired"}, session)
+
+      tx =
+        Repo.get_by(PaymentTransactionSchema,
+          stripe_id: "cs_expired"
+        )
+
       assert tx.status == "failed"
     end
 
@@ -154,7 +193,8 @@ defmodule Tymeslot.Payments.Webhooks.HandlersTest do
       session = %{"id" => "cs_not_found"}
       # Handler returns :event_processed even when transaction is not found
       # (process_failed_payment returns {:ok, :transaction_not_found} which is treated as success)
-      assert {:ok, :event_processed} = CheckoutSessionExpiredHandler.process(%{type: "checkout.session.expired"}, session)
+      assert {:ok, :event_processed} =
+               CheckoutSessionExpiredHandler.process(%{type: "checkout.session.expired"}, session)
     end
   end
 end

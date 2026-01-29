@@ -38,11 +38,12 @@ defmodule Tymeslot.Payments.PricingTest do
   describe "pricing constants" do
     setup do
       old_pricing = Application.get_env(:tymeslot, :pricing)
-      Application.put_env(:tymeslot, :pricing, [pro_monthly_cents: 1500, pro_annual_cents: 14400])
-      
+      Application.put_env(:tymeslot, :pricing, pro_monthly_cents: 1500, pro_annual_cents: 14_400)
+
       on_exit(fn ->
         if old_pricing, do: Application.put_env(:tymeslot, :pricing, old_pricing)
       end)
+
       :ok
     end
 
@@ -51,7 +52,7 @@ defmodule Tymeslot.Payments.PricingTest do
     end
 
     test "pro_annual_cents/0 returns configured value" do
-      assert Pricing.pro_annual_cents() == 14400
+      assert Pricing.pro_annual_cents() == 14_400
     end
 
     test "annual_savings_cents/0 calculates savings correctly" do

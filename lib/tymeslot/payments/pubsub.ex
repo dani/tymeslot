@@ -88,33 +88,33 @@ defmodule Tymeslot.Payments.PubSub do
   def broadcast_subscription_event(event_data) do
     topic = "payment_events:tymeslot"
 
-      case broadcast(topic, event_data) do
-        :ok ->
-          :ok
+    case broadcast(topic, event_data) do
+      :ok ->
+        :ok
 
-        {:error, reason} ->
-          user_id = Map.get(event_data, :user_id)
-          event_type = Map.get(event_data, :event)
+      {:error, reason} ->
+        user_id = Map.get(event_data, :user_id)
+        event_type = Map.get(event_data, :event)
 
-          Logger.error("PubSub broadcast failed for subscription_event",
-            event: event_type,
+        Logger.error("PubSub broadcast failed for subscription_event",
+          event: event_type,
+          user_id: user_id,
+          reason: inspect(reason)
+        )
+
+        AdminAlerts.send_alert(
+          :pubsub_broadcast_failed,
+          %{
+            event: :subscription_event,
+            event_type: event_type,
             user_id: user_id,
-            reason: inspect(reason)
-          )
+            reason: reason
+          },
+          level: :error
+        )
 
-          AdminAlerts.send_alert(
-            :pubsub_broadcast_failed,
-            %{
-              event: :subscription_event,
-              event_type: event_type,
-              user_id: user_id,
-              reason: reason
-            },
-            level: :error
-          )
-
-          :ok
-      end
+        :ok
+    end
   end
 
   @doc """
@@ -228,7 +228,10 @@ defmodule Tymeslot.Payments.PubSub do
 
       case PubSub.broadcast(pubsub_server, "payment:subscription_successful", message) do
         :ok ->
-          Logger.info("Broadcasted subscription_successful event for user_id=#{transaction.user_id}")
+          Logger.info(
+            "Broadcasted subscription_successful event for user_id=#{transaction.user_id}"
+          )
+
           :ok
 
         {:error, reason} ->
