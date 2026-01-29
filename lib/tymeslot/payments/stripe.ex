@@ -88,22 +88,22 @@ defmodule Tymeslot.Payments.Stripe do
   # Private functions
 
   defp api_key_opts(idempotency_key \\ nil) do
-    base_opts =
-      case stripe_api_key() do
-        nil -> []
-        key -> [api_key: key]
-      end
+    case stripe_api_key() do
+      nil -> throw({:error, :missing_api_key})
+      key ->
+        base_opts = [api_key: key]
 
-    if idempotency_key do
-      Keyword.put(base_opts, :idempotency_key, idempotency_key)
-    else
-      base_opts
+        if idempotency_key do
+          Keyword.put(base_opts, :idempotency_key, idempotency_key)
+        else
+          base_opts
+        end
     end
   end
 
   defp stripe_api_key do
-    Application.get_env(:stripity_stripe, :api_key) ||
-      Application.get_env(:tymeslot, :stripe_secret_key)
+    Application.get_env(:tymeslot, :stripe_secret_key) ||
+      Application.get_env(:stripity_stripe, :api_key)
   end
 
   # Finds the subscription item to update

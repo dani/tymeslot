@@ -105,7 +105,7 @@ defmodule Tymeslot.Infrastructure.CacheStore do
         {:noreply, state}
       end
 
-      defoverridable init: 1, handle_info: 2
+      defoverridable init: 1, handle_info: 2, clear_all: 0
     end
   end
 

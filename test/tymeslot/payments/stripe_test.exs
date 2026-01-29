@@ -36,7 +36,7 @@ defmodule Tymeslot.Payments.StripeTest do
 
       expect(StripeCustomerMock, :create, fn params, opts ->
         assert params.email == email
-        assert opts == [api_key: "sk_test_fake"]
+        assert opts[:api_key] == "sk_test_fake"
         {:ok, %{id: "cus_123", email: email}}
       end)
 

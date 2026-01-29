@@ -1,5 +1,5 @@
 defmodule Tymeslot.Payments.Webhooks.IdempotencyCacheTest do
-  use Tymeslot.DataCase, async: true
+  use Tymeslot.DataCase, async: false
 
   alias Tymeslot.Payments.Webhooks.IdempotencyCache
 

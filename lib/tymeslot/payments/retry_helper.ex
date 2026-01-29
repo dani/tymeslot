@@ -89,6 +89,20 @@ defmodule Tymeslot.Payments.RetryHelper do
         retryable_fn,
         operation
       )
+  catch
+    {:error, _} = error ->
+      error
+
+    error ->
+      handle_exception(
+        error,
+        attempt,
+        max_attempts,
+        base_delay_ms,
+        backoff_multiplier,
+        retryable_fn,
+        operation
+      )
   end
 
   defp handle_error(

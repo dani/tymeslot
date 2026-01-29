@@ -11,6 +11,8 @@ defmodule Tymeslot.Payments.Webhooks.IdempotencyCache do
   alias Tymeslot.DatabaseSchemas.WebhookEventSchema, as: WebhookEvent
   alias Tymeslot.Infrastructure.CacheStore
 
+  import Ecto.Query
+
   use CacheStore,
     table_name: :webhook_idempotency_cache,
     default_ttl:
@@ -86,6 +88,20 @@ defmodule Tymeslot.Payments.Webhooks.IdempotencyCache do
 
     # Also store in database for long-term deduplication
     store_in_database(event_id, event_type)
+    :ok
+  end
+
+  @doc """
+  Clear all cached events and database records.
+  """
+  @spec clear_all() :: :ok
+  def clear_all do
+    # Clear ETS cache first
+    :ets.delete_all_objects(:webhook_idempotency_cache)
+
+    # Clear database using configured repo (respects test environment)
+    query = from(w in WebhookEvent)
+    repo().delete_all(query)
     :ok
   end
 
