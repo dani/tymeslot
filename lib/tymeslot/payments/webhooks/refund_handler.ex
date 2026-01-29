@@ -261,7 +261,8 @@ defmodule Tymeslot.Payments.Webhooks.RefundHandler do
     if manager && Code.ensure_loaded?(manager) do
       manager.update_subscription_status(stripe_customer_id, "canceled", DateTime.utc_now())
     else
-      {:error, :subscription_manager_unavailable}
+      {:error, :subscription_manager_unavailable,
+       "Subscription manager not configured - cannot revoke access"}
     end
   end
 
@@ -283,7 +284,7 @@ defmodule Tymeslot.Payments.Webhooks.RefundHandler do
 
         :ok
 
-      {:error, :subscription_manager_unavailable} ->
+      {:error, :subscription_manager_unavailable, _message} ->
         Logger.info("REFUND SKIPPED - Subscription manager not configured",
           charge_id: charge_id,
           customer_id: customer_id

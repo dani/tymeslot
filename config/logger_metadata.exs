@@ -217,5 +217,8 @@ config :logger, :console,
     :discrepancies,
     :fixes,
     :stage,
-    :params
+    :params,
+    :stripe_subscription_id,
+    :expected_user_id,
+    :actual_user_id
   ]

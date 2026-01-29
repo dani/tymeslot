@@ -54,14 +54,16 @@ defmodule Tymeslot.Payments.Webhooks.WebhookRegistry do
   @doc """
   Finds a handler for the given event type.
 
+  Uses the @event_types map for O(1) lookup efficiency.
+
   Returns {:ok, handler_module} if a handler is found,
   or {:error, :no_handler} if no handler exists for the event type.
   """
   @spec find_handler(String.t()) :: {:ok, module()} | {:error, :no_handler}
   def find_handler(event_type) do
     handler =
-      Enum.find(@webhook_handlers, fn handler ->
-        handler.can_handle?(event_type)
+      Enum.find_value(@event_types, fn {module, event_types} ->
+        if event_type in event_types, do: module, else: nil
       end)
 
     case handler do

@@ -12,6 +12,8 @@ defmodule TymeslotWeb.Plugs.StripeWebhookPlug do
   alias Tymeslot.Payments.Stripe, as: StripeProvider
   alias Tymeslot.Payments.Webhooks.IdempotencyCache
   alias Tymeslot.Payments.Webhooks.Security.{DevelopmentMode, SignatureVerifier}
+  alias Tymeslot.Security.RateLimiter
+  alias TymeslotWeb.Helpers.ClientIP
 
   # Test helper function - kept for backward compatibility with tests
   @doc false
@@ -31,32 +33,49 @@ defmodule TymeslotWeb.Plugs.StripeWebhookPlug do
 
   @spec process_webhook(Plug.Conn.t()) :: Plug.Conn.t()
   defp process_webhook(conn) do
-    # Read the body first
-    with {:ok, raw_body, conn} <- read_body_once(conn),
-         {:ok, event} <- verify_webhook(conn, raw_body),
-         {:ok, event_id} <- require_event_id(event),
-         {:ok, :reserved} <- reserve_event(event_id) do
-      Logger.info("Stripe webhook validated successfully: #{event_type(event)}")
-      Conn.assign(conn, :stripe_event, event)
-    else
-      {:ok, :already_processed} ->
-        Logger.info("Skipping already processed webhook")
+    client_ip = ClientIP.get(conn)
+
+    # Rate limiting check - before any processing
+    case RateLimiter.check_webhook_rate_limit(client_ip) do
+      :ok ->
+        # Continue with existing logic
+        with {:ok, raw_body, conn} <- read_body_once(conn),
+             {:ok, event} <- verify_webhook(conn, raw_body),
+             {:ok, event_id} <- require_event_id(event),
+             {:ok, :reserved} <- reserve_event(event_id) do
+          Logger.info("Stripe webhook validated successfully: #{event_type(event)}")
+          Conn.assign(conn, :stripe_event, event)
+        else
+          {:ok, :already_processed} ->
+            Logger.info("Skipping already processed webhook")
+
+            conn
+            |> Conn.send_resp(200, "")
+            |> Conn.halt()
+
+          {:ok, :in_progress} ->
+            Logger.info("Webhook processing already in progress, retrying later")
+
+            conn
+            |> Conn.send_resp(503, "")
+            |> Conn.halt()
+
+          {:error, error} ->
+            # Log detailed error information
+            log_error(error, conn)
+            handle_error(conn, error)
+        end
+
+      {:error, :rate_limited} ->
+        Logger.warning("Webhook rate limit exceeded for IP: #{client_ip}")
 
         conn
-        |> Conn.send_resp(200, "")
+        |> Conn.put_resp_content_type("application/json")
+        |> Conn.send_resp(
+          429,
+          Jason.encode!(%{error: "rate_limited", message: "Too many requests"})
+        )
         |> Conn.halt()
-
-      {:ok, :in_progress} ->
-        Logger.info("Webhook processing already in progress, retrying later")
-
-        conn
-        |> Conn.send_resp(503, "")
-        |> Conn.halt()
-
-      {:error, error} ->
-        # Log detailed error information
-        log_error(error, conn)
-        handle_error(conn, error)
     end
   end
 

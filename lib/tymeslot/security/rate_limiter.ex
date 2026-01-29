@@ -150,6 +150,23 @@ defmodule Tymeslot.Security.RateLimiter do
     end
   end
 
+  @doc """
+  Check rate limit for webhook endpoint.
+
+  Limit: 100 requests per 10 minutes per IP
+
+  ## Parameters
+    * `client_ip` - The client IP address
+
+  ## Returns
+    * `:ok` - Request allowed
+    * `{:error, :rate_limited}` - Rate limit exceeded
+  """
+  @spec check_webhook_rate_limit(String.t()) :: :ok | {:error, :rate_limited}
+  def check_webhook_rate_limit(client_ip) do
+    check_rate_limit("webhook:#{client_ip}", 100, :timer.minutes(10))
+  end
+
   # Domain-specific rate limiting functions for account operations
 
   @doc """

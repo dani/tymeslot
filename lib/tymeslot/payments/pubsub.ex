@@ -9,6 +9,7 @@ defmodule Tymeslot.Payments.PubSub do
   require Logger
 
   alias Phoenix.PubSub
+  alias Tymeslot.Infrastructure.AdminAlerts
 
   @doc """
   Broadcasts a payment success event via PubSub.
@@ -34,15 +35,34 @@ defmodule Tymeslot.Payments.PubSub do
            transaction: transaction
          }}
 
-      # Phoenix.PubSub.broadcast/3 returns :ok
-      _ = PubSub.broadcast(pubsub_server, "payment:payment_successful", message)
+      case PubSub.broadcast(pubsub_server, "payment:payment_successful", message) do
+        :ok ->
+          Logger.info("Broadcasted payment_successful event for user_id=#{transaction.user_id}")
+          :ok
 
-      Logger.info("Broadcasted payment_successful event for user_id=#{transaction.user_id}")
+        {:error, reason} ->
+          Logger.error("PubSub broadcast failed for payment_successful",
+            user_id: transaction.user_id,
+            reason: inspect(reason)
+          )
+
+          # Alert monitoring system - repeated failures indicate infrastructure issues
+          AdminAlerts.send_alert(
+            :pubsub_broadcast_failed,
+            %{
+              event: :payment_successful,
+              user_id: transaction.user_id,
+              reason: reason
+            },
+            level: :error
+          )
+
+          :ok
+      end
     else
-      Logger.warning("No PubSub server found, skipping payment_successful broadcast")
+      Logger.warning("No PubSub server configured, skipping payment_successful broadcast")
+      :ok
     end
-
-    :ok
   end
 
   @doc """
@@ -67,8 +87,34 @@ defmodule Tymeslot.Payments.PubSub do
   @spec broadcast_subscription_event(map()) :: :ok
   def broadcast_subscription_event(event_data) do
     topic = "payment_events:tymeslot"
-    _ = broadcast(topic, event_data)
-    :ok
+
+      case broadcast(topic, event_data) do
+        :ok ->
+          :ok
+
+        {:error, reason} ->
+          user_id = Map.get(event_data, :user_id)
+          event_type = Map.get(event_data, :event)
+
+          Logger.error("PubSub broadcast failed for subscription_event",
+            event: event_type,
+            user_id: user_id,
+            reason: inspect(reason)
+          )
+
+          AdminAlerts.send_alert(
+            :pubsub_broadcast_failed,
+            %{
+              event: :subscription_event,
+              event_type: event_type,
+              user_id: user_id,
+              reason: reason
+            },
+            level: :error
+          )
+
+          :ok
+      end
   end
 
   @doc """
@@ -84,8 +130,32 @@ defmodule Tymeslot.Payments.PubSub do
       timestamp: DateTime.utc_now()
     }
 
-    _ = broadcast(topic, message)
-    :ok
+    case broadcast(topic, message) do
+      :ok ->
+        :ok
+
+      {:error, reason} ->
+        user_id = Map.get(message, :user_id)
+
+        Logger.error("PubSub broadcast failed for payment_event",
+          event: event_type,
+          user_id: user_id,
+          reason: inspect(reason)
+        )
+
+        AdminAlerts.send_alert(
+          :pubsub_broadcast_failed,
+          %{
+            event: :payment_event,
+            event_type: event_type,
+            user_id: user_id,
+            reason: reason
+          },
+          level: :error
+        )
+
+        :ok
+    end
   end
 
   @doc """
@@ -156,14 +226,33 @@ defmodule Tymeslot.Payments.PubSub do
            transaction: transaction
          }}
 
-      _ = PubSub.broadcast(pubsub_server, "payment:subscription_successful", message)
+      case PubSub.broadcast(pubsub_server, "payment:subscription_successful", message) do
+        :ok ->
+          Logger.info("Broadcasted subscription_successful event for user_id=#{transaction.user_id}")
+          :ok
 
-      Logger.info("Broadcasted subscription_successful event for user_id=#{transaction.user_id}")
+        {:error, reason} ->
+          Logger.error("PubSub broadcast failed for subscription_successful",
+            user_id: transaction.user_id,
+            reason: inspect(reason)
+          )
+
+          AdminAlerts.send_alert(
+            :pubsub_broadcast_failed,
+            %{
+              event: :subscription_successful,
+              user_id: transaction.user_id,
+              reason: reason
+            },
+            level: :error
+          )
+
+          :ok
+      end
     else
-      Logger.warning("No PubSub server found, skipping subscription_successful broadcast")
+      Logger.warning("No PubSub server configured, skipping subscription_successful broadcast")
+      :ok
     end
-
-    :ok
   end
 
   @doc """
@@ -191,13 +280,32 @@ defmodule Tymeslot.Payments.PubSub do
            transaction: transaction
          }}
 
-      _ = PubSub.broadcast(pubsub_server, "payment:subscription_failed", message)
+      case PubSub.broadcast(pubsub_server, "payment:subscription_failed", message) do
+        :ok ->
+          Logger.info("Broadcasted subscription_failed event for user_id=#{transaction.user_id}")
+          :ok
 
-      Logger.info("Broadcasted subscription_failed event for user_id=#{transaction.user_id}")
+        {:error, reason} ->
+          Logger.error("PubSub broadcast failed for subscription_failed",
+            user_id: transaction.user_id,
+            reason: inspect(reason)
+          )
+
+          AdminAlerts.send_alert(
+            :pubsub_broadcast_failed,
+            %{
+              event: :subscription_failed,
+              user_id: transaction.user_id,
+              reason: reason
+            },
+            level: :error
+          )
+
+          :ok
+      end
     else
-      Logger.warning("No PubSub server found, skipping subscription_failed broadcast")
+      Logger.warning("No PubSub server configured, skipping subscription_failed broadcast")
+      :ok
     end
-
-    :ok
   end
 end

@@ -16,6 +16,7 @@ defmodule Tymeslot.Payments.Webhooks.TrialWillEndHandler do
   require Logger
 
   alias Tymeslot.Payments.Webhooks.WebhookUtils
+  alias Tymeslot.Payments.Config
 
   @impl true
   def can_handle?("customer.subscription.trial_will_end"), do: true
@@ -70,7 +71,7 @@ defmodule Tymeslot.Payments.Webhooks.TrialWillEndHandler do
           subscription_id: subscription_id
         )
 
-        {:error, :invalid_timestamp}
+        {:error, :invalid_timestamp, "trial_end timestamp is invalid or missing"}
     end
   end
 
@@ -89,8 +90,8 @@ defmodule Tymeslot.Payments.Webhooks.TrialWillEndHandler do
   # Private functions
 
   defp find_subscription(stripe_subscription_id) do
-    repo = Application.get_env(:tymeslot, :repo, Tymeslot.Repo)
-    subscription_schema = Application.get_env(:tymeslot, :subscription_schema)
+    repo = Config.repo()
+    subscription_schema = Config.subscription_schema()
 
     if subscription_schema && Code.ensure_loaded?(subscription_schema) do
       repo.get_by(subscription_schema, stripe_subscription_id: stripe_subscription_id)

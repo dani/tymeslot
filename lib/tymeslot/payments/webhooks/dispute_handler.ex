@@ -18,6 +18,7 @@ defmodule Tymeslot.Payments.Webhooks.DisputeHandler do
   alias Tymeslot.DatabaseQueries.PaymentQueries
   alias Tymeslot.Infrastructure.AdminAlerts
   alias Tymeslot.Mailer
+  alias Tymeslot.Payments.Config
 
   @impl true
   def can_handle?(event_type)
@@ -124,7 +125,7 @@ defmodule Tymeslot.Payments.Webhooks.DisputeHandler do
           end
         end
 
-      {:error, :stripe_api_error} ->
+      {:error, :stripe_api_error, _message} ->
         {:error, :retry_later, "Stripe API unavailable"}
     end
   end
@@ -151,7 +152,7 @@ defmodule Tymeslot.Payments.Webhooks.DisputeHandler do
           {:ok, :dispute_updated}
         end
 
-      {:error, :stripe_api_error} ->
+      {:error, :stripe_api_error, _message} ->
         {:error, :retry_later, "Stripe API unavailable"}
     end
   end
@@ -192,7 +193,7 @@ defmodule Tymeslot.Payments.Webhooks.DisputeHandler do
           {:ok, :dispute_closed}
         end
 
-      {:error, :stripe_api_error} ->
+      {:error, :stripe_api_error, _message} ->
         {:error, :retry_later, "Stripe API unavailable"}
     end
   end
@@ -215,7 +216,7 @@ defmodule Tymeslot.Payments.Webhooks.DisputeHandler do
           charge_id: charge_id
         )
 
-        {:error, :stripe_api_error}
+        {:error, :stripe_api_error, "Failed to fetch charge from Stripe API"}
     end
   end
 
@@ -304,6 +305,6 @@ defmodule Tymeslot.Payments.Webhooks.DisputeHandler do
   end
 
   defp stripe_provider do
-    Application.get_env(:tymeslot, :stripe_provider, Tymeslot.Payments.Stripe)
+    Config.stripe_provider()
   end
 end

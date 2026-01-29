@@ -6,6 +6,7 @@ defmodule Tymeslot.Payments.Webhooks.Security.SignatureVerifier do
 
   require Logger
 
+  alias Tymeslot.Payments.Config
   alias Tymeslot.Payments.Errors.WebhookError
 
   @type verification_result :: {:ok, map()} | {:error, WebhookError.SignatureError.t()}
@@ -101,6 +102,6 @@ defmodule Tymeslot.Payments.Webhooks.Security.SignatureVerifier do
   defp struct_to_map(value), do: value
 
   defp stripe_provider do
-    Application.get_env(:tymeslot, :stripe_provider, Tymeslot.Payments.Stripe)
+    Config.stripe_provider()
   end
 end

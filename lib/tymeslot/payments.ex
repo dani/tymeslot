@@ -10,7 +10,7 @@ defmodule Tymeslot.Payments do
   alias Ecto.UUID
   alias Tymeslot.DatabaseQueries.PaymentQueries
   alias Tymeslot.DatabaseSchemas.PaymentTransactionSchema, as: PaymentTransaction
-  alias Tymeslot.Payments.{DatabaseOperations, MetadataSanitizer}
+  alias Tymeslot.Payments.{Config, DatabaseOperations, MetadataSanitizer}
   alias Tymeslot.Security.RateLimiter
 
   @type transaction :: PaymentTransaction.t()
@@ -574,10 +574,10 @@ defmodule Tymeslot.Payments do
   end
 
   defp subscription_manager do
-    Application.get_env(:tymeslot, :subscription_manager)
+    Config.subscription_manager()
   end
 
   defp stripe_provider do
-    Application.get_env(:tymeslot, :stripe_provider, Tymeslot.Payments.Stripe)
+    Config.stripe_provider()
   end
 end
