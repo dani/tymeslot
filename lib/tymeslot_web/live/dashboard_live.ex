@@ -175,12 +175,13 @@ defmodule TymeslotWeb.DashboardLive do
   @impl true
   @spec handle_params(map(), String.t(), Phoenix.LiveView.Socket.t()) ::
           {:noreply, Phoenix.LiveView.Socket.t()}
-  def handle_params(_params, _url, socket) do
+  def handle_params(params, _url, socket) do
     action = socket.assigns.live_action
 
     socket =
       socket
       |> assign(:page_title, PageTitles.dashboard_title(action))
+      |> assign(:params, params)
       |> load_dashboard_data()
 
     {:noreply, socket}
@@ -360,6 +361,8 @@ defmodule TymeslotWeb.DashboardLive do
       saving={@saving}
       client_ip={@component_props[:client_ip]}
       user_agent={@component_props[:user_agent]}
+      live_action={@live_action}
+      params={@params}
     />
     """
   end

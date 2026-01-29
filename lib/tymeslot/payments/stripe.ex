@@ -8,7 +8,7 @@ defmodule Tymeslot.Payments.Stripe do
   require Logger
 
   alias Ecto.UUID
-  alias Stripe.{Checkout.Session, Customer, Subscription, Webhook}
+  alias Stripe.{BillingPortal, Checkout.Session, Customer, Subscription, Webhook}
   alias Tymeslot.Payments.RetryHelper
 
   @type stripe_result :: {:ok, map()} | {:error, any()}
@@ -320,5 +320,18 @@ defmodule Tymeslot.Payments.Stripe do
   def webhook_secret do
     Application.get_env(:stripity_stripe, :webhook_secret) ||
       Application.get_env(:tymeslot, :stripe_webhook_secret)
+  end
+
+  @doc """
+  Creates a Stripe billing portal session for subscription management.
+  """
+  @spec create_billing_portal_session(String.t(), String.t()) :: stripe_result()
+  def create_billing_portal_session(customer_id, return_url)
+      when is_binary(customer_id) and is_binary(return_url) do
+    Logger.info("Creating Stripe billing portal session for customer: #{customer_id}")
+
+    RetryHelper.execute_with_retry(fn ->
+      BillingPortal.Session.create(%{customer: customer_id, return_url: return_url}, api_key_opts())
+    end)
   end
 end

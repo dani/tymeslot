@@ -22,6 +22,9 @@ defmodule Tymeslot.Payments.Behaviours.StripeProvider do
   @callback create_checkout_session_for_subscription(params :: map()) ::
               {:ok, map()} | {:error, term()}
 
+  @callback create_billing_portal_session(customer_id :: String.t(), return_url :: String.t()) ::
+              {:ok, map()} | {:error, term()}
+
   @callback cancel_subscription(subscription_id :: String.t(), opts :: keyword()) ::
               {:ok, map()} | {:error, term()}
 
