@@ -145,7 +145,7 @@ defmodule Tymeslot.Payments.DatabaseOperations do
   Processes a successful subscription renewal payment.
   """
   @spec process_subscription_renewal(String.t(), map()) ::
-          {:ok, :subscription_processed} | {:error, term()}
+          {:ok, :subscription_processed | :already_processed} | {:error, term()}
   def process_subscription_renewal(subscription_id, invoice_data) do
     Logger.info("Processing subscription renewal for: #{subscription_id}")
 
@@ -155,6 +155,18 @@ defmodule Tymeslot.Payments.DatabaseOperations do
 
       {:error, :subscription_not_found} ->
         {:error, :subscription_not_found}
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        if duplicate_stripe_id_error?(changeset) do
+          Logger.info("Subscription renewal already processed",
+            subscription_id: subscription_id,
+            stripe_id: invoice_data["id"]
+          )
+
+          {:ok, :already_processed}
+        else
+          {:error, changeset}
+        end
 
       {:error, reason} ->
         {:error, reason}
@@ -281,5 +293,12 @@ defmodule Tymeslot.Payments.DatabaseOperations do
       )
 
     {:error, error_message}
+  end
+
+  defp duplicate_stripe_id_error?(%Ecto.Changeset{} = changeset) do
+    Enum.any?(changeset.errors, fn
+      {:stripe_id, {_message, opts}} -> Keyword.get(opts, :constraint) == :unique
+      _ -> false
+    end)
   end
 end

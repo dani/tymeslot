@@ -9,7 +9,13 @@ defmodule Tymeslot.Payments.Webhooks.InvoiceHandler do
 
   @impl true
   def can_handle?(event_type) do
-    event_type in ["invoice.payment_succeeded", "invoice.payment_failed"]
+    event_type in [
+      "invoice.created",
+      "invoice.finalized",
+      "invoice.paid",
+      "invoice.payment_succeeded",
+      "invoice.payment_failed"
+    ]
   end
 
   @impl true
@@ -35,8 +41,17 @@ defmodule Tymeslot.Payments.Webhooks.InvoiceHandler do
       "invoice.payment_succeeded" ->
         handle_payment_succeeded(subscription_id, invoice)
 
+      "invoice.paid" ->
+        handle_payment_succeeded(subscription_id, invoice)
+
       "invoice.payment_failed" ->
         handle_payment_failed(subscription_id, invoice)
+
+      "invoice.created" ->
+        {:ok, :invoice_created}
+
+      "invoice.finalized" ->
+        {:ok, :invoice_finalized}
 
       _ ->
         {:ok, :ignored}
@@ -46,7 +61,26 @@ defmodule Tymeslot.Payments.Webhooks.InvoiceHandler do
   defp handle_payment_succeeded(nil, _invoice), do: {:ok, :no_subscription}
 
   defp handle_payment_succeeded(subscription_id, invoice) do
+    invoice_id = Map.get(invoice, "id") || Map.get(invoice, :id)
+
+    if is_nil(invoice_id) do
+      handle_subscription_renewal(subscription_id, invoice)
+    else
+      case DatabaseOperations.get_transaction_by_stripe_id(invoice_id) do
+        {:ok, _transaction} ->
+          {:ok, :already_processed}
+
+        {:error, :transaction_not_found} ->
+          handle_subscription_renewal(subscription_id, invoice)
+      end
+    end
+  end
+
+  defp handle_subscription_renewal(subscription_id, invoice) do
     case DatabaseOperations.process_subscription_renewal(subscription_id, invoice) do
+      {:ok, :already_processed} ->
+        {:ok, :already_processed}
+
       {:ok, _} ->
         {:ok, :invoice_processed}
 

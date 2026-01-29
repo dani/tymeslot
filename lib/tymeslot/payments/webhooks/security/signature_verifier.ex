@@ -75,6 +75,10 @@ defmodule Tymeslot.Payments.Webhooks.Security.SignatureVerifier do
   end
 
   @spec normalize_event(map()) :: map()
+  defp normalize_event(%{__struct__: _} = event) do
+    struct_to_map(event)
+  end
+
   defp normalize_event(%{data: %{object: object}} = event) when is_struct(object) do
     %{event | data: %{object: struct_to_map(object)}}
   end

@@ -9,9 +9,11 @@ defmodule Tymeslot.Payments.Webhooks.WebhookRegistry do
     Tymeslot.Payments.Webhooks.CheckoutSessionHandler,
     Tymeslot.Payments.Webhooks.CheckoutSessionExpiredHandler,
     Tymeslot.Payments.Webhooks.ChargeHandler,
+    Tymeslot.Payments.Webhooks.PaymentMethodHandler,
     Tymeslot.Payments.Webhooks.PaymentIntentHandler,
     Tymeslot.Payments.Webhooks.CustomerHandler,
     Tymeslot.Payments.Webhooks.SubscriptionHandler,
+    Tymeslot.Payments.Webhooks.SetupIntentHandler,
     Tymeslot.Payments.Webhooks.InvoiceHandler,
     Tymeslot.Payments.Webhooks.RefundHandler,
     Tymeslot.Payments.Webhooks.TrialWillEndHandler,
@@ -23,6 +25,7 @@ defmodule Tymeslot.Payments.Webhooks.WebhookRegistry do
     Tymeslot.Payments.Webhooks.CheckoutSessionHandler => ["checkout.session.completed"],
     Tymeslot.Payments.Webhooks.CheckoutSessionExpiredHandler => ["checkout.session.expired"],
     Tymeslot.Payments.Webhooks.ChargeHandler => ["charge.succeeded", "charge.failed"],
+    Tymeslot.Payments.Webhooks.PaymentMethodHandler => ["payment_method.attached"],
     Tymeslot.Payments.Webhooks.PaymentIntentHandler => [
       "payment_intent.succeeded",
       "payment_intent.created"
@@ -33,7 +36,14 @@ defmodule Tymeslot.Payments.Webhooks.WebhookRegistry do
       "customer.subscription.updated",
       "customer.subscription.deleted"
     ],
+    Tymeslot.Payments.Webhooks.SetupIntentHandler => [
+      "setup_intent.created",
+      "setup_intent.succeeded"
+    ],
     Tymeslot.Payments.Webhooks.InvoiceHandler => [
+      "invoice.created",
+      "invoice.finalized",
+      "invoice.paid",
       "invoice.payment_succeeded",
       "invoice.payment_failed"
     ],
