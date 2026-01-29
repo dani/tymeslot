@@ -16,7 +16,14 @@
         excluded: [~r"/_build/", ~r"/deps/", ~r"/node_modules/"]
       },
       plugins: [],
-      requires: [],
+      requires: [
+        "dev_support/credo_checks/empty_files.ex",
+        "dev_support/credo_checks/large_modules.ex",
+        "dev_support/credo_checks/require_dashboard_section_header.ex",
+        "dev_support/credo_checks/thin_wrapper_functions.ex",
+        "dev_support/credo_checks/use_core_inputs.ex",
+        "dev_support/credo_checks/use_p_sigil.ex"
+      ],
       strict: false,
       parse_timeout: 5000,
       color: true,
