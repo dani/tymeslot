@@ -2,10 +2,6 @@ defmodule Tymeslot.Payments.CustomerLookupTest do
   use Tymeslot.DataCase, async: false
 
   alias Tymeslot.Payments.CustomerLookup
-  alias Tymeslot.SaasRepo
-  alias TymeslotSaas.Schemas.Subscription
-
-  import Tymeslot.TestFixtures
 
   setup do
     # Configure subscription schema for tests

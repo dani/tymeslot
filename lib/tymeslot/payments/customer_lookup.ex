@@ -63,8 +63,8 @@ defmodule Tymeslot.Payments.CustomerLookup do
   def get_subscription_by_customer_id(nil), do: nil
 
   def get_subscription_by_customer_id(stripe_customer_id) when is_binary(stripe_customer_id) do
-    repo = Config.repo()
-    subscription_schema = Config.subscription_schema()
+    repo = Tymeslot.Payments.Config.repo()
+    subscription_schema = Tymeslot.Payments.Config.subscription_schema()
 
     if subscription_schema && Code.ensure_loaded?(subscription_schema) do
       case repo.get_by(subscription_schema, stripe_customer_id: stripe_customer_id) do
