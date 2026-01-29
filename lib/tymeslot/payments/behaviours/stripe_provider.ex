@@ -40,4 +40,7 @@ defmodule Tymeslot.Payments.Behaviours.StripeProvider do
               secret :: String.t()
             ) ::
               {:ok, map()} | {:error, term()}
+
+  @callback list_subscriptions(params :: map()) ::
+              {:ok, map()} | {:error, term()}
 end

@@ -1,10 +1,15 @@
 defmodule Tymeslot.Payments.Webhooks.IdempotencyCache do
   @moduledoc """
-  ETS-based idempotency cache for webhook event deduplication.
-  Uses the centralized CacheStore infrastructure.
+  Two-tier idempotency cache for webhook event deduplication.
+
+  - **Tier 1 (ETS)**: Fast in-memory cache for recent events (24 hours)
+  - **Tier 2 (Database)**: Persistent storage for long-term deduplication (90 days)
+
+  Uses the centralized CacheStore infrastructure for ETS tier.
   """
 
   alias Tymeslot.Infrastructure.CacheStore
+  alias Tymeslot.DatabaseSchemas.WebhookEventSchema, as: WebhookEvent
 
   use CacheStore,
     table_name: :webhook_idempotency_cache,
@@ -13,6 +18,11 @@ defmodule Tymeslot.Payments.Webhooks.IdempotencyCache do
 
   @doc """
   Check if an event has already been processed.
+
+  Checks two tiers:
+  1. ETS cache (fast, 24 hours)
+  2. Database (slower, 90 days)
+
   Returns {:ok, :not_processed} if the event hasn't been seen,
   or {:ok, :already_processed} if it has already been processed.
   """
@@ -23,7 +33,8 @@ defmodule Tymeslot.Payments.Webhooks.IdempotencyCache do
         {:ok, :already_processed}
 
       :miss ->
-        {:ok, :not_processed}
+        # Check database as fallback
+        check_database(event_id)
     end
   end
 
@@ -63,12 +74,17 @@ defmodule Tymeslot.Payments.Webhooks.IdempotencyCache do
   end
 
   @doc """
-  Mark an event as processed in the cache.
+  Mark an event as processed in both cache and database.
   """
-  @spec mark_processed(String.t()) :: :ok
-  def mark_processed(event_id) do
-    # Mark as processed with configured TTL (default 24 hours)
+  @spec mark_processed(String.t(), String.t()) :: :ok
+  def mark_processed(event_id, event_type \\ "unknown") do
+    # Mark as processed in ETS cache with configured TTL (default 24 hours)
     put(event_id, :processed, processed_ttl())
+
+    # Also store in database for long-term deduplication
+    store_in_database(event_id, event_type)
+
+    :ok
   end
 
   @doc """
@@ -99,5 +115,32 @@ defmodule Tymeslot.Payments.Webhooks.IdempotencyCache do
   defp processed_ttl do
     get_in(Application.get_env(:tymeslot, :webhook_idempotency, []), [:processed_ttl_ms]) ||
       :timer.hours(24)
+  end
+
+  # Database operations
+
+  defp check_database(event_id) do
+    case repo().get_by(WebhookEvent, stripe_event_id: event_id) do
+      nil -> {:ok, :not_processed}
+      _event -> {:ok, :already_processed}
+    end
+  end
+
+  defp store_in_database(event_id, event_type) do
+    attrs = %{
+      stripe_event_id: event_id,
+      event_type: event_type,
+      processed_at: DateTime.utc_now() |> DateTime.truncate(:second)
+    }
+
+    %WebhookEvent{}
+    |> WebhookEvent.changeset(attrs)
+    |> repo().insert(on_conflict: :nothing, conflict_target: :stripe_event_id)
+
+    :ok
+  end
+
+  defp repo do
+    Application.get_env(:tymeslot, :repo, Tymeslot.Repo)
   end
 end

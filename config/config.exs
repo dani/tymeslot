@@ -258,3 +258,23 @@ config :tymeslot,
   # Time threshold in seconds before a pending transaction is considered abandoned
   # Used for sending reminder emails to users who didn't complete checkout
   abandoned_transaction_threshold_seconds: 600
+
+# Dunning and Retention configuration
+config :tymeslot, :payments,
+  dunning: [
+    days_until_cancel: 14,
+    reminder_days: [0, 3, 7, 14]
+  ],
+  retention: [
+    outgoing_webhook_days: 60,
+    stripe_event_days: 90
+  ]
+
+# Subscription reconciliation configuration
+config :tymeslot, :reconciliation,
+  # Automatically fix safe discrepancies (e.g., status mismatches, missing locally)
+  auto_fix_safe_discrepancies: true,
+  # Send alerts to admins when discrepancies are found
+  alert_admins: true,
+  # Number of days to look back when fetching subscriptions for reconciliation
+  days_back: 7

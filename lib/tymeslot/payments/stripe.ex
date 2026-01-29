@@ -297,6 +297,18 @@ defmodule Tymeslot.Payments.Stripe do
   end
 
   @doc """
+  Lists subscriptions from Stripe with optional filters.
+  """
+  @spec list_subscriptions(map()) :: stripe_result()
+  def list_subscriptions(params \\ %{}) when is_map(params) do
+    Logger.info("Listing Stripe subscriptions", params: inspect(params))
+
+    RetryHelper.execute_with_retry(fn ->
+      subscription_mod().list(params, api_key_opts())
+    end)
+  end
+
+  @doc """
   Returns the Stripe webhook secret from configuration or environment.
   """
   @spec webhook_secret() :: String.t() | nil
