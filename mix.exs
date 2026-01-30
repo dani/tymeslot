@@ -141,14 +141,12 @@ defmodule Tymeslot.MixProject do
       "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
       "assets.build": [
         "tailwind tymeslot",
-        "tailwind scheduling",
         "tailwind quill",
         "tailwind rhythm",
         "esbuild tymeslot"
       ],
       "assets.deploy": [
         "tailwind tymeslot --minify",
-        "tailwind scheduling --minify",
         "tailwind quill --minify",
         "tailwind rhythm --minify",
         "esbuild tymeslot --minify",
