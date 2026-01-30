@@ -270,12 +270,12 @@ defmodule TymeslotWeb.Components.MeetingComponents do
     >
       <div class="flex items-center justify-between">
         <div class="text-left flex-1">
-          <div class="flex items-center gap-2 mb-1">
-            <h3 class="text-base sm:text-lg md:text-xl font-bold" style="color: white;">
+          <div class="flex items-start justify-between gap-2 mb-1">
+            <h3 class="text-base sm:text-lg md:text-xl font-bold flex-1" style="color: white;">
               {@title}
             </h3>
             <span
-              class="inline-block px-2 py-0.5 text-xs font-semibold rounded-full"
+              class="inline-block px-2 py-0.5 text-xs font-semibold rounded-full whitespace-nowrap mt-1"
               style="background: rgba(255,255,255,0.2); color: rgba(255,255,255,0.95); backdrop-filter: blur(10px);"
             >
               {@badge || @duration}
