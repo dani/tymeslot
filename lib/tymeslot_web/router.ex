@@ -93,6 +93,7 @@ defmodule TymeslotWeb.Router do
       live "/dashboard/video", DashboardLive, :video
       live "/dashboard/notifications", DashboardLive, :notifications
       live "/dashboard/theme", DashboardLive, :theme
+      live "/dashboard/theme/customize/:theme_id", DashboardLive, :theme_customization
       live "/dashboard/meetings", DashboardLive, :meetings
       live "/dashboard/embed", DashboardLive, :embed
     end

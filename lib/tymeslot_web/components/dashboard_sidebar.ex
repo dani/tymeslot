@@ -179,7 +179,11 @@ defmodule TymeslotWeb.Components.DashboardSidebar do
                 <span>Availability</span>
               </.nav_link>
 
-              <.nav_link patch={~p"/dashboard/theme"} current={@current_action} action={:theme}>
+              <.nav_link
+                patch={~p"/dashboard/theme"}
+                current={if @current_action == :theme_customization, do: :theme, else: @current_action}
+                action={:theme}
+              >
                 <IconComponents.icon name={:paint_brush} class="w-5 h-5" />
                 <span>Theme</span>
               </.nav_link>

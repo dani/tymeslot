@@ -386,6 +386,7 @@ defmodule TymeslotWeb.DashboardLive do
   defp component_for_action(:video), do: VideoSettingsComponent
   defp component_for_action(:notifications), do: NotificationSettingsComponent
   defp component_for_action(:theme), do: ThemeSettingsComponent
+  defp component_for_action(:theme_customization), do: ThemeSettingsComponent
   defp component_for_action(:meetings), do: BookingsManagementComponent
   defp component_for_action(:embed), do: EmbedSettingsComponent
 

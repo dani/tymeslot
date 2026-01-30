@@ -20,13 +20,25 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsComponent do
 
   @impl true
   def update(assigns, socket) do
+    customization_theme_id =
+      if assigns.live_action == :theme_customization do
+        theme_id = assigns.params["theme_id"]
+        if Theme.valid_theme_id?(theme_id), do: theme_id, else: nil
+      else
+        assigns[:customization_theme_id]
+      end
+
+    show_customization =
+      (assigns.live_action == :theme_customization && not is_nil(customization_theme_id)) ||
+        assigns[:show_customization] || false
+
     socket =
       socket
       |> assign(assigns)
       |> assign(:themes, Theme.theme_options())
-      |> assign_new(:show_customization, fn -> false end)
-      |> assign_new(:customization_theme_id, fn -> nil end)
-      |> assign_new(:customization_timestamp, fn -> nil end)
+      |> assign(:show_customization, show_customization)
+      |> assign(:customization_theme_id, customization_theme_id)
+      |> assign_new(:customization_timestamp, fn -> System.system_time() end)
 
     {:ok, socket}
   end
@@ -215,18 +227,11 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsComponent do
 
   @impl true
   def handle_event("show_customization", %{"theme" => theme_id}, socket) do
-    {:noreply,
-     socket
-     |> assign(:show_customization, true)
-     |> assign(:customization_theme_id, theme_id)
-     |> assign(:customization_timestamp, System.system_time())}
+    {:noreply, push_patch(socket, to: ~p"/dashboard/theme/customize/#{theme_id}")}
   end
 
   def handle_event("close_customization", _params, socket) do
-    {:noreply,
-     socket
-     |> assign(:show_customization, false)
-     |> assign(:customization_theme_id, nil)}
+    {:noreply, push_patch(socket, to: ~p"/dashboard/theme")}
   end
 
   def handle_event("select_theme", %{"theme" => theme_id}, socket) do
