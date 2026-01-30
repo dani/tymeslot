@@ -81,4 +81,47 @@ defmodule Tymeslot.Security.SecurityTest do
       assert micro >= 50_000
     end
   end
+
+  describe "validate_domain/1" do
+    test "accepts valid domains" do
+      assert {:ok, "example.com"} = Security.validate_domain("example.com")
+      assert {:ok, "sub.example.co.uk"} = Security.validate_domain("sub.example.co.uk")
+      assert {:ok, "my-domain.com"} = Security.validate_domain("my-domain.com")
+    end
+
+    test "accepts local development hosts" do
+      assert {:ok, "localhost"} = Security.validate_domain("localhost")
+      assert {:ok, "127.0.0.1"} = Security.validate_domain("127.0.0.1")
+      assert {:ok, "::1"} = Security.validate_domain("::1")
+    end
+
+    test "accepts 'none'" do
+      assert {:ok, "none"} = Security.validate_domain("none")
+    end
+
+    test "rejects domains with protocols" do
+      assert {:error, _} = Security.validate_domain("https://example.com")
+      assert {:error, _} = Security.validate_domain("http://localhost")
+    end
+
+    test "rejects domains with paths" do
+      assert {:error, _} = Security.validate_domain("example.com/path")
+    end
+
+    test "rejects domains with ports" do
+      assert {:error, _} = Security.validate_domain("example.com:8080")
+      assert {:error, _} = Security.validate_domain("localhost:4000")
+    end
+
+    test "rejects invalid formats" do
+      assert {:error, _} = Security.validate_domain("-example.com")
+      assert {:error, _} = Security.validate_domain("example-.com")
+      assert {:error, _} = Security.validate_domain("example..com")
+    end
+
+    test "rejects overly long domains" do
+      long_domain = String.duplicate("a", 256) <> ".com"
+      assert {:error, "Some domains exceed maximum length (max 255 characters)"} = Security.validate_domain(long_domain)
+    end
+  end
 end

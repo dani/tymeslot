@@ -268,8 +268,8 @@ defmodule Tymeslot.Security.Security do
     domain = String.trim(domain)
 
     cond do
-      domain == "localhost" ->
-        {:ok, "localhost"}
+      domain in ["localhost", "127.0.0.1", "::1"] ->
+        {:ok, domain}
 
       domain == "none" ->
         {:ok, "none"}

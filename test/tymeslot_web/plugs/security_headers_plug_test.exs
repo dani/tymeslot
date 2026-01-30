@@ -73,6 +73,28 @@ defmodule TymeslotWeb.Plugs.SecurityHeadersPlugTest do
       refute csp =~ "http://example.com"
     end
 
+    test "handles local development hosts with HTTP and port wildcards", %{conn: conn} do
+      user = insert(:user)
+
+      profile =
+        insert(:profile,
+          user: user,
+          username: "devuser",
+          allowed_embed_domains: ["localhost", "127.0.0.1", "::1"]
+        )
+
+      conn =
+        conn
+        |> Map.put(:request_path, "/#{profile.username}")
+        |> SecurityHeadersPlug.call(allow_embedding: true)
+
+      assert [csp] = get_resp_header(conn, "content-security-policy")
+      assert csp =~ "frame-ancestors 'self' http://localhost:* http://127.0.0.1:* http://::1:*"
+
+      assert [x_frame_options] = get_resp_header(conn, "x-frame-options")
+      assert x_frame_options == "ALLOW-FROM http://localhost"
+    end
+
     test "handles wildcard domains in CSP", %{conn: conn} do
       user = insert(:user)
 

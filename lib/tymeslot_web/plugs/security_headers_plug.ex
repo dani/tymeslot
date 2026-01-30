@@ -124,9 +124,21 @@ defmodule TymeslotWeb.Plugs.SecurityHeadersPlug do
   defp build_security_headers(["none"]), do: {"'none'", "DENY"}
 
   defp build_security_headers(allowed_domains) when is_list(allowed_domains) do
-    # Build CSP frame-ancestors with HTTPS URLs.
+    # Build CSP frame-ancestors with appropriate protocols.
     # Modern browsers prioritize this over X-Frame-Options.
-    domains = Enum.map_join(allowed_domains, " ", &"https://#{&1}")
+    domains =
+      Enum.map_join(allowed_domains, " ", fn domain ->
+        is_local = domain in ["localhost", "127.0.0.1", "::1"]
+        is_dev = Application.get_env(:tymeslot, :environment) in [:dev, :test]
+
+        cond do
+          is_local and is_dev ->
+            "http://#{domain}:*"
+
+          true ->
+            "https://#{domain}"
+        end
+      end)
 
     frame_ancestors = "'self' #{domains}"
 
@@ -136,12 +148,20 @@ defmodule TymeslotWeb.Plugs.SecurityHeadersPlug do
     x_frame_options =
       case allowed_domains do
         [first_domain | _] ->
-          # X-Frame-Options ALLOW-FROM does not support wildcards.
+          # X-Frame-Options ALLOW-FROM does not support wildcards or multiple domains.
           # Modern browsers use CSP frame-ancestors anyway.
-          if String.starts_with?(first_domain, "*") do
-            nil
-          else
-            "ALLOW-FROM https://#{first_domain}"
+          is_local = first_domain in ["localhost", "127.0.0.1", "::1"]
+          is_dev = Application.get_env(:tymeslot, :environment) in [:dev, :test]
+
+          cond do
+            String.starts_with?(first_domain, "*") ->
+              nil
+
+            is_local and is_dev ->
+              "ALLOW-FROM http://#{first_domain}"
+
+            true ->
+              "ALLOW-FROM https://#{first_domain}"
           end
       end
 
