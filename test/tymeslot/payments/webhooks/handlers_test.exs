@@ -42,7 +42,8 @@ defmodule Tymeslot.Payments.Webhooks.HandlersTest do
   describe "CustomerHandler" do
     test "can_handle?/1" do
       assert CustomerHandler.can_handle?("customer.created")
-      refute CustomerHandler.can_handle?("customer.updated")
+      assert CustomerHandler.can_handle?("customer.updated")
+      refute CustomerHandler.can_handle?("customer.deleted")
     end
 
     test "validate/1 checks for id" do
@@ -54,6 +55,11 @@ defmodule Tymeslot.Payments.Webhooks.HandlersTest do
     test "process/2 returns success for customer.created" do
       assert {:ok, :customer_created} =
                CustomerHandler.process(%{type: "customer.created"}, %{"id" => "cus_123"})
+    end
+
+    test "process/2 returns success for customer.updated" do
+      assert {:ok, :customer_updated} =
+               CustomerHandler.process(%{type: "customer.updated"}, %{"id" => "cus_123"})
     end
   end
 

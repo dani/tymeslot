@@ -30,7 +30,7 @@ defmodule Tymeslot.Payments.Webhooks.WebhookRegistry do
       "payment_intent.succeeded",
       "payment_intent.created"
     ],
-    Tymeslot.Payments.Webhooks.CustomerHandler => ["customer.created"],
+    Tymeslot.Payments.Webhooks.CustomerHandler => ["customer.created", "customer.updated"],
     Tymeslot.Payments.Webhooks.SubscriptionHandler => [
       "customer.subscription.created",
       "customer.subscription.updated",
