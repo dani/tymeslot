@@ -144,7 +144,7 @@ defmodule Tymeslot.DatabaseQueries.PaymentQueries do
   Gets transactions by status for a specific user.
   """
   @spec get_transactions_by_status(String.t(), pos_integer()) ::
-          {:ok, [PaymentTransaction.t()]}
+          {:ok, [PaymentTransaction.t()]} | {:error, term()}
   def get_transactions_by_status(status, user_id) do
     query =
       from(t in PaymentTransaction,
@@ -152,7 +152,12 @@ defmodule Tymeslot.DatabaseQueries.PaymentQueries do
         where: t.user_id == ^user_id
       )
 
-    {:ok, Repo.all(query)}
+    try do
+      {:ok, Repo.all(query)}
+    rescue
+      error ->
+        {:error, error}
+    end
   end
 
   @doc """
@@ -196,10 +201,16 @@ defmodule Tymeslot.DatabaseQueries.PaymentQueries do
   @doc """
   Gets transactions by status.
   """
-  @spec get_transactions_by_status(String.t()) :: {:ok, [PaymentTransaction.t()]}
+  @spec get_transactions_by_status(String.t()) :: {:ok, [PaymentTransaction.t()]} | {:error, term()}
   def get_transactions_by_status(status) do
     query = from(t in PaymentTransaction, where: t.status == ^status)
-    {:ok, Repo.all(query)}
+
+    try do
+      {:ok, Repo.all(query)}
+    rescue
+      error ->
+        {:error, error}
+    end
   end
 
   @doc """

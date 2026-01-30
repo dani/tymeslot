@@ -148,9 +148,6 @@ defmodule TymeslotWeb.Plugs.SecurityHeadersPlug do
         [first_domain | _] ->
           # X-Frame-Options ALLOW-FROM does not support wildcards or multiple domains.
           # Modern browsers use CSP frame-ancestors anyway.
-          is_local = first_domain in ["localhost", "127.0.0.1", "::1"]
-          is_dev = Application.get_env(:tymeslot, :environment) in [:dev, :test]
-
           if String.starts_with?(first_domain, "*") do
             nil
           else

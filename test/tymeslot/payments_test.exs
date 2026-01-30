@@ -12,17 +12,6 @@ defmodule Tymeslot.PaymentsTest do
 
   setup do
     Application.put_env(:tymeslot, :stripe_provider, Tymeslot.Payments.StripeMock)
-
-    # Mock rate limiter
-    defmodule MockRateLimiter do
-      @spec check_payment_initiation_rate_limit(any()) :: :ok
-      def check_payment_initiation_rate_limit(_user_id), do: :ok
-    end
-
-    # Assuming RateLimiter is configurable or we can just mock the module if it's a behaviour
-    # For now let's assume it's not easily mockable without more info,
-    # but we can try to use the real one if it doesn't hit external services.
-
     :ok
   end
 
@@ -32,17 +21,9 @@ defmodule Tymeslot.PaymentsTest do
       amount = 1000
       email = "test@example.com"
 
-      expect(Tymeslot.Payments.StripeMock, :create_customer, fn ^email ->
-        {:ok, %{id: "cus_123"}}
-      end)
+      expect_create_customer(email)
 
-      expect(Tymeslot.Payments.StripeMock, :create_session, fn _customer,
-                                                               ^amount,
-                                                               _transaction,
-                                                               _success,
-                                                               _cancel ->
-        {:ok, %{id: "sess_123", url: "https://stripe.com/sess_123"}}
-      end)
+      expect_create_session(amount, "sess_123", "https://stripe.com/sess_123")
 
       assert {:ok, "https://stripe.com/sess_123"} =
                Payments.initiate_payment(
@@ -67,17 +48,9 @@ defmodule Tymeslot.PaymentsTest do
       amount = 2000
       email = "test@example.com"
 
-      expect(Tymeslot.Payments.StripeMock, :create_customer, fn ^email ->
-        {:ok, %{id: "cus_123"}}
-      end)
+      expect_create_customer(email)
 
-      expect(Tymeslot.Payments.StripeMock, :create_session, fn _customer,
-                                                               ^amount,
-                                                               _transaction,
-                                                               _success,
-                                                               _cancel ->
-        {:ok, %{id: "sess_456", url: "https://stripe.com/sess_456"}}
-      end)
+      expect_create_session(amount, "sess_456", "https://stripe.com/sess_456")
 
       assert {:ok, "https://stripe.com/sess_456"} =
                Payments.initiate_payment(
@@ -164,7 +137,7 @@ defmodule Tymeslot.PaymentsTest do
         end
       end
 
-      Application.put_env(:tymeslot, :subscription_manager, MockSubManager)
+      set_subscription_manager(MockSubManager)
 
       assert {:ok, %{checkout_url: "https://stripe.com/sub_123"}} =
                Payments.initiate_subscription(
@@ -183,7 +156,6 @@ defmodule Tymeslot.PaymentsTest do
 
       assert tx.subscription_id == "sub_123"
 
-      Application.delete_env(:tymeslot, :subscription_manager)
     end
 
     test "supersedes pending one-time transaction before subscription" do
@@ -210,7 +182,7 @@ defmodule Tymeslot.PaymentsTest do
         end
       end
 
-      Application.put_env(:tymeslot, :subscription_manager, MockSubManagerForSupersede)
+      set_subscription_manager(MockSubManagerForSupersede)
 
       assert {:ok, %{checkout_url: "https://stripe.com/sub_supersede"}} =
                Payments.initiate_subscription(
@@ -227,7 +199,6 @@ defmodule Tymeslot.PaymentsTest do
       assert updated_pending.status == "failed"
       assert updated_pending.metadata["superseded"] == true
 
-      Application.delete_env(:tymeslot, :subscription_manager)
     end
 
     test "returns checkout url even if transaction update fails" do
@@ -252,7 +223,7 @@ defmodule Tymeslot.PaymentsTest do
         end
       end
 
-      Application.put_env(:tymeslot, :subscription_manager, MockSubManagerForUpdateFailure)
+      set_subscription_manager(MockSubManagerForUpdateFailure)
 
       assert {:ok, %{checkout_url: "https://stripe.com/sub_conflict"}} =
                Payments.initiate_subscription(
@@ -274,7 +245,28 @@ defmodule Tymeslot.PaymentsTest do
       assert is_nil(pending_tx.stripe_id)
       assert pending_tx.status == "pending"
 
-      Application.delete_env(:tymeslot, :subscription_manager)
     end
+  end
+
+  defp expect_create_customer(email) do
+    expect(Tymeslot.Payments.StripeMock, :create_customer, fn ^email ->
+      {:ok, %{id: "cus_123"}}
+    end)
+  end
+
+  defp expect_create_session(amount, session_id, session_url) do
+    expect(Tymeslot.Payments.StripeMock, :create_session, fn _customer,
+                                                             ^amount,
+                                                             _transaction,
+                                                             _success,
+                                                             _cancel ->
+      {:ok, %{id: session_id, url: session_url}}
+    end)
+  end
+
+  defp set_subscription_manager(manager) do
+    Application.put_env(:tymeslot, :subscription_manager, manager)
+    on_exit(fn -> Application.delete_env(:tymeslot, :subscription_manager) end)
+    :ok
   end
 end

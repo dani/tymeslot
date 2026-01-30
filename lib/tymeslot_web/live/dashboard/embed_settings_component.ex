@@ -122,10 +122,10 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsComponent do
   def handle_event("copy_code", %{"type" => type}, socket) do
     code = Helpers.embed_code(type, socket.assigns)
 
-    {:noreply,
-     socket
-     |> push_event("copy-to-clipboard", %{text: code})
-     |> Flash.info("Code copied to clipboard!")}
+    socket = push_event(socket, "copy-to-clipboard", %{text: code})
+    Flash.info("Code copied to clipboard!")
+
+    {:noreply, socket}
   end
 
   def handle_event("select_embed_type", %{"type" => type}, socket) do
