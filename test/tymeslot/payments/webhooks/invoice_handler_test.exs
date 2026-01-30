@@ -2,7 +2,7 @@ defmodule Tymeslot.Payments.Webhooks.InvoiceHandlerTest do
   use Tymeslot.DataCase, async: true
 
   alias Tymeslot.DatabaseQueries.PaymentQueries
-  alias Tymeslot.Payments.Webhooks.InvoiceHandler
+  alias Tymeslot.Payments.Webhooks.{InvoiceHandler, WebhookRegistry}
   import Tymeslot.Factory
 
   describe "can_handle?/1" do
@@ -12,6 +12,7 @@ defmodule Tymeslot.Payments.Webhooks.InvoiceHandlerTest do
       assert InvoiceHandler.can_handle?("invoice.paid")
       assert InvoiceHandler.can_handle?("invoice.payment_succeeded")
       assert InvoiceHandler.can_handle?("invoice.payment_failed")
+      assert InvoiceHandler.can_handle?("invoice.upcoming")
     end
 
     test "returns false for unsupported events" do
@@ -27,6 +28,30 @@ defmodule Tymeslot.Payments.Webhooks.InvoiceHandlerTest do
     test "returns error for missing or empty id" do
       assert {:error, :missing_field, _} = InvoiceHandler.validate(%{})
       assert {:error, :missing_field, _} = InvoiceHandler.validate(%{"id" => ""})
+    end
+  end
+
+  describe "validate/2" do
+    test "allows upcoming invoices without an id" do
+      assert InvoiceHandler.validate("invoice.upcoming", %{}) == :ok
+    end
+
+    test "requires id for non-upcoming invoice events" do
+      assert {:error, :missing_field, _} = InvoiceHandler.validate("invoice.created", %{})
+    end
+  end
+
+  describe "webhook registry validation" do
+    test "uses event-aware validation for upcoming invoices" do
+      # Mock find_handler to return InvoiceHandler for invoice.upcoming
+      # This test might be failing because find_handler is not finding the handler
+      # or the registry's own logic changed.
+      assert :ok = WebhookRegistry.validate("invoice.upcoming", %{})
+    end
+
+    test "rejects missing ids for other invoice events" do
+      # invoice.paid requires an ID in InvoiceHandler.validate/2
+      assert {:error, :missing_field, "Invoice ID missing"} = WebhookRegistry.validate("invoice.paid", %{})
     end
   end
 

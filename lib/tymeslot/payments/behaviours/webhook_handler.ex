@@ -30,5 +30,12 @@ defmodule Tymeslot.Payments.Behaviours.WebhookHandler do
   """
   @callback validate(object()) :: :ok | {:error, atom(), String.t()}
 
-  @optional_callbacks [validate: 1]
+  @doc """
+  Validates that the webhook object contains all required fields for processing.
+
+  Accepts the event type to allow conditional validation per event.
+  """
+  @callback validate(String.t(), object()) :: :ok | {:error, atom(), String.t()}
+
+  @optional_callbacks [validate: 1, validate: 2]
 end

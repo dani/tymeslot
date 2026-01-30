@@ -45,7 +45,8 @@ defmodule Tymeslot.Payments.Webhooks.WebhookRegistry do
       "invoice.finalized",
       "invoice.paid",
       "invoice.payment_succeeded",
-      "invoice.payment_failed"
+      "invoice.payment_failed",
+      "invoice.upcoming"
     ],
     Tymeslot.Payments.Webhooks.RefundHandler => [
       "charge.refunded",
@@ -100,7 +101,7 @@ defmodule Tymeslot.Payments.Webhooks.WebhookRegistry do
   @spec validate(String.t(), map()) :: :ok | {:error, atom(), String.t()}
   def validate(event_type, object) do
     with {:ok, handler} <- find_handler(event_type),
-         :ok <- apply_validation(handler, object) do
+         :ok <- apply_validation(handler, event_type, object) do
       :ok
     else
       {:error, reason, message} -> {:error, reason, message}
@@ -109,11 +110,16 @@ defmodule Tymeslot.Payments.Webhooks.WebhookRegistry do
     end
   end
 
-  defp apply_validation(handler, object) do
-    if function_exported?(handler, :validate, 1) do
-      handler.validate(object)
-    else
-      :ok
+  defp apply_validation(handler, event_type, object) do
+    cond do
+      function_exported?(handler, :validate, 2) ->
+        handler.validate(event_type, object)
+
+      function_exported?(handler, :validate, 1) ->
+        handler.validate(object)
+
+      true ->
+        :ok
     end
   end
 end

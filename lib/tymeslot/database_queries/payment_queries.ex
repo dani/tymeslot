@@ -156,6 +156,44 @@ defmodule Tymeslot.DatabaseQueries.PaymentQueries do
   end
 
   @doc """
+  Gets the pending subscription transaction for a user.
+  """
+  @spec get_pending_subscription_transaction(pos_integer()) ::
+          {:ok, PaymentTransaction.t()} | {:error, :transaction_not_found}
+  def get_pending_subscription_transaction(user_id) do
+    query =
+      from(t in PaymentTransaction,
+        where: t.user_id == ^user_id,
+        where: t.status == "pending",
+        where: fragment("? ->> 'payment_type' = ?", t.metadata, "subscription"),
+        order_by: [desc: t.inserted_at],
+        limit: 1
+      )
+
+    case Repo.one(query) do
+      nil -> {:error, :transaction_not_found}
+      transaction -> {:ok, transaction}
+    end
+  end
+
+  @doc """
+  Gets all pending subscription transactions for a user.
+  """
+  @spec get_pending_subscription_transactions(pos_integer()) ::
+          {:ok, [PaymentTransaction.t()]}
+  def get_pending_subscription_transactions(user_id) do
+    query =
+      from(t in PaymentTransaction,
+        where: t.user_id == ^user_id,
+        where: t.status == "pending",
+        where: fragment("? ->> 'payment_type' = ?", t.metadata, "subscription"),
+        order_by: [desc: t.inserted_at]
+      )
+
+    {:ok, Repo.all(query)}
+  end
+
+  @doc """
   Gets transactions by status.
   """
   @spec get_transactions_by_status(String.t()) :: {:ok, [PaymentTransaction.t()]}

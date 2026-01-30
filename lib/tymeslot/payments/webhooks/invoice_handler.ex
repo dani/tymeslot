@@ -14,16 +14,28 @@ defmodule Tymeslot.Payments.Webhooks.InvoiceHandler do
       "invoice.finalized",
       "invoice.paid",
       "invoice.payment_succeeded",
-      "invoice.payment_failed"
+      "invoice.payment_failed",
+      "invoice.upcoming"
     ]
   end
 
   @impl true
-  def validate(invoice) do
+  def validate(invoice), do: validate(nil, invoice)
+
+  @impl true
+  def validate(event_type, invoice) do
     case Map.get(invoice, "id") do
-      nil -> {:error, :missing_field, "Invoice ID missing"}
-      "" -> {:error, :missing_field, "Invoice ID empty"}
-      _id -> :ok
+      nil when event_type == "invoice.upcoming" ->
+        :ok
+
+      nil ->
+        {:error, :missing_field, "Invoice ID missing"}
+
+      "" ->
+        {:error, :missing_field, "Invoice ID empty"}
+
+      _id ->
+        :ok
     end
   end
 
@@ -52,6 +64,9 @@ defmodule Tymeslot.Payments.Webhooks.InvoiceHandler do
 
       "invoice.finalized" ->
         {:ok, :invoice_finalized}
+
+      "invoice.upcoming" ->
+        {:ok, :invoice_upcoming}
 
       _ ->
         {:ok, :ignored}
