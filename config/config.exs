@@ -142,14 +142,6 @@ config :tailwind,
     ),
     cd: Path.expand("../assets", __DIR__)
   ],
-  scheduling: [
-    args: ~w(
-      --config=tailwind.config.js
-      --input=css/scheduling.css
-      --output=../priv/static/assets/scheduling.css
-    ),
-    cd: Path.expand("../assets", __DIR__)
-  ],
   quill: [
     args: ~w(
       --config=tailwind.config.js
