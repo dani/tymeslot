@@ -163,12 +163,44 @@ module.exports = {
         ["-mini", "/20/solid"],
         ["-micro", "/16/solid"]
       ]
+
+      // On localhost, we can speed up the build by scanning for used icons instead of loading all of them
+      // This avoids readdirSync/readFileSync for ~6000 files
+      let usedIcons = null
+      if (process.env.NODE_ENV !== "production") {
+        try {
+          const { execSync } = require("child_process")
+          // Search for hero- prefixes in lib and js directories
+          // We use a simple regex to find potential icon names
+          const searchPath = path.join(__dirname, "../lib")
+          const jsPath = path.join(__dirname, "./js")
+          const output = execSync(`grep -rEho "hero-[a-z0-9-]+" "${searchPath}" "${jsPath}" | sort | uniq`).toString()
+          usedIcons = new Set(output.split("\n").map(line => line.replace(/^hero-/, "").replace(/-(solid|mini|micro)$/, "")))
+        } catch (e) {
+          // Fallback to full library if grep fails
+          usedIcons = null
+        }
+      }
+
       icons.forEach(([suffix, dir]) => {
-        fs.readdirSync(path.join(iconsDir, dir)).forEach(file => {
-          let name = path.basename(file, ".svg") + suffix
-          values[name] = {name, fullPath: path.join(iconsDir, dir, file)}
-        })
+        if (usedIcons) {
+          usedIcons.forEach(iconName => {
+            if (!iconName) return
+            const file = `${iconName}.svg`
+            const fullPath = path.join(iconsDir, dir, file)
+            if (fs.existsSync(fullPath)) {
+              let name = iconName + suffix
+              values[name] = {name, fullPath}
+            }
+          })
+        } else {
+          fs.readdirSync(path.join(iconsDir, dir)).forEach(file => {
+            let name = path.basename(file, ".svg") + suffix
+            values[name] = {name, fullPath: path.join(iconsDir, dir, file)}
+          })
+        }
       })
+
       matchComponents({
         "hero": ({name, fullPath}) => {
           let content = fs.readFileSync(fullPath).toString().replace(/\r?\n|\r/g, "")
