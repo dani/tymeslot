@@ -163,7 +163,7 @@ defmodule TymeslotWeb.Components.DashboardComponents do
   attr :title, :string, required: true
   attr :message, :string, required: true
   attr :on_cancel, JS, default: %JS{}
-  attr :on_confirm, :string, required: true
+  attr :on_confirm, :any, required: true
   attr :confirm_text, :string, default: "Confirm"
   attr :confirm_variant, :atom, default: :danger
   attr :confirm_disable_with, :string, default: "Processing..."
