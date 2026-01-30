@@ -166,6 +166,7 @@ defmodule TymeslotWeb.Components.DashboardComponents do
   attr :on_confirm, :string, required: true
   attr :confirm_text, :string, default: "Confirm"
   attr :confirm_variant, :atom, default: :danger
+  attr :confirm_disable_with, :string, default: "Processing..."
 
   @spec confirmation_modal(map()) :: Phoenix.LiveView.Rendered.t()
   def confirmation_modal(assigns) do
@@ -199,6 +200,7 @@ defmodule TymeslotWeb.Components.DashboardComponents do
           <button
             type="button"
             phx-click={@on_confirm}
+            phx-disable-with={@confirm_disable_with}
             class={[
               "flex-1 py-4",
               if(@confirm_variant == :danger, do: "btn-danger", else: "btn-primary")
