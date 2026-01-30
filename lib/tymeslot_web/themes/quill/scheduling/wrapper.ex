@@ -45,7 +45,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Wrapper do
 
     <!-- Render background video if configured -->
       <%= if @has_video_background do %>
-        <div class="video-background">
+        <div class="video-background" id="quill-video-container" phx-hook="QuillVideo">
           <video autoplay muted loop playsinline class="video-background video">
             <% background_video_path = get_background_video_path(@theme_customization) %>
             <%= if background_video_path do %>
