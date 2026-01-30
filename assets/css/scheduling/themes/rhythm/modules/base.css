@@ -33,6 +33,37 @@ body.rhythm-theme {
   background: rgba(0, 0, 0, 0.3);
 }
 
+/* Grid layout for integrated footer */
+.video-background-theme.theme-grid {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  align-items: stretch;
+  justify-content: stretch;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Only constrain height when NOT in an iframe (standalone page) */
+@media (min-height: 600px) {
+  .video-background-theme.theme-grid {
+    max-height: 100vh;
+    max-height: 100dvh;
+  }
+
+  .video-background-theme.theme-grid .content-area {
+    overflow-y: auto;
+  }
+}
+
+.video-background-theme.theme-grid .content-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  min-height: 0;
+  position: relative;
+}
+
 /* Scheduling Box */
 .scheduling-box {
   background: linear-gradient(

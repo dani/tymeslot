@@ -70,7 +70,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Wrapper do
       <!-- Apply background styles to main gradient -->
       <div
         class={[
-          "min-h-screen main-gradient flex flex-col",
+          "main-gradient theme-grid",
           @has_video_background && "has-video-background"
         ]}
         style={
@@ -79,19 +79,23 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Wrapper do
             else: ""
         }
       >
-        <!-- Language Switcher -->
-        <%= if assigns[:locale] && assigns[:language_dropdown_open] != nil do %>
-          <div class="absolute top-6 right-6 z-50">
-            <.language_switcher
-              locale={@locale}
-              locales={TymeslotWeb.Themes.Shared.LocaleHandler.get_locales_with_metadata()}
-              dropdown_open={@language_dropdown_open}
-              theme="quill"
-            />
-          </div>
-        <% end %>
+        <div class="content-area">
+          <!-- Language Switcher -->
+          <%= if assigns[:locale] && assigns[:language_dropdown_open] != nil do %>
+            <div class="absolute top-6 right-6 z-50">
+              <.language_switcher
+                locale={@locale}
+                locales={TymeslotWeb.Themes.Shared.LocaleHandler.get_locales_with_metadata()}
+                dropdown_open={@language_dropdown_open}
+                theme="quill"
+              />
+            </div>
+          <% end %>
 
-        {render_slot(@inner_block)}
+          {render_slot(@inner_block)}
+        </div>
+
+        {TymeslotWeb.Layouts.render_theme_extensions(assigns)}
       </div>
     </div>
     """

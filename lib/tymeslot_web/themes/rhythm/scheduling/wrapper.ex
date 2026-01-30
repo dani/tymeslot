@@ -97,20 +97,24 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Wrapper do
       <% end %>
 
       <!-- Main wrapper -->
-      <div class="video-background-theme">
-        <!-- Language Switcher -->
-        <%= if assigns[:locale] && assigns[:language_dropdown_open] != nil do %>
-          <div class="absolute top-6 right-6 z-50">
-            <.language_switcher
-              locale={@locale}
-              locales={TymeslotWeb.Themes.Shared.LocaleHandler.get_locales_with_metadata()}
-              dropdown_open={@language_dropdown_open}
-              theme="rhythm"
-            />
-          </div>
-        <% end %>
+      <div class="video-background-theme theme-grid">
+        <div class="content-area">
+          <!-- Language Switcher -->
+          <%= if assigns[:locale] && assigns[:language_dropdown_open] != nil do %>
+            <div class="absolute top-6 right-6 z-50">
+              <.language_switcher
+                locale={@locale}
+                locales={TymeslotWeb.Themes.Shared.LocaleHandler.get_locales_with_metadata()}
+                dropdown_open={@language_dropdown_open}
+                theme="rhythm"
+              />
+            </div>
+          <% end %>
 
-        {render_slot(@inner_block)}
+          {render_slot(@inner_block)}
+        </div>
+
+        {TymeslotWeb.Layouts.render_theme_extensions(assigns)}
       </div>
     </div>
     """

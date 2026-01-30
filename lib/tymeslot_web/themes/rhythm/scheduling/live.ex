@@ -336,12 +336,23 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Live do
   # Template rendering - delegates to theme-specific step components
   @impl true
   def render(assigns) do
+    # Extract organizer user ID safely
+    organizer_user_id =
+      case assigns[:organizer_profile] do
+        %{user_id: user_id} -> user_id
+        _ -> nil
+      end
+
+    assigns = assign(assigns, :organizer_user_id, organizer_user_id)
+
     ~H"""
     <RhythmThemeWrapper.rhythm_wrapper
       custom_css={assigns[:custom_css]}
       theme_customization={assigns[:theme_customization]}
       locale={assigns[:locale]}
       language_dropdown_open={assigns[:language_dropdown_open]}
+      organizer_user_id={@organizer_user_id}
+      should_show_branding={assigns[:should_show_branding]}
     >
       <%= if assigns[:scheduling_error_message] do %>
         <.live_component

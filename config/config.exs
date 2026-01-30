@@ -42,6 +42,9 @@ config :tymeslot,
   # Theme extensions - empty by default (external layers can add overlays/branding)
   theme_extensions: [],
 
+  # Additional CSS files for scheduling pages - empty by default (external layers can inject CSS)
+  scheduling_additional_css: [],
+
   # Demo provider - no-op by default (can be provided by external layers)
   demo_provider: Tymeslot.Demo.NoOp,
 

@@ -69,6 +69,33 @@ body.quill-theme {
   position: relative;
 }
 
+/* Grid layout for integrated footer */
+.main-gradient.theme-grid {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Only constrain height when NOT in an iframe (standalone page) */
+@media (min-height: 600px) {
+  .main-gradient.theme-grid {
+    max-height: 100vh;
+    max-height: 100dvh;
+  }
+
+  .main-gradient.theme-grid .content-area {
+    overflow-y: auto;
+  }
+}
+
+.main-gradient.theme-grid .content-area {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  position: relative;
+}
+
 /* Video background support */
 .main-gradient.has-video-background {
   background: transparent;
