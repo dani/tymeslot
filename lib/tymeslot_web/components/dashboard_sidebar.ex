@@ -56,7 +56,7 @@ defmodule TymeslotWeb.Components.DashboardSidebar do
             </svg>
           </button>
         </div>
-        
+
     <!-- Scheduling Link (Mobile and Desktop) -->
         <div class="mb-6 flex gap-2">
           <.link
@@ -138,7 +138,7 @@ defmodule TymeslotWeb.Components.DashboardSidebar do
             </svg>
           </button>
         </div>
-        
+
     <!-- Navigation Links -->
         <nav class="space-y-3 mt-6">
           <div>

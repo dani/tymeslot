@@ -99,9 +99,9 @@ defmodule Tymeslot.Payments.Webhooks.IdempotencyCache do
     # Clear ETS cache first
     :ets.delete_all_objects(:webhook_idempotency_cache)
 
-    # Clear database using configured repo (respects test environment)
+    # Clear database - always use Tymeslot.Repo
     query = from(w in WebhookEvent)
-    repo().delete_all(query)
+    Tymeslot.Repo.delete_all(query)
     :ok
   end
 
@@ -138,7 +138,7 @@ defmodule Tymeslot.Payments.Webhooks.IdempotencyCache do
   # Database operations
 
   defp check_database(event_id) do
-    case repo().get_by(WebhookEvent, stripe_event_id: event_id) do
+    case Tymeslot.Repo.get_by(WebhookEvent, stripe_event_id: event_id) do
       nil -> {:ok, :not_processed}
       _event -> {:ok, :already_processed}
     end
@@ -153,11 +153,7 @@ defmodule Tymeslot.Payments.Webhooks.IdempotencyCache do
 
     changeset = WebhookEvent.changeset(%WebhookEvent{}, attrs)
 
-    repo().insert(changeset, on_conflict: :nothing, conflict_target: :stripe_event_id)
+    Tymeslot.Repo.insert(changeset, on_conflict: :nothing, conflict_target: :stripe_event_id)
     :ok
-  end
-
-  defp repo do
-    Application.get_env(:tymeslot, :repo, Tymeslot.Repo)
   end
 end

@@ -16,9 +16,7 @@ defmodule TymeslotWeb.Themes.Shared.LocaleHandlerTest do
   end
 
   describe "assign_locale/1" do
-    test "assigns locale from socket assigns", %{conn: conn} do
-      {:ok, _lv, _html} = live(conn, "/")
-
+    test "assigns locale from socket assigns" do
       socket = %Phoenix.LiveView.Socket{
         assigns: %{locale: "de", __changed__: %{}},
         endpoint: TymeslotWeb.Endpoint

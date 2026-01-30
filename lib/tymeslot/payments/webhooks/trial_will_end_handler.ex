@@ -71,7 +71,7 @@ defmodule Tymeslot.Payments.Webhooks.TrialWillEndHandler do
           subscription_id: subscription_id
         )
 
-        {:error, :invalid_timestamp, "trial_end timestamp is invalid or missing"}
+        {:error, :invalid_timestamp}
     end
   end
 

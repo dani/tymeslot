@@ -92,17 +92,44 @@ Mox.defmock(StripeSubscriptionMock, for: StripeSubscriptionBehaviour)
 Mox.defmock(StripeChargeMock, for: StripeChargeBehaviour)
 Mox.defmock(StripeWebhookMock, for: StripeWebhookBehaviour)
 
+max_cases =
+  case System.get_env("TEST_MAX_CASES") do
+    nil ->
+      pool_size =
+        Application.get_env(:tymeslot, Tymeslot.Repo, [])
+        |> Keyword.get(:pool_size, 10)
+
+      # Use at most half the pool size to leave headroom for sandbox overhead,
+      # migrations, and multi-repo access patterns. Minimum of 2 for parallelism.
+      max(div(pool_size, 2), 2)
+
+    value ->
+      case Integer.parse(value) do
+        {int, _} -> int
+        :error -> nil
+      end
+  end
+
 ExUnit.start(exclude: [:backup_tests, :oauth_integration, :calendar_integration])
 
 # Configure ExUnit to exclude backup tests, OAuth integration tests, and calendar
 # integration tests by default. Integration tests now run by default.
-ExUnit.configure(
+exunit_config = [
   exclude: [
     backup_tests: true,
     oauth_integration: true,
     calendar_integration: true
   ]
-)
+]
+
+exunit_config =
+  if max_cases do
+    Keyword.put(exunit_config, :max_cases, max_cases)
+  else
+    exunit_config
+  end
+
+ExUnit.configure(exunit_config)
 
 # Helper functions for tests
 defmodule Tymeslot.TestHelpers do

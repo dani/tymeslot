@@ -29,7 +29,7 @@ defmodule Tymeslot.Payments.Config do
   Get subscription manager (if configured).
 
   Returns `nil` if no subscription manager is configured (Core standalone mode).
-  In SaaS deployments, this should return `TymeslotSaas.Payments.SubscriptionManager`.
+  In SaaS deployments, this should be configured via application environment.
   """
   @spec subscription_manager() :: module() | nil
   def subscription_manager do

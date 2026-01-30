@@ -320,34 +320,49 @@ defmodule Tymeslot.Profiles do
     require Logger
 
     # If the only domain is "none", we skip normalization to preserve the keyword.
-    normalized_domains =
-      if domains == ["none"] do
-        ["none"]
-      else
-        domains
-        |> Enum.map(&String.trim/1)
-        |> Enum.map(&String.downcase/1)
-        |> Enum.map(fn domain ->
-          # Extract host if a full URL was provided
-          case URI.parse(domain) do
-            %URI{host: host} when not is_nil(host) -> host
-            _ -> domain
-          end
+    if domains == ["none"] do
+      Logger.info("Disabling embed domains",
+        user_id: profile.user_id,
+        profile_id: profile.id
+      )
+
+      update_profile(profile, %{allowed_embed_domains: ["none"]})
+    else
+      # Validate domains before normalization
+      invalid_domains =
+        Enum.filter(domains, fn domain ->
+          trimmed = String.trim(domain)
+          # Reject domains with protocols, paths, or ports
+          String.contains?(trimmed, ["://", "/", ":"]) or String.starts_with?(trimmed, "http")
         end)
-        |> Enum.reject(&(&1 == "" or &1 == "none"))
-        |> Enum.uniq()
+
+      if invalid_domains != [] do
+        changeset =
+          profile
+          |> Ecto.Changeset.change()
+          |> Ecto.Changeset.add_error(
+            :allowed_embed_domains,
+            "Invalid domains: #{Enum.join(invalid_domains, ", ")}. Only domain names are allowed (e.g., 'example.com'), not full URLs."
+          )
+
+        {:error, changeset}
+      else
+        normalized_domains =
+          domains
+          |> Enum.map(&String.trim/1)
+          |> Enum.map(&String.downcase/1)
+          |> Enum.reject(&(&1 == "" or &1 == "none"))
+          |> Enum.uniq()
+
+        Logger.info("Updating allowed embed domains",
+          user_id: profile.user_id,
+          profile_id: profile.id,
+          domain_count: length(normalized_domains)
+        )
+
+        update_profile(profile, %{allowed_embed_domains: normalized_domains})
       end
-
-    # Ensure we don't end up with an empty list if it wasn't explicitly "none"
-    final_domains = normalized_domains
-
-    Logger.info("Updating allowed embed domains",
-      user_id: profile.user_id,
-      profile_id: profile.id,
-      domain_count: length(final_domains)
-    )
-
-    update_profile(profile, %{allowed_embed_domains: final_domains})
+    end
   end
 
   # --- Organizer Context ---

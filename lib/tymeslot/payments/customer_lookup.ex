@@ -4,7 +4,7 @@ defmodule Tymeslot.Payments.CustomerLookup do
 
   Provides functions to parse and validate user IDs from various sources.
 
-  Note: Subscription-related lookups have been moved to TymeslotSaas.Payments.CustomerLookup
+  Note: Subscription-related lookups are delegated to SaaS layer when configured
   to maintain proper Core/SaaS separation.
   """
 
@@ -51,8 +51,8 @@ defmodule Tymeslot.Payments.CustomerLookup do
   subscription schema when available. Returns `nil` if no subscription schema is
   configured (Core standalone mode) or no subscription is found.
 
-  Note: In SaaS deployments, prefer using TymeslotSaas.Payments.CustomerLookup
-  which has direct access to the subscription schema without configuration indirection.
+  Note: In SaaS deployments, the SaaS layer provides direct access to subscription
+  schema without configuration indirection.
 
   ## Parameters
     * `stripe_customer_id` - The Stripe customer ID to look up

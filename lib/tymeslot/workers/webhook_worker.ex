@@ -61,14 +61,8 @@ defmodule Tymeslot.Workers.WebhookWorker do
           reason: inspect(reason)
         )
 
-        # Record failure and check if we should retry
-        case WebhookQueries.get_webhook(webhook_id) do
-          {:ok, webhook} ->
-            WebhookQueries.record_failure(webhook, inspect(reason))
-
-          _ ->
-            :ok
-        end
+        # Note: failure is already recorded in log_and_update_status
+        # to avoid double-counting on retries
 
         error
     end
