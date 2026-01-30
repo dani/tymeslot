@@ -92,11 +92,11 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsTest do
 
       # Verify UI (ensure we are on security tab)
       view |> element("button#tab-security") |> render_click()
-      
+
       # The domain should no longer be in the list of tags
       # We check that test.org is still there but example.com is gone
       assert has_element?(view, "span", "test.org")
-      
+
       # Since example.com is still in the flash message, we check for the specific tag structure
       refute has_element?(view, "span.inline-flex", "example.com")
     end

@@ -4,9 +4,9 @@ defmodule TymeslotWeb.Live.Themes.ThemeHookTest do
   import Phoenix.LiveViewTest
   import Tymeslot.Factory
 
+  alias Ecto.Changeset
   alias Tymeslot.Repo
   alias Tymeslot.TestMocks
-  alias Ecto.Changeset
 
   @moduledoc """
   Verifies that theme-specific JS hooks are correctly rendered in the DOM.
@@ -22,7 +22,7 @@ defmodule TymeslotWeb.Live.Themes.ThemeHookTest do
     insert(:meeting_type, user: user)
 
     # Enable video background via theme customization
-    customization = insert(:theme_customization, 
+    customization = insert(:theme_customization,
       profile: profile,
       background_type: "video",
       background_value: "preset:1"

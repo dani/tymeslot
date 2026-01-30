@@ -131,12 +131,10 @@ defmodule TymeslotWeb.Plugs.SecurityHeadersPlug do
         is_local = domain in ["localhost", "127.0.0.1", "::1"]
         is_dev = Application.get_env(:tymeslot, :environment) in [:dev, :test]
 
-        cond do
-          is_local and is_dev ->
-            "http://#{domain}:*"
-
-          true ->
-            "https://#{domain}"
+        if is_local and is_dev do
+          "http://#{domain}:*"
+        else
+          "https://#{domain}"
         end
       end)
 
@@ -153,15 +151,17 @@ defmodule TymeslotWeb.Plugs.SecurityHeadersPlug do
           is_local = first_domain in ["localhost", "127.0.0.1", "::1"]
           is_dev = Application.get_env(:tymeslot, :environment) in [:dev, :test]
 
-          cond do
-            String.starts_with?(first_domain, "*") ->
-              nil
+          if String.starts_with?(first_domain, "*") do
+            nil
+          else
+            is_local = first_domain in ["localhost", "127.0.0.1", "::1"]
+            is_dev = Application.get_env(:tymeslot, :environment) in [:dev, :test]
 
-            is_local and is_dev ->
+            if is_local and is_dev do
               "ALLOW-FROM http://#{first_domain}"
-
-            true ->
+            else
               "ALLOW-FROM https://#{first_domain}"
+            end
           end
       end
 

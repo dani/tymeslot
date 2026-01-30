@@ -473,71 +473,125 @@ defmodule Tymeslot.Payments do
     with :ok <- validate_amount(amount),
          :ok <- RateLimiter.check_payment_initiation_rate_limit(user_id),
          {:ok, subscription_metadata} <- MetadataSanitizer.sanitize(metadata, system_metadata) do
-      if manager do
-        with :ok <- supersede_pending_transaction_if_needed(user_id),
-             {:ok, transaction} <-
-               create_pending_subscription_transaction(
-                 user_id,
-                 amount,
-                 product_identifier,
-                 subscription_metadata
-               ) do
-          case manager.create_subscription_checkout(
-                 stripe_price_id,
-                 product_identifier,
-                 amount,
-                 user_id,
-                 email,
-                 urls,
-                 subscription_metadata
-               ) do
-            {:ok, checkout_session} ->
-              checkout_url = Map.get(checkout_session, "url") || checkout_session.url
+      handle_subscription_initiation(
+        manager,
+        stripe_price_id,
+        product_identifier,
+        amount,
+        user_id,
+        email,
+        urls,
+        subscription_metadata
+      )
+    end
+  end
 
-              case update_subscription_transaction_from_checkout(transaction, checkout_session) do
-                {:ok, _updated_transaction} ->
-                  {:ok, %{checkout_url: checkout_url}}
+  defp handle_subscription_initiation(
+         manager,
+         stripe_price_id,
+         product_identifier,
+         amount,
+         user_id,
+         email,
+         urls,
+         subscription_metadata
+       ) do
+    if manager do
+      with :ok <- supersede_pending_transaction_if_needed(user_id),
+           {:ok, transaction} <-
+             create_pending_subscription_transaction(
+               user_id,
+               amount,
+               product_identifier,
+               subscription_metadata
+             ) do
+        process_subscription_checkout(
+          manager,
+          transaction,
+          %{
+            stripe_price_id: stripe_price_id,
+            product_identifier: product_identifier,
+            amount: amount,
+            user_id: user_id,
+            email: email,
+            urls: urls
+          },
+          subscription_metadata
+        )
+      else
+        {:error, %Ecto.Changeset{} = changeset} ->
+          handle_initiation_changeset_error(changeset, user_id, amount, product_identifier)
 
-                {:error, reason} ->
-                  Logger.error(
-                    "Failed to persist subscription checkout session, returning URL anyway",
-                    error: inspect(reason),
-                    user_id: user_id,
-                    transaction_id: transaction.id
-                  )
+        {:error, reason} ->
+          {:error, reason}
+      end
+    else
+      Logger.error("Subscription manager not configured")
+      {:error, :subscriptions_not_supported}
+    end
+  end
 
-                  {:ok, %{checkout_url: checkout_url}}
-              end
+  defp process_subscription_checkout(
+         manager,
+         transaction,
+         params,
+         subscription_metadata
+       ) do
+    %{
+      stripe_price_id: stripe_price_id,
+      product_identifier: product_identifier,
+      amount: amount,
+      user_id: user_id,
+      email: email,
+      urls: urls
+    } = params
 
-            {:error, reason} ->
-              _ = mark_pending_subscription_transaction_failed(transaction, reason)
-              {:error, reason}
-          end
-        else
-          {:error, %Ecto.Changeset{} = changeset} ->
-            if unique_pending_transaction_error?(changeset) do
-              case pending_subscription_checkout_url_with_retry(user_id, amount, product_identifier) do
-                {:ok, checkout_url} ->
-                  Logger.info("Returning existing subscription checkout URL for user #{user_id}")
-                  {:ok, %{checkout_url: checkout_url}}
+    case manager.create_subscription_checkout(
+           stripe_price_id,
+           product_identifier,
+           amount,
+           user_id,
+           email,
+           urls,
+           subscription_metadata
+         ) do
+      {:ok, checkout_session} ->
+        checkout_url = Map.get(checkout_session, "url") || checkout_session.url
 
-                {:error, :checkout_conflict} ->
-                  {:error, :checkout_conflict}
-
-                {:error, :retry_later} ->
-                  {:error, :retry_later}
-              end
-            else
-              {:error, :transaction_creation_failed}
-            end
+        case update_subscription_transaction_from_checkout(transaction, checkout_session) do
+          {:ok, _updated_transaction} ->
+            {:ok, %{checkout_url: checkout_url}}
 
           {:error, reason} ->
-            {:error, reason}
+            Logger.error(
+              "Failed to persist subscription checkout session, returning URL anyway",
+              error: inspect(reason)
+            )
+
+            {:ok, %{checkout_url: checkout_url}}
         end
-      else
-        Logger.error("Subscription manager not configured")
-        {:error, :subscriptions_not_supported}
+
+      {:error, reason} ->
+        _ = mark_pending_subscription_transaction_failed(transaction, reason)
+        {:error, reason}
+    end
+  end
+
+  defp handle_initiation_changeset_error(changeset, user_id, amount, product_identifier) do
+    if unique_pending_transaction_error?(changeset) do
+      case pending_subscription_checkout_url_with_retry(user_id, amount, product_identifier) do
+        {:ok, checkout_url} ->
+          Logger.info("Returning existing subscription checkout URL for user #{user_id}")
+          {:ok, %{checkout_url: checkout_url}}
+
+        {:error, :checkout_conflict} ->
+          {:error, :checkout_conflict}
+
+        {:error, :retry_later} ->
+          {:error, :retry_later}
       end
+    else
+      {:error, :transaction_creation_failed}
     end
   end
 

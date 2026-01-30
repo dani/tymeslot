@@ -125,10 +125,7 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsComponent do
     {:noreply,
      socket
      |> push_event("copy-to-clipboard", %{text: code})
-     |> then(fn s ->
-       Flash.info("Code copied to clipboard!")
-       s
-     end)}
+     |> Flash.info("Code copied to clipboard!")}
   end
 
   def handle_event("select_embed_type", %{"type" => type}, socket) do
@@ -173,9 +170,7 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsComponent do
         else
           updated_domains = existing_domains ++ valid_domains
 
-          socket =
-            socket
-            |> push_event("reset-form", %{id: "embed-domains-form"})
+          socket = push_event(socket, "reset-form", %{id: "embed-domains-form"})
 
           perform_domain_update(socket, updated_domains, "Security settings saved successfully!")
         end

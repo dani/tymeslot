@@ -159,7 +159,8 @@ defmodule Tymeslot.DatabaseSchemas.ProfileSchema do
           domains = Enum.reject(domains, &(&1 == "" or is_nil(&1)))
 
           # Use centralized security validation
-          validation_results = Enum.map(domains, &Tymeslot.Security.Security.validate_domain/1)
+          alias Tymeslot.Security.Security
+          validation_results = Enum.map(domains, &Security.validate_domain/1)
           errors = Enum.filter(validation_results, &match?({:error, _}, &1))
 
           if errors != [] do
