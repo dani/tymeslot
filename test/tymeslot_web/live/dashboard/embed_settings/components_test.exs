@@ -27,32 +27,32 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettings.ComponentsTest do
   describe "SecuritySection component" do
     test "renders security section" do
       assigns = %{
-        allowed_domains_str: "",
+        allowed_domains: [],
         myself: "myself"
       }
 
       html = render_component(&SecuritySection.security_section/1, assigns)
       assert html =~ "Security & Domain Control"
-      assert html =~ "Allowed Domains (Optional)"
-      assert html =~ "Open:"
+      assert html =~ "Add Allowed Domain"
+      assert html =~ "Disabled"
     end
 
     test "renders when restricted" do
       assigns = %{
-        allowed_domains_str: "example.com",
+        allowed_domains: ["example.com"],
         myself: "myself"
       }
 
       html = render_component(&SecuritySection.security_section/1, assigns)
       assert html =~ "Security & Domain Control"
-      assert html =~ "Allowed Domains (Optional)"
+      assert html =~ "Add Allowed Domain"
       assert html =~ "example.com"
       assert html =~ "Restricted"
     end
 
-    test "renders when disabled" do
+    test "renders when disabled with none" do
       assigns = %{
-        allowed_domains_str: "none",
+        allowed_domains: ["none"],
         myself: "myself"
       }
 

@@ -50,6 +50,12 @@ window.addEventListener("phx:page-loading-stop", _info => topbar.hide())
 // connect if there are any LiveViews on the page
 liveSocket.connect()
 
+// Reset form on event
+window.addEventListener("phx:reset-form", (e) => {
+  const form = document.getElementById(e.detail.id);
+  if (form) form.reset();
+});
+
 // Handle copy-to-clipboard events from LiveView
 window.addEventListener("phx:copy-to-clipboard", (e) => {
   const text = e.detail.text;

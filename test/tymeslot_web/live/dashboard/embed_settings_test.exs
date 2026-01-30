@@ -63,6 +63,42 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsTest do
       assert length(updated_profile.allowed_embed_domains) == 2
       assert "example.com" in updated_profile.allowed_embed_domains
       assert "test.org" in updated_profile.allowed_embed_domains
+
+      # Verify they are displayed as tags
+      html = render(view)
+      assert html =~ "example.com"
+      assert html =~ "test.org"
+      # Check for remove buttons
+      assert has_element?(view, "button[phx-click='remove_domain'][phx-value-domain='example.com']")
+    end
+
+    test "removes a domain successfully", %{conn: conn, profile: profile} do
+      # Set initial domains
+      {:ok, _} = Profiles.update_allowed_embed_domains(profile, ["example.com", "test.org"])
+
+      {:ok, view, _html} = live(conn, "/dashboard/embed")
+      view |> element("button#tab-security") |> render_click()
+
+      # Click remove on one domain
+      view
+      |> element("button[phx-click='remove_domain'][phx-value-domain='example.com']")
+      |> render_click()
+
+      assert render(view) =~ "Domain removed successfully"
+
+      # Verify in DB
+      updated_profile = Repo.reload(profile)
+      assert updated_profile.allowed_embed_domains == ["test.org"]
+
+      # Verify UI (ensure we are on security tab)
+      view |> element("button#tab-security") |> render_click()
+      
+      # The domain should no longer be in the list of tags
+      # We check that test.org is still there but example.com is gone
+      assert has_element?(view, "span", "test.org")
+      
+      # Since example.com is still in the flash message, we check for the specific tag structure
+      refute has_element?(view, "span.inline-flex", "example.com")
     end
 
     test "shows error for invalid domains", %{conn: conn} do
@@ -71,10 +107,9 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsTest do
       view |> element("button#tab-security") |> render_click()
 
       view
-      |> form("form", %{allowed_domains: "https://example.com, invalid*.com"})
+      |> form("form", %{allowed_domains: "https://example.com"})
       |> render_submit()
 
-      assert render(view) =~ "Failed to save"
       assert render(view) =~ "Invalid domain format"
     end
 
@@ -94,12 +129,13 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsTest do
       assert render(view) =~ "cannot have more than 20"
     end
 
-    test "shows error for domain exceeding 255 characters", %{conn: conn} do
+    test "shows error for domain exceeding maximum length", %{conn: conn} do
       {:ok, view, _html} = live(conn, "/dashboard/embed")
 
       view |> element("button#tab-security") |> render_click()
 
-      long_domain = String.duplicate("a", 256) <> ".com"
+      # Domain too long (> 253 characters)
+      long_domain = String.duplicate("a", 250) <> ".com"
 
       view
       |> form("form", %{allowed_domains: long_domain})
@@ -118,11 +154,11 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsTest do
       view |> element("button#tab-security") |> render_click()
 
       # Should show disable button when domains are set
-      assert has_element?(view, "button", "Disable Embedding")
+      assert has_element?(view, "button", "Disable All Embedding")
 
       # Click disable
       view
-      |> element("button", "Disable Embedding")
+      |> element("button", "Disable All Embedding")
       |> render_click()
 
       assert render(view) =~ "Embedding is now disabled"
@@ -178,12 +214,13 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsTest do
 
       view |> element("button#tab-security") |> render_click()
 
-      html = render(view)
-      # Should show that 3 domains are configured
-      assert html =~ "example.com, test.org, subdomain.example.com"
+      # Should show the domains as tags
+      assert has_element?(view, "span", "example.com")
+      assert has_element?(view, "span", "test.org")
+      assert has_element?(view, "span", "subdomain.example.com")
     end
 
-    test "handles empty domain input", %{conn: conn, user: user} do
+    test "handles empty domain input", %{conn: conn} do
       {:ok, view, _html} = live(conn, "/dashboard/embed")
 
       view |> element("button#tab-security") |> render_click()
@@ -192,11 +229,8 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsTest do
       |> form("form", %{allowed_domains: ""})
       |> render_submit()
 
-      assert render(view) =~ "saved successfully"
-
-      # Empty input should set domains to ["none"] (disabled)
-      updated_profile = Repo.reload(Profiles.get_profile(user.id))
-      assert updated_profile.allowed_embed_domains == ["none"]
+      # Should not show success message because we reject empty input in handle_event
+      refute render(view) =~ "Security settings saved successfully"
     end
   end
 

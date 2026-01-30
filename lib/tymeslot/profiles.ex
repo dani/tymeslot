@@ -318,48 +318,38 @@ defmodule Tymeslot.Profiles do
   end
 
   def update_allowed_embed_domains(%ProfileSchema{} = profile, domains) when is_list(domains) do
-    require Logger
+    alias Tymeslot.Security.Security
 
     # If the only domain is "none", we skip normalization to preserve the keyword.
     if domains == ["none"] do
-      Logger.info("Disabling embed domains",
-        user_id: profile.user_id,
-        profile_id: profile.id
-      )
-
       update_profile(profile, %{allowed_embed_domains: ["none"]})
     else
-      # Validate domains before normalization
-      invalid_domains =
-        Enum.filter(domains, fn domain ->
-          trimmed = String.trim(domain)
-          # Reject domains with protocols, paths, or ports
-          String.contains?(trimmed, ["://", "/", ":"]) or String.starts_with?(trimmed, "http")
-        end)
+      # Pre-filter empty strings to match historical behavior and avoid validation errors
+      domains = Enum.reject(domains, &(&1 == "" or is_nil(&1)))
 
-      if invalid_domains != [] do
+      # Validate domains using centralized security validation
+      validation_results = Enum.map(domains, &Security.validate_domain/1)
+      errors = Enum.filter(validation_results, &match?({:error, _}, &1))
+
+      if errors != [] do
+        invalid_domains_str =
+          errors
+          |> Enum.map(fn {:error, reason} -> reason end)
+          |> Enum.uniq()
+          |> Enum.join(", ")
+
         changeset =
           profile
           |> Changeset.change()
-          |> Changeset.add_error(
-            :allowed_embed_domains,
-            "Invalid domains: #{Enum.join(invalid_domains, ", ")}. Only domain names are allowed (e.g., 'example.com'), not full URLs."
-          )
+          |> Changeset.add_error(:allowed_embed_domains, invalid_domains_str)
 
         {:error, changeset}
       else
         normalized_domains =
-          domains
-          |> Enum.map(&String.trim/1)
-          |> Enum.map(&String.downcase/1)
+          validation_results
+          |> Enum.map(fn {:ok, d} -> d end)
           |> Enum.reject(&(&1 == "" or &1 == "none"))
           |> Enum.uniq()
-
-        Logger.info("Updating allowed embed domains",
-          user_id: profile.user_id,
-          profile_id: profile.id,
-          domain_count: length(normalized_domains)
-        )
 
         update_profile(profile, %{allowed_embed_domains: normalized_domains})
       end

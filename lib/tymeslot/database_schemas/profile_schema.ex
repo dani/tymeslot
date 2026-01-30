@@ -7,7 +7,6 @@ defmodule Tymeslot.DatabaseSchemas.ProfileSchema do
 
   alias Tymeslot.DatabaseSchemas.ThemeCustomizationSchema
   alias Tymeslot.Profiles
-  alias Tymeslot.Security.UniversalSanitizer
   alias Tymeslot.Utils.TimezoneUtils
   alias TymeslotWeb.Themes.Core.Registry
 
@@ -147,124 +146,40 @@ defmodule Tymeslot.DatabaseSchemas.ProfileSchema do
         changeset
 
       domains when is_list(domains) ->
-        do_validate_embed_domains(changeset, domains)
+        max_domains = 20
+
+        if length(domains) > max_domains do
+          add_error(
+            changeset,
+            :allowed_embed_domains,
+            "cannot have more than #{max_domains} domains (currently #{length(domains)})"
+          )
+        else
+          # Pre-filter empty strings
+          domains = Enum.reject(domains, &(&1 == "" or is_nil(&1)))
+
+          # Use centralized security validation
+          validation_results = Enum.map(domains, &Tymeslot.Security.Security.validate_domain/1)
+          errors = Enum.filter(validation_results, &match?({:error, _}, &1))
+
+          if errors != [] do
+            invalid_domains_str =
+              errors
+              |> Enum.map(fn {:error, reason} -> reason end)
+              |> Enum.uniq()
+              |> Enum.join(", ")
+
+            add_error(changeset, :allowed_embed_domains, invalid_domains_str)
+          else
+            changeset
+          end
+        end
 
       _ ->
         add_error(changeset, :allowed_embed_domains, "must be a list of domains")
     end
   end
 
-  defp do_validate_embed_domains(changeset, domains) do
-    max_domains = 20
+  # Removed redundant validation functions in favor of Tymeslot.Security.Security.validate_domain/1
 
-    if length(domains) > max_domains do
-      add_error(
-        changeset,
-        :allowed_embed_domains,
-        "cannot have more than #{max_domains} domains (currently #{length(domains)})"
-      )
-    else
-      {invalid_domains, too_long_domains} = validate_domain_list(domains)
-      add_domain_errors(changeset, invalid_domains, too_long_domains)
-    end
-  end
-
-  defp validate_domain_list(domains) do
-    Enum.reduce(domains, {[], []}, fn domain, {invalid_acc, too_long_acc} ->
-      case validate_single_domain(domain) do
-        :ok -> {invalid_acc, too_long_acc}
-        :too_long -> {invalid_acc, [domain | too_long_acc]}
-        :invalid -> {[domain | invalid_acc], too_long_acc}
-      end
-    end)
-  end
-
-  defp validate_single_domain(domain) do
-    if byte_size(domain) > 255 do
-      :too_long
-    else
-      case UniversalSanitizer.sanitize_and_validate(domain,
-             allow_html: false,
-             max_length: 255,
-             on_too_long: :error,
-             log_events: false
-           ) do
-        {:ok, sanitized_domain} ->
-          if valid_domain?(sanitized_domain), do: :ok, else: :invalid
-
-        {:error, _} ->
-          :invalid
-      end
-    end
-  end
-
-  defp add_domain_errors(changeset, invalid_domains, too_long_domains) do
-    cond do
-      too_long_domains != [] ->
-        add_error(
-          changeset,
-          :allowed_embed_domains,
-          "Some domains exceed maximum length (max 255 characters): #{format_error_list(too_long_domains)}"
-        )
-
-      invalid_domains != [] ->
-        add_error(
-          changeset,
-          :allowed_embed_domains,
-          "Invalid domain format: #{format_error_list(invalid_domains)}. Please use formats like 'example.com' and avoid paths or ports."
-        )
-
-      true ->
-        changeset
-    end
-  end
-
-  defp format_error_list(list) do
-    "#{Enum.join(Enum.take(list, 3), ", ")}#{if length(list) > 3, do: "...", else: ""}"
-  end
-
-  # Validates a single domain format
-  # Accepts: example.com, subdomain.example.com, localhost (for dev)
-  # Rejects: https://, paths, ports, wildcards
-  # Note: Unicode/emoji domains are sanitized before validation, so this only needs to validate ASCII
-  defp valid_domain?(domain) when is_binary(domain) do
-    domain = String.trim(domain)
-
-    # Basic validations
-    cond do
-      domain == "" ->
-        false
-
-      domain == "none" ->
-        true
-
-      # Reject URLs with protocols, paths, query strings, or fragments
-      String.contains?(domain, ["://", "/", "?", "#", "@"]) ->
-        false
-
-      # Reject domains with ports
-      String.match?(domain, ~r/:\d+$/) ->
-        false
-
-      # Allow localhost for development
-      domain == "localhost" ->
-        true
-
-      # Standard domain validation (ASCII only after sanitization)
-      # Each label must be 1-63 chars, can contain letters, numbers, hyphens (not at start/end)
-      # Domain must have at least one dot (unless localhost)
-      true ->
-        labels = String.split(domain, ".")
-
-        length(labels) >= 2 and
-          Enum.all?(labels, fn label ->
-            # Standard label validation
-            byte_size(label) > 0 and
-              byte_size(label) <= 63 and
-              String.match?(label, ~r/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/i)
-          end)
-    end
-  end
-
-  defp valid_domain?(_), do: false
 end

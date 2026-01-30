@@ -9,6 +9,7 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsComponent do
   alias Tymeslot.Profiles
   alias Tymeslot.Scheduling.LinkAccessPolicy
   alias Tymeslot.Security.RateLimiter
+  alias Tymeslot.Security.Security
   alias TymeslotWeb.Endpoint
   alias TymeslotWeb.Live.Dashboard.EmbedSettings.Helpers
   alias TymeslotWeb.Live.Dashboard.EmbedSettings.LivePreview
@@ -42,7 +43,7 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsComponent do
       end
 
     # Format allowed domains for display
-    allowed_domains_str = domains_to_string(profile.allowed_embed_domains)
+    allowed_domains = profile.allowed_embed_domains || []
 
     socket =
       socket
@@ -55,7 +56,7 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsComponent do
       |> assign(:booking_url, "#{base_url}/#{username}")
       |> assign(:is_ready, is_ready)
       |> assign(:error_reason, error_reason)
-      |> assign(:allowed_domains_str, allowed_domains_str)
+      |> assign(:allowed_domains, allowed_domains)
       |> assign_new(:selected_embed_type, fn -> "inline" end)
       |> assign_new(:embed_script_url, fn -> ~p"/embed.js" end)
       |> assign_new(:active_tab, fn -> "options" end)
@@ -92,7 +93,7 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsComponent do
 
         <:tab id="security" label="Security" icon={:lock}>
           <SecuritySection.security_section
-            allowed_domains_str={@allowed_domains_str}
+            allowed_domains={@allowed_domains}
             myself={@myself}
           />
         </:tab>
@@ -135,7 +136,58 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsComponent do
   end
 
   def handle_event("save_embed_domains", %{"allowed_domains" => domains_str}, socket) do
-    perform_domain_update(socket, domains_str, "Security settings saved successfully!")
+    # Split and clean input
+    input_domains =
+      domains_str
+      |> String.split(",")
+      |> Enum.map(&String.trim/1)
+      |> Enum.reject(&(&1 == ""))
+      |> Enum.uniq()
+
+    if input_domains == [] do
+      {:noreply, socket}
+    else
+      # Validate each domain using centralized security validation
+      validation_results = Enum.map(input_domains, &Security.validate_domain/1)
+      errors = Enum.filter(validation_results, &match?({:error, _}, &1))
+
+      if errors != [] do
+        {_, reason} = List.first(errors)
+        Flash.error(reason)
+        {:noreply, socket}
+      else
+        valid_domains = Enum.map(validation_results, fn {:ok, d} -> d end)
+
+        existing_domains =
+          case socket.assigns.allowed_domains do
+            ["none"] -> []
+            list -> list
+          end
+
+        # Check for duplicates against existing
+        duplicates = Enum.filter(valid_domains, fn domain -> domain in existing_domains end)
+
+        if duplicates != [] do
+          Flash.error("Already whitelisted: #{Enum.join(duplicates, ", ")}")
+          {:noreply, socket}
+        else
+          updated_domains = existing_domains ++ valid_domains
+
+          socket =
+            socket
+            |> push_event("reset-form", %{id: "embed-domains-form"})
+
+          perform_domain_update(socket, updated_domains, "Security settings saved successfully!")
+        end
+      end
+    end
+  end
+
+  def handle_event("remove_domain", %{"domain" => domain}, socket) do
+    updated_domains = Enum.reject(socket.assigns.allowed_domains, &(&1 == domain))
+    updated_domains = if updated_domains == [], do: ["none"], else: updated_domains
+
+    perform_domain_update(socket, updated_domains, "Domain removed successfully")
   end
 
   def handle_event("clear_embed_domains", _params, socket) do
@@ -152,18 +204,21 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsComponent do
            10
          ) do
       {:allow, _count} ->
-        case Profiles.update_allowed_embed_domains(socket.assigns.profile, domains_payload) do
+        # Ensure we don't save duplicates and handle the "none" sentinel correctly
+        final_domains =
+          domains_payload
+          |> Enum.uniq()
+          |> Enum.reject(&(&1 == ""))
+
+        case Profiles.update_allowed_embed_domains(socket.assigns.profile, final_domains) do
           {:ok, updated_profile} ->
             # Notify parent of profile update
             send(self(), {:profile_updated, updated_profile})
 
-            # Format the domains for display
-            allowed_domains_str = domains_to_string(updated_profile.allowed_embed_domains)
-
             {:noreply,
              socket
              |> assign(:profile, updated_profile)
-             |> assign(:allowed_domains_str, allowed_domains_str)
+             |> assign(:allowed_domains, updated_profile.allowed_embed_domains || [])
              |> then(fn s ->
                Flash.info(success_message)
                s
@@ -191,9 +246,4 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsComponent do
         {:noreply, socket}
     end
   end
-
-  defp domains_to_string(nil), do: ""
-  defp domains_to_string([]), do: ""
-  defp domains_to_string(["none"]), do: "none"
-  defp domains_to_string(domains), do: Enum.join(domains, ", ")
 end

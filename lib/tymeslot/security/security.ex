@@ -258,4 +258,34 @@ defmodule Tymeslot.Security.Security do
       timestamp: DateTime.utc_now()
     )
   end
+
+  @doc """
+  Validates a domain name to ensure it's a valid host without protocol or path.
+  Accepts standard domains and localhost for development.
+  """
+  @spec validate_domain(String.t()) :: {:ok, String.t()} | {:error, String.t()}
+  def validate_domain(domain) when is_binary(domain) do
+    domain = String.trim(domain)
+
+    cond do
+      domain == "localhost" ->
+        {:ok, "localhost"}
+
+      domain == "none" ->
+        {:ok, "none"}
+
+      String.length(domain) > 253 ->
+        {:error, "Some domains exceed maximum length (max 255 characters)"}
+
+      # Domain pattern: alphanumeric, dots, and hyphens. Must not start/end with hyphen/dot.
+      # No protocol (http://), no path (/path), no port (:8080).
+      Regex.match?(~r/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$/i, domain) ->
+        {:ok, String.downcase(domain)}
+
+      true ->
+        {:error, "Invalid domain format (e.g. example.com)"}
+    end
+  end
+
+  def validate_domain(_), do: {:error, "Invalid domain"}
 end
