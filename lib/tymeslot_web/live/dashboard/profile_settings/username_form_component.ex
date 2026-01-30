@@ -109,6 +109,10 @@ defmodule TymeslotWeb.Dashboard.ProfileSettings.UsernameFormComponent do
         <div>
           <div class="flex flex-col sm:flex-row items-stretch gap-4">
             <div class="flex-1">
+              <% base_url = Policy.app_url() %>
+              <% display_url = String.replace(base_url, ~r/^https?:\/\//, "") %>
+              <% prefix_length = String.length(display_url) + 1 %>
+              <% input_padding = "padding-left: calc(1rem + #{prefix_length}ch);" %>
               <.input
                 name="username"
                 label="Your Custom URL"
@@ -119,10 +123,9 @@ defmodule TymeslotWeb.Dashboard.ProfileSettings.UsernameFormComponent do
                 maxlength="30"
                 phx-debounce="500"
                 errors={if @form_errors[:username], do: [@form_errors[:username]], else: []}
+                style={input_padding}
               >
                 <:leading_icon>
-                  <% base_url = Policy.app_url() %>
-                  <% display_url = String.replace(base_url, ~r/^https?:\/\//, "") %>
                   <span class="text-tymeslot-400 font-bold text-token-sm tracking-tight whitespace-nowrap">{display_url}/</span>
                 </:leading_icon>
 
