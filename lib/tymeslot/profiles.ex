@@ -5,6 +5,7 @@ defmodule Tymeslot.Profiles do
   specialized tasks to subcomponents.
   """
 
+  alias Ecto.Changeset
   alias Tymeslot.Bookings.Validation, as: BookingsValidation
   alias Tymeslot.DatabaseQueries.ProfileQueries
   alias Tymeslot.DatabaseSchemas.ProfileSchema
@@ -339,8 +340,8 @@ defmodule Tymeslot.Profiles do
       if invalid_domains != [] do
         changeset =
           profile
-          |> Ecto.Changeset.change()
-          |> Ecto.Changeset.add_error(
+          |> Changeset.change()
+          |> Changeset.add_error(
             :allowed_embed_domains,
             "Invalid domains: #{Enum.join(invalid_domains, ", ")}. Only domain names are allowed (e.g., 'example.com'), not full URLs."
           )

@@ -95,9 +95,8 @@ Mox.defmock(StripeWebhookMock, for: StripeWebhookBehaviour)
 max_cases =
   case System.get_env("TEST_MAX_CASES") do
     nil ->
-      pool_size =
-        Application.get_env(:tymeslot, Tymeslot.Repo, [])
-        |> Keyword.get(:pool_size, 10)
+      config = Application.get_env(:tymeslot, Tymeslot.Repo, [])
+      pool_size = Keyword.get(config, :pool_size, 10)
 
       # Use at most half the pool size to leave headroom for sandbox overhead,
       # migrations, and multi-repo access patterns. Minimum of 2 for parallelism.

@@ -10,6 +10,7 @@ defmodule Tymeslot.Payments.Webhooks.IdempotencyCache do
 
   alias Tymeslot.DatabaseSchemas.WebhookEventSchema, as: WebhookEvent
   alias Tymeslot.Infrastructure.CacheStore
+  alias Tymeslot.Repo
 
   import Ecto.Query
 
@@ -101,7 +102,7 @@ defmodule Tymeslot.Payments.Webhooks.IdempotencyCache do
 
     # Clear database - always use Tymeslot.Repo
     query = from(w in WebhookEvent)
-    Tymeslot.Repo.delete_all(query)
+    Repo.delete_all(query)
     :ok
   end
 
@@ -138,7 +139,7 @@ defmodule Tymeslot.Payments.Webhooks.IdempotencyCache do
   # Database operations
 
   defp check_database(event_id) do
-    case Tymeslot.Repo.get_by(WebhookEvent, stripe_event_id: event_id) do
+    case Repo.get_by(WebhookEvent, stripe_event_id: event_id) do
       nil -> {:ok, :not_processed}
       _event -> {:ok, :already_processed}
     end
@@ -153,7 +154,7 @@ defmodule Tymeslot.Payments.Webhooks.IdempotencyCache do
 
     changeset = WebhookEvent.changeset(%WebhookEvent{}, attrs)
 
-    Tymeslot.Repo.insert(changeset, on_conflict: :nothing, conflict_target: :stripe_event_id)
+    Repo.insert(changeset, on_conflict: :nothing, conflict_target: :stripe_event_id)
     :ok
   end
 end
