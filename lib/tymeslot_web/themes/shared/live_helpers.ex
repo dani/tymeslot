@@ -115,14 +115,20 @@ defmodule TymeslotWeb.Themes.Shared.LiveHelpers do
   def maybe_assign_branding_status(socket) do
     user_id = socket.assigns[:organizer_user_id]
     subscription_manager = Application.get_env(:tymeslot, :subscription_manager)
+    show_branding_globally = Application.get_env(:tymeslot, :show_branding, false)
 
     should_show =
-      if user_id && subscription_manager && Code.ensure_loaded?(subscription_manager) &&
-           function_exported?(subscription_manager, :should_show_branding?, 1) do
-        subscription_manager.should_show_branding?(user_id)
+      if show_branding_globally do
+        if user_id && subscription_manager &&
+             function_exported?(subscription_manager, :should_show_branding?, 1) do
+          subscription_manager.should_show_branding?(user_id)
+        else
+          # Default to showing branding if enabled globally but no manager/user
+          true
+        end
       else
-        # Default to showing branding if we can't determine otherwise
-        true
+        # Branding is disabled globally (Core default)
+        false
       end
 
     assign(socket, :should_show_branding, should_show)

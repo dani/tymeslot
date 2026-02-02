@@ -45,6 +45,10 @@ config :tymeslot,
   # Additional CSS files for scheduling pages - empty by default (external layers can inject CSS)
   scheduling_additional_css: [],
 
+  # Whether to show "Powered by Tymeslot" branding on scheduling pages.
+  # This should remain false in the standalone open-source version.
+  show_branding: false,
+
   # Demo provider - no-op by default (can be provided by external layers)
   demo_provider: Tymeslot.Demo.NoOp,
 
