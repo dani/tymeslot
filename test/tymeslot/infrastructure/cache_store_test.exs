@@ -1,4 +1,19 @@
 defmodule Tymeslot.Infrastructure.CacheStoreTest do
+  @moduledoc """
+  Tests for CacheStore module with request coalescing and TTL.
+
+  ## Note on Process.sleep Usage
+
+  This file uses `Process.sleep/1` intentionally to test cache behavior:
+
+  1. Simulate slow computations to verify request coalescing works - multiple
+     concurrent requests should share the same computation
+  2. Create timing windows to test race conditions in cache population
+  3. Verify that crash recovery works correctly when computations fail
+
+  These sleeps are necessary to test the cache's concurrency control mechanism.
+  """
+
   use ExUnit.Case, async: false
   import Tymeslot.TestHelpers.Eventually
 

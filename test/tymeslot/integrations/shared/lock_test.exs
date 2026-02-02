@@ -1,4 +1,21 @@
 defmodule Tymeslot.Integrations.Shared.LockTest do
+  @moduledoc """
+  Tests for integration lock mechanism to prevent concurrent operations.
+
+  ## Note on Process.sleep Usage
+
+  This test file intentionally uses `Process.sleep/1` to test concurrency behavior.
+  Unlike most tests where sleep should be replaced with `eventually/2`, these sleeps
+  are necessary to:
+
+  1. Hold locks for a duration to simulate long-running operations
+  2. Create race conditions to verify lock serialization works correctly
+  3. Test timeout and expiration logic
+
+  These are integration tests for the locking mechanism itself, so the sleeps are
+  part of the test design, not brittle timing dependencies.
+  """
+
   # async: false because we are deleting a global ETS table
   use ExUnit.Case, async: false
 
@@ -26,6 +43,8 @@ defmodule Tymeslot.Integrations.Shared.LockTest do
       spawn_link(fn ->
         Lock.with_lock("lock_456", fn ->
           send(test_pid, :locked)
+          # Intentional sleep: Hold lock to simulate long-running operation
+          # and verify that concurrent access is properly serialized
           Process.sleep(100)
         end)
       end)

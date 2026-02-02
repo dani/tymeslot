@@ -1,4 +1,21 @@
 defmodule Tymeslot.Integrations.Calendar.TokensConcurrencyTest do
+  @moduledoc """
+  Concurrency tests for OAuth token refresh operations.
+
+  ## Note on Process.sleep Usage
+
+  This test file intentionally uses `Process.sleep/1` in mocks to simulate
+  slow external API calls and test race condition handling. These sleeps are
+  necessary to:
+
+  1. Create realistic timing scenarios where multiple refresh attempts overlap
+  2. Verify that the locking mechanism prevents concurrent refreshes
+  3. Test that the second attempt properly detects an in-progress refresh
+
+  The sleeps are part of the test design to verify concurrent behavior, not
+  timing dependencies that should be replaced with `eventually/2`.
+  """
+
   # async: false to avoid ETS table issues if not careful
   use Tymeslot.DataCase, async: false
 
@@ -28,7 +45,9 @@ defmodule Tymeslot.Integrations.Calendar.TokensConcurrencyTest do
         # Send message to parent to signal we started
         send(test_pid, :refresh_started)
 
-        # Block for 100ms
+        # Intentional sleep: Simulate slow external API call to create
+        # a window where concurrent refresh attempts can occur, testing
+        # that the second attempt properly detects :refresh_in_progress
         Process.sleep(100)
 
         {:ok, {"new_access", "new_refresh", DateTime.add(DateTime.utc_now(), 3600)}}

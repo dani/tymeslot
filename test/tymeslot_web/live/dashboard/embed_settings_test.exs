@@ -134,8 +134,8 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsTest do
 
       view |> element("button#tab-security") |> render_click()
 
-      # Domain too long (> 253 characters)
-      long_domain = String.duplicate("a", 250) <> ".com"
+      # Domain too long (> 255 characters)
+      long_domain = String.duplicate("a", 252) <> ".com"
 
       view
       |> form("form", %{allowed_domains: long_domain})

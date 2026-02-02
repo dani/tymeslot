@@ -1,4 +1,21 @@
 defmodule Tymeslot.Integrations.Calendar.Auth.TokensRobustnessTest do
+  @moduledoc """
+  Robustness tests for token refresh error handling and lock recovery.
+
+  ## Note on Process.sleep Usage
+
+  This test file intentionally uses `Process.sleep/1` to test edge cases in
+  the locking mechanism:
+
+  1. `Process.sleep(:infinity)` - Holds a lock indefinitely to test cleanup
+     when the process is killed
+  2. Short sleeps - Allow time for async cleanup operations (monitor messages)
+     to be processed by GenServers
+
+  These sleeps are necessary for testing process lifecycle and cleanup behavior,
+  not timing dependencies.
+  """
+
   # async: false to control ETS table state
   use Tymeslot.DataCase, async: false
 
@@ -55,7 +72,9 @@ defmodule Tymeslot.Integrations.Calendar.Auth.TokensRobustnessTest do
         spawn_monitor(fn ->
           Lock.with_lock(:google, 123, fn ->
             send(parent, :locked)
-            # Wait to be killed
+            # Intentional sleep: Hold lock indefinitely to test cleanup
+            # when the process is killed - verifies that monitor-based
+            # cleanup releases the lock properly
             Process.sleep(:infinity)
           end)
         end)
@@ -77,7 +96,10 @@ defmodule Tymeslot.Integrations.Calendar.Auth.TokensRobustnessTest do
         {:DOWN, ^ref, :process, ^pid, :killed} -> :ok
       end
 
-      # Give the GenServer a moment to process the :DOWN message
+      # Intentional sleep: Allow GenServer time to process the :DOWN monitor
+      # message and remove the lock entry from ETS. This is testing async
+      # cleanup behavior, not a timing dependency - the GenServer needs time
+      # to process its mailbox
       Process.sleep(50)
 
       # Verify it's now unlocked
