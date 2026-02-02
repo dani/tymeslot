@@ -7,6 +7,7 @@ defmodule Tymeslot.TestHelpers.Eventually do
   Repeatedly executes the given function until it returns truthy or times out.
   Default timeout is 1000ms with 50ms interval.
   """
+  @spec eventually((() -> any()), keyword()) :: any()
   def eventually(func, opts \\ []) do
     timeout = Keyword.get(opts, :timeout, 1000)
     interval = Keyword.get(opts, :interval, 50)
@@ -16,16 +17,14 @@ defmodule Tymeslot.TestHelpers.Eventually do
   end
 
   defp do_eventually(func, timeout, interval, start_time) do
-    try do
-      if result = func.() do
-        result
-      else
-        retry_or_fail(func, timeout, interval, start_time)
-      end
-    rescue
-      _e in [ExUnit.AssertionError] ->
-        retry_or_fail(func, timeout, interval, start_time)
+    if result = func.() do
+      result
+    else
+      retry_or_fail(func, timeout, interval, start_time)
     end
+  rescue
+    _e in [ExUnit.AssertionError] ->
+      retry_or_fail(func, timeout, interval, start_time)
   end
 
   defp retry_or_fail(func, timeout, interval, start_time) do

@@ -150,10 +150,10 @@ defmodule TymeslotWeb.DashboardLive do
   alias TymeslotWeb.Helpers.PageTitles
 
   alias TymeslotWeb.Dashboard.{
+    AutomationSettingsComponent,
     BookingsManagementComponent,
     CalendarSettingsComponent,
     DashboardOverviewComponent,
-    AutomationSettingsComponent,
     ProfileSettingsComponent,
     ScheduleSettingsComponent,
     ServiceSettingsComponent,

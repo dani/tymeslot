@@ -3,6 +3,7 @@ defmodule Tymeslot.Payments.Webhooks.SubscriptionHandlerTest do
 
   alias Phoenix.PubSub
   alias Tymeslot.Payments.Webhooks.SubscriptionHandler
+  alias TymeslotSaas.Payments.PaymentEventListener
 
   setup do
     # Ensure Tymeslot.PubSub is started
@@ -11,7 +12,7 @@ defmodule Tymeslot.Payments.Webhooks.SubscriptionHandlerTest do
     end
 
     # Allow the PaymentEventListener to access the database connection
-    if pid = Process.whereis(TymeslotSaas.Payments.PaymentEventListener) do
+    if pid = Process.whereis(PaymentEventListener) do
       Ecto.Adapters.SQL.Sandbox.allow(Tymeslot.Repo, self(), pid)
     end
 

@@ -1,8 +1,8 @@
 defmodule Tymeslot.Auth.OAuth.FlowHandlerTest do
   use Tymeslot.DataCase, async: false
 
-  alias Phoenix.Flash
   alias Phoenix.Controller
+  alias Phoenix.Flash
   alias Plug.Test, as: PlugTest
   alias Tymeslot.Auth.OAuth.{Client, FlowHandler, State, URLs, UserProcessor, UserRegistration}
   alias Tymeslot.Auth.Session
@@ -209,10 +209,8 @@ defmodule Tymeslot.Auth.OAuth.FlowHandlerTest do
   end
 
   defp unload_if_loaded(module) do
-    try do
-      :meck.unload(module)
-    rescue
-      _ -> :ok
-    end
+    :meck.unload(module)
+  rescue
+    _ -> :ok
   end
 end
