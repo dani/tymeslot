@@ -1,4 +1,4 @@
-defmodule TymeslotWeb.Dashboard.Notifications.WebhookFormComponent do
+defmodule TymeslotWeb.Dashboard.Automation.WebhookFormComponent do
   @moduledoc """
   Component for creating and editing webhooks.
   Displays a full-page form similar to theme customization.

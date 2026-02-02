@@ -58,7 +58,7 @@ defmodule TymeslotWeb.DashboardRoutesTest do
       {"/dashboard/video", "Video Integration"},
       {"/dashboard/theme", "Choose Your Style"},
       {"/dashboard/meetings", "Meetings"},
-      {"/dashboard/notifications", "Notifications"}
+      {"/dashboard/automation", "Automation"}
     ]
 
     for {path, expected_text} <- @routes do

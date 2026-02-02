@@ -243,9 +243,9 @@ defmodule TymeslotWeb.Components.DashboardSidebar do
                 <span>Profile</span>
               </.nav_link>
 
-              <.nav_link patch={~p"/dashboard/notifications"} current={@current_action} action={:notifications}>
-                <IconComponents.icon name={:bell} class="w-5 h-5" />
-                <span>Notifications</span>
+              <.nav_link patch={~p"/dashboard/automation"} current={@current_action} action={:automation}>
+                <IconComponents.icon name={:bolt} class="w-5 h-5" />
+                <span>Automation</span>
               </.nav_link>
 
               <%= for ext <- Application.get_env(:tymeslot, :dashboard_sidebar_extensions, []) do %>

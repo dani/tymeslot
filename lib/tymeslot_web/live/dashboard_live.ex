@@ -153,7 +153,7 @@ defmodule TymeslotWeb.DashboardLive do
     BookingsManagementComponent,
     CalendarSettingsComponent,
     DashboardOverviewComponent,
-    NotificationSettingsComponent,
+    AutomationSettingsComponent,
     ProfileSettingsComponent,
     ScheduleSettingsComponent,
     ServiceSettingsComponent,
@@ -384,7 +384,7 @@ defmodule TymeslotWeb.DashboardLive do
 
   defp component_for_action(:calendar), do: CalendarSettingsComponent
   defp component_for_action(:video), do: VideoSettingsComponent
-  defp component_for_action(:notifications), do: NotificationSettingsComponent
+  defp component_for_action(:automation), do: AutomationSettingsComponent
   defp component_for_action(:theme), do: ThemeSettingsComponent
   defp component_for_action(:theme_customization), do: ThemeSettingsComponent
   defp component_for_action(:meetings), do: BookingsManagementComponent

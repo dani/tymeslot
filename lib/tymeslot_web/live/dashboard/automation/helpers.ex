@@ -1,6 +1,6 @@
-defmodule TymeslotWeb.Dashboard.Notifications.Helpers do
+defmodule TymeslotWeb.Dashboard.Automation.Helpers do
   @moduledoc """
-  Helper functions for the NotificationSettingsComponent.
+  Helper functions for the AutomationSettingsComponent.
   Contains business logic, state management, and utility functions.
   """
 

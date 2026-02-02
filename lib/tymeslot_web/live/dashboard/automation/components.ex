@@ -1,6 +1,6 @@
-defmodule TymeslotWeb.Dashboard.Notifications.Components do
+defmodule TymeslotWeb.Dashboard.Automation.Components do
   @moduledoc """
-  UI components for notification settings.
+  UI components for automation settings.
   """
   use TymeslotWeb, :html
 

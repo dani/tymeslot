@@ -1,6 +1,6 @@
-defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
+defmodule TymeslotWeb.Dashboard.AutomationSettingsComponent do
   @moduledoc """
-  LiveComponent for managing notifications in the dashboard.
+  LiveComponent for managing automation in the dashboard.
   Currently supports webhooks, with plans for Slack and other integrations.
   """
   use TymeslotWeb, :live_component
@@ -11,10 +11,10 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
   alias Tymeslot.Security.WebhookInputProcessor
   alias Tymeslot.Webhooks
   alias TymeslotWeb.Components.Icons.IconComponents
-  alias TymeslotWeb.Dashboard.Notifications.Components
-  alias TymeslotWeb.Dashboard.Notifications.Helpers, as: NotificationHelpers
-  alias TymeslotWeb.Dashboard.Notifications.Modals
-  alias TymeslotWeb.Dashboard.Notifications.WebhookFormComponent
+  alias TymeslotWeb.Dashboard.Automation.Components
+  alias TymeslotWeb.Dashboard.Automation.Helpers, as: AutomationHelpers
+  alias TymeslotWeb.Dashboard.Automation.Modals
+  alias TymeslotWeb.Dashboard.Automation.WebhookFormComponent
 
   @impl true
   @spec mount(Phoenix.LiveView.Socket.t()) :: {:ok, Phoenix.LiveView.Socket.t()}
@@ -83,10 +83,10 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
   end
 
   def handle_event("validate_field", %{"field" => field, "value" => value}, socket) do
-    metadata = NotificationHelpers.get_security_metadata(socket)
+    metadata = AutomationHelpers.get_security_metadata(socket)
 
     updated_errors =
-      NotificationHelpers.validate_field(
+      AutomationHelpers.validate_field(
         socket.assigns.form_values,
         socket.assigns.form_errors,
         field,
@@ -106,13 +106,13 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
   end
 
   def handle_event("toggle_event", %{"event" => event}, socket) do
-    form_values = NotificationHelpers.toggle_event(socket.assigns.form_values, event)
+    form_values = AutomationHelpers.toggle_event(socket.assigns.form_values, event)
 
     # Trigger validation for the events field
-    metadata = NotificationHelpers.get_security_metadata(socket)
+    metadata = AutomationHelpers.get_security_metadata(socket)
 
     updated_errors =
-      NotificationHelpers.validate_field(
+      AutomationHelpers.validate_field(
         form_values,
         socket.assigns.form_errors,
         "events",
@@ -127,7 +127,7 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
   end
 
   def handle_event("create_webhook", %{"webhook" => params}, socket) do
-    metadata = NotificationHelpers.get_security_metadata(socket)
+    metadata = AutomationHelpers.get_security_metadata(socket)
 
     case WebhookInputProcessor.validate_webhook_form(params, metadata: metadata) do
       {:ok, sanitized} ->
@@ -146,7 +146,7 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
              |> load_webhooks()}
 
           {:error, changeset} ->
-            errors = NotificationHelpers.format_changeset_errors(changeset)
+            errors = AutomationHelpers.format_changeset_errors(changeset)
             Flash.error("Failed to create webhook")
             {:noreply, assign(socket, :form_errors, errors)}
         end
@@ -184,7 +184,7 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
         {:noreply, socket}
 
       webhook ->
-        metadata = NotificationHelpers.get_security_metadata(socket)
+        metadata = AutomationHelpers.get_security_metadata(socket)
 
         case WebhookInputProcessor.validate_webhook_form(params, metadata: metadata) do
           {:ok, sanitized} ->
@@ -201,7 +201,7 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
                  |> load_webhooks()}
 
               {:error, changeset} ->
-                errors = NotificationHelpers.format_changeset_errors(changeset)
+                errors = AutomationHelpers.format_changeset_errors(changeset)
                 Flash.error("Failed to update webhook")
                 {:noreply, assign(socket, :form_errors, errors)}
             end
@@ -216,7 +216,7 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
     {:noreply,
      socket
      |> ModalHook.show_modal(:delete)
-     |> assign(:webhook_to_delete, NotificationHelpers.parse_id(id))}
+     |> assign(:webhook_to_delete, AutomationHelpers.parse_id(id))}
   end
 
   def handle_event("hide_delete_modal", _params, socket) do
@@ -276,7 +276,7 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
   end
 
   def handle_event("test_connection", %{"id" => id}, socket) do
-    webhook_id = NotificationHelpers.parse_id(id)
+    webhook_id = AutomationHelpers.parse_id(id)
     socket = assign(socket, :testing_connection, webhook_id)
 
     case get_webhook_for_user(socket, id) do
@@ -420,7 +420,7 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
           />
         </div>
       <% else %>
-        <.section_header icon={:bell} title="Notifications" />
+        <.section_header icon={:webhook} title="Automation" />
 
         <!-- Tabs Navigation -->
         <div class="flex flex-wrap gap-4 bg-tymeslot-50/50 p-2 rounded-[2rem] border-2 border-tymeslot-50 mb-10">
@@ -501,7 +501,7 @@ defmodule TymeslotWeb.Dashboard.NotificationSettingsComponent do
 
   defp get_webhook_for_user(socket, id) do
     user_id = socket.assigns.current_user.id
-    webhook_id = NotificationHelpers.parse_id(id)
+    webhook_id = AutomationHelpers.parse_id(id)
     Webhooks.get_webhook(webhook_id, user_id)
   end
 end

@@ -1,7 +1,7 @@
-defmodule TymeslotWeb.Dashboard.Notifications.ComponentsTest do
+defmodule TymeslotWeb.Dashboard.Automation.ComponentsTest do
   use TymeslotWeb.ConnCase, async: true
   import Phoenix.LiveViewTest
-  alias TymeslotWeb.Dashboard.Notifications.Components
+  alias TymeslotWeb.Dashboard.Automation.Components
 
   describe "webhook_card" do
     test "renders active webhook correctly" do

@@ -1,4 +1,4 @@
-defmodule TymeslotWeb.Dashboard.Notifications.NotificationsIntegrationTest do
+defmodule TymeslotWeb.Dashboard.Automation.AutomationIntegrationTest do
   use TymeslotWeb.ConnCase, async: false
   import Phoenix.LiveViewTest
   import Tymeslot.AuthTestHelpers
@@ -17,7 +17,7 @@ defmodule TymeslotWeb.Dashboard.Notifications.NotificationsIntegrationTest do
 
   describe "Webhooks flow" do
     test "can create, edit, and delete a webhook", %{conn: conn, user: user} do
-      {:ok, view, _html} = live(conn, "/dashboard/notifications")
+      {:ok, view, _html} = live(conn, "/dashboard/automation")
 
       # 1. Initial empty state
       assert render(view) =~ "No Webhooks Yet"
@@ -105,7 +105,7 @@ defmodule TymeslotWeb.Dashboard.Notifications.NotificationsIntegrationTest do
     end
 
     test "validation errors are shown", %{conn: conn} do
-      {:ok, view, _html} = live(conn, "/dashboard/notifications")
+      {:ok, view, _html} = live(conn, "/dashboard/automation")
 
       view
       |> element("button", "Create Your First Webhook")
@@ -121,7 +121,7 @@ defmodule TymeslotWeb.Dashboard.Notifications.NotificationsIntegrationTest do
       })
       |> render_submit()
 
-      # The errors are returned from WebhookInputProcessor via NotificationSettingsComponent
+      # The errors are returned from WebhookInputProcessor via AutomationSettingsComponent
       assert render(view) =~ "Name cannot be empty"
       assert render(view) =~ "Must start with http:// or https://"
     end

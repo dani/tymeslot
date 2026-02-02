@@ -1,6 +1,6 @@
-defmodule TymeslotWeb.Dashboard.Notifications.HelpersTest do
+defmodule TymeslotWeb.Dashboard.Automation.HelpersTest do
   use Tymeslot.DataCase, async: true
-  alias TymeslotWeb.Dashboard.Notifications.Helpers
+  alias TymeslotWeb.Dashboard.Automation.Helpers
 
   describe "toggle_event/2" do
     test "adds event if not present" do

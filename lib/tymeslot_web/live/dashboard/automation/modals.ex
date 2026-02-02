@@ -1,6 +1,6 @@
-defmodule TymeslotWeb.Dashboard.Notifications.Modals do
+defmodule TymeslotWeb.Dashboard.Automation.Modals do
   @moduledoc """
-  Modal components for notification settings.
+  Modal components for automation settings.
   """
   use TymeslotWeb, :html
   alias TymeslotWeb.Components.CoreComponents
