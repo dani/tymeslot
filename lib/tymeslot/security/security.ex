@@ -274,7 +274,7 @@ defmodule Tymeslot.Security.Security do
       domain == "none" ->
         {:ok, "none"}
 
-      String.length(domain) > 253 ->
+      String.length(domain) > 255 ->
         {:error, "Some domains exceed maximum length (max 255 characters)"}
 
       # Domain pattern: alphanumeric, dots, and hyphens. Must not start/end with hyphen/dot.

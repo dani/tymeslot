@@ -2,12 +2,16 @@ defmodule TymeslotWeb.Integration.LayoutExtensionTest do
   use TymeslotWeb.ConnCase, async: false
   import Tymeslot.TestFixtures
   import Tymeslot.Factory
+  import Mox
   alias Tymeslot.DatabaseQueries.ProfileQueries
 
   setup do
+    verify_on_exit!()
     # Ensure theme_extensions is empty for Core tests
     old_extensions = Application.get_env(:tymeslot, :theme_extensions)
     Application.put_env(:tymeslot, :theme_extensions, [])
+
+    stub(Tymeslot.CalendarMock, :get_events_for_range_fresh, fn _user, _start, _end -> {:ok, []} end)
 
     on_exit(fn ->
       Application.put_env(:tymeslot, :theme_extensions, old_extensions)

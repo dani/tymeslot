@@ -1,8 +1,22 @@
 defmodule Tymeslot.Payments.Webhooks.SubscriptionHandlerTest do
-  use Tymeslot.DataCase, async: true
+  use Tymeslot.DataCase, async: false
 
   alias Phoenix.PubSub
   alias Tymeslot.Payments.Webhooks.SubscriptionHandler
+
+  setup do
+    # Ensure Tymeslot.PubSub is started
+    unless Process.whereis(Tymeslot.PubSub) do
+      Phoenix.PubSub.Supervisor.start_link(name: Tymeslot.PubSub, adapter: Phoenix.PubSub.PG2)
+    end
+
+    # Allow the PaymentEventListener to access the database connection
+    if pid = Process.whereis(TymeslotSaas.Payments.PaymentEventListener) do
+      Ecto.Adapters.SQL.Sandbox.allow(Tymeslot.Repo, self(), pid)
+    end
+
+    :ok
+  end
 
   describe "can_handle?/1" do
     test "returns true for supported subscription events" do
@@ -30,7 +44,7 @@ defmodule Tymeslot.Payments.Webhooks.SubscriptionHandlerTest do
   describe "process/2" do
     test "broadcasts subscription events" do
       # Subscribe to the topic
-      PubSub.subscribe(Tymeslot.TestPubSub, "payment_events:tymeslot")
+      PubSub.subscribe(Tymeslot.PubSub, "payment_events:tymeslot")
 
       subscription = %{"id" => "sub_123", "status" => "active"}
       event = %{"type" => "customer.subscription.created"}
@@ -45,7 +59,7 @@ defmodule Tymeslot.Payments.Webhooks.SubscriptionHandlerTest do
     end
 
     test "handles unknown subscription events with generic name" do
-      PubSub.subscribe(Tymeslot.TestPubSub, "payment_events:tymeslot")
+      PubSub.subscribe(Tymeslot.PubSub, "payment_events:tymeslot")
 
       subscription = %{"id" => "sub_123"}
       event = %{"type" => "customer.subscription.something_else"}
