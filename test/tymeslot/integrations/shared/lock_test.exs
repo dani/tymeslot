@@ -2,6 +2,7 @@ defmodule Tymeslot.Integrations.Shared.LockTest do
   # async: false because we are deleting a global ETS table
   use ExUnit.Case, async: false
 
+  import Tymeslot.TestHelpers.Eventually
   alias Tymeslot.Integrations.Shared.Lock
 
   @table :integration_operation_locks
@@ -48,10 +49,14 @@ defmodule Tymeslot.Integrations.Shared.LockTest do
       Process.exit(pid, :kill)
 
       # Wait for restart
-      Process.sleep(50)
-
-      # New GenServer should have recreated the table
-      assert :ets.info(@table) != :undefined
+      eventually(fn ->
+        # Ensure the process is registered again and is a NEW pid
+        new_pid = Process.whereis(Lock)
+        assert new_pid != nil
+        assert new_pid != pid
+        # New GenServer should have recreated the table
+        assert :ets.info(@table) != :undefined
+      end)
 
       # Should be able to acquire the "same" lock again because the old table is gone
       assert :ok = Lock.with_lock("temp_lock", fn -> :ok end)
@@ -84,14 +89,9 @@ defmodule Tymeslot.Integrations.Shared.LockTest do
       # Acquire the lock again from a new process
       assert :ok = Lock.with_lock(key, fn -> :ok end)
 
-      # Give the GenServer a moment to process everything
-      Process.sleep(50)
-
       Process.exit(pid, :kill)
 
-      receive do
-        {:DOWN, ^ref, :process, ^pid, :killed} -> :ok
-      end
+      assert_receive {:DOWN, ^ref, :process, ^pid, :killed}
     end
 
     test "supports backward compatibility for calendar integrations" do
@@ -127,8 +127,9 @@ defmodule Tymeslot.Integrations.Shared.LockTest do
 
       # Now it should be acquirable because it's expired (even if process still runs)
       # Wait a bit for the old lock to be considered expired
-      Process.sleep(10)
-      assert :ok = Lock.with_lock(key, fn -> :ok end)
+      eventually(fn ->
+        assert :ok = Lock.with_lock(key, fn -> :ok end)
+      end)
 
       # Clean up config
       Application.delete_env(:tymeslot, :integration_locks)

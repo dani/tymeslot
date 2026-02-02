@@ -1,6 +1,7 @@
 defmodule TymeslotWeb.Dashboard.ThemeSettingsTest do
   use TymeslotWeb.LiveCase, async: true
 
+  import Tymeslot.TestHelpers.Eventually
   import Tymeslot.DashboardTestHelpers
 
   alias Tymeslot.Repo
@@ -181,11 +182,11 @@ defmodule TymeslotWeb.Dashboard.ThemeSettingsTest do
       |> render_upload("bg.png")
 
       # Wait for async processing
-      Process.sleep(500)
-
-      # Check for the success message in the flash
-      # Flash messages are rendered in DashboardLive which wraps the component
-      assert render(view) =~ "Background image uploaded successfully"
+      eventually(fn ->
+        # Check for the success message in the flash
+        # Flash messages are rendered in DashboardLive which wraps the component
+        assert render(view) =~ "Background image uploaded successfully"
+      end)
     end
   end
 end

@@ -1,5 +1,6 @@
 defmodule Tymeslot.Infrastructure.CacheStoreTest do
   use ExUnit.Case, async: false
+  import Tymeslot.TestHelpers.Eventually
 
   defmodule TestCache do
     use Tymeslot.Infrastructure.CacheStore,
@@ -97,13 +98,11 @@ defmodule Tymeslot.Infrastructure.CacheStoreTest do
         end)
       end)
 
-    # Wait for results
-    res1 = Task.await(task1)
-    res2 = Task.await(task2)
-
     # Both should get the error result instead of timing out or hanging
-    assert res1 == {:error, :computation_failed}
-    assert res2 == {:error, :computation_failed}
+    eventually(fn ->
+      assert Task.await(task1) == {:error, :computation_failed}
+      assert Task.await(task2) == {:error, :computation_failed}
+    end)
 
     # Verify that we can try again and succeed
     assert TestCache.get_or_compute(key, fn -> :success end) == :success
