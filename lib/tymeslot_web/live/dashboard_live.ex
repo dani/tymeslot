@@ -196,6 +196,7 @@ defmodule TymeslotWeb.DashboardLive do
       profile={@profile}
       current_action={@live_action}
       integration_status={@integration_status}
+      automations_allowed={Map.get(assigns, :automations_allowed, true)}
     >
       <.flash_group flash={@flash} id="dashboard-flash-group" />
 
@@ -349,21 +350,60 @@ defmodule TymeslotWeb.DashboardLive do
       assigns
       |> assign(:component_module, component_for_action(assigns.live_action))
       |> assign(:component_props, props_for_action(assigns))
+      |> assign(:should_render_feature, should_render_feature?(assigns.live_action, assigns))
 
     ~H"""
-    <.live_component
-      module={@component_module}
-      id={to_string(@live_action)}
-      current_user={@component_props.current_user}
-      profile={@component_props[:profile]}
-      shared_data={@component_props[:shared_data]}
-      integration_status={@integration_status}
-      saving={@saving}
-      client_ip={@component_props[:client_ip]}
-      user_agent={@component_props[:user_agent]}
-      live_action={@live_action}
-      params={@params}
-    />
+    <%= if @should_render_feature do %>
+      <.live_component
+        module={@component_module}
+        id={to_string(@live_action)}
+        current_user={@component_props.current_user}
+        profile={@component_props[:profile]}
+        shared_data={@component_props[:shared_data]}
+        integration_status={@integration_status}
+        saving={@saving}
+        client_ip={@component_props[:client_ip]}
+        user_agent={@component_props[:user_agent]}
+        live_action={@live_action}
+        params={@params}
+      />
+    <% else %>
+      <.render_feature_placeholder section={@live_action} {assigns} />
+    <% end %>
+    """
+  end
+
+  @spec should_render_feature?(atom(), map()) :: boolean()
+  defp should_render_feature?(:automation, assigns) do
+    Map.get(assigns, :automations_allowed, true)
+  end
+
+  defp should_render_feature?(_action, _assigns), do: true
+
+  @spec render_feature_placeholder(map()) :: Phoenix.LiveView.Rendered.t()
+  defp render_feature_placeholder(assigns) do
+    placeholder_components = Application.get_env(
+      :tymeslot,
+      :feature_placeholder_components,
+      %{}
+    )
+
+    assigns = assign(assigns, :placeholder_component, placeholder_components[assigns.section])
+
+    ~H"""
+    <%= if @placeholder_component do %>
+      <.live_component
+        module={@placeholder_component}
+        id={"#{@section}_placeholder"}
+        current_user={@current_user}
+        feature={@section}
+      />
+    <% else %>
+      <!-- Core fallback: just show a simple message -->
+      <div class="p-8 text-center text-gray-500">
+        <p>This feature is not available.</p>
+      </div>
+    <% end %>
     """
   end
 

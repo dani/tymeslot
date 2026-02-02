@@ -145,10 +145,13 @@ defmodule TymeslotWeb.Dashboard.AutomationSettingsComponent do
              |> assign(:form_values, %{})
              |> load_webhooks()}
 
-          {:error, changeset} ->
+          {:error, %Ecto.Changeset{} = changeset} ->
             errors = AutomationHelpers.format_changeset_errors(changeset)
             Flash.error("Failed to create webhook")
             {:noreply, assign(socket, :form_errors, errors)}
+
+          {:error, reason} when reason in [:insufficient_plan, :feature_access_checker_failed] ->
+            {:noreply, handle_feature_access_error(socket, reason)}
         end
 
       {:error, errors} ->
@@ -200,10 +203,13 @@ defmodule TymeslotWeb.Dashboard.AutomationSettingsComponent do
                  |> assign(:form_values, %{})
                  |> load_webhooks()}
 
-              {:error, changeset} ->
+              {:error, %Ecto.Changeset{} = changeset} ->
                 errors = AutomationHelpers.format_changeset_errors(changeset)
                 Flash.error("Failed to update webhook")
                 {:noreply, assign(socket, :form_errors, errors)}
+
+              {:error, reason} when reason in [:insufficient_plan, :feature_access_checker_failed] ->
+                {:noreply, handle_feature_access_error(socket, reason)}
             end
 
           {:error, errors} ->
@@ -263,6 +269,9 @@ defmodule TymeslotWeb.Dashboard.AutomationSettingsComponent do
           {:ok, _} ->
             Flash.info("Webhook status updated")
             {:noreply, load_webhooks(socket)}
+
+          {:error, reason} when reason in [:insufficient_plan, :feature_access_checker_failed] ->
+            {:noreply, handle_feature_access_error(socket, reason)}
 
           {:error, _} ->
             Flash.error("Failed to update webhook status")
@@ -361,6 +370,9 @@ defmodule TymeslotWeb.Dashboard.AutomationSettingsComponent do
              |> ModalHook.hide_modal(:regenerate_token)
              |> assign(:selected_webhook, nil)
              |> load_webhooks()}
+
+          {:error, reason} when reason in [:insufficient_plan, :feature_access_checker_failed] ->
+            {:noreply, handle_feature_access_error(socket, reason)}
 
           {:error, _} ->
             Flash.error("Failed to regenerate token")
@@ -503,5 +515,15 @@ defmodule TymeslotWeb.Dashboard.AutomationSettingsComponent do
     user_id = socket.assigns.current_user.id
     webhook_id = AutomationHelpers.parse_id(id)
     Webhooks.get_webhook(webhook_id, user_id)
+  end
+
+  defp handle_feature_access_error(socket, :insufficient_plan) do
+    Flash.error("Automation is available on Pro plans.")
+    socket
+  end
+
+  defp handle_feature_access_error(socket, :feature_access_checker_failed) do
+    Flash.error("Unable to verify subscription status. Please try again.")
+    socket
   end
 end

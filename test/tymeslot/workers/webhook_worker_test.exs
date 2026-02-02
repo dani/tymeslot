@@ -1,7 +1,8 @@
 defmodule Tymeslot.Workers.WebhookWorkerTest do
-  use Tymeslot.DataCase, async: true
+  use Tymeslot.DataCase, async: false
   use Oban.Testing, repo: Tymeslot.Repo
   import Mox
+  import Tymeslot.ConfigTestHelpers
   import Tymeslot.Factory
   import Tymeslot.WorkerTestHelpers
 
@@ -11,6 +12,15 @@ defmodule Tymeslot.Workers.WebhookWorkerTest do
   alias Tymeslot.Workers.WebhookWorker
 
   setup :verify_on_exit!
+
+  setup do
+    setup_config(:tymeslot, [
+      feature_access_checker: Tymeslot.Features.DefaultAccessChecker,
+      environment: :test
+    ])
+
+    :ok
+  end
 
   describe "perform/1 - input validation" do
     test "handles missing webhook_id" do
@@ -260,11 +270,7 @@ defmodule Tymeslot.Workers.WebhookWorkerTest do
     end
 
     test "blocks SSRF attempts to private networks in production" do
-      # Save original environment
-      original_env = Application.get_env(:tymeslot, :environment)
-
-      # Mock production environment
-      Application.put_env(:tymeslot, :environment, :prod)
+      with_config(:tymeslot, environment: :prod)
 
       meeting = insert(:meeting)
       # AWS metadata endpoint (common SSRF target)
@@ -291,18 +297,10 @@ defmodule Tymeslot.Workers.WebhookWorkerTest do
       assert delivery.error_message =~ "private or local network"
       refute delivery.delivered_at
 
-      # Restore environment
-      if original_env do
-        Application.put_env(:tymeslot, :environment, original_env)
-      else
-        Application.delete_env(:tymeslot, :environment)
-      end
     end
 
     test "allows SSRF-like URLs in non-production (testing)" do
-      # Ensure we're not in production mode
-      original_env = Application.get_env(:tymeslot, :environment)
-      Application.put_env(:tymeslot, :environment, :test)
+      with_config(:tymeslot, environment: :test)
 
       meeting = insert(:meeting)
       webhook = insert(:webhook, url: "http://169.254.169.254/test")
@@ -317,12 +315,6 @@ defmodule Tymeslot.Workers.WebhookWorkerTest do
                  "meeting_id" => meeting.id
                })
 
-      # Restore environment
-      if original_env do
-        Application.put_env(:tymeslot, :environment, original_env)
-      else
-        Application.delete_env(:tymeslot, :environment)
-      end
     end
   end
 

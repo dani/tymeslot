@@ -3,6 +3,8 @@ defmodule TymeslotWeb.Dashboard.Automation.AutomationIntegrationTest do
   import Phoenix.LiveViewTest
   import Tymeslot.AuthTestHelpers
   import Tymeslot.TestFixtures
+  import Tymeslot.Factory
+  alias Tymeslot.ConfigTestHelpers
   alias Tymeslot.DatabaseQueries.UserQueries
   alias Tymeslot.Webhooks
 
@@ -11,11 +13,17 @@ defmodule TymeslotWeb.Dashboard.Automation.AutomationIntegrationTest do
     user = create_user_fixture()
     {:ok, user} = UserQueries.mark_onboarding_complete(user)
 
+    ConfigTestHelpers.setup_config(:tymeslot, feature_access_checker: Tymeslot.Features.DefaultAccessChecker)
+    ConfigTestHelpers.setup_config(:tymeslot,
+      dashboard_additional_hooks: [],
+      feature_placeholder_components: %{}
+    )
+
     conn = log_in_user(conn, user)
     {:ok, conn: conn, user: user}
   end
 
-  describe "Webhooks flow" do
+  describe "Webhooks flow (core mode - no feature gating)" do
     test "can create, edit, and delete a webhook", %{conn: conn, user: user} do
       {:ok, view, _html} = live(conn, "/dashboard/automation")
 
@@ -126,4 +134,120 @@ defmodule TymeslotWeb.Dashboard.Automation.AutomationIntegrationTest do
       assert render(view) =~ "Must start with http:// or https://"
     end
   end
+
+  describe "Server-side feature gating" do
+    setup %{user: user} do
+      # Create a test meeting for webhook triggering
+      meeting = insert(:meeting, organizer_user: user)
+
+      {:ok, meeting: meeting}
+    end
+
+    test "triggers webhooks when no feature_access_checker is configured", %{
+      user: user,
+      meeting: meeting
+    } do
+      # Create a webhook
+      {:ok, _webhook} = Webhooks.create_webhook(user.id, %{
+        name: "Test Webhook",
+        url: "https://example.com/webhook",
+        events: ["meeting.created"]
+      })
+
+      # Clear any configured feature access checker safely
+      ConfigTestHelpers.with_config(:tymeslot, :feature_access_checker, Tymeslot.Features.DefaultAccessChecker)
+
+      # Should trigger webhook
+      assert :ok = Webhooks.trigger_webhooks_for_event(user.id, "meeting.created", meeting)
+    end
+
+    test "blocks webhooks when feature_access_checker denies access", %{
+      user: user,
+      meeting: meeting
+    } do
+      # Create a webhook
+      {:ok, _webhook} = Webhooks.create_webhook(user.id, %{
+        name: "Test Webhook",
+        url: "https://example.com/webhook",
+        events: ["meeting.created"]
+      })
+
+      # Configure a test feature access checker that denies access safely
+      ConfigTestHelpers.with_config(
+        :tymeslot,
+        :feature_access_checker,
+        TymeslotWeb.Dashboard.Automation.TestAccessChecker
+      )
+
+      # Should still return :ok but not trigger webhook
+      assert :ok = Webhooks.trigger_webhooks_for_event(user.id, "meeting.created", meeting)
+    end
+
+    test "allows webhooks when feature_access_checker grants access", %{
+      user: user,
+      meeting: meeting
+    } do
+      # Create a webhook
+      {:ok, _webhook} = Webhooks.create_webhook(user.id, %{
+        name: "Test Webhook",
+        url: "https://example.com/webhook",
+        events: ["meeting.created"]
+      })
+
+      # Configure a test feature access checker that grants access safely
+      ConfigTestHelpers.with_config(
+        :tymeslot,
+        :feature_access_checker,
+        TymeslotWeb.Dashboard.Automation.TestAccessCheckerAllows
+      )
+
+      # Should trigger webhook
+      assert :ok = Webhooks.trigger_webhooks_for_event(user.id, "meeting.created", meeting)
+    end
+
+    test "handles feature_access_checker errors gracefully", %{
+      user: user,
+      meeting: meeting
+    } do
+      # Create a webhook
+      {:ok, _webhook} = Webhooks.create_webhook(user.id, %{
+        name: "Test Webhook",
+        url: "https://example.com/webhook",
+        events: ["meeting.created"]
+      })
+
+      # Configure a test feature access checker that returns an error safely
+      ConfigTestHelpers.with_config(
+        :tymeslot,
+        :feature_access_checker,
+        TymeslotWeb.Dashboard.Automation.TestAccessCheckerFails
+      )
+
+      # Should return :ok without raising
+      assert :ok = Webhooks.trigger_webhooks_for_event(user.id, "meeting.created", meeting)
+    end
+  end
+end
+
+# Test helper modules for feature access checking
+defmodule TymeslotWeb.Dashboard.Automation.TestAccessChecker do
+  @moduledoc false
+
+  @spec check_access(any(), atom()) :: :ok | {:error, :insufficient_plan}
+  def check_access(_user_id, :automations_allowed), do: {:error, :insufficient_plan}
+  def check_access(_user_id, _feature), do: :ok
+end
+
+defmodule TymeslotWeb.Dashboard.Automation.TestAccessCheckerAllows do
+  @moduledoc false
+
+  @spec check_access(any(), atom()) :: :ok
+  def check_access(_user_id, _feature), do: :ok
+end
+
+defmodule TymeslotWeb.Dashboard.Automation.TestAccessCheckerFails do
+  @moduledoc false
+
+  @spec check_access(any(), atom()) :: {:error, atom()}
+  def check_access(_user_id, _feature), do: {:error, :checker_unavailable}
 end

@@ -3,6 +3,7 @@ defmodule TymeslotWeb.Integration.LayoutExtensionTest do
   import Tymeslot.TestFixtures
   import Tymeslot.Factory
   import Mox
+  alias Tymeslot.ConfigTestHelpers
   alias Tymeslot.DatabaseQueries.ProfileQueries
 
   setup do
@@ -23,7 +24,7 @@ defmodule TymeslotWeb.Integration.LayoutExtensionTest do
   describe "Core Layout Extensions" do
     setup do
       # Ensure show_branding is false for Core tests
-      Tymeslot.ConfigTestHelpers.setup_config(:tymeslot, show_branding: false)
+      ConfigTestHelpers.setup_config(:tymeslot, show_branding: false)
       :ok
     end
 

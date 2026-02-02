@@ -19,6 +19,7 @@ defmodule Tymeslot.Workers.WebhookWorker do
 
   alias Tymeslot.DatabaseQueries.{MeetingQueries, WebhookQueries}
   alias Tymeslot.DatabaseSchemas.WebhookSchema
+  alias Tymeslot.Features
   alias Tymeslot.Webhooks
   alias Tymeslot.Webhooks.PayloadBuilder
 
@@ -34,7 +35,10 @@ defmodule Tymeslot.Workers.WebhookWorker do
         },
         attempt: attempt
       }) do
+    feature = :automations_allowed
+
     with {:ok, webhook} <- WebhookQueries.get_webhook(webhook_id),
+         :ok <- check_feature_access(webhook.user_id, webhook_id, event_type, feature),
          {:ok, meeting} <- MeetingQueries.get_meeting(meeting_id),
          {:ok, _delivery} <- deliver_webhook(webhook, event_type, meeting, attempt) do
       # Record success
@@ -52,6 +56,22 @@ defmodule Tymeslot.Workers.WebhookWorker do
       {:error, :disabled} ->
         Logger.info("Webhook is disabled, discarding job", webhook_id: webhook_id)
         {:discard, "Webhook is disabled"}
+
+      {:error, :insufficient_plan} ->
+        Logger.info("Webhook delivery blocked - insufficient plan",
+          webhook_id: webhook_id,
+          event_type: event_type
+        )
+
+        {:discard, "Insufficient plan"}
+
+      {:error, :feature_access_checker_failed} ->
+        Logger.warning("Webhook delivery delayed - feature access check failed",
+          webhook_id: webhook_id,
+          event_type: event_type
+        )
+
+        {:error, :feature_access_checker_failed}
 
       {:error, reason} = error ->
         Logger.warning("Webhook delivery failed",
@@ -146,6 +166,33 @@ defmodule Tymeslot.Workers.WebhookWorker do
       end
     else
       {:error, :disabled}
+    end
+  end
+
+  @spec check_feature_access(integer(), integer(), String.t(), atom()) ::
+          :ok | {:error, :insufficient_plan | :feature_access_checker_failed}
+  defp check_feature_access(user_id, webhook_id, event_type, feature) do
+    case Features.check_access(user_id, feature) do
+      :ok ->
+        :ok
+
+      {:error, :insufficient_plan} = error ->
+        Logger.info("Feature access denied for webhook delivery",
+          webhook_id: webhook_id,
+          event_type: event_type,
+          feature: feature
+        )
+
+        error
+
+      {:error, :feature_access_checker_failed} = error ->
+        Logger.warning("Feature access check failed for webhook delivery",
+          webhook_id: webhook_id,
+          event_type: event_type,
+          feature: feature
+        )
+
+        error
     end
   end
 

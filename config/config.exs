@@ -62,6 +62,15 @@ config :tymeslot,
   dashboard_sidebar_extensions: [],
   dashboard_action_components: %{}
 
+# Feature Assigns - Default to allowing all features
+# SaaS can override these via on_mount hooks based on subscription status
+config :tymeslot, :feature_assigns,
+  automations_allowed: true
+
+# Feature Access Checker - Default to allowing all features
+# SaaS can provide a custom implementation that checks subscription status
+config :tymeslot, :feature_access_checker, Tymeslot.Features.DefaultAccessChecker
+
 # Oban queues shared across environments
 config :tymeslot, :oban_queues,
   default: 10,

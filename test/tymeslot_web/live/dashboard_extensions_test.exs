@@ -63,7 +63,6 @@ defmodule TymeslotWeb.DashboardExtensionsTest do
       assert html =~ "Availability"
       assert html =~ "Theme"
       assert html =~ "Profile"
-      assert html =~ "Notifications"
     end
 
     test "does not show extension navigation items", %{conn: conn} do

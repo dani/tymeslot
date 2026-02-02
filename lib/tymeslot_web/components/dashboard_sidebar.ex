@@ -15,6 +15,7 @@ defmodule TymeslotWeb.Components.DashboardSidebar do
   attr :current_action, :atom, required: true
   attr :integration_status, :map, default: %{}
   attr :profile, :any, default: nil
+  attr :automations_allowed, :boolean, default: true
 
   @spec sidebar(map()) :: Phoenix.LiveView.Rendered.t()
   def sidebar(assigns) do
@@ -243,9 +244,14 @@ defmodule TymeslotWeb.Components.DashboardSidebar do
                 <span>Profile</span>
               </.nav_link>
 
-              <.nav_link patch={~p"/dashboard/automation"} current={@current_action} action={:automation}>
+              <.nav_link
+                patch={~p"/dashboard/automation"}
+                current={@current_action}
+                action={:automation}
+                locked={!@automations_allowed}>
                 <IconComponents.icon name={:bolt} class="w-5 h-5" />
                 <span>Automation</span>
+                <.pro_badge :if={!@automations_allowed} data-testid="automation-pro-badge" />
               </.nav_link>
 
               <%= for ext <- Application.get_env(:tymeslot, :dashboard_sidebar_extensions, []) do %>
@@ -269,6 +275,7 @@ defmodule TymeslotWeb.Components.DashboardSidebar do
   attr :action, :atom, required: true
   attr :show_notification, :boolean, default: false
   attr :notification_type, :string, default: "critical"
+  attr :locked, :boolean, default: false
   slot :inner_block, required: true
 
   @spec nav_link(map()) :: Phoenix.LiveView.Rendered.t()
@@ -282,7 +289,8 @@ defmodule TymeslotWeb.Components.DashboardSidebar do
         if(@current == @action,
           do: "dashboard-nav-link--active",
           else: ""
-        )
+        ),
+        if(@locked, do: "opacity-75", else: "")
       ]}
     >
       {render_slot(@inner_block)}
@@ -302,6 +310,24 @@ defmodule TymeslotWeb.Components.DashboardSidebar do
         !
       </div>
     </.link>
+    """
+  end
+
+  # Renders a "Pro" badge for gated features.
+  attr :class, :string, default: nil
+  attr :rest, :global
+
+  defp pro_badge(assigns) do
+    ~H"""
+    <span
+      class={[
+        "ml-auto text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-semibold",
+        @class
+      ]}
+      {@rest}
+    >
+      Pro
+    </span>
     """
   end
 end

@@ -13,6 +13,7 @@ defmodule Tymeslot.Webhooks do
 
   alias Tymeslot.DatabaseQueries.WebhookQueries
   alias Tymeslot.DatabaseSchemas.{WebhookDeliverySchema, WebhookSchema}
+  alias Tymeslot.Features
   alias Tymeslot.Webhooks.PayloadBuilder
   alias Tymeslot.Workers.WebhookWorker
 
@@ -47,20 +48,26 @@ defmodule Tymeslot.Webhooks do
   Creates a new webhook for a user.
   """
   @spec create_webhook(integer(), map()) ::
-          {:ok, WebhookSchema.t()} | {:error, Ecto.Changeset.t()}
+          {:ok, WebhookSchema.t()}
+          | {:error, Ecto.Changeset.t() | :insufficient_plan | :feature_access_checker_failed}
   def create_webhook(user_id, attrs) do
-    attrs
-    |> Map.put(:user_id, user_id)
-    |> WebhookQueries.create_webhook()
+    with :ok <- Features.check_access(user_id, :automations_allowed) do
+      attrs
+      |> Map.put(:user_id, user_id)
+      |> WebhookQueries.create_webhook()
+    end
   end
 
   @doc """
   Updates a webhook.
   """
   @spec update_webhook(WebhookSchema.t(), map()) ::
-          {:ok, WebhookSchema.t()} | {:error, Ecto.Changeset.t()}
+          {:ok, WebhookSchema.t()}
+          | {:error, Ecto.Changeset.t() | :insufficient_plan | :feature_access_checker_failed}
   def update_webhook(webhook, attrs) do
-    WebhookQueries.update_webhook(webhook, attrs)
+    with :ok <- Features.check_access(webhook.user_id, :automations_allowed) do
+      WebhookQueries.update_webhook(webhook, attrs)
+    end
   end
 
   @doc """
@@ -76,28 +83,37 @@ defmodule Tymeslot.Webhooks do
   Toggles webhook active status.
   """
   @spec toggle_webhook(WebhookSchema.t()) ::
-          {:ok, WebhookSchema.t()} | {:error, Ecto.Changeset.t()}
+          {:ok, WebhookSchema.t()}
+          | {:error, Ecto.Changeset.t() | :insufficient_plan | :feature_access_checker_failed}
   def toggle_webhook(webhook) do
-    WebhookQueries.toggle_webhook(webhook)
+    with :ok <- Features.check_access(webhook.user_id, :automations_allowed) do
+      WebhookQueries.toggle_webhook(webhook)
+    end
   end
 
   @doc """
   Re-enables a disabled webhook (resets failure count).
   """
   @spec enable_webhook(WebhookSchema.t()) ::
-          {:ok, WebhookSchema.t()} | {:error, Ecto.Changeset.t()}
+          {:ok, WebhookSchema.t()}
+          | {:error, Ecto.Changeset.t() | :insufficient_plan | :feature_access_checker_failed}
   def enable_webhook(webhook) do
-    WebhookQueries.enable_webhook(webhook)
+    with :ok <- Features.check_access(webhook.user_id, :automations_allowed) do
+      WebhookQueries.enable_webhook(webhook)
+    end
   end
 
   @doc """
   Regenerates the webhook token.
   """
   @spec regenerate_token(WebhookSchema.t()) ::
-          {:ok, WebhookSchema.t()} | {:error, Ecto.Changeset.t()}
+          {:ok, WebhookSchema.t()}
+          | {:error, Ecto.Changeset.t() | :insufficient_plan | :feature_access_checker_failed}
   def regenerate_token(%WebhookSchema{} = webhook) do
-    # Passing nil for webhook_token triggers generation in the changeset
-    WebhookQueries.update_webhook(webhook, %{webhook_token: nil})
+    with :ok <- Features.check_access(webhook.user_id, :automations_allowed) do
+      # Passing nil for webhook_token triggers generation in the changeset
+      WebhookQueries.update_webhook(webhook, %{webhook_token: nil})
+    end
   end
 
   @doc """
@@ -173,27 +189,44 @@ defmodule Tymeslot.Webhooks do
 
   @doc """
   Triggers all webhooks for a user and event type.
+  Checks feature access before triggering webhooks.
   """
   @spec trigger_webhooks_for_event(integer(), String.t(), map()) :: :ok
   def trigger_webhooks_for_event(user_id, event_type, meeting) do
-    user_id
-    |> WebhookQueries.list_active_webhooks_for_event(event_type)
-    |> Enum.each(fn webhook ->
-      case trigger_webhook(webhook, event_type, meeting) do
-        :ok ->
-          Logger.debug("Scheduled webhook delivery",
-            webhook_id: webhook.id,
-            event_type: event_type
-          )
+    # Check if user has access to automation features
+    case Features.check_access(user_id, :automations_allowed) do
+      :ok ->
+        user_id
+        |> WebhookQueries.list_active_webhooks_for_event(event_type)
+        |> Enum.each(fn webhook ->
+          case trigger_webhook(webhook, event_type, meeting) do
+            :ok ->
+              Logger.debug("Scheduled webhook delivery",
+                webhook_id: webhook.id,
+                event_type: event_type
+              )
 
-        {:error, reason} ->
-          Logger.warning("Failed to schedule webhook delivery",
-            webhook_id: webhook.id,
-            event_type: event_type,
-            reason: inspect(reason)
-          )
-      end
-    end)
+            {:error, reason} ->
+              Logger.warning("Failed to schedule webhook delivery",
+                webhook_id: webhook.id,
+                event_type: event_type,
+                reason: inspect(reason)
+              )
+          end
+        end)
+
+      {:error, :insufficient_plan} ->
+        Logger.debug("Skipping webhook delivery - user lacks Pro access",
+          user_id: user_id,
+          event_type: event_type
+        )
+
+      {:error, :feature_access_checker_failed} ->
+        Logger.warning("Feature access check failed - skipping webhook scheduling",
+          user_id: user_id,
+          event_type: event_type
+        )
+    end
 
     :ok
   end

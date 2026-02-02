@@ -78,12 +78,44 @@ defmodule TymeslotWeb.Router do
   scope "/", TymeslotWeb do
     pipe_through [:browser, :require_authenticated_user]
 
+    @dashboard_hooks [
+      {TymeslotWeb.Hooks.AuthLiveSessionHook, :ensure_authenticated},
+      TymeslotWeb.Hooks.ClientInfoHook,
+      TymeslotWeb.Hooks.DashboardInitHook,
+      {TymeslotWeb.Hooks.FeatureAssignsHook, :set_feature_assigns}
+    ]
+
+    @spec on_mount(
+            :dashboard_hooks,
+            map(),
+            map(),
+            Phoenix.LiveView.Socket.t()
+          ) :: {:cont, Phoenix.LiveView.Socket.t()} | {:halt, Phoenix.LiveView.Socket.t()}
+    def on_mount(:dashboard_hooks, params, session, socket) do
+      hooks =
+        @dashboard_hooks ++
+          Application.get_env(:tymeslot, :dashboard_additional_hooks, [])
+
+      Enum.reduce_while(hooks, {:cont, socket}, fn
+        {module, function}, {:cont, socket} ->
+          case module.on_mount(function, params, session, socket) do
+            {:cont, socket} -> {:cont, {:cont, socket}}
+            {:halt, socket} -> {:halt, {:halt, socket}}
+          end
+
+        module, {:cont, socket} when is_atom(module) ->
+          case module.on_mount(:default, params, session, socket) do
+            {:cont, socket} -> {:cont, {:cont, socket}}
+            {:halt, socket} -> {:halt, {:halt, socket}}
+          end
+
+        _other, acc ->
+          {:halt, acc}
+      end)
+    end
+
     live_session :authenticated,
-      on_mount: [
-        {TymeslotWeb.Hooks.AuthLiveSessionHook, :ensure_authenticated},
-        TymeslotWeb.Hooks.ClientInfoHook,
-        TymeslotWeb.Hooks.DashboardInitHook
-      ] do
+      on_mount: {__MODULE__, :dashboard_hooks} do
       live "/dashboard", DashboardLive, :overview
       live "/dashboard/settings", DashboardLive, :settings
       live "/dashboard/availability", DashboardLive, :availability

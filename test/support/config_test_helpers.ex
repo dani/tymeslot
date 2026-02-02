@@ -71,6 +71,8 @@ defmodule Tymeslot.ConfigTestHelpers do
   - Not safe in async tests (application env is global). Use `async: false`.
   """
 
+  alias ExUnit.Callbacks
+
   @doc """
   Temporarily sets one or more config values for the current test.
 
@@ -97,11 +99,11 @@ defmodule Tymeslot.ConfigTestHelpers do
       with_config(:tymeslot, show_marketing_links: false)
       with_config(:tymeslot_saas, subscription_required: true)
   """
+  @spec with_config(atom(), keyword()) :: :ok
   def with_config(app, config_list) when is_atom(app) and is_list(config_list) do
     # Save original values for all keys we're about to change
     original_values =
-      config_list
-      |> Enum.map(fn {key, _value} ->
+      Enum.map(config_list, fn {key, _value} ->
         {key, Application.fetch_env(app, key)}
       end)
 
@@ -111,7 +113,7 @@ defmodule Tymeslot.ConfigTestHelpers do
     end)
 
     # Register cleanup to restore original values
-    ExUnit.Callbacks.on_exit(fn ->
+    Callbacks.on_exit(fn ->
       Enum.each(original_values, fn {key, original} ->
         case original do
           :error ->
@@ -126,6 +128,7 @@ defmodule Tymeslot.ConfigTestHelpers do
     end)
   end
 
+  @spec with_config(atom(), atom(), any()) :: :ok
   def with_config(app, key, value) when is_atom(app) and is_atom(key) do
     with_config(app, [{key, value}])
   end
@@ -149,11 +152,13 @@ defmodule Tymeslot.ConfigTestHelpers do
         setup_config(:tymeslot, :feature_flag, true)
       end
   """
+  @spec setup_config(atom(), keyword()) :: :ok
   def setup_config(app, config_list) when is_list(config_list) do
     with_config(app, config_list)
     :ok
   end
 
+  @spec setup_config(atom(), atom(), any()) :: :ok
   def setup_config(app, key, value) when is_atom(key) do
     with_config(app, key, value)
     :ok

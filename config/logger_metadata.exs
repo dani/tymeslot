@@ -222,5 +222,9 @@ config :logger, :console,
     :expected_user_id,
     :actual_user_id,
     :setup_intent_id,
-    :payment_method_id
+    :payment_method_id,
+    :exception,
+    :kind,
+    :feature,
+    :stacktrace
   ]

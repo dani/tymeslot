@@ -1,7 +1,8 @@
 defmodule Tymeslot.Payments.Webhooks.SecurityTest do
-  use Tymeslot.DataCase, async: true
+  use Tymeslot.DataCase, async: false
 
   alias Tymeslot.Payments.Webhooks.Security.{DevelopmentMode, SignatureVerifier}
+  import Tymeslot.ConfigTestHelpers
   import Mox
 
   setup :set_mox_from_context
@@ -9,26 +10,25 @@ defmodule Tymeslot.Payments.Webhooks.SecurityTest do
 
   describe "DevelopmentMode" do
     test "verify_if_allowed/1 returns error when not allowed" do
-      Application.put_env(:tymeslot, :skip_webhook_verification, false)
+      with_config(:tymeslot, skip_webhook_verification: false)
       assert {:error, :not_allowed} = DevelopmentMode.verify_if_allowed("{}")
     end
 
     test "verify_if_allowed/1 parses JSON when allowed" do
-      Application.put_env(:tymeslot, :skip_webhook_verification, true)
-      Application.put_env(:tymeslot, :environment, :test)
+      with_config(:tymeslot, [
+        skip_webhook_verification: true,
+        environment: :test
+      ])
 
       assert {:ok, %{"id" => "evt_123"}} =
                DevelopmentMode.verify_if_allowed(~S({"id": "evt_123"}))
-
-      on_exit(fn ->
-        Application.delete_env(:tymeslot, :skip_webhook_verification)
-        Application.delete_env(:tymeslot, :environment)
-      end)
     end
 
     test "verify_if_allowed/1 returns error on invalid JSON" do
-      Application.put_env(:tymeslot, :skip_webhook_verification, true)
-      Application.put_env(:tymeslot, :environment, :test)
+      with_config(:tymeslot, [
+        skip_webhook_verification: true,
+        environment: :test
+      ])
 
       assert {:error, %{reason: :invalid_json}} = DevelopmentMode.verify_if_allowed("invalid")
     end
@@ -36,7 +36,7 @@ defmodule Tymeslot.Payments.Webhooks.SecurityTest do
 
   describe "SignatureVerifier" do
     setup do
-      Application.put_env(:tymeslot, :stripe_provider, Tymeslot.Payments.StripeMock)
+      setup_config(:tymeslot, stripe_provider: Tymeslot.Payments.StripeMock)
       :ok
     end
 

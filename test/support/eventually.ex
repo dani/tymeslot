@@ -133,16 +133,14 @@ defmodule Tymeslot.TestHelpers.Eventually do
   end
 
   defp do_eventually(func, timeout, interval, start_time, message) do
-    try do
-      if result = func.() do
-        result
-      else
-        retry_or_fail(func, timeout, interval, start_time, message, nil)
-      end
-    rescue
-      e in [ExUnit.AssertionError] ->
-        retry_or_fail(func, timeout, interval, start_time, message, e)
+    if result = func.() do
+      result
+    else
+      retry_or_fail(func, timeout, interval, start_time, message, nil)
     end
+  rescue
+    e in [ExUnit.AssertionError] ->
+      retry_or_fail(func, timeout, interval, start_time, message, e)
   end
 
   defp retry_or_fail(func, timeout, interval, start_time, message, last_error) do
