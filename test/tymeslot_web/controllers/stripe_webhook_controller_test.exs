@@ -58,10 +58,41 @@ defmodule TymeslotWeb.StripeWebhookControllerTest do
 
       payload = ~s({"type":"checkout.session.completed", "id":"evt_123"})
 
+      # Use a malformed signature that doesn't have t= and v1=
       conn =
         conn
         |> put_req_header("content-type", "application/json")
         |> put_req_header("stripe-signature", "invalid_signature")
+        |> assign(:raw_body, payload)
+        |> post("/webhooks/stripe", payload)
+
+      assert json_response(conn, 400)
+    end
+
+    test "returns 400 when webhook signature is valid but for different payload", %{conn: conn} do
+      previous_skip = Application.get_env(:tymeslot, :skip_webhook_verification)
+      previous_provider = Application.get_env(:tymeslot, :stripe_provider)
+      previous_secret = Application.get_env(:tymeslot, :stripe_webhook_secret)
+
+      secret = "whsec_test"
+      Application.put_env(:tymeslot, :skip_webhook_verification, false)
+      Application.put_env(:tymeslot, :stripe_provider, Tymeslot.Payments.Stripe)
+      Application.put_env(:tymeslot, :stripe_webhook_secret, secret)
+
+      on_exit(fn ->
+        Application.put_env(:tymeslot, :skip_webhook_verification, previous_skip)
+        Application.put_env(:tymeslot, :stripe_provider, previous_provider)
+        Application.put_env(:tymeslot, :stripe_webhook_secret, previous_secret)
+      end)
+
+      payload = ~s({"type":"checkout.session.completed", "id":"evt_123"})
+      different_payload = ~s({"type":"checkout.session.completed", "id":"evt_456"})
+      signature = PaymentTestHelpers.generate_stripe_signature(different_payload, secret)
+
+      conn =
+        conn
+        |> put_req_header("content-type", "application/json")
+        |> put_req_header("stripe-signature", signature)
         |> assign(:raw_body, payload)
         |> post("/webhooks/stripe", payload)
 
