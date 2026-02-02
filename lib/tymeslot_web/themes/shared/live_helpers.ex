@@ -44,9 +44,6 @@ defmodule TymeslotWeb.Themes.Shared.LiveHelpers do
     # Apply theme customization after organizer is resolved
     socket = maybe_assign_customization(socket)
 
-    # Pre-calculate branding status for SaaS (if enabled) to avoid DB queries on every render
-    socket = maybe_assign_branding_status(socket)
-
     # Finally setup initial state
     socket = setup_initial_state_fun.(socket, initial_state, params)
 
@@ -105,33 +102,6 @@ defmodule TymeslotWeb.Themes.Shared.LiveHelpers do
     else
       socket
     end
-  end
-
-  @doc """
-  Pre-calculates branding status if a subscription manager is configured.
-  This avoids repeated DB queries in the branding overlay component.
-  """
-  @spec maybe_assign_branding_status(Phoenix.LiveView.Socket.t()) :: Phoenix.LiveView.Socket.t()
-  def maybe_assign_branding_status(socket) do
-    user_id = socket.assigns[:organizer_user_id]
-    subscription_manager = Application.get_env(:tymeslot, :subscription_manager)
-    show_branding_globally = Application.get_env(:tymeslot, :show_branding, false)
-
-    should_show =
-      if show_branding_globally do
-        if user_id && subscription_manager &&
-             function_exported?(subscription_manager, :should_show_branding?, 1) do
-          subscription_manager.should_show_branding?(user_id)
-        else
-          # Default to showing branding if enabled globally but no manager/user
-          true
-        end
-      else
-        # Branding is disabled globally (Core default)
-        false
-      end
-
-    assign(socket, :should_show_branding, should_show)
   end
 
   @doc """

@@ -4,6 +4,8 @@ defmodule Tymeslot.Dashboard.DashboardContext do
   Extracted from dashboard_live.ex to improve separation of concerns.
   """
 
+  require Logger
+
   alias Tymeslot.DatabaseQueries.MeetingTypeQueries
   alias Tymeslot.DatabaseQueries.VideoIntegrationQueries
   alias Tymeslot.Infrastructure.DashboardCache
