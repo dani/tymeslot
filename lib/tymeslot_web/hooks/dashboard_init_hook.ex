@@ -3,6 +3,7 @@ defmodule TymeslotWeb.Hooks.DashboardInitHook do
   Consolidated hook for dashboard initialization.
   Handles onboarding checks, profile loading, and common dashboard state.
   """
+  require Logger
   import Phoenix.LiveView
   import Phoenix.Component
   alias Tymeslot.Auth

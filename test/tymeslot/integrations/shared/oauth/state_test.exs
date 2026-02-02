@@ -1,4 +1,14 @@
 defmodule Tymeslot.Integrations.Common.OAuth.StateTest do
+  @moduledoc """
+  Tests for OAuth state parameter generation and validation.
+
+  ## Note on Process.sleep Usage
+
+  This file uses `Process.sleep/1` to test time-based expiration of OAuth state
+  tokens. The sleep is necessary to verify that tokens correctly expire after
+  their TTL, testing security-critical timeout behavior.
+  """
+
   use ExUnit.Case, async: true
 
   alias Tymeslot.Integrations.Common.OAuth.State

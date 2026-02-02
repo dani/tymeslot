@@ -4,6 +4,8 @@ defmodule Tymeslot.Infrastructure.CacheStore do
   Provides standard lookup, compute, and cleanup logic.
   """
 
+  require Logger
+
   defmacro __using__(opts) do
     quote do
       use GenServer
@@ -218,10 +220,58 @@ defmodule Tymeslot.Infrastructure.CacheStore do
   @doc false
   @spec compute_and_store(atom(), any(), (-> any()), integer()) :: any()
   def compute_and_store(table_name, key, fun, ttl) do
-    value = fun.()
-    expiry = System.monotonic_time(:millisecond) + ttl
-    :ets.insert(table_name, {key, value, expiry})
-    value
+    result =
+      try do
+        {:ok, fun.()}
+      rescue
+        exception ->
+          if Application.get_env(:tymeslot, :environment) == :test do
+            reraise exception, __STACKTRACE__
+          end
+
+          {:raised, exception, __STACKTRACE__}
+      catch
+        kind, reason ->
+          if Application.get_env(:tymeslot, :environment) == :test do
+            :erlang.raise(kind, reason, __STACKTRACE__)
+          end
+
+          {:caught, kind, reason, __STACKTRACE__}
+      end
+
+    case result do
+      {:ok, value} ->
+        expiry = System.monotonic_time(:millisecond) + ttl
+        :ets.insert(table_name, {key, value, expiry})
+        value
+
+      {:raised, exception, stacktrace} ->
+        Logger.warning("Cache computation raised an exception",
+          table: table_name,
+          key: inspect(key),
+          exception: Exception.message(exception)
+        )
+
+        Logger.debug(fn ->
+          "Stacktrace: #{Exception.format_stacktrace(stacktrace)}"
+        end)
+
+        {:error, :computation_failed}
+
+      {:caught, kind, reason, stacktrace} ->
+        Logger.warning("Cache computation failed",
+          table: table_name,
+          key: inspect(key),
+          kind: kind,
+          reason: inspect(reason)
+        )
+
+        Logger.debug(fn ->
+          "Stacktrace: #{Exception.format_stacktrace(stacktrace)}"
+        end)
+
+        {:error, :computation_failed}
+    end
   end
 
   @doc false

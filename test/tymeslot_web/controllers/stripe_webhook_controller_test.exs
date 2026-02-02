@@ -2,6 +2,7 @@ defmodule TymeslotWeb.StripeWebhookControllerTest do
   use TymeslotWeb.ConnCase, async: false
 
   import Mox
+  import Tymeslot.ConfigTestHelpers
 
   alias Stripe.Error, as: StripeError
   alias Tymeslot.Payments.Webhooks.IdempotencyCache
@@ -23,12 +24,7 @@ defmodule TymeslotWeb.StripeWebhookControllerTest do
     # These tests are kept for documentation but will pass due to development mode bypass.
 
     test "returns 400 when webhook signature is missing", %{conn: conn} do
-      previous_skip = Application.get_env(:tymeslot, :skip_webhook_verification)
-      Application.put_env(:tymeslot, :skip_webhook_verification, false)
-
-      on_exit(fn ->
-        Application.put_env(:tymeslot, :skip_webhook_verification, previous_skip)
-      end)
+      with_config(:tymeslot, skip_webhook_verification: false)
 
       payload = ~s({"type":"checkout.session.completed", "id":"evt_123"})
 
@@ -42,19 +38,11 @@ defmodule TymeslotWeb.StripeWebhookControllerTest do
     end
 
     test "returns 400 when webhook signature is invalid", %{conn: conn} do
-      previous_skip = Application.get_env(:tymeslot, :skip_webhook_verification)
-      previous_provider = Application.get_env(:tymeslot, :stripe_provider)
-      previous_secret = Application.get_env(:tymeslot, :stripe_webhook_secret)
-
-      Application.put_env(:tymeslot, :skip_webhook_verification, false)
-      Application.put_env(:tymeslot, :stripe_provider, Tymeslot.Payments.Stripe)
-      Application.put_env(:tymeslot, :stripe_webhook_secret, "whsec_test")
-
-      on_exit(fn ->
-        Application.put_env(:tymeslot, :skip_webhook_verification, previous_skip)
-        Application.put_env(:tymeslot, :stripe_provider, previous_provider)
-        Application.put_env(:tymeslot, :stripe_webhook_secret, previous_secret)
-      end)
+      with_config(:tymeslot, [
+        skip_webhook_verification: false,
+        stripe_provider: Tymeslot.Payments.Stripe,
+        stripe_webhook_secret: "whsec_test"
+      ])
 
       payload = ~s({"type":"checkout.session.completed", "id":"evt_123"})
 
@@ -70,20 +58,13 @@ defmodule TymeslotWeb.StripeWebhookControllerTest do
     end
 
     test "returns 400 when webhook signature is valid but for different payload", %{conn: conn} do
-      previous_skip = Application.get_env(:tymeslot, :skip_webhook_verification)
-      previous_provider = Application.get_env(:tymeslot, :stripe_provider)
-      previous_secret = Application.get_env(:tymeslot, :stripe_webhook_secret)
-
       secret = "whsec_test"
-      Application.put_env(:tymeslot, :skip_webhook_verification, false)
-      Application.put_env(:tymeslot, :stripe_provider, Tymeslot.Payments.Stripe)
-      Application.put_env(:tymeslot, :stripe_webhook_secret, secret)
 
-      on_exit(fn ->
-        Application.put_env(:tymeslot, :skip_webhook_verification, previous_skip)
-        Application.put_env(:tymeslot, :stripe_provider, previous_provider)
-        Application.put_env(:tymeslot, :stripe_webhook_secret, previous_secret)
-      end)
+      with_config(:tymeslot, [
+        skip_webhook_verification: false,
+        stripe_provider: Tymeslot.Payments.Stripe,
+        stripe_webhook_secret: secret
+      ])
 
       payload = ~s({"type":"checkout.session.completed", "id":"evt_123"})
       different_payload = ~s({"type":"checkout.session.completed", "id":"evt_456"})
@@ -144,12 +125,7 @@ defmodule TymeslotWeb.StripeWebhookControllerTest do
     end
 
     test "returns 200 when subscription manager is not configured", %{conn: conn} do
-      previous = Application.get_env(:tymeslot, :subscription_manager)
-      Application.put_env(:tymeslot, :subscription_manager, nil)
-
-      on_exit(fn ->
-        Application.put_env(:tymeslot, :subscription_manager, previous)
-      end)
+      with_config(:tymeslot, subscription_manager: nil)
 
       session =
         PaymentTestHelpers.mock_stripe_checkout_session(%{

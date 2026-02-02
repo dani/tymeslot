@@ -1,8 +1,6 @@
 defmodule TymeslotWeb.Themes.Shared.LocaleHandlerTest do
   use TymeslotWeb.ConnCase, async: true
 
-  import Phoenix.LiveViewTest
-
   alias TymeslotWeb.Themes.Shared.LocaleHandler
 
   setup do

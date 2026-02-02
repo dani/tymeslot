@@ -1,4 +1,14 @@
 defmodule Tymeslot.Integrations.Video.RoomsTest do
+  @moduledoc """
+  Tests for video room creation and provider integration.
+
+  ## Note on Process.sleep Usage
+
+  One test in this file uses `Process.sleep/1` in a mock to simulate network
+  latency and increase the likelihood of triggering race conditions in
+  concurrent token refresh scenarios.
+  """
+
   use Tymeslot.DataCase, async: true
 
   import Mox

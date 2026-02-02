@@ -1,4 +1,17 @@
 defmodule Tymeslot.Integrations.Video.TokenRefreshConcurrencyTest do
+  @moduledoc """
+  Concurrency tests for video provider OAuth token refresh operations.
+
+  ## Note on Process.sleep Usage
+
+  This test file intentionally uses `Process.sleep/1` in mocks to simulate
+  slow external OAuth refresh calls and verify that the locking mechanism
+  prevents duplicate token refreshes when multiple requests arrive concurrently.
+
+  The sleeps create a realistic timing window where multiple requests can
+  overlap, allowing us to verify that only ONE refresh actually occurs.
+  """
+
   # async: false because we use set_mox_global()
   use Tymeslot.DataCase, async: false
 
@@ -31,7 +44,9 @@ defmodule Tymeslot.Integrations.Video.TokenRefreshConcurrencyTest do
 
       # CRITICAL: We expect exactly ONE call to refresh_access_token
       expect(Tymeslot.GoogleOAuthHelperMock, :refresh_access_token, 1, fn _token, _scope ->
-        # Add a delay to ensure other processes hit the lock
+        # Intentional sleep: Simulate slow OAuth provider response to create
+        # a timing window where concurrent requests can overlap, testing that
+        # the locking mechanism prevents duplicate refreshes
         Process.sleep(100)
 
         {:ok,
