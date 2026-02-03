@@ -30,8 +30,8 @@ defmodule Tymeslot.Workers.VideoRoomRecoveryScanWorkerTest do
           organizer_email: user.email,
           video_integration_id: integration.id,
           video_room_id: "existing-room",
-          start_time: future_start,
-          end_time: future_end
+          start_time: DateTime.add(future_start, 1, :hour),
+          end_time: DateTime.add(future_end, 1, :hour)
         )
 
       _meeting_without_integration =
@@ -39,8 +39,8 @@ defmodule Tymeslot.Workers.VideoRoomRecoveryScanWorkerTest do
           organizer_user_id: user.id,
           organizer_email: user.email,
           video_integration_id: nil,
-          start_time: future_start,
-          end_time: future_end
+          start_time: DateTime.add(future_start, 2, :hour),
+          end_time: DateTime.add(future_end, 2, :hour)
         )
 
       past_start = DateTime.add(DateTime.utc_now(), -2, :day)
