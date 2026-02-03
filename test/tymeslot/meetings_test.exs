@@ -8,7 +8,10 @@ defmodule Tymeslot.MeetingsTest do
   import Mox
 
   alias Ecto.UUID
+  alias Tymeslot.DatabaseSchemas.MeetingSchema
+  alias Tymeslot.DatabaseSchemas.MeetingSchema, as: Meeting
   alias Tymeslot.Meetings
+  alias Tymeslot.Repo
   alias Tymeslot.TestMocks
   import Tymeslot.MeetingTestHelpers
   import Tymeslot.CursorPaginationTestCases
@@ -228,7 +231,7 @@ defmodule Tymeslot.MeetingsTest do
         )
 
       # Use setup_all_mocks to configure Mox correctly
-      Tymeslot.TestMocks.setup_all_mocks()
+      TestMocks.setup_all_mocks()
 
       # Stub HTTP client to return HTTPoison.Response struct
       stub(Tymeslot.HTTPClientMock, :post, fn _url, _body, _headers, _opts ->
@@ -271,7 +274,7 @@ defmodule Tymeslot.MeetingsTest do
       assert :ok = Meetings.send_reschedule_request(meeting)
 
       # Verify status updated
-      updated_meeting = Tymeslot.Repo.get(Tymeslot.DatabaseSchemas.MeetingSchema, meeting.id)
+      updated_meeting = Repo.get(Meeting, meeting.id)
       assert updated_meeting.status == "reschedule_requested"
     end
 

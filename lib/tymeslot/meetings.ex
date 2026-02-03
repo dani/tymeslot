@@ -366,13 +366,12 @@ defmodule Tymeslot.Meetings do
         {:ok, page}
 
       {:error, :invalid_cursor} ->
-        Logger.warning("Invalid pagination cursor provided", user_id: user_id, filter: filter)
+        Logger.warning("Invalid pagination cursor provided", user_id: user_id)
         {:error, :invalid_cursor}
 
       {:error, reason} = error ->
         Logger.error("Failed to list meetings by filter",
           user_id: user_id,
-          filter: filter,
           reason: inspect(reason)
         )
 
