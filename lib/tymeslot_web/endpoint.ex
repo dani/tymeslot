@@ -4,19 +4,19 @@ defmodule TymeslotWeb.Endpoint do
   # The session will be stored in the cookie and signed,
   # this means its contents can be read but not tampered with.
   # Set :encryption_salt if you would also like to encrypt it.
-  defp session_options do
-    [
-      store: :cookie,
-      key: "_tymeslot_key",
-      # Use a stable, non-secret salt. secret_key_base is the actual secret.
-      signing_salt:
-        Application.fetch_env!(:tymeslot, [TymeslotWeb.Endpoint, :session_signing_salt]),
-      # Changed from "Strict" to "Lax" to allow OAuth callbacks
-      same_site: "Lax",
-      http_only: true,
-      secure: Application.compile_env(:tymeslot, :secure_cookies, false)
-    ]
-  end
+  @session_options [
+    store: :cookie,
+    key: "_tymeslot_key",
+    # Use a stable, non-secret salt. secret_key_base is the actual secret.
+    signing_salt:
+      Application.compile_env!(:tymeslot, [TymeslotWeb.Endpoint, :session_signing_salt]),
+    # Changed from "Strict" to "Lax" to allow OAuth callbacks
+    same_site: "Lax",
+    http_only: true,
+    secure: Application.compile_env(:tymeslot, :secure_cookies, false)
+  ]
+
+  def session_options, do: @session_options
 
   socket "/live", Phoenix.LiveView.Socket,
     websocket: [
