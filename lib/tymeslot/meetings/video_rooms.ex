@@ -68,10 +68,10 @@ defmodule Tymeslot.Meetings.VideoRooms do
                     {:ok, user_id} <- get_meeting_organizer_user_id(meeting),
                     {:ok, :proceed} <- should_create_video_room(meeting, user_id),
                     {:ok, updated_meeting} <- create_and_attach_video_room(meeting, user_id) do
-                 updated_meeting
+                 {:ok, updated_meeting}
                else
                  {:ok, :already_attached} ->
-                   meeting
+                   {:ok, meeting}
 
                  {:error, reason} ->
                    Repo.rollback(reason)

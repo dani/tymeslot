@@ -382,11 +382,7 @@ defmodule Tymeslot.Meetings do
   """
   @spec get_meeting(String.t() | integer()) :: {:ok, MeetingSchema.t()} | {:error, :not_found}
   def get_meeting(id) do
-    case Queries.get_meeting(id) do
-      {:ok, meeting} -> {:ok, meeting}
-      {:error, :not_found} -> {:error, :not_found}
-      _ -> {:error, :not_found}
-    end
+    Queries.get_meeting(id)
   end
 
   @doc """
