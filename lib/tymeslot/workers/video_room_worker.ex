@@ -245,6 +245,13 @@ defmodule Tymeslot.Workers.VideoRoomWorker do
   end
 
   defp handle_success(meeting_with_video, send_emails) do
+    # Extract meeting if it's wrapped in {:ok, ...}
+    meeting_with_video =
+      case meeting_with_video do
+        {:ok, m} -> m
+        m -> m
+      end
+
     # Be tolerant of different shapes; extract id/room_id if present
     meeting_id = Map.get(meeting_with_video, :id)
     room_id = Map.get(meeting_with_video, :video_room_id)

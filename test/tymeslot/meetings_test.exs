@@ -9,7 +9,6 @@ defmodule Tymeslot.MeetingsTest do
 
   alias Ecto.UUID
   alias Tymeslot.DatabaseSchemas.MeetingSchema
-  alias Tymeslot.DatabaseSchemas.MeetingSchema, as: Meeting
   alias Tymeslot.Meetings
   alias Tymeslot.Repo
   alias Tymeslot.TestMocks
@@ -243,9 +242,10 @@ defmodule Tymeslot.MeetingsTest do
          }}
       end)
 
-      assert {:ok, updated_meeting} = Meetings.add_video_room_to_meeting(meeting.id)
+      assert {:ok, {:ok, %MeetingSchema{} = updated_meeting}} = Meetings.add_video_room_to_meeting(meeting.id)
       assert updated_meeting.video_room_id != nil
       assert updated_meeting.video_room_enabled == true
+      assert updated_meeting.id == meeting.id
     end
 
     test "returns :meeting_not_found for non-existent meeting" do
@@ -274,7 +274,7 @@ defmodule Tymeslot.MeetingsTest do
       assert :ok = Meetings.send_reschedule_request(meeting)
 
       # Verify status updated
-      updated_meeting = Repo.get(Meeting, meeting.id)
+      updated_meeting = Repo.get(MeetingSchema, meeting.id)
       assert updated_meeting.status == "reschedule_requested"
     end
 

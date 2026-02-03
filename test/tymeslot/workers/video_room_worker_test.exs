@@ -194,16 +194,17 @@ defmodule Tymeslot.Workers.VideoRoomWorkerTest do
       assert :ok = perform_job(VideoRoomWorker, %{"meeting_id" => meeting.id})
 
       first_meeting = Repo.get(MeetingSchema, meeting.id)
-      _first_video_room_id = first_meeting.video_room_id
+      assert first_meeting.video_room_id
 
       # Second execution (simulates retry or duplicate job)
-      expect_mirotalk_success()
+      # In the second execution, VideoRooms.add_video_room_to_meeting will detect 
+      # that a room is already attached and return {:ok, meeting} without 
+      # calling the video provider again.
       assert :ok = perform_job(VideoRoomWorker, %{"meeting_id" => meeting.id})
 
-      # Meeting should still have a video room (might be updated but not broken)
+      # Meeting should still have a video room
       second_meeting = Repo.get(MeetingSchema, meeting.id)
-      assert second_meeting.video_room_id
-      # May have changed due to new room creation, which is acceptable
+      assert second_meeting.video_room_id == first_meeting.video_room_id
     end
   end
 
