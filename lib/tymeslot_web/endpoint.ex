@@ -32,11 +32,28 @@ defmodule TymeslotWeb.Endpoint do
   #
   # You should set gzip to true if you are running phx.digest
   # when deploying your static files in production.
+  plug :serve_robots
+
   plug Plug.Static,
     at: "/",
     from: :tymeslot,
     gzip: true,
     only: TymeslotWeb.static_paths()
+
+  defp serve_robots(%{request_path: "/robots.txt"} = conn, _opts) do
+    deployment_type = System.get_env("DEPLOYMENT_TYPE")
+    standalone? = deployment_type in ["docker", "cloudron"]
+    saas_loaded? = Code.ensure_loaded?(TymeslotSaasWeb)
+
+    file = if standalone? or not saas_loaded?, do: "robots.core.txt", else: "robots.saas.txt"
+
+    conn
+    |> put_resp_content_type("text/plain")
+    |> send_file(200, Path.join(:code.priv_dir(:tymeslot), "static/#{file}"))
+    |> halt()
+  end
+
+  defp serve_robots(conn, _opts), do: conn
 
   # Serve uploaded files from the data directory
   plug Plug.Static,

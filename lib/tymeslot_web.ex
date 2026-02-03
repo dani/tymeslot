@@ -18,7 +18,7 @@ defmodule TymeslotWeb do
   """
 
   @spec static_paths() :: [String.t()]
-  def static_paths, do: ~w(assets css fonts icons images uploads videos robots.txt embed.js)
+  def static_paths, do: ~w(assets css fonts icons images uploads videos embed.js)
 
   @spec router() :: Macro.t()
   def router do
