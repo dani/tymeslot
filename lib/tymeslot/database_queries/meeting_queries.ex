@@ -553,6 +553,21 @@ defmodule Tymeslot.DatabaseQueries.MeetingQueries do
   end
 
   @doc """
+  Returns upcoming meetings that should have a video room link but do not.
+  """
+  @spec list_meetings_missing_video_rooms(DateTime.t(), pos_integer()) :: [Meeting.t()]
+  def list_meetings_missing_video_rooms(now, limit \\ 500) do
+    Meeting
+    |> with_status("confirmed")
+    |> upcoming(now)
+    |> where([m], not is_nil(m.video_integration_id))
+    |> where([m], is_nil(m.video_room_id))
+    |> order_by([m], asc: m.start_time)
+    |> limit(^limit)
+    |> Repo.all()
+  end
+
+  @doc """
   Get upcoming meetings with preloaded associations.
   Limits results and orders by start time.
   """

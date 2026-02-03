@@ -13,7 +13,7 @@ defmodule Tymeslot.Workers.VideoRoomWorker do
 
   use Oban.Worker,
     queue: :video_rooms,
-    max_attempts: 5,
+    max_attempts: 10,
     # Highest priority for video room creation
     priority: 0
 
@@ -26,6 +26,10 @@ defmodule Tymeslot.Workers.VideoRoomWorker do
   @video_api_timeout_ms 20_000
   # 1 second base for exponential backoff
   @backoff_base_ms 1_000
+  # Attempts before entering recovery mode (and sending fallback emails if enabled)
+  @fallback_email_attempt 5
+  # Max recovery snooze attempts after fallback threshold
+  @recovery_max_attempts 5
 
   @doc """
   Performs the video room creation job with exponential backoff for retries.
@@ -67,7 +71,7 @@ defmodule Tymeslot.Workers.VideoRoomWorker do
         :ok
 
       {:ok, {:error, reason}} ->
-        result_after_error = handle_error(reason, meeting_id, send_emails, attempt)
+        result_after_error = handle_error(reason, meeting_id, send_emails, attempt, job)
         handle_result(result_after_error, job)
 
       {:ok, result} ->
@@ -79,7 +83,7 @@ defmodule Tymeslot.Workers.VideoRoomWorker do
           timeout_ms: @video_api_timeout_ms
         )
 
-        handle_timeout_with_fallback(meeting_id, send_emails, attempt)
+        handle_timeout_with_fallback(meeting_id, send_emails, attempt, job)
     end
   end
 
@@ -180,6 +184,9 @@ defmodule Tymeslot.Workers.VideoRoomWorker do
       :ok ->
         :ok
 
+      {:snooze, _} = snooze ->
+        snooze
+
       {:error, error_type} ->
         handle_video_error(error_type, job)
 
@@ -269,7 +276,7 @@ defmodule Tymeslot.Workers.VideoRoomWorker do
     :ok
   end
 
-  defp handle_error(reason, meeting_id, send_emails, attempt) do
+  defp handle_error(reason, meeting_id, send_emails, attempt, _job) do
     Logger.error("Failed to create video room",
       meeting_id: meeting_id,
       reason: inspect(reason),
@@ -294,21 +301,137 @@ defmodule Tymeslot.Workers.VideoRoomWorker do
       {:discard, discard_reason}
     else
       # If this is the final attempt and emails should be sent, send them without video
-      if send_emails and attempt >= 5 do
-        send_fallback_emails(meeting_id)
-      end
+      if send_emails and attempt >= @fallback_email_attempt do
+        # Log and send fallback emails only once (first attempt past max)
+        if attempt == @fallback_email_attempt do
+          Logger.warning("Video room creation failed after 5 attempts, sending fallback emails and entering recovery",
+            meeting_id: meeting_id,
+            reason: inspect(reason)
+          )
+          send_fallback_emails(meeting_id)
+        end
 
-      categorized_error
+        # Enter long-term recovery if applicable
+        recovery_decision(meeting_id, attempt)
+      else
+        categorized_error
+      end
     end
   end
 
-  defp handle_timeout_with_fallback(meeting_id, send_emails, attempt) do
+  defp handle_timeout_with_fallback(meeting_id, send_emails, attempt, _job) do
     # If this is the final attempt and emails should be sent, send them without video
-    if send_emails and attempt >= 5 do
-      send_fallback_emails(meeting_id)
-    end
+    if send_emails and attempt >= @fallback_email_attempt do
+      if attempt == @fallback_email_attempt do
+        Logger.warning("Video room creation timed out after 5 attempts, sending fallback emails and entering recovery",
+          meeting_id: meeting_id
+        )
+        send_fallback_emails(meeting_id)
+      end
 
-    {:error, "Video room creation timed out"}
+      recovery_decision(meeting_id, attempt)
+    else
+      {:error, "Video room creation timed out"}
+    end
+  end
+
+  defp recovery_decision(meeting_id, attempt) do
+    recovery_attempt = max(attempt - @fallback_email_attempt + 1, 1)
+
+    if recovery_attempt > @recovery_max_attempts do
+      {:discard, "Recovery attempts exhausted"}
+    else
+      case MeetingQueries.get_meeting(meeting_id) do
+        {:ok, meeting} ->
+          # Only enter recovery if meeting hasn't started yet
+          if DateTime.compare(meeting.start_time, DateTime.utc_now()) == :gt do
+            case calculate_recovery_snooze(meeting, recovery_attempt, @recovery_max_attempts) do
+              {:ok, snooze_seconds} ->
+                {:snooze, snooze_seconds}
+
+              {:error, :deadline_passed} ->
+                {:discard, "Recovery deadline passed"}
+            end
+          else
+            {:discard, "Meeting already started"}
+          end
+
+        {:error, :not_found} ->
+          {:discard, "Meeting not found"}
+      end
+    end
+  end
+
+  @doc """
+  Calculates a dynamic snooze interval for recovery attempts for a meeting.
+  Distributes attempts evenly between now and the reminder cutoff.
+  """
+  @spec calculate_recovery_snooze(map(), pos_integer(), pos_integer()) ::
+          {:ok, pos_integer()} | {:error, :deadline_passed}
+  def calculate_recovery_snooze(meeting, recovery_attempt, recovery_max_attempts) do
+    now = DateTime.utc_now()
+
+    # Get the deadline (earliest reminder or meeting start)
+    deadline = get_recovery_deadline(meeting)
+
+    # We want the link ready 5 minutes before the deadline
+    recovery_cutoff_buffer = 300
+    time_until_deadline = DateTime.diff(deadline, now) - recovery_cutoff_buffer
+
+    if time_until_deadline <= 0 do
+      {:error, :deadline_passed}
+    else
+      remaining_attempts = max(recovery_max_attempts - recovery_attempt + 1, 1)
+      snooze_seconds = max(div(time_until_deadline, remaining_attempts), 1)
+      {:ok, snooze_seconds}
+    end
+  end
+
+  defp get_recovery_deadline(meeting) do
+    # 1. Check meeting-specific reminders first
+    # 2. Check meeting type reminder config
+    # 3. Fallback to meeting start time
+    
+    reminders = 
+      cond do
+        is_list(meeting.reminders) and meeting.reminders != [] ->
+          meeting.reminders
+          
+        meeting.meeting_type_id ->
+          case Tymeslot.DatabaseQueries.MeetingTypeQueries.get_meeting_type_t(meeting.meeting_type_id, meeting.organizer_user_id) do
+            {:ok, %{reminder_config: config}} when is_list(config) and config != [] ->
+              config
+            _ ->
+              []
+          end
+          
+        true ->
+          []
+      end
+
+    case reminders do
+      [] ->
+        meeting.start_time
+        
+      list ->
+        # Find the earliest reminder (the one that fires first, i.e., has the largest interval)
+        # reminder_interval_seconds returns seconds before the meeting
+        max_interval =
+          list
+          |> Enum.map(fn r ->
+            val = Map.get(r, :value) || Map.get(r, "value")
+            unit = Map.get(r, :unit) || Map.get(r, "unit")
+
+            try do
+              Tymeslot.Utils.ReminderUtils.reminder_interval_seconds(val, unit)
+            rescue
+              _ -> 0
+            end
+          end)
+          |> Enum.max()
+
+        DateTime.add(meeting.start_time, -max_interval, :second)
+    end
   end
 
   defp send_fallback_emails(meeting_id) do

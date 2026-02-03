@@ -68,10 +68,10 @@ defmodule Tymeslot.Meetings.VideoRooms do
                     {:ok, user_id} <- get_meeting_organizer_user_id(meeting),
                     {:ok, :proceed} <- should_create_video_room(meeting, user_id),
                     {:ok, updated_meeting} <- create_and_attach_video_room(meeting, user_id) do
-                 {:ok, updated_meeting}
+                 updated_meeting
                else
                  {:ok, :already_attached} ->
-                   {:ok, meeting}
+                   meeting
 
                  {:error, reason} ->
                    Repo.rollback(reason)
@@ -94,7 +94,6 @@ defmodule Tymeslot.Meetings.VideoRooms do
     case MeetingQueries.get_meeting_for_update(meeting_id) do
       {:ok, meeting} -> {:ok, meeting}
       {:error, :not_found} -> {:error, :meeting_not_found}
-      error -> error
     end
   end
 
@@ -141,6 +140,8 @@ defmodule Tymeslot.Meetings.VideoRooms do
     end
   end
 
+  @spec create_and_attach_video_room(MeetingSchema.t(), integer()) ::
+          {:ok, MeetingSchema.t()} | {:error, term()}
   defp create_and_attach_video_room(meeting, user_id) do
     Logger.info("Adding video room to meeting", meeting_id: meeting.id)
 
@@ -166,6 +167,7 @@ defmodule Tymeslot.Meetings.VideoRooms do
     end
   end
 
+  @spec build_video_room_attrs(MeetingSchema.t(), map()) :: {:ok, map()}
   defp build_video_room_attrs(meeting, meeting_context) do
     with meeting_url <- get_meeting_url_from_context(meeting_context),
          room_id <- video_module().extract_room_id(meeting_context),
@@ -197,6 +199,8 @@ defmodule Tymeslot.Meetings.VideoRooms do
     end
   end
 
+  @spec update_meeting_with_video_room(MeetingSchema.t(), map()) ::
+          {:ok, MeetingSchema.t()} | {:error, :database_update_failed}
   defp update_meeting_with_video_room(meeting, video_room_attrs) do
     case MeetingQueries.update_meeting(meeting, video_room_attrs) do
       {:ok, updated_meeting} ->

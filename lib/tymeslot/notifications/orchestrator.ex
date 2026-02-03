@@ -221,11 +221,24 @@ defmodule Tymeslot.Notifications.Orchestrator do
   end
 
   defp update_confirmation_notifications(meeting, _content) do
-    # This would update already-scheduled confirmation emails
-    # with video room information
-    Logger.info("Updating confirmation notifications with video room info",
+    # Update already-scheduled reminder emails with video room information
+    Logger.info("Updating scheduled notifications with video room info",
       meeting_id: meeting.id
     )
+
+    # Acknowledge pending reminder jobs (emails re-fetch meeting data at send time)
+    {:ok, count} = Tymeslot.DatabaseQueries.ObanJobQueries.update_pending_reminder_jobs(meeting)
+
+    if count > 0 do
+      Logger.info("Pending reminder jobs acknowledged",
+        meeting_id: meeting.id,
+        updated_count: count
+      )
+    else
+      Logger.info("No pending reminder jobs required updates",
+        meeting_id: meeting.id
+      )
+    end
 
     {:ok, :confirmation_updated}
   end

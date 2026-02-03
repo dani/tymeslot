@@ -145,15 +145,34 @@ defmodule Tymeslot.Workers.VideoRoomWorkerTest do
       assert reason =~ "status 429"
     end
 
-    test "sends fallback emails on final failure (graceful degradation)" do
+    test "sends fallback emails on final failure and enters long-term recovery with distributed snooze" do
       %{meeting: meeting} = setup_video_scenario()
+
+      # Create a meeting type with a 24-hour reminder
+      user = Repo.get!(Tymeslot.DatabaseSchemas.UserSchema, meeting.organizer_user_id)
+      meeting_type = insert(:meeting_type, user: user, reminder_config: [%{value: 24, unit: "hours"}])
+      
+      # Ensure meeting is far in the future (e.g., 3 days)
+      meeting = Repo.get!(MeetingSchema, meeting.id)
+      future_start = DateTime.add(DateTime.utc_now(), 259_200, :second) # 3 days
+      future_end = DateTime.add(future_start, 3600, :second)
+      
+      {:ok, meeting} = Tymeslot.DatabaseQueries.MeetingQueries.update_meeting(meeting, %{
+        start_time: future_start, 
+        end_time: future_end,
+        meeting_type_id: meeting_type.id
+      })
 
       stub(Tymeslot.HTTPClientMock, :post, fn _url, _body, _headers, _opts ->
         {:error, %HTTPoison.Error{reason: :econnrefused}}
       end)
 
-      # On 5th attempt with send_emails: true, it should schedule emails without video
-      assert {:error, _} =
+      # Meeting is 3 days away, but earliest reminder is 24h before.
+      # Deadline = 3 days - 24h = 2 days away.
+      assert {:ok, expected_snooze_first} =
+               VideoRoomWorker.calculate_recovery_snooze(meeting, 1, 5)
+
+      assert {:snooze, snooze_first} =
                perform_job(
                  VideoRoomWorker,
                  %{
@@ -163,8 +182,92 @@ defmodule Tymeslot.Workers.VideoRoomWorkerTest do
                  attempt: 5
                )
 
-      # Check if EmailWorker job was enqueued (fallback without video)
-      assert_enqueued(worker: EmailWorker)
+      assert_in_delta(snooze_first, expected_snooze_first, 2)
+
+      email_jobs_after_first = all_enqueued(worker: EmailWorker)
+      assert length(email_jobs_after_first) > 0
+
+      # Now test a meeting where the reminder deadline is very close (e.g., in 4 hours)
+      # 24h reminder + 4h from now = 28h from now
+      closer_start = DateTime.add(DateTime.utc_now(), 28 * 3600, :second)
+      closer_end = DateTime.add(closer_start, 3600, :second)
+      {:ok, meeting} = Tymeslot.DatabaseQueries.MeetingQueries.update_meeting(meeting, %{start_time: closer_start, end_time: closer_end})
+
+      # Deadline is 4h away. Cutoff buffer is 5m.
+      assert {:ok, expected_snooze_second} =
+               VideoRoomWorker.calculate_recovery_snooze(meeting, 2, 5)
+
+      assert {:snooze, snooze_second} =
+               perform_job(
+                 VideoRoomWorker,
+                 %{
+                   "meeting_id" => meeting.id,
+                   "send_emails" => true
+                 },
+                 attempt: 6
+               )
+
+      assert_in_delta(snooze_second, expected_snooze_second, 2)
+
+      email_jobs_after_second = all_enqueued(worker: EmailWorker)
+      assert length(email_jobs_after_second) == length(email_jobs_after_first)
+    end
+
+    test "discards recovery when reminder deadline already passed" do
+      %{meeting: meeting} = setup_video_scenario()
+
+      # Create a meeting type with a 24-hour reminder
+      user = Repo.get!(Tymeslot.DatabaseSchemas.UserSchema, meeting.organizer_user_id)
+      meeting_type = insert(:meeting_type, user: user, reminder_config: [%{value: 24, unit: "hours"}])
+
+      # Meeting is in 2 hours, but reminder is 24 hours before (deadline passed)
+      meeting = Repo.get!(MeetingSchema, meeting.id)
+      soon_start = DateTime.add(DateTime.utc_now(), 2 * 3600, :second)
+      soon_end = DateTime.add(soon_start, 3600, :second)
+
+      {:ok, meeting} = Tymeslot.DatabaseQueries.MeetingQueries.update_meeting(meeting, %{
+        start_time: soon_start,
+        end_time: soon_end,
+        meeting_type_id: meeting_type.id
+      })
+
+      stub(Tymeslot.HTTPClientMock, :post, fn _url, _body, _headers, _opts ->
+        {:error, %HTTPoison.Error{reason: :econnrefused}}
+      end)
+
+      assert {:discard, "Recovery deadline passed"} =
+               perform_job(
+                 VideoRoomWorker,
+                 %{
+                   "meeting_id" => meeting.id,
+                   "send_emails" => true
+                 },
+                 attempt: 5
+               )
+    end
+
+    test "discards on final failure if meeting already started" do
+      %{meeting: meeting} = setup_video_scenario()
+
+      # Ensure meeting is in the past
+      meeting = Repo.get!(MeetingSchema, meeting.id)
+      past_start = DateTime.add(DateTime.utc_now(), -3600, :second)
+      {:ok, meeting} = Tymeslot.DatabaseQueries.MeetingQueries.update_meeting(meeting, %{start_time: past_start})
+
+      stub(Tymeslot.HTTPClientMock, :post, fn _url, _body, _headers, _opts ->
+        {:error, %HTTPoison.Error{reason: :econnrefused}}
+      end)
+
+      # Should NOT snooze if meeting already started
+      assert {:discard, "Meeting already started"} =
+               perform_job(
+                 VideoRoomWorker,
+                 %{
+                   "meeting_id" => meeting.id,
+                   "send_emails" => true
+                 },
+                 attempt: 5
+               )
     end
 
     test "video created but calendar update continues on failure (partial success)" do

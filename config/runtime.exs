@@ -233,6 +233,8 @@ if config_env() == :prod do
       Oban.Plugins.Pruner,
       {Oban.Plugins.Cron,
        crontab: [
+         # Run daily at 02:45 UTC for video room recovery scan
+         {"45 2 * * *", Tymeslot.Workers.VideoRoomRecoveryScanWorker},
          # Run daily at 03:15 UTC
          {"15 3 * * *", Tymeslot.Workers.ExpiredSessionCleanupWorker},
          # Run daily at 04:00 UTC for webhook cleanup
