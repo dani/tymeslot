@@ -61,29 +61,28 @@ defmodule Tymeslot.Meetings.VideoRooms do
   """
   @spec add_video_room_to_meeting(String.t()) :: {:ok, MeetingSchema.t()} | {:error, term()}
   def add_video_room_to_meeting(meeting_id) do
-    case Repo.transaction(fn ->
-           case get_meeting_for_update(meeting_id) do
-             {:ok, meeting} ->
-               with {:ok, :not_attached} <- check_already_attached(meeting),
-                    {:ok, user_id} <- get_meeting_organizer_user_id(meeting),
-                    {:ok, :proceed} <- should_create_video_room(meeting, user_id),
-                    {:ok, updated_meeting} <- create_and_attach_video_room(meeting, user_id) do
-                 updated_meeting
-               else
-                 {:ok, :already_attached} ->
-                   meeting
+    Repo.transaction(fn ->
+      case get_meeting_for_update(meeting_id) do
+        {:ok, meeting} ->
+          case check_already_attached(meeting) do
+            {:ok, :already_attached} ->
+              meeting
 
-                 {:error, reason} ->
-                   Repo.rollback(reason)
-               end
+            {:ok, :not_attached} ->
+              with {:ok, user_id} <- get_meeting_organizer_user_id(meeting),
+                   {:ok, :proceed} <- should_create_video_room(meeting, user_id),
+                   {:ok, updated_meeting} <- create_and_attach_video_room(meeting, user_id) do
+                updated_meeting
+              else
+                {:error, reason} ->
+                  Repo.rollback(reason)
+              end
+          end
 
-             {:error, reason} ->
-               Repo.rollback(reason)
-           end
-         end) do
-      {:ok, meeting} -> {:ok, meeting}
-      {:error, reason} -> {:error, reason}
-    end
+        {:error, reason} ->
+          Repo.rollback(reason)
+      end
+    end)
   end
 
   # =====================================
