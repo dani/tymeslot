@@ -8,21 +8,11 @@ defmodule Tymeslot.Meetings do
   require Logger
 
   alias Tymeslot.Availability.TimeSlots
-  alias Tymeslot.Bookings.{Cancel, Create, Policy, Reschedule}
-  alias Tymeslot.DatabaseQueries.MeetingQueries
-  alias Tymeslot.DatabaseQueries.UserQueries
-  alias Tymeslot.DatabaseQueries.VideoIntegrationQueries
+  alias Tymeslot.Bookings.{Cancel, Create, Reschedule, RescheduleRequest}
   alias Tymeslot.DatabaseSchemas.MeetingSchema
-  alias Tymeslot.Integrations.Video
+  alias Tymeslot.Meetings.{Queries, VideoRooms}
   alias Tymeslot.Pagination.CursorPage
   alias Tymeslot.Workers.CalendarEventWorker
-  alias Tymeslot.Workers.EmailWorker
-
-  # Get Video module dynamically to avoid compile-time warnings with mocks
-  @spec video_module() :: module()
-  defp video_module do
-    Application.get_env(:tymeslot, :video_module, Video)
-  end
 
   @doc """
   Creates a meeting appointment with fresh calendar validation.
@@ -238,241 +228,27 @@ defmodule Tymeslot.Meetings do
 
   @doc """
   Adds a secure video room to an existing meeting.
+
+  This is a high-level operation that ensures the meeting exists and the video
+  room is successfully attached. It handles logging and error translation
+  for the web layer.
   """
   @spec add_video_room_to_meeting(String.t()) :: {:ok, MeetingSchema.t()} | {:error, term()}
   def add_video_room_to_meeting(meeting_id) do
-    with {:ok, meeting} <- get_meeting_or_error(meeting_id),
-         {:ok, user_id} <- get_meeting_organizer_user_id(meeting),
-         {:ok, :proceed} <- should_create_video_room(meeting, user_id) do
-      create_and_attach_video_room(meeting, user_id)
-    end
-  end
+    Logger.info("Request to add video room to meeting", meeting_id: meeting_id)
 
-  defp get_meeting_or_error(meeting_id) do
-    case MeetingQueries.get_meeting(meeting_id) do
-      {:error, :not_found} -> {:error, :meeting_not_found}
-      result -> result
-    end
-  end
+    case VideoRooms.add_video_room_to_meeting(meeting_id) do
+      {:ok, meeting} ->
+        Logger.info("Successfully added video room", meeting_id: meeting_id)
+        {:ok, meeting}
 
-  defp get_meeting_organizer_user_id(meeting) do
-    # First try to use organizer_user_id if available
-    case meeting.organizer_user_id do
-      nil ->
-        # Fall back to email lookup if no user_id stored
-        case UserQueries.get_user_by_email(meeting.organizer_email) do
-          {:error, :not_found} ->
-            {:error, :organizer_not_found}
+      {:error, :meeting_not_found} ->
+        Logger.warning("Attempted to add video room to non-existent meeting", meeting_id: meeting_id)
+        {:error, :meeting_not_found}
 
-          {:ok, user} ->
-            {:ok, user.id}
-        end
-
-      user_id ->
-        {:ok, user_id}
-    end
-  end
-
-  defp should_create_video_room(meeting, user_id) do
-    case check_video_provider_type(meeting, user_id) do
-      {:ok, :none} ->
-        Logger.info("Video provider is 'none', skipping video room creation",
-          meeting_id: meeting.id
-        )
-
-        {:error, :video_disabled}
-
-      {:ok, _provider_type} ->
-        {:ok, :proceed}
-
-      error ->
+      {:error, reason} = error ->
+        Logger.error("Failed to add video room", meeting_id: meeting_id, reason: inspect(reason))
         error
-    end
-  end
-
-  defp create_and_attach_video_room(meeting, user_id) do
-    Logger.info("Adding video room to meeting", meeting_id: meeting.id)
-
-    # Use the specific video integration ID stored in the meeting if available
-    with {:ok, meeting_context} <-
-           video_module().create_meeting_room(user_id,
-             integration_id: meeting.video_integration_id
-           ),
-         {:ok, video_room_attrs} <- build_video_room_attrs(meeting, meeting_context),
-         {:ok, updated_meeting} <- update_meeting_with_video_room(meeting, video_room_attrs) do
-      # After attaching the video room, update the calendar event so Google/other calendars
-      # include the meeting link in description/location.
-      _ = CalendarEventWorker.schedule_calendar_update(updated_meeting.id)
-      {:ok, updated_meeting}
-    else
-      {:error, reason} ->
-        Logger.error("Failed to create video room",
-          meeting_id: meeting.id,
-          reason: inspect(reason)
-        )
-
-        {:error, reason}
-    end
-  end
-
-  defp build_video_room_attrs(meeting, meeting_context) do
-    with meeting_url <- get_meeting_url_from_context(meeting_context),
-         room_id <- video_module().extract_room_id(meeting_context),
-         {:ok, organizer_url} <- create_secure_join_url(meeting, meeting_context, "organizer"),
-         {:ok, attendee_url} <- create_secure_join_url(meeting, meeting_context, "participant") do
-      expiry_time = DateTime.add(meeting.end_time, 1800, :second)
-
-      attrs = %{
-        meeting_url: meeting_url,
-        location: meeting_url,
-        video_room_id: room_id,
-        organizer_video_url: organizer_url,
-        attendee_video_url: attendee_url,
-        video_room_enabled: true,
-        video_room_created_at: DateTime.utc_now(),
-        video_room_expires_at: expiry_time
-      }
-
-      # If the video provider is Teams and we got a room_id (which is the Microsoft Event ID),
-      # update the meeting UID so subsequent calendar syncs target this same event.
-      attrs =
-        if meeting_context.provider_type == :teams and room_id do
-          Map.put(attrs, :uid, room_id)
-        else
-          attrs
-        end
-
-      {:ok, attrs}
-    end
-  end
-
-  defp update_meeting_with_video_room(meeting, video_room_attrs) do
-    case MeetingQueries.update_meeting(meeting, video_room_attrs) do
-      {:ok, updated_meeting} ->
-        Logger.info("Video room added successfully",
-          meeting_id: meeting.id,
-          room_id: video_room_attrs.video_room_id
-        )
-
-        {:ok, updated_meeting}
-
-      {:error, changeset} ->
-        Logger.error("Failed to update meeting with video room",
-          meeting_id: meeting.id,
-          errors: inspect(changeset.errors)
-        )
-
-        {:error, :database_update_failed}
-    end
-  end
-
-  defp create_secure_join_url(meeting, meeting_context, role) do
-    {participant_name, participant_email} = get_participant_info(meeting, role)
-
-    # Try to create secure URL first
-    case create_secure_url(
-           meeting_context,
-           participant_name,
-           participant_email,
-           role,
-           meeting.start_time
-         ) do
-      {:ok, url} ->
-        {:ok, url}
-
-      {:error, reason} ->
-        # Fallback to direct URL on any error
-        handle_join_url_error(meeting_context, participant_name, role, reason)
-    end
-  end
-
-  defp get_participant_info(meeting, "organizer") do
-    {meeting.organizer_name, meeting.organizer_email}
-  end
-
-  defp get_participant_info(meeting, "participant") do
-    {meeting.attendee_name, meeting.attendee_email}
-  end
-
-  defp create_secure_url(meeting_context, participant_name, participant_email, role, start_time) do
-    video_module().create_join_url(
-      meeting_context,
-      participant_name,
-      participant_email,
-      role,
-      start_time
-    )
-  rescue
-    error ->
-      {:error, error}
-  end
-
-  defp handle_join_url_error(meeting_context, participant_name, role, error) do
-    room_id = video_module().extract_room_id(meeting_context)
-
-    Logger.error("Failed to create secure join URL",
-      room_id: room_id,
-      role: role,
-      error: inspect(error)
-    )
-
-    fallback_url = create_direct_join_url_fallback(room_id, participant_name)
-    {:ok, fallback_url}
-  end
-
-  # Helper functions for video integration
-  defp get_meeting_url_from_context(meeting_context) do
-    meeting_context.room_data[:meeting_url] ||
-      meeting_context.room_data["meeting_url"] ||
-      meeting_context.room_data[:room_id] ||
-      meeting_context.room_data["room_id"]
-  end
-
-  defp check_video_provider_type(meeting, user_id) do
-    integration_result =
-      case meeting.video_integration_id do
-        nil -> {:error, :not_found}
-        id -> VideoIntegrationQueries.get_for_user(id, user_id)
-      end
-
-    case integration_result do
-      {:ok, %{is_active: false}} ->
-        {:error, :video_integration_inactive}
-
-      {:ok, integration} ->
-        provider_type = String.to_existing_atom(integration.provider)
-        {:ok, provider_type}
-
-      {:error, :not_found} ->
-        {:error, :video_integration_missing}
-    end
-  end
-
-  defp get_meeting_context_from_room_id(room_id) do
-    # Create a minimal context for backward compatibility
-    %{
-      provider_type: :mirotalk,
-      room_data: %{room_id: room_id, meeting_url: room_id},
-      provider_module: Tymeslot.Integrations.Video.Providers.MiroTalkProvider
-    }
-  end
-
-  defp create_direct_join_url_fallback(room_id, participant_name) do
-    # Fallback to direct URL creation for backward compatibility
-    case video_module().create_join_url(
-           get_meeting_context_from_room_id(room_id),
-           participant_name,
-           "",
-           "participant",
-           DateTime.utc_now()
-         ) do
-      {:ok, url} ->
-        url
-
-      {:error, _} ->
-        # Ensure participant name is URL-encoded
-        query = URI.encode_query(%{name: participant_name})
-        "#{room_id}?#{query}"
     end
   end
 
@@ -483,291 +259,143 @@ defmodule Tymeslot.Meetings do
   @doc """
   Lists all upcoming meetings.
   """
-  @spec list_upcoming_meetings() :: [Ecto.Schema.t()]
+  @spec list_upcoming_meetings() :: [MeetingSchema.t()]
   def list_upcoming_meetings do
-    MeetingQueries.list_upcoming_meetings()
+    Queries.list_upcoming_meetings()
   end
 
   @doc """
   Lists upcoming meetings for a specific user with a limit.
   """
-  @spec list_upcoming_meetings_for_user(String.t(), integer()) :: [Ecto.Schema.t()]
+  @spec list_upcoming_meetings_for_user(String.t(), integer()) :: [MeetingSchema.t()]
   def list_upcoming_meetings_for_user(user_email, limit) do
-    MeetingQueries.upcoming_meetings_for_user(user_email, limit)
+    Queries.list_upcoming_meetings_for_user(user_email, limit)
   end
 
   @doc """
   Lists all upcoming meetings for a specific user.
   """
-  @spec list_upcoming_meetings_for_user(String.t()) :: [Ecto.Schema.t()]
+  @spec list_upcoming_meetings_for_user(String.t()) :: [MeetingSchema.t()]
   def list_upcoming_meetings_for_user(user_email) do
-    # Use the existing query function but keep business logic here
-    # The query function handles the database filtering efficiently
-    MeetingQueries.list_upcoming_meetings_for_user(user_email)
+    Queries.list_upcoming_meetings_for_user(user_email)
   end
 
   @doc """
   Lists all past meetings.
   """
-  @spec list_past_meetings() :: [Ecto.Schema.t()]
+  @spec list_past_meetings() :: [MeetingSchema.t()]
   def list_past_meetings do
-    all_meetings = MeetingQueries.list_meetings()
-
-    Enum.filter(all_meetings, fn meeting ->
-      DateTime.compare(meeting.end_time, DateTime.utc_now()) == :lt
-    end)
+    Queries.list_past_meetings()
   end
 
   @doc """
   Lists past meetings for a specific user.
   """
-  @spec list_past_meetings_for_user(String.t()) :: [Ecto.Schema.t()]
+  @spec list_past_meetings_for_user(String.t()) :: [MeetingSchema.t()]
   def list_past_meetings_for_user(user_email) do
-    # Use the existing query function but keep business logic here
-    MeetingQueries.list_past_meetings_for_user(user_email)
+    Queries.list_past_meetings_for_user(user_email)
   end
 
   @doc """
   Sends a reschedule request email for a meeting.
+
+  Validates the request against policy and manages the workflow state.
   """
-  @spec send_reschedule_request(Ecto.Schema.t()) :: :ok | {:error, atom()}
+  @spec send_reschedule_request(MeetingSchema.t()) :: :ok | {:error, String.t() | atom()}
   def send_reschedule_request(meeting) do
-    # First check if rescheduling is allowed by policy
-    case Policy.can_reschedule_meeting?(meeting) do
+    case RescheduleRequest.send_reschedule_request(meeting) do
       :ok ->
-        # Update the meeting status to reschedule_requested
-        update_and_send_reschedule_request(meeting)
+        Logger.info("Reschedule request processed", meeting_id: meeting.id)
+        :ok
 
-      {:error, reason} ->
-        Logger.warning("Reschedule request blocked by policy",
-          meeting_id: meeting.id,
-          reason: reason
-        )
+      {:error, :already_requested} ->
+        Logger.info("Reschedule already requested", meeting_id: meeting.id)
+        :ok
 
-        {:error, reason}
-    end
-  end
-
-  defp update_and_send_reschedule_request(meeting) do
-    case MeetingQueries.update_meeting(meeting, %{status: "reschedule_requested"}) do
-      {:ok, updated_meeting} ->
-        # Then queue the email
-        job_params = %{
-          "action" => "send_reschedule_request",
-          "meeting_id" => updated_meeting.id
-        }
-
-        case Oban.insert(EmailWorker.new(job_params, queue: :emails, priority: 1)) do
-          {:ok, _job} ->
-            Logger.info("Reschedule request email job queued",
-              meeting_id: updated_meeting.id,
-              status: updated_meeting.status
-            )
-
-            :ok
-
-          {:error, reason} ->
-            Logger.error("Failed to queue reschedule request email",
-              meeting_id: updated_meeting.id,
-              error: inspect(reason)
-            )
-
-            {:error, reason}
-        end
-
-      {:error, reason} ->
-        Logger.error("Failed to update meeting status for reschedule request",
-          meeting_id: meeting.id,
-          error: inspect(reason)
-        )
-
-        {:error, reason}
+      {:error, reason} = error ->
+        Logger.warning("Reschedule request failed", meeting_id: meeting.id, reason: reason)
+        error
     end
   end
 
   @doc """
   Lists all cancelled meetings for a specific user.
   """
-  @spec list_cancelled_meetings_for_user(String.t()) :: [Ecto.Schema.t()]
+  @spec list_cancelled_meetings_for_user(String.t()) :: [MeetingSchema.t()]
   def list_cancelled_meetings_for_user(user_email) do
-    # Use the existing query function but keep business logic here
-    MeetingQueries.list_cancelled_meetings_for_user(user_email)
+    Queries.list_cancelled_meetings_for_user(user_email)
   end
 
   @doc """
   Returns meetings that need reminder emails sent.
-  This finds meetings that are:
-  - Starting within the next hour
-  - Have reminder_email_sent = false
-  - Are in confirmed status
-
-  ## Examples
-
-      iex> meetings_needing_reminders()
-      [%Meeting{}, ...]
-
   """
-  @spec meetings_needing_reminders() :: [Ecto.Schema.t()]
+  @spec meetings_needing_reminders() :: [MeetingSchema.t()]
   def meetings_needing_reminders do
-    # Business logic: meetings needing reminders are those starting within next hour
-    now = DateTime.utc_now()
-    one_hour_from_now = DateTime.add(now, 1, :hour)
-    # The query function handles the database filtering efficiently
-    MeetingQueries.list_meetings_needing_reminders(now, one_hour_from_now)
+    Queries.meetings_needing_reminders()
   end
 
   @doc """
   Cursor-based pagination for a user's meetings.
-
-  Options:
-  - :per_page (default 20)
-  - :status (e.g., "confirmed")
-  - :time_filter (:upcoming | :past | nil)
-  - :after (cursor string produced by this function)
-
-  Returns {:ok, %CursorPage{}} | {:error, :invalid_cursor}
   """
   @spec list_user_meetings_cursor_page(String.t(), keyword()) ::
           {:ok, CursorPage.t()} | {:error, :invalid_cursor}
   def list_user_meetings_cursor_page(user_email, opts \\ []) do
-    per_page = Keyword.get(opts, :per_page, 20)
-    cursor = Keyword.get(opts, :after)
-
-    case decode_cursor_opt(cursor) do
-      :no_cursor ->
-        items = list_user_meetings_internal(user_email, opts)
-        {:ok, build_cursor_page(items, per_page)}
-
-      {:ok, %{after_start: after_start, after_id: after_id}} ->
-        items =
-          opts
-          |> Keyword.put(:after_start, after_start)
-          |> Keyword.put(:after_id, after_id)
-          |> then(&list_user_meetings_internal(user_email, &1))
-
-        {:ok, build_cursor_page(items, per_page)}
-
-      {:error, :invalid_cursor} ->
-        {:error, :invalid_cursor}
-    end
-  end
-
-  defp list_user_meetings_internal(user_email, opts) do
-    per_page = Keyword.get(opts, :per_page, 20)
-    status = Keyword.get(opts, :status)
-    exclude_status = Keyword.get(opts, :exclude_status)
-    time_filter = Keyword.get(opts, :time_filter)
-    after_start = Keyword.get(opts, :after_start)
-    after_id = Keyword.get(opts, :after_id)
-
-    MeetingQueries.list_meetings_for_user_paginated_cursor(user_email,
-      per_page: per_page,
-      status: status,
-      exclude_status: exclude_status,
-      time_filter: time_filter,
-      after_start: after_start,
-      after_id: after_id
-    )
+    Queries.list_user_meetings_cursor_page(user_email, opts)
   end
 
   @doc """
-  Cursor-based pagination by user_id. Resolves the email internally to avoid coupling callers to email.
+  Cursor-based pagination by user_id.
   """
   @spec list_user_meetings_cursor_page_by_id(integer(), keyword()) ::
           {:ok, CursorPage.t()} | {:error, :invalid_cursor}
   def list_user_meetings_cursor_page_by_id(user_id, opts \\ []) do
-    case UserQueries.get_user(user_id) do
-      {:ok, user} ->
-        list_user_meetings_cursor_page(user.email, opts)
-
-      {:error, :not_found} ->
-        {:ok,
-         %CursorPage{
-           items: [],
-           next_cursor: nil,
-           prev_cursor: nil,
-           page_size: Keyword.get(opts, :per_page, 20),
-           has_more: false
-         }}
-    end
+    Queries.list_user_meetings_cursor_page_by_id(user_id, opts)
   end
 
   @doc """
   High-level function to list meetings for a user based on a filter string.
-  Commonly used in the dashboard.
   """
   @spec list_user_meetings_by_filter(integer(), String.t(), keyword()) ::
           {:ok, CursorPage.t()} | {:error, term()}
   def list_user_meetings_by_filter(user_id, filter, opts \\ []) do
-    per_page = Keyword.get(opts, :per_page, 20)
-    after_cursor = Keyword.get(opts, :after)
+    case Queries.list_user_meetings_by_filter(user_id, filter, opts) do
+      {:ok, page} ->
+        {:ok, page}
 
-    query_opts =
-      case filter do
-        "upcoming" -> [time_filter: :upcoming, exclude_status: "cancelled"]
-        "past" -> [time_filter: :past, exclude_status: "cancelled"]
-        "cancelled" -> [status: "cancelled"]
-        _ -> []
-      end
+      {:error, :invalid_cursor} ->
+        Logger.warning("Invalid pagination cursor provided", user_id: user_id, filter: filter)
+        {:error, :invalid_cursor}
 
-    query_opts = Keyword.merge(query_opts, per_page: per_page)
+      {:error, reason} = error ->
+        Logger.error("Failed to list meetings by filter",
+          user_id: user_id,
+          filter: filter,
+          reason: inspect(reason)
+        )
 
-    query_opts =
-      if after_cursor, do: Keyword.put(query_opts, :after, after_cursor), else: query_opts
-
-    list_user_meetings_cursor_page_by_id(user_id, query_opts)
-  end
-
-  defp decode_cursor_opt(nil), do: :no_cursor
-  defp decode_cursor_opt(""), do: :no_cursor
-
-  defp decode_cursor_opt(cursor) when is_binary(cursor) do
-    CursorPage.decode_cursor(cursor)
-  end
-
-  defp build_cursor_page(items, per_page) do
-    {items, has_more} =
-      if length(items) > per_page do
-        {Enum.drop(items, -1), true}
-      else
-        {items, false}
-      end
-
-    next_cursor =
-      case List.last(items) do
-        nil -> nil
-        last -> CursorPage.encode_cursor(%{after_start: last.start_time, after_id: last.id})
-      end
-
-    %CursorPage{
-      items: items,
-      next_cursor: next_cursor,
-      prev_cursor: nil,
-      page_size: per_page,
-      has_more: has_more
-    }
+        error
+    end
   end
 
   @doc """
   Gets a single meeting by ID.
-  Returns {:ok, meeting} or {:error, :not_found}.
   """
   @spec get_meeting(String.t() | integer()) :: {:ok, MeetingSchema.t()} | {:error, :not_found}
   def get_meeting(id) do
-    case MeetingQueries.get_meeting(id) do
+    case Queries.get_meeting(id) do
       {:ok, meeting} -> {:ok, meeting}
+      {:error, :not_found} -> {:error, :not_found}
       _ -> {:error, :not_found}
     end
   end
 
   @doc """
   Gets a single meeting by ID for a specific user.
-  Returns {:ok, meeting} or {:error, :not_found}.
   """
   @spec get_meeting_for_user(String.t() | integer(), String.t()) ::
           {:ok, MeetingSchema.t()} | {:error, :not_found}
   def get_meeting_for_user(id, user_email) do
-    case MeetingQueries.get_meeting_for_user(id, user_email) do
+    case Queries.get_meeting_for_user(id, user_email) do
       {:ok, meeting} -> {:ok, meeting}
       _ -> {:error, :not_found}
     end
@@ -779,12 +407,6 @@ defmodule Tymeslot.Meetings do
   """
   @spec get_meeting!(String.t()) :: MeetingSchema.t()
   def get_meeting!(id) do
-    case MeetingQueries.get_meeting(id) do
-      {:ok, meeting} ->
-        meeting
-
-      {:error, :not_found} ->
-        raise Ecto.NoResultsError, queryable: Tymeslot.DatabaseSchemas.MeetingSchema
-    end
+    Queries.get_meeting!(id)
   end
 end

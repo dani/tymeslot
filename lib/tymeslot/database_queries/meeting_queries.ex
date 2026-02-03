@@ -136,6 +136,25 @@ defmodule Tymeslot.DatabaseQueries.MeetingQueries do
   end
 
   @doc """
+  Gets a single meeting by ID and locks it for update.
+  """
+  @spec get_meeting_for_update(String.t()) :: {:ok, Meeting.t()} | {:error, :not_found}
+  def get_meeting_for_update(id) do
+    case UUID.cast(id) do
+      {:ok, uuid} ->
+        query = from(m in Meeting, where: m.id == ^uuid, lock: "FOR UPDATE")
+
+        case Repo.one(query) do
+          nil -> {:error, :not_found}
+          meeting -> {:ok, meeting}
+        end
+
+      :error ->
+        {:error, :not_found}
+    end
+  end
+
+  @doc """
   Gets a single meeting by UID.
 
   ## Examples
@@ -624,6 +643,19 @@ defmodule Tymeslot.DatabaseQueries.MeetingQueries do
     |> for_user_email(user_email)
     |> upcoming(now)
     |> order_by_start_asc()
+    |> Repo.all()
+  end
+
+  @doc """
+  Get all past meetings across all users.
+  """
+  @spec list_past_meetings() :: [Meeting.t()]
+  def list_past_meetings do
+    now = DateTime.utc_now()
+
+    Meeting
+    |> past(now)
+    |> order_by_start_desc()
     |> Repo.all()
   end
 
