@@ -47,19 +47,22 @@ defmodule TymeslotWeb.Plugs.SecurityHeadersPlug do
   # Extracts username from path and retrieves allowed embed domains
   # Returns {frame_ancestors, x_frame_options | nil}
   defp get_embed_security_headers(conn) do
+    conn = fetch_query_params(conn)
+    is_preview = conn.query_params["preview"] in ["true", "1"]
     username = extract_username_from_path(conn.request_path)
 
     case username do
       nil ->
-        # No username in path, allow all (e.g., for demo routes)
-        Logger.debug("No username in path, allowing all embeds", path: conn.request_path)
-        {"'self' *", nil}
+        # No username in path; default to blocking embedding.
+        # (We don't want "allow all embedding" as a fallback.)
+        Logger.debug("No username in path, blocking embedding", path: conn.request_path)
+        {"'none'", "DENY"}
 
       username ->
         case ProfileQueries.get_by_username(username) do
           {:ok, profile} ->
             {frame_ancestors, x_frame_options} =
-              build_security_headers(profile.allowed_embed_domains)
+              build_security_headers(profile.allowed_embed_domains, is_preview)
 
             # Log when embedding is restricted
             if profile.allowed_embed_domains != nil and length(profile.allowed_embed_domains) > 0 do
@@ -76,13 +79,13 @@ defmodule TymeslotWeb.Plugs.SecurityHeadersPlug do
             {frame_ancestors, x_frame_options}
 
           {:error, :not_found} ->
-            # Profile not found, default to permissive
-            Logger.warning("Profile not found for username, allowing all embeds",
+            # Profile not found; default to blocking embedding.
+            Logger.warning("Profile not found for username, blocking embedding",
               username: username,
               path: conn.request_path
             )
 
-            {"'self' *", nil}
+            {"'none'", "DENY"}
         end
     end
   end
@@ -118,51 +121,60 @@ defmodule TymeslotWeb.Plugs.SecurityHeadersPlug do
   # CSP frame-ancestors is the primary security mechanism for modern browsers.
   # X-Frame-Options is provided as a best-effort fallback for legacy browsers.
   # Returns {frame_ancestors, x_frame_options | nil}
-  defp build_security_headers([]), do: {"'self' *", nil}
+  defp build_security_headers(allowed_domains, true) when allowed_domains in [nil, [], ["none"]] do
+    # Allow same-origin framing for dashboard "Live Preview" (iframe),
+    # while still blocking embedding from other origins.
+    {"'self'", "SAMEORIGIN"}
+  end
 
-  defp build_security_headers(nil), do: {"'self' *", nil}
-  defp build_security_headers(["none"]), do: {"'none'", "DENY"}
+  defp build_security_headers([], _is_preview), do: {"'none'", "DENY"}
+  defp build_security_headers(nil, _is_preview), do: {"'none'", "DENY"}
+  defp build_security_headers(["none"], _is_preview), do: {"'none'", "DENY"}
 
-  defp build_security_headers(allowed_domains) when is_list(allowed_domains) do
-    # Build CSP frame-ancestors with appropriate protocols.
-    # Modern browsers prioritize this over X-Frame-Options.
-    domains =
-      Enum.map_join(allowed_domains, " ", fn domain ->
-        is_local = domain in ["localhost", "127.0.0.1", "::1"]
-        is_dev = Application.get_env(:tymeslot, :environment) in [:dev, :test]
+  defp build_security_headers(allowed_domains, _is_preview) when is_list(allowed_domains) do
+    if "none" in allowed_domains do
+      {"'none'", "DENY"}
+    else
+      # Build CSP frame-ancestors with appropriate protocols.
+      # Modern browsers prioritize this over X-Frame-Options.
+      domains =
+        Enum.map_join(allowed_domains, " ", fn domain ->
+          is_local = domain in ["localhost", "127.0.0.1", "::1"]
+          is_dev = Application.get_env(:tymeslot, :environment) in [:dev, :test]
 
-        if is_local and is_dev do
-          "http://#{domain}:*"
-        else
-          "https://#{domain}"
-        end
-      end)
-
-    frame_ancestors = "'self' #{domains}"
-
-    # X-Frame-Options ALLOW-FROM is deprecated and only supports a single domain.
-    # It is provided only for defense-in-depth for legacy browsers (IE, old Firefox).
-    # Chrome, Safari, and modern Firefox ignore it.
-    x_frame_options =
-      case allowed_domains do
-        [first_domain | _] ->
-          # X-Frame-Options ALLOW-FROM does not support wildcards or multiple domains.
-          # Modern browsers use CSP frame-ancestors anyway.
-          if String.starts_with?(first_domain, "*") do
-            nil
+          if is_local and is_dev do
+            "http://#{domain}:*"
           else
-            is_local = first_domain in ["localhost", "127.0.0.1", "::1"]
-            is_dev = Application.get_env(:tymeslot, :environment) in [:dev, :test]
-
-            if is_local and is_dev do
-              "ALLOW-FROM http://#{first_domain}"
-            else
-              "ALLOW-FROM https://#{first_domain}"
-            end
+            "https://#{domain}"
           end
-      end
+        end)
 
-    {frame_ancestors, x_frame_options}
+      frame_ancestors = "'self' #{domains}"
+
+      # X-Frame-Options ALLOW-FROM is deprecated and only supports a single domain.
+      # It is provided only for defense-in-depth for legacy browsers (IE, old Firefox).
+      # Chrome, Safari, and modern Firefox ignore it.
+      x_frame_options =
+        case allowed_domains do
+          [first_domain | _] ->
+            # X-Frame-Options ALLOW-FROM does not support wildcards or multiple domains.
+            # Modern browsers use CSP frame-ancestors anyway.
+            if String.starts_with?(first_domain, "*") do
+              nil
+            else
+              is_local = first_domain in ["localhost", "127.0.0.1", "::1"]
+              is_dev = Application.get_env(:tymeslot, :environment) in [:dev, :test]
+
+              if is_local and is_dev do
+                "ALLOW-FROM http://#{first_domain}"
+              else
+                "ALLOW-FROM https://#{first_domain}"
+              end
+            end
+        end
+
+      {frame_ancestors, x_frame_options}
+    end
   end
 
   defp csp_header(frame_ancestors) do
