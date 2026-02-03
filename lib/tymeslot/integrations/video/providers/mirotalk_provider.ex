@@ -206,8 +206,8 @@ defmodule Tymeslot.Integrations.Video.Providers.MiroTalkProvider do
           # Return room data in standardized format
           {:ok,
            %{
-             room_id: response["meeting"],
-             meeting_url: response["meeting"],
+             room_id: response["room_id"] || response["meeting"],
+             meeting_url: response["meeting_url"] || response["meeting"],
              provider_data: response,
              provider_config: config
            }}

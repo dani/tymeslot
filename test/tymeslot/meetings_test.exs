@@ -238,11 +238,11 @@ defmodule Tymeslot.MeetingsTest do
          %HTTPoison.Response{
            status_code: 200,
            body:
-             "{\"room_id\": \"test-room\", \"meeting_url\": \"https://test.mirotalk.com/join/test-room\"}"
+             "{\"room_id\": \"test-room\", \"meeting_url\": \"https://test.mirotalk.com/join/test-room\", \"join\": \"https://test.mirotalk.com/join/test-room\"}"
          }}
       end)
 
-      assert {:ok, {:ok, %MeetingSchema{} = updated_meeting}} = Meetings.add_video_room_to_meeting(meeting.id)
+      assert {:ok, %MeetingSchema{} = updated_meeting} = Meetings.add_video_room_to_meeting(meeting.id)
       assert updated_meeting.video_room_id != nil
       assert updated_meeting.video_room_enabled == true
       assert updated_meeting.id == meeting.id
