@@ -70,10 +70,8 @@ You need to configure these via Cloudron's environment variable interface:
 #### 1. Application Settings
 ```bash
 SECRET_KEY_BASE=your_secret_key_here  # Generate with: openssl rand -base64 64
-SESSION_SIGNING_SALT=your_session_salt  # Generate with: openssl rand -base64 32
 PHX_HOST=tymeslot.yourdomain.com      # Your Cloudron domain
 PORT=4000                             # Default port (managed by Cloudron)
-LIVE_VIEW_SIGNING_SALT=your_live_view_salt  # Generate with: openssl rand -base64 32
 ```
 
 #### 2. OAuth Providers (Optional)

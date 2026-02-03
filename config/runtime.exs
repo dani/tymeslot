@@ -82,58 +82,6 @@ if config_env() == :prod do
 
   config :tymeslot, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
-  # Resolve Session signing salt strictly at runtime (env or mounted file)
-  session_signing_salt =
-    case {System.get_env("SESSION_SIGNING_SALT"), System.get_env("SESSION_SIGNING_SALT_FILE")} do
-      {nil, nil} ->
-        raise "SESSION_SIGNING_SALT is missing. Set SESSION_SIGNING_SALT or SESSION_SIGNING_SALT_FILE"
-
-      {salt, nil} when is_binary(salt) ->
-        trimmed = String.trim(salt)
-
-        if trimmed == "" do
-          raise "SESSION_SIGNING_SALT cannot be blank"
-        else
-          trimmed
-        end
-
-      {_, file} when is_binary(file) ->
-        path = String.trim(file)
-        contents = String.trim(File.read!(path))
-
-        if contents == "" do
-          raise "SESSION_SIGNING_SALT_FILE cannot be blank or point to an empty file"
-        else
-          contents
-        end
-    end
-
-  # Resolve LiveView signing salt strictly at runtime (env or mounted file)
-  live_view_signing_salt =
-    case {System.get_env("LIVE_VIEW_SIGNING_SALT"), System.get_env("LIVE_VIEW_SIGNING_SALT_FILE")} do
-      {nil, nil} ->
-        raise "LIVE_VIEW_SIGNING_SALT is missing. Set LIVE_VIEW_SIGNING_SALT or LIVE_VIEW_SIGNING_SALT_FILE"
-
-      {salt, nil} when is_binary(salt) ->
-        trimmed = String.trim(salt)
-
-        if trimmed == "" do
-          raise "LIVE_VIEW_SIGNING_SALT cannot be blank"
-        else
-          trimmed
-        end
-
-      {_, file} when is_binary(file) ->
-        path = String.trim(file)
-        contents = String.trim(File.read!(path))
-
-        if contents == "" do
-          raise "LIVE_VIEW_SIGNING_SALT_FILE cannot be blank or point to an empty file"
-        else
-          contents
-        end
-    end
-
   # Determine the URL scheme based on deployment type
   url_scheme =
     case deployment_type do
@@ -160,9 +108,7 @@ if config_env() == :prod do
       port: port
     ],
     secret_key_base: secret_key_base,
-    check_origin: allowed_origins,
-    live_view: [signing_salt: live_view_signing_salt],
-    session_signing_salt: session_signing_salt
+    check_origin: allowed_origins
 
   # Database configuration helper
   get_database_config = fn deployment_type, overrides ->

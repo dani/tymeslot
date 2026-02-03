@@ -15,8 +15,11 @@ ls -la /app/data/
 
 # Log environment (without sensitive data)
 echo "Environment configured:"
+echo "  MIX_ENV: ${MIX_ENV:-not set}"
 echo "  PHX_HOST: ${PHX_HOST:-not set}"
 echo "  PORT: ${PORT:-not set}"
+echo "  DEPLOYMENT_TYPE: ${DEPLOYMENT_TYPE:-not set}"
+echo ""
 echo "  Note: Calendar and video integrations are managed through the dashboard"
 
 # Run database migrations

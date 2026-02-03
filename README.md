@@ -164,8 +164,6 @@ services:
     environment:
       - PHX_HOST=localhost
       - SECRET_KEY_BASE=your_secret_key_here
-      - SESSION_SIGNING_SALT=your_session_salt_here
-      - LIVE_VIEW_SIGNING_SALT=your_live_view_salt_here
       - POSTGRES_DB=tymeslot
       - POSTGRES_USER=tymeslot
       - POSTGRES_PASSWORD=password
@@ -195,8 +193,6 @@ See [README-Cloudron.md](README-Cloudron.md) for detailed instructions.
 ```bash
 # Application
 SECRET_KEY_BASE=your_secret_key_here
-SESSION_SIGNING_SALT=your_session_salt_here
-LIVE_VIEW_SIGNING_SALT=your_live_view_salt_here
 PHX_HOST=your.domain.com
 PORT=4000
 

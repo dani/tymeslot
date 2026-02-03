@@ -4,14 +4,11 @@
 # This script:
 #   1. Validates that a .env configuration file exists
 #   2. Loads and validates all required environment variables from .env
-#   3. Ensures signing salts and secrets are properly configured
-#   4. Builds a Docker image using Dockerfile.docker
-#   5. Optionally runs the Docker container with --env-file .env
+#   3. Builds a Docker image using Dockerfile.docker
+#   4. Optionally runs the Docker container with --env-file .env
 #
 # Required .env variables:
 #   - SECRET_KEY_BASE (64+ chars)
-#   - LIVE_VIEW_SIGNING_SALT
-#   - SESSION_SIGNING_SALT
 #   - PHX_HOST
 #   - POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD
 #
@@ -50,10 +47,8 @@ if [ ! -f .env ]; then
     echo "  cp .env.example .env"
     echo "  nano .env  # Edit the file"
     echo ""
-    echo "You need to generate secrets for:"
+    echo "You need to generate a secret for:"
     echo "  - SECRET_KEY_BASE"
-    echo "  - LIVE_VIEW_SIGNING_SALT"
-    echo "  - SESSION_SIGNING_SALT"
     echo ""
     echo "Use: openssl rand -base64 64 | tr -d '\\n'"
     echo "========================================"
@@ -114,16 +109,6 @@ if [ -z "$POSTGRES_PASSWORD" ]; then
     MISSING_VARS+=("POSTGRES_PASSWORD")
 fi
 
-# Check LIVE_VIEW_SIGNING_SALT: required for Phoenix LiveView
-if [ -z "$LIVE_VIEW_SIGNING_SALT" ]; then
-    MISSING_VARS+=("LIVE_VIEW_SIGNING_SALT")
-fi
-
-# Check SESSION_SIGNING_SALT: required for Phoenix sessions
-if [ -z "$SESSION_SIGNING_SALT" ]; then
-    MISSING_VARS+=("SESSION_SIGNING_SALT")
-fi
-
 # If any variables are missing, report them and exit
 if [ ${#MISSING_VARS[@]} -ne 0 ]; then
     echo "========================================"
@@ -137,15 +122,10 @@ if [ ${#MISSING_VARS[@]} -ne 0 ]; then
     echo ""
     echo "Please edit your .env file and set these variables."
     echo ""
-    echo "Generate secure secrets with:"
+    echo "Generate a secure secret with:"
     echo "  openssl rand -base64 64 | tr -d '\\n'"
     echo ""
-    echo "You need to generate 3 different secrets for:"
-    echo "  - SECRET_KEY_BASE"
-    echo "  - LIVE_VIEW_SIGNING_SALT"
-    echo "  - SESSION_SIGNING_SALT"
-    echo ""
-    echo "And one for:"
+    echo "And a password for:"
     echo "  - POSTGRES_PASSWORD (can use: openssl rand -base64 32)"
     echo "========================================"
     exit 1

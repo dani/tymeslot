@@ -78,7 +78,6 @@ docker build -f apps/tymeslot/Dockerfile.docker -t tymeslot .
 docker run -d --name tymeslot -p ${PORT:-4000}:4000 \
   -e DEPLOYMENT_TYPE=docker \
   -e SECRET_KEY_BASE="$SECRET_KEY_BASE" \
-  -e LIVE_VIEW_SIGNING_SALT="$LIVE_VIEW_SIGNING_SALT" \
   -e PHX_HOST="${PHX_HOST:-localhost}" \
   -e PORT="${PORT:-4000}" \
   -e POSTGRES_DB="${POSTGRES_DB:-tymeslot}" \
@@ -177,8 +176,6 @@ Edit your `.env` file with these required settings:
 # REQUIRED: Must be at least 64 characters
 # Generate with: openssl rand -base64 64 | tr -d '\n'
 SECRET_KEY_BASE=
-SESSION_SIGNING_SALT=
-LIVE_VIEW_SIGNING_SALT=
 
 # REQUIRED: Your domain name (e.g., tymeslot.yourdomain.com or localhost for local testing)
 PHX_HOST=
@@ -201,17 +198,13 @@ PORT=4000
 # Generate SECRET_KEY_BASE (generates 88 characters)
 openssl rand -base64 64 | tr -d '\n'
 
-# Generate LiveView signing salt
-openssl rand -base64 32 | tr -d '\n'
-
 # Generate secure database password
 openssl rand -base64 32 | tr -d '\n'
 ```
 
 ### Important Notes
 
-- **SECRET_KEY_BASE** must be at least 64 characters long
-- **SESSION_SIGNING_SALT** and **LIVE_VIEW_SIGNING_SALT** are required at runtime
+- **SECRET_KEY_BASE** must be at least 64 characters long and kept secret
 - **PHX_HOST** must match your domain exactly for OAuth callbacks to work
 - **POSTGRES_DB** and **POSTGRES_USER** can be customized if needed
 - **DATABASE_POOL_SIZE** defaults to 10 for Docker to avoid exhausting the embedded Postgres max_connections (100)
@@ -570,7 +563,6 @@ docker logs tymeslot
 # Validate your environment:
 source .env
 echo "SECRET_KEY_BASE length: ${#SECRET_KEY_BASE}"  # Should be >= 64
-echo "LIVE_VIEW_SIGNING_SALT length: ${#LIVE_VIEW_SIGNING_SALT}"  # Should be > 0
 ```
 
 #### 2. Database Connection Issues

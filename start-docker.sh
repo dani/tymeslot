@@ -37,13 +37,6 @@ if [ -z "${SECRET_KEY_BASE:-}" ]; then
     MISSING_VARS="${MISSING_VARS}  - SECRET_KEY_BASE\n"
 fi
 
-if [ -z "${LIVE_VIEW_SIGNING_SALT:-}" ]; then
-    MISSING_VARS="${MISSING_VARS}  - LIVE_VIEW_SIGNING_SALT\n"
-fi
-
-if [ -z "${SESSION_SIGNING_SALT:-}" ]; then
-    MISSING_VARS="${MISSING_VARS}  - SESSION_SIGNING_SALT\n"
-fi
 
 if [ -n "$MISSING_VARS" ]; then
     echo "========================================"
@@ -166,11 +159,15 @@ echo ""
 echo "========================================"
 echo "Environment Configuration:"
 echo "========================================"
+echo "  MIX_ENV: ${MIX_ENV:-not set (will default to prod in release)}"
 echo "  DEPLOYMENT_TYPE: ${DEPLOYMENT_TYPE:-docker}"
 echo "  PHX_HOST: ${PHX_HOST}"
 echo "  PORT: ${PORT}"
 echo "  DATABASE: ${POSTGRES_DB}"
 echo "  EMAIL_ADAPTER: ${EMAIL_ADAPTER:-test}"
+echo ""
+echo "Security Configuration:"
+echo "  SECRET_KEY_BASE: ✓ SET ($(echo -n "$SECRET_KEY_BASE" | wc -c) characters)"
 echo ""
 echo "Note: OAuth and calendar integrations are"
 echo "      configured through the dashboard"
@@ -188,8 +185,6 @@ echo "========================================"
 
 # Export all required environment variables for the app
 export SECRET_KEY_BASE
-export SESSION_SIGNING_SALT="${SESSION_SIGNING_SALT:-}"
-export LIVE_VIEW_SIGNING_SALT="${LIVE_VIEW_SIGNING_SALT:-}"
 export DEPLOYMENT_TYPE="${DEPLOYMENT_TYPE:-docker}"
 export PHX_HOST
 export PORT
