@@ -22,6 +22,90 @@ export const Flash = {
   }
 };
 
+// Connection status hook for LiveView disconnects.
+// Shows the "Attempting to reconnect" toast on LiveView disconnects.
+//
+// We intentionally suppress it only for explicit OAuth link clicks (Google/GitHub),
+// to avoid showing it while leaving the page, without masking real disconnects.
+export const ConnectionStatus = {
+  mounted() {
+    this.isDisconnected = false;
+    this.suppressedShowTimer = null;
+    this.hideTimer = null;
+
+    // Ensure we start hidden (server renders with display: none)
+    this.el.style.display = "none";
+    this.el.classList.add("opacity-0", "translate-x-8");
+    this.el.classList.remove("opacity-100", "translate-x-0");
+
+    this.getSuppressUntil = () => {
+      const v = window.__tymeslot_suppress_lv_disconnect_until;
+      return typeof v === "number" ? v : 0;
+    };
+
+    this.isSuppressed = () => Date.now() < this.getSuppressUntil();
+
+    this.onDisconnected = () => {
+      this.isDisconnected = true;
+
+      // If the user intentionally initiated an OAuth navigation, suppress
+      // the toast briefly. If we're *still* disconnected after the suppression
+      // window, show it (this preserves real issue visibility).
+      clearTimeout(this.suppressedShowTimer);
+      if (this.isSuppressed()) {
+        const delay = Math.max(0, this.getSuppressUntil() - Date.now()) + 10;
+        this.suppressedShowTimer = setTimeout(() => {
+          if (!this.isDisconnected) return;
+          if (this.isSuppressed()) return;
+          if (document.visibilityState === "hidden") return;
+          this.show();
+        }, delay);
+
+        return;
+      }
+
+      if (document.visibilityState === "hidden") return;
+      this.show();
+    };
+
+    this.onConnected = () => {
+      this.isDisconnected = false;
+      clearTimeout(this.suppressedShowTimer);
+      this.hide();
+    };
+
+    this.el.addEventListener("tymeslot:lv-disconnected", this.onDisconnected);
+    this.el.addEventListener("tymeslot:lv-connected", this.onConnected);
+  },
+
+  destroyed() {
+    clearTimeout(this.suppressedShowTimer);
+    clearTimeout(this.hideTimer);
+    this.el.removeEventListener("tymeslot:lv-disconnected", this.onDisconnected);
+    this.el.removeEventListener("tymeslot:lv-connected", this.onConnected);
+  },
+
+  show() {
+    this.el.style.display = "";
+    // next frame to allow transition
+    requestAnimationFrame(() => {
+      this.el.classList.remove("opacity-0", "translate-x-8");
+      this.el.classList.add("opacity-100", "translate-x-0");
+    });
+  },
+
+  hide() {
+    this.el.classList.add("opacity-0", "translate-x-8");
+    this.el.classList.remove("opacity-100", "translate-x-0");
+
+    clearTimeout(this.hideTimer);
+    this.hideTimer = setTimeout(() => {
+      // Only fully hide if we are still connected (avoid hiding while disconnected).
+      if (!this.isDisconnected) this.el.style.display = "none";
+    }, 350);
+  }
+};
+
 // Auto-scroll to slots on mobile and tablet when slots are loaded
 export const AutoScrollToSlots = {
   mounted() {

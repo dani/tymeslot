@@ -50,6 +50,22 @@ window.addEventListener("phx:page-loading-stop", _info => topbar.hide())
 // connect if there are any LiveViews on the page
 liveSocket.connect()
 
+// Targeted suppression of the LiveView disconnect toast during intentional
+// full-page navigations for OAuth (Google/GitHub). This avoids showing
+// "Attempting to reconnect" while leaving the page, without masking real
+// disconnects during normal usage.
+document.addEventListener("click", (e) => {
+  const link = e.target && e.target.closest
+    ? e.target.closest("a[data-tymeslot-suppress-lv-disconnect]")
+    : null;
+
+  if (!link) return;
+
+  // Keep the window small: if the socket is still disconnected after this,
+  // the toast will still show.
+  window.__tymeslot_suppress_lv_disconnect_until = Date.now() + 2500;
+}, true);
+
 // Reset form on event
 window.addEventListener("phx:reset-form", (e) => {
   const form = document.getElementById(e.detail.id);

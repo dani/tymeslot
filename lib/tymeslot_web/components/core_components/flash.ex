@@ -21,6 +21,7 @@ defmodule TymeslotWeb.Components.CoreComponents.Flash do
   attr :kind, :atom, values: [:info, :error, :warning], doc: "used for styling and flash lookup"
   attr :autoshow, :boolean, default: true, doc: "whether to auto show the flash on mount"
   attr :close, :boolean, default: true, doc: "whether the flash can be closed"
+  attr :hook, :string, default: "Flash", doc: "the LiveView hook name to attach"
   attr :rest, :global, doc: "the arbitrary HTML attributes to add to the flash container"
   slot :inner_block, doc: "the optional inner block that renders the flash message"
   @spec flash(map()) :: Phoenix.LiveView.Rendered.t()
@@ -31,7 +32,7 @@ defmodule TymeslotWeb.Components.CoreComponents.Flash do
     <div
       :if={msg = render_slot(@inner_block) || Phoenix.Flash.get(@flash, @kind)}
       id={@id}
-      phx-hook="Flash"
+      phx-hook={@hook}
       phx-mounted={
         @autoshow &&
           JS.show(
@@ -151,22 +152,9 @@ defmodule TymeslotWeb.Components.CoreComponents.Flash do
           title="Connection Lost"
           close={false}
           autoshow={false}
-          phx-disconnected={
-            JS.show(
-              to: "##{@id}-disconnected",
-              transition:
-                {"transition-all duration-300 ease-out transform", "opacity-0 translate-x-8",
-                 "opacity-100 translate-x-0"}
-            )
-          }
-          phx-connected={
-            JS.hide(
-              to: "##{@id}-disconnected",
-              transition:
-                {"transition-all duration-300 ease-in transform", "opacity-100 translate-x-0",
-                 "opacity-0 translate-x-8"}
-            )
-          }
+          hook="ConnectionStatus"
+          phx-disconnected={JS.dispatch("tymeslot:lv-disconnected", to: "##{@id}-disconnected")}
+          phx-connected={JS.dispatch("tymeslot:lv-connected", to: "##{@id}-disconnected")}
           style="display: none;"
         >
           Attempting to reconnect

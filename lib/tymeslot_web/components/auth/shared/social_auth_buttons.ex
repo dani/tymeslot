@@ -67,7 +67,12 @@ defmodule TymeslotWeb.Shared.SocialAuthButtons do
     assigns = assign(assigns, :icon, icon_for(assigns.provider))
 
     ~H"""
-    <a href={@href} class={["btn-oauth", "btn-oauth-#{@provider}", @class]} aria-label={@label}>
+    <a
+      href={@href}
+      class={["btn-oauth", "btn-oauth-#{@provider}", @class]}
+      aria-label={@label}
+      data-tymeslot-suppress-lv-disconnect="oauth"
+    >
       {Phoenix.HTML.raw(@icon)}
       <span>{@label}</span>
     </a>

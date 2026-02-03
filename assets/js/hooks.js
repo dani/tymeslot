@@ -2,7 +2,7 @@
 import { PasswordToggle } from "./password_toggle";
 import { AuthVideo, RhythmVideo, QuillVideo } from "./video_hooks";
 import { ConfirmDelete, PageReload } from "./ui_interaction_hooks";
-import { Flash, AutoScrollToSlots, AutoFocus, ScrollReset, CopyOnClick } from "./utility_hooks";
+import { Flash, ConnectionStatus, AutoScrollToSlots, AutoFocus, ScrollReset, CopyOnClick } from "./utility_hooks";
 import { RecaptchaV3Hook } from "./hooks/recaptcha_v3_hook";
 import { ClipboardCopy } from "./clipboard_hook";
 import { AutoUpload } from "./hooks/auto_upload";
@@ -25,6 +25,7 @@ Hooks.PageReload = PageReload;
 
 // Utility hooks
 Hooks.Flash = Flash;
+Hooks.ConnectionStatus = ConnectionStatus;
 Hooks.AutoScrollToSlots = AutoScrollToSlots;
 Hooks.AutoFocus = AutoFocus;
 Hooks.ScrollReset = ScrollReset;
