@@ -190,6 +190,14 @@ defmodule TymeslotWeb.Components.SiteComponents do
                   Terms of Service
                 </.link>
               <% end %>
+              <%= if sitemap_url = Application.get_env(:tymeslot, :sitemap_url) do %>
+                <.link
+                  navigate={sitemap_url}
+                  class="text-gray-400 hover:text-turquoise-400 transition-colors"
+                >
+                  Sitemap
+                </.link>
+              <% end %>
             <% end %>
           </div>
           <div class="mt-6 pt-4 border-t border-gray-700">

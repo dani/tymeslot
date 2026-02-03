@@ -9,25 +9,23 @@ defmodule TymeslotWeb.Endpoint do
     key: "_tymeslot_key",
     # Use a stable, non-secret salt. secret_key_base is the actual secret.
     signing_salt:
-      Application.compile_env!(:tymeslot, [TymeslotWeb.Endpoint, :session_signing_salt]),
+      Application.compile_env(:tymeslot, [TymeslotWeb.Endpoint, :session_signing_salt]),
     # Changed from "Strict" to "Lax" to allow OAuth callbacks
     same_site: "Lax",
     http_only: true,
     secure: Application.compile_env(:tymeslot, :secure_cookies, false)
   ]
 
-  def session_options, do: @session_options
-
   socket "/live", Phoenix.LiveView.Socket,
     websocket: [
-      connect_info: [:peer_data, :x_headers, session: {__MODULE__, :session_options, []}],
+      connect_info: [:peer_data, :x_headers, session: @session_options],
       # 60 seconds keepalive timeout
       timeout: 60_000,
       # Reduce noise from disconnection logs
       transport_log: false
     ],
     longpoll: [
-      connect_info: [:peer_data, :x_headers, session: {__MODULE__, :session_options, []}]
+      connect_info: [:peer_data, :x_headers, session: @session_options]
     ]
 
   # Serve at "/" the static files from "priv/static" directory.
@@ -71,7 +69,7 @@ defmodule TymeslotWeb.Endpoint do
 
   plug Plug.MethodOverride
   plug Plug.Head
-  plug Plug.Session, {__MODULE__, :session_options, []}
+  plug Plug.Session, @session_options
 
   defp dynamic_router(conn, _opts) do
     router = Application.get_env(:tymeslot, :router, TymeslotWeb.Router)
