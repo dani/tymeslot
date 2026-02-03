@@ -196,7 +196,7 @@ defmodule TymeslotWeb.DashboardLive do
       profile={@profile}
       current_action={@live_action}
       integration_status={@integration_status}
-      automations_allowed={Map.get(assigns, :automations_allowed, true)}
+      automations_allowed={@automations_allowed}
     >
       <.flash_group flash={@flash} id="dashboard-flash-group" />
 
@@ -389,7 +389,10 @@ defmodule TymeslotWeb.DashboardLive do
         %{}
       )
 
-    assigns = assign(assigns, :placeholder_component, placeholder_components[assigns.section])
+    assigns =
+      assigns
+      |> assign(:placeholder_component, placeholder_components[assigns.section])
+      |> assign(:feature_name, Phoenix.Naming.humanize(assigns.section))
 
     ~H"""
     <%= if @placeholder_component do %>
@@ -402,7 +405,7 @@ defmodule TymeslotWeb.DashboardLive do
     <% else %>
       <!-- Core fallback: just show a simple message -->
       <div class="p-8 text-center text-gray-500">
-        <p>This feature is not available.</p>
+        <p>This feature (<%= @feature_name %>) is not available on your current plan.</p>
       </div>
     <% end %>
     """

@@ -86,14 +86,7 @@ if config_env() == :prod do
   session_signing_salt =
     case {System.get_env("SESSION_SIGNING_SALT"), System.get_env("SESSION_SIGNING_SALT_FILE")} do
       {nil, nil} ->
-        # For session salt, we can have a fallback for dev/test if needed,
-        # but in prod we should probably require it or use a default if it's not strictly secret.
-        # However, for consistency with LIVE_VIEW_SIGNING_SALT, let's require it in prod.
-        if config_env() == :prod do
-          raise "SESSION_SIGNING_SALT is missing. Set SESSION_SIGNING_SALT or SESSION_SIGNING_SALT_FILE"
-        else
-          raise "SESSION_SIGNING_SALT is missing. Set SESSION_SIGNING_SALT or SESSION_SIGNING_SALT_FILE in your .env file"
-        end
+        raise "SESSION_SIGNING_SALT is missing. Set SESSION_SIGNING_SALT or SESSION_SIGNING_SALT_FILE"
 
       {salt, nil} when is_binary(salt) ->
         trimmed = String.trim(salt)

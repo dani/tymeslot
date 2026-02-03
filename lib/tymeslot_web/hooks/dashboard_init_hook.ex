@@ -30,10 +30,17 @@ defmodule TymeslotWeb.Hooks.DashboardInitHook do
 
         integration_status = DashboardContext.get_integration_status(user.id)
 
+        automations_allowed =
+          case Tymeslot.Features.check_access(user.id, :automations_allowed) do
+            :ok -> true
+            {:error, _} -> false
+          end
+
         socket =
           socket
           |> assign(:profile, profile)
           |> assign(:integration_status, integration_status)
+          |> assign(:automations_allowed, automations_allowed)
           |> assign_new(:saving, fn -> false end)
 
         {:cont, socket}
