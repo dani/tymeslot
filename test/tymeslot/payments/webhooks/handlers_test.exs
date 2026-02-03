@@ -8,6 +8,7 @@ defmodule Tymeslot.Payments.Webhooks.HandlersTest do
     CustomerHandler,
     PaymentIntentHandler
   }
+
   alias Tymeslot.DatabaseSchemas.PaymentTransactionSchema
   alias Tymeslot.Factory
   alias Tymeslot.Repo

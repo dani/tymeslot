@@ -382,11 +382,12 @@ defmodule TymeslotWeb.DashboardLive do
 
   @spec render_feature_placeholder(map()) :: Phoenix.LiveView.Rendered.t()
   defp render_feature_placeholder(assigns) do
-    placeholder_components = Application.get_env(
-      :tymeslot,
-      :feature_placeholder_components,
-      %{}
-    )
+    placeholder_components =
+      Application.get_env(
+        :tymeslot,
+        :feature_placeholder_components,
+        %{}
+      )
 
     assigns = assign(assigns, :placeholder_component, placeholder_components[assigns.section])
 

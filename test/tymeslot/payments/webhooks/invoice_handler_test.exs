@@ -51,7 +51,8 @@ defmodule Tymeslot.Payments.Webhooks.InvoiceHandlerTest do
 
     test "rejects missing ids for other invoice events" do
       # invoice.paid requires an ID in InvoiceHandler.validate/2
-      assert {:error, :missing_field, "Invoice ID missing"} = WebhookRegistry.validate("invoice.paid", %{})
+      assert {:error, :missing_field, "Invoice ID missing"} =
+               WebhookRegistry.validate("invoice.paid", %{})
     end
   end
 

@@ -39,7 +39,9 @@ defmodule Tymeslot.Auth.OAuth.FlowHandlerTest do
       })
 
     assert redirected_to(conn) == "/auth/login"
-    assert Flash.get(conn.assigns.flash, :error) == "Security validation failed. Please try again."
+
+    assert Flash.get(conn.assigns.flash, :error) ==
+             "Security validation failed. Please try again."
   end
 
   test "creates a session and redirects on successful existing user login" do
@@ -49,7 +51,14 @@ defmodule Tymeslot.Auth.OAuth.FlowHandlerTest do
       |> Controller.fetch_flash([])
 
     user_info = %{"id" => 123}
-    processed_user = %{email: "user@example.com", github_user_id: 123, name: "Test", is_verified: true}
+
+    processed_user = %{
+      email: "user@example.com",
+      github_user_id: 123,
+      name: "Test",
+      is_verified: true
+    }
+
     enhanced_user = Map.put(processed_user, :email_from_provider, true)
     existing_user = %{id: 987}
 
@@ -57,6 +66,7 @@ defmodule Tymeslot.Auth.OAuth.FlowHandlerTest do
     :meck.expect(State, :clear_oauth_state, fn conn -> conn end)
 
     :meck.expect(URLs, :callback_path, fn :github -> "/auth/github/callback" end)
+
     :meck.expect(URLs, :callback_url, fn _conn, "/auth/github/callback" ->
       "https://example.com/auth/github/callback"
     end)
@@ -115,6 +125,7 @@ defmodule Tymeslot.Auth.OAuth.FlowHandlerTest do
     :meck.expect(State, :clear_oauth_state, fn conn -> conn end)
 
     :meck.expect(URLs, :callback_path, fn :github -> "/auth/github/callback" end)
+
     :meck.expect(URLs, :callback_url, fn _conn, "/auth/github/callback" ->
       "https://example.com/auth/github/callback"
     end)
@@ -184,6 +195,7 @@ defmodule Tymeslot.Auth.OAuth.FlowHandlerTest do
     :meck.expect(State, :clear_oauth_state, fn conn -> conn end)
 
     :meck.expect(URLs, :callback_path, fn :github -> "/auth/github/callback" end)
+
     :meck.expect(URLs, :callback_url, fn _conn, "/auth/github/callback" ->
       "https://example.com/auth/github/callback"
     end)

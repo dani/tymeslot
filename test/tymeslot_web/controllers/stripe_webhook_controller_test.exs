@@ -38,11 +38,11 @@ defmodule TymeslotWeb.StripeWebhookControllerTest do
     end
 
     test "returns 400 when webhook signature is invalid", %{conn: conn} do
-      with_config(:tymeslot, [
+      with_config(:tymeslot,
         skip_webhook_verification: false,
         stripe_provider: Tymeslot.Payments.Stripe,
         stripe_webhook_secret: "whsec_test"
-      ])
+      )
 
       payload = ~s({"type":"checkout.session.completed", "id":"evt_123"})
 
@@ -60,11 +60,11 @@ defmodule TymeslotWeb.StripeWebhookControllerTest do
     test "returns 400 when webhook signature is valid but for different payload", %{conn: conn} do
       secret = "whsec_test"
 
-      with_config(:tymeslot, [
+      with_config(:tymeslot,
         skip_webhook_verification: false,
         stripe_provider: Tymeslot.Payments.Stripe,
         stripe_webhook_secret: secret
-      ])
+      )
 
       payload = ~s({"type":"checkout.session.completed", "id":"evt_123"})
       different_payload = ~s({"type":"checkout.session.completed", "id":"evt_456"})

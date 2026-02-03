@@ -8,7 +8,13 @@ defmodule Tymeslot.Payments do
 
   alias Tymeslot.DatabaseSchemas.PaymentTransactionSchema, as: PaymentTransaction
 
-  alias Tymeslot.Payments.{Config, DatabaseOperations, Initiation, SubscriptionFlow, Subscriptions}
+  alias Tymeslot.Payments.{
+    Config,
+    DatabaseOperations,
+    Initiation,
+    SubscriptionFlow,
+    Subscriptions
+  }
 
   @type transaction :: PaymentTransaction.t()
   @type stripe_id :: String.t()
@@ -265,5 +271,4 @@ defmodule Tymeslot.Payments do
       metadata
     )
   end
-
 end

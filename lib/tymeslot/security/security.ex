@@ -279,7 +279,10 @@ defmodule Tymeslot.Security.Security do
 
       # Domain pattern: alphanumeric, dots, and hyphens. Must not start/end with hyphen/dot.
       # No protocol (http://), no path (/path), no port (:8080).
-      Regex.match?(~r/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$/i, domain) ->
+      Regex.match?(
+        ~r/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$/i,
+        domain
+      ) ->
         {:ok, String.downcase(domain)}
 
       true ->

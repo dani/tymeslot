@@ -215,25 +215,29 @@ defmodule Tymeslot.MeetingsTest do
     test "successfully adds video room and logs activity" do
       user = insert(:user)
       _profile = insert(:profile, user: user)
-      
+
       # Mock video integration
-      video_integration = insert(:video_integration, user: user, provider: "mirotalk", is_active: true)
-      
-      meeting = insert(:meeting, 
-        organizer_user_id: user.id, 
-        organizer_email: user.email,
-        video_integration_id: video_integration.id
-      )
+      video_integration =
+        insert(:video_integration, user: user, provider: "mirotalk", is_active: true)
+
+      meeting =
+        insert(:meeting,
+          organizer_user_id: user.id,
+          organizer_email: user.email,
+          video_integration_id: video_integration.id
+        )
 
       # Use setup_all_mocks to configure Mox correctly
       Tymeslot.TestMocks.setup_all_mocks()
-      
+
       # Stub HTTP client to return HTTPoison.Response struct
       stub(Tymeslot.HTTPClientMock, :post, fn _url, _body, _headers, _opts ->
-        {:ok, %HTTPoison.Response{
-          status_code: 200, 
-          body: "{\"room_id\": \"test-room\", \"meeting_url\": \"https://test.mirotalk.com/join/test-room\"}"
-        }}
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 200,
+           body:
+             "{\"room_id\": \"test-room\", \"meeting_url\": \"https://test.mirotalk.com/join/test-room\"}"
+         }}
       end)
 
       assert {:ok, updated_meeting} = Meetings.add_video_room_to_meeting(meeting.id)
@@ -263,9 +267,9 @@ defmodule Tymeslot.MeetingsTest do
   describe "send_reschedule_request/1" do
     test "successfully processes reschedule request" do
       meeting = insert(:meeting, status: "confirmed")
-      
+
       assert :ok = Meetings.send_reschedule_request(meeting)
-      
+
       # Verify status updated
       updated_meeting = Tymeslot.Repo.get(Tymeslot.DatabaseSchemas.MeetingSchema, meeting.id)
       assert updated_meeting.status == "reschedule_requested"
@@ -273,13 +277,15 @@ defmodule Tymeslot.MeetingsTest do
 
     test "returns error when policy blocks reschedule" do
       # Create a meeting in the past which shouldn't be reschedulable by default policy
-      meeting = insert(:meeting, 
-        status: "confirmed", 
-        start_time: DateTime.add(DateTime.utc_now(), -3600),
-        end_time: DateTime.add(DateTime.utc_now(), -1800)
-      )
-      
-      assert {:error, "Cannot reschedule a meeting that has already occurred"} = Meetings.send_reschedule_request(meeting)
+      meeting =
+        insert(:meeting,
+          status: "confirmed",
+          start_time: DateTime.add(DateTime.utc_now(), -3600),
+          end_time: DateTime.add(DateTime.utc_now(), -1800)
+        )
+
+      assert {:error, "Cannot reschedule a meeting that has already occurred"} =
+               Meetings.send_reschedule_request(meeting)
     end
   end
 
@@ -287,14 +293,16 @@ defmodule Tymeslot.MeetingsTest do
     test "returns upcoming meetings for user" do
       %{user: user} = create_user_with_profile()
       insert_meeting_for_user(user)
-      
+
       assert {:ok, page} = Meetings.list_user_meetings_by_filter(user.id, "upcoming")
       assert length(page.items) == 1
     end
 
     test "returns error for invalid cursor" do
       %{user: user} = create_user_with_profile()
-      assert {:error, :invalid_cursor} = Meetings.list_user_meetings_by_filter(user.id, "upcoming", after: "invalid")
+
+      assert {:error, :invalid_cursor} =
+               Meetings.list_user_meetings_by_filter(user.id, "upcoming", after: "invalid")
     end
   end
 

@@ -291,11 +291,21 @@ defmodule Tymeslot.Meetings.VideoRooms do
 
       {:ok, integration} ->
         case integration.provider do
-          "mirotalk" -> {:ok, :mirotalk}
-          "google_calendar" -> {:ok, :google_calendar}
-          "teams" -> {:ok, :teams}
-          "zoom" -> {:ok, :zoom}
-          "none" -> {:ok, :none}
+          "mirotalk" ->
+            {:ok, :mirotalk}
+
+          "google_calendar" ->
+            {:ok, :google_calendar}
+
+          "teams" ->
+            {:ok, :teams}
+
+          "zoom" ->
+            {:ok, :zoom}
+
+          "none" ->
+            {:ok, :none}
+
           other ->
             Logger.warning("Unknown video provider type", provider: other)
             {:error, :unknown_provider}

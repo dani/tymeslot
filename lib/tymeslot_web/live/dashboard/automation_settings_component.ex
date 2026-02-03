@@ -208,7 +208,8 @@ defmodule TymeslotWeb.Dashboard.AutomationSettingsComponent do
                 Flash.error("Failed to update webhook")
                 {:noreply, assign(socket, :form_errors, errors)}
 
-              {:error, reason} when reason in [:insufficient_plan, :feature_access_checker_failed] ->
+              {:error, reason}
+              when reason in [:insufficient_plan, :feature_access_checker_failed] ->
                 {:noreply, handle_feature_access_error(socket, reason)}
             end
 

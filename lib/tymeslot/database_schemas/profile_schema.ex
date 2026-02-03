@@ -182,5 +182,4 @@ defmodule Tymeslot.DatabaseSchemas.ProfileSchema do
   end
 
   # Removed redundant validation functions in favor of Tymeslot.Security.Security.validate_domain/1
-
 end

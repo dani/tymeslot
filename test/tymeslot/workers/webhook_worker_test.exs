@@ -14,10 +14,10 @@ defmodule Tymeslot.Workers.WebhookWorkerTest do
   setup :verify_on_exit!
 
   setup do
-    setup_config(:tymeslot, [
+    setup_config(:tymeslot,
       feature_access_checker: Tymeslot.Features.DefaultAccessChecker,
       environment: :test
-    ])
+    )
 
     :ok
   end
@@ -296,7 +296,6 @@ defmodule Tymeslot.Workers.WebhookWorkerTest do
       assert delivery, "Expected delivery log to exist"
       assert delivery.error_message =~ "private or local network"
       refute delivery.delivered_at
-
     end
 
     test "allows SSRF-like URLs in non-production (testing)" do
@@ -314,7 +313,6 @@ defmodule Tymeslot.Workers.WebhookWorkerTest do
                  "event_type" => "meeting.created",
                  "meeting_id" => meeting.id
                })
-
     end
   end
 

@@ -150,5 +150,4 @@ defmodule Tymeslot.Workers.EmailWorkerHandlersTest do
       assert updated.reminder_email_sent == true
     end
   end
-
 end

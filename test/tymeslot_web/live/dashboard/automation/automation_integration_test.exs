@@ -13,7 +13,10 @@ defmodule TymeslotWeb.Dashboard.Automation.AutomationIntegrationTest do
     user = create_user_fixture()
     {:ok, user} = UserQueries.mark_onboarding_complete(user)
 
-    ConfigTestHelpers.setup_config(:tymeslot, feature_access_checker: Tymeslot.Features.DefaultAccessChecker)
+    ConfigTestHelpers.setup_config(:tymeslot,
+      feature_access_checker: Tymeslot.Features.DefaultAccessChecker
+    )
+
     ConfigTestHelpers.setup_config(:tymeslot,
       dashboard_additional_hooks: [],
       feature_placeholder_components: %{}
@@ -148,14 +151,19 @@ defmodule TymeslotWeb.Dashboard.Automation.AutomationIntegrationTest do
       meeting: meeting
     } do
       # Create a webhook
-      {:ok, _webhook} = Webhooks.create_webhook(user.id, %{
-        name: "Test Webhook",
-        url: "https://example.com/webhook",
-        events: ["meeting.created"]
-      })
+      {:ok, _webhook} =
+        Webhooks.create_webhook(user.id, %{
+          name: "Test Webhook",
+          url: "https://example.com/webhook",
+          events: ["meeting.created"]
+        })
 
       # Clear any configured feature access checker safely
-      ConfigTestHelpers.with_config(:tymeslot, :feature_access_checker, Tymeslot.Features.DefaultAccessChecker)
+      ConfigTestHelpers.with_config(
+        :tymeslot,
+        :feature_access_checker,
+        Tymeslot.Features.DefaultAccessChecker
+      )
 
       # Should trigger webhook
       assert :ok = Webhooks.trigger_webhooks_for_event(user.id, "meeting.created", meeting)
@@ -166,11 +174,12 @@ defmodule TymeslotWeb.Dashboard.Automation.AutomationIntegrationTest do
       meeting: meeting
     } do
       # Create a webhook
-      {:ok, _webhook} = Webhooks.create_webhook(user.id, %{
-        name: "Test Webhook",
-        url: "https://example.com/webhook",
-        events: ["meeting.created"]
-      })
+      {:ok, _webhook} =
+        Webhooks.create_webhook(user.id, %{
+          name: "Test Webhook",
+          url: "https://example.com/webhook",
+          events: ["meeting.created"]
+        })
 
       # Configure a test feature access checker that denies access safely
       ConfigTestHelpers.with_config(
@@ -188,11 +197,12 @@ defmodule TymeslotWeb.Dashboard.Automation.AutomationIntegrationTest do
       meeting: meeting
     } do
       # Create a webhook
-      {:ok, _webhook} = Webhooks.create_webhook(user.id, %{
-        name: "Test Webhook",
-        url: "https://example.com/webhook",
-        events: ["meeting.created"]
-      })
+      {:ok, _webhook} =
+        Webhooks.create_webhook(user.id, %{
+          name: "Test Webhook",
+          url: "https://example.com/webhook",
+          events: ["meeting.created"]
+        })
 
       # Configure a test feature access checker that grants access safely
       ConfigTestHelpers.with_config(
@@ -210,11 +220,12 @@ defmodule TymeslotWeb.Dashboard.Automation.AutomationIntegrationTest do
       meeting: meeting
     } do
       # Create a webhook
-      {:ok, _webhook} = Webhooks.create_webhook(user.id, %{
-        name: "Test Webhook",
-        url: "https://example.com/webhook",
-        events: ["meeting.created"]
-      })
+      {:ok, _webhook} =
+        Webhooks.create_webhook(user.id, %{
+          name: "Test Webhook",
+          url: "https://example.com/webhook",
+          events: ["meeting.created"]
+        })
 
       # Configure a test feature access checker that returns an error safely
       ConfigTestHelpers.with_config(

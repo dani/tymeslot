@@ -5,6 +5,7 @@ defmodule Tymeslot.Payments.SubscriptionFlow do
 
   alias Ecto.UUID
   alias Tymeslot.DatabaseQueries.PaymentQueries
+
   alias Tymeslot.Payments.{
     ChangesetHelpers,
     Config,
@@ -170,7 +171,9 @@ defmodule Tymeslot.Payments.SubscriptionFlow do
       Map.get(checkout_session, "subscription") || Map.get(checkout_session, :subscription)
 
     checkout_url = Map.get(checkout_session, "url") || Map.get(checkout_session, :url)
-    stripe_customer_id = Map.get(checkout_session, "customer") || Map.get(checkout_session, :customer)
+
+    stripe_customer_id =
+      Map.get(checkout_session, "customer") || Map.get(checkout_session, :customer)
 
     if is_nil(checkout_session_id) or is_nil(checkout_url) do
       {:error, :invalid_checkout_session}
@@ -203,7 +206,9 @@ defmodule Tymeslot.Payments.SubscriptionFlow do
     }
 
     case PaymentQueries.update_transaction(transaction, update_attrs) do
-      {:ok, _updated_transaction} -> :ok
+      {:ok, _updated_transaction} ->
+        :ok
+
       {:error, error} ->
         Logger.error("Failed to mark subscription transaction as failed: #{inspect(error)}")
         {:error, :transaction_update_failed}
@@ -250,8 +255,14 @@ defmodule Tymeslot.Payments.SubscriptionFlow do
          sleep_ms \\ 100
        )
 
-  defp pending_subscription_checkout_url_with_retry(_user_id, _amount, _product_identifier, 0, _sleep_ms),
-    do: {:error, :retry_later}
+  defp pending_subscription_checkout_url_with_retry(
+         _user_id,
+         _amount,
+         _product_identifier,
+         0,
+         _sleep_ms
+       ),
+       do: {:error, :retry_later}
 
   defp pending_subscription_checkout_url_with_retry(
          user_id,
@@ -263,7 +274,14 @@ defmodule Tymeslot.Payments.SubscriptionFlow do
     case pending_subscription_checkout_url_for_request(user_id, amount, product_identifier) do
       {:ok, nil} ->
         Process.sleep(sleep_ms)
-        pending_subscription_checkout_url_with_retry(user_id, amount, product_identifier, attempts - 1, sleep_ms)
+
+        pending_subscription_checkout_url_with_retry(
+          user_id,
+          amount,
+          product_identifier,
+          attempts - 1,
+          sleep_ms
+        )
 
       {:ok, checkout_url} ->
         {:ok, checkout_url}

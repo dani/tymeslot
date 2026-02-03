@@ -16,9 +16,10 @@ defmodule TymeslotWeb.Hooks.FeatureAssignsHook do
   def on_mount(:set_feature_assigns, _params, _session, socket) do
     feature_assigns = Application.get_env(:tymeslot, :feature_assigns, [])
 
-    socket = Enum.reduce(feature_assigns, socket, fn {key, default_value}, acc ->
-      assign(acc, key, default_value)
-    end)
+    socket =
+      Enum.reduce(feature_assigns, socket, fn {key, default_value}, acc ->
+        assign(acc, key, default_value)
+      end)
 
     {:cont, socket}
   end

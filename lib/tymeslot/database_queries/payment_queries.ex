@@ -201,7 +201,8 @@ defmodule Tymeslot.DatabaseQueries.PaymentQueries do
   @doc """
   Gets transactions by status.
   """
-  @spec get_transactions_by_status(String.t()) :: {:ok, [PaymentTransaction.t()]} | {:error, term()}
+  @spec get_transactions_by_status(String.t()) ::
+          {:ok, [PaymentTransaction.t()]} | {:error, term()}
   def get_transactions_by_status(status) do
     query = from(t in PaymentTransaction, where: t.status == ^status)
 

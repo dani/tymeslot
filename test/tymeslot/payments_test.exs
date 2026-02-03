@@ -125,7 +125,8 @@ defmodule Tymeslot.PaymentsTest do
       user = Factory.insert(:user)
 
       defmodule MockSubManager do
-        @spec create_subscription_checkout(any(), any(), any(), any(), any(), any(), any()) :: {:ok, map()}
+        @spec create_subscription_checkout(any(), any(), any(), any(), any(), any(), any()) ::
+                {:ok, map()}
         def create_subscription_checkout(_price, _prod, _amt, _uid, _email, _urls, _meta) do
           {:ok,
            %{
@@ -155,7 +156,6 @@ defmodule Tymeslot.PaymentsTest do
         )
 
       assert tx.subscription_id == "sub_123"
-
     end
 
     test "supersedes pending one-time transaction before subscription" do
@@ -170,7 +170,8 @@ defmodule Tymeslot.PaymentsTest do
         )
 
       defmodule MockSubManagerForSupersede do
-        @spec create_subscription_checkout(any(), any(), any(), any(), any(), any(), any()) :: {:ok, map()}
+        @spec create_subscription_checkout(any(), any(), any(), any(), any(), any(), any()) ::
+                {:ok, map()}
         def create_subscription_checkout(_price, _prod, _amt, _uid, _email, _urls, _meta) do
           {:ok,
            %{
@@ -198,7 +199,6 @@ defmodule Tymeslot.PaymentsTest do
 
       assert updated_pending.status == "failed"
       assert updated_pending.metadata["superseded"] == true
-
     end
 
     test "returns checkout url even if transaction update fails" do
@@ -211,7 +211,8 @@ defmodule Tymeslot.PaymentsTest do
       )
 
       defmodule MockSubManagerForUpdateFailure do
-        @spec create_subscription_checkout(any(), any(), any(), any(), any(), any(), any()) :: {:ok, map()}
+        @spec create_subscription_checkout(any(), any(), any(), any(), any(), any(), any()) ::
+                {:ok, map()}
         def create_subscription_checkout(_price, _prod, _amt, _uid, _email, _urls, _meta) do
           {:ok,
            %{
@@ -244,7 +245,6 @@ defmodule Tymeslot.PaymentsTest do
       assert pending_tx
       assert is_nil(pending_tx.stripe_id)
       assert pending_tx.status == "pending"
-
     end
   end
 

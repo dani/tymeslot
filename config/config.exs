@@ -64,8 +64,7 @@ config :tymeslot,
 
 # Feature Assigns - Default to allowing all features
 # SaaS can override these via on_mount hooks based on subscription status
-config :tymeslot, :feature_assigns,
-  automations_allowed: true
+config :tymeslot, :feature_assigns, automations_allowed: true
 
 # Feature Access Checker - Default to allowing all features
 # SaaS can provide a custom implementation that checks subscription status

@@ -243,7 +243,10 @@ defmodule Tymeslot.Meetings do
         {:ok, meeting}
 
       {:error, :meeting_not_found} ->
-        Logger.warning("Attempted to add video room to non-existent meeting", meeting_id: meeting_id)
+        Logger.warning("Attempted to add video room to non-existent meeting",
+          meeting_id: meeting_id
+        )
+
         {:error, :meeting_not_found}
 
       {:error, reason} = error ->

@@ -69,7 +69,10 @@ defmodule TymeslotWeb.Live.Dashboard.EmbedSettingsTest do
       assert html =~ "example.com"
       assert html =~ "test.org"
       # Check for remove buttons
-      assert has_element?(view, "button[phx-click='remove_domain'][phx-value-domain='example.com']")
+      assert has_element?(
+               view,
+               "button[phx-click='remove_domain'][phx-value-domain='example.com']"
+             )
     end
 
     test "removes a domain successfully", %{conn: conn, profile: profile} do

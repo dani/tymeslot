@@ -12,7 +12,11 @@ defmodule Tymeslot.Features do
   @spec check_access(integer(), atom()) :: :ok | {:error, access_error()}
   def check_access(user_id, feature) when is_integer(user_id) and is_atom(feature) do
     module =
-      Application.get_env(:tymeslot, :feature_access_checker, Tymeslot.Features.DefaultAccessChecker)
+      Application.get_env(
+        :tymeslot,
+        :feature_access_checker,
+        Tymeslot.Features.DefaultAccessChecker
+      )
 
     # Use configured checker (e.g., SaaS subscription checker)
     try do

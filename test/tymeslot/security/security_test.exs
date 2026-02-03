@@ -121,7 +121,9 @@ defmodule Tymeslot.Security.SecurityTest do
 
     test "rejects overly long domains" do
       long_domain = String.duplicate("a", 256) <> ".com"
-      assert {:error, "Some domains exceed maximum length (max 255 characters)"} = Security.validate_domain(long_domain)
+
+      assert {:error, "Some domains exceed maximum length (max 255 characters)"} =
+               Security.validate_domain(long_domain)
     end
   end
 end

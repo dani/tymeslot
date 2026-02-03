@@ -122,7 +122,7 @@ defmodule Tymeslot.TestHelpers.Eventually do
   Returns the truthy value from the function on success, or raises an
   `ExUnit.AssertionError` with context about the timeout on failure.
   """
-  @spec eventually((() -> any()), keyword()) :: any()
+  @spec eventually((-> any()), keyword()) :: any()
   def eventually(func, opts \\ []) do
     timeout = Keyword.get(opts, :timeout, 1000)
     interval = Keyword.get(opts, :interval, 50)
@@ -158,7 +158,9 @@ defmodule Tymeslot.TestHelpers.Eventually do
         if result do
           result
         else
-          error_message = build_timeout_message(message, elapsed, "Condition returned falsy value")
+          error_message =
+            build_timeout_message(message, elapsed, "Condition returned falsy value")
+
           raise ExUnit.AssertionError, message: error_message
         end
       rescue
