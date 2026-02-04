@@ -6,6 +6,7 @@ defmodule Tymeslot.Workers.VideoRoomWorkerTest do
   import Tymeslot.WorkerTestHelpers
 
   alias Ecto.UUID
+  alias Tymeslot.DatabaseQueries.MeetingQueries
   alias Tymeslot.DatabaseSchemas.MeetingSchema
   alias Tymeslot.Workers.CalendarEventWorker
   alias Tymeslot.Workers.EmailWorker
@@ -146,26 +147,7 @@ defmodule Tymeslot.Workers.VideoRoomWorkerTest do
     end
 
     test "sends fallback emails on final failure and enters long-term recovery with distributed snooze" do
-      %{meeting: meeting} = setup_video_scenario()
-
-      # Create a meeting type with a 24-hour reminder
-      user = Repo.get!(Tymeslot.DatabaseSchemas.UserSchema, meeting.organizer_user_id)
-
-      meeting_type =
-        insert(:meeting_type, user: user, reminder_config: [%{value: 24, unit: "hours"}])
-
-      # Ensure meeting is far in the future (e.g., 3 days)
-      meeting = Repo.get!(MeetingSchema, meeting.id)
-      # 3 days
-      future_start = DateTime.add(DateTime.utc_now(), 259_200, :second)
-      future_end = DateTime.add(future_start, 3600, :second)
-
-      {:ok, meeting} =
-        Tymeslot.DatabaseQueries.MeetingQueries.update_meeting(meeting, %{
-          start_time: future_start,
-          end_time: future_end,
-          meeting_type_id: meeting_type.id
-        })
+      %{meeting: meeting, meeting_type: meeting_type} = setup_future_meeting_scenario()
 
       stub(Tymeslot.HTTPClientMock, :post, fn _url, _body, _headers, _opts ->
         {:error, %HTTPoison.Error{reason: :econnrefused}}
@@ -197,7 +179,7 @@ defmodule Tymeslot.Workers.VideoRoomWorkerTest do
       closer_end = DateTime.add(closer_start, 3600, :second)
 
       {:ok, meeting} =
-        Tymeslot.DatabaseQueries.MeetingQueries.update_meeting(meeting, %{
+        MeetingQueries.update_meeting(meeting, %{
           start_time: closer_start,
           end_time: closer_end
         })
@@ -223,24 +205,16 @@ defmodule Tymeslot.Workers.VideoRoomWorkerTest do
     end
 
     test "discards recovery when reminder deadline already passed" do
-      %{meeting: meeting} = setup_video_scenario()
-
-      # Create a meeting type with a 24-hour reminder
-      user = Repo.get!(Tymeslot.DatabaseSchemas.UserSchema, meeting.organizer_user_id)
-
-      meeting_type =
-        insert(:meeting_type, user: user, reminder_config: [%{value: 24, unit: "hours"}])
+      %{meeting: meeting, meeting_type: _meeting_type} = setup_future_meeting_scenario()
 
       # Meeting is in 2 hours, but reminder is 24 hours before (deadline passed)
-      meeting = Repo.get!(MeetingSchema, meeting.id)
       soon_start = DateTime.add(DateTime.utc_now(), 2 * 3600, :second)
       soon_end = DateTime.add(soon_start, 3600, :second)
 
       {:ok, meeting} =
-        Tymeslot.DatabaseQueries.MeetingQueries.update_meeting(meeting, %{
+        MeetingQueries.update_meeting(meeting, %{
           start_time: soon_start,
-          end_time: soon_end,
-          meeting_type_id: meeting_type.id
+          end_time: soon_end
         })
 
       stub(Tymeslot.HTTPClientMock, :post, fn _url, _body, _headers, _opts ->
@@ -266,7 +240,7 @@ defmodule Tymeslot.Workers.VideoRoomWorkerTest do
       past_start = DateTime.add(DateTime.utc_now(), -3600, :second)
 
       {:ok, meeting} =
-        Tymeslot.DatabaseQueries.MeetingQueries.update_meeting(meeting, %{start_time: past_start})
+        MeetingQueries.update_meeting(meeting, %{start_time: past_start})
 
       stub(Tymeslot.HTTPClientMock, :post, fn _url, _body, _headers, _opts ->
         {:error, %HTTPoison.Error{reason: :econnrefused}}
@@ -314,8 +288,8 @@ defmodule Tymeslot.Workers.VideoRoomWorkerTest do
       assert first_meeting.video_room_id
 
       # Second execution (simulates retry or duplicate job)
-      # In the second execution, VideoRooms.add_video_room_to_meeting will detect 
-      # that a room is already attached and return {:ok, meeting} without 
+      # In the second execution, VideoRooms.add_video_room_to_meeting will detect
+      # that a room is already attached and return {:ok, meeting} without
       # calling the video provider again.
       assert :ok = perform_job(VideoRoomWorker, %{"meeting_id" => meeting.id})
 
@@ -323,6 +297,31 @@ defmodule Tymeslot.Workers.VideoRoomWorkerTest do
       second_meeting = Repo.get(MeetingSchema, meeting.id)
       assert second_meeting.video_room_id == first_meeting.video_room_id
     end
+  end
+
+  defp setup_future_meeting_scenario do
+    %{meeting: meeting} = setup_video_scenario()
+
+    # Create a meeting type with a 24-hour reminder
+    user = Repo.get!(Tymeslot.DatabaseSchemas.UserSchema, meeting.organizer_user_id)
+
+    meeting_type =
+      insert(:meeting_type, user: user, reminder_config: [%{value: 24, unit: "hours"}])
+
+    # Ensure meeting is far in the future (e.g., 3 days)
+    meeting = Repo.get!(MeetingSchema, meeting.id)
+    # 3 days
+    future_start = DateTime.add(DateTime.utc_now(), 259_200, :second)
+    future_end = DateTime.add(future_start, 3600, :second)
+
+    {:ok, meeting} =
+      MeetingQueries.update_meeting(meeting, %{
+        start_time: future_start,
+        end_time: future_end,
+        meeting_type_id: meeting_type.id
+      })
+
+    %{meeting: meeting, meeting_type: meeting_type}
   end
 
   describe "scheduling" do

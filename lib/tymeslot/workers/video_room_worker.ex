@@ -17,8 +17,10 @@ defmodule Tymeslot.Workers.VideoRoomWorker do
     # Highest priority for video room creation
     priority: 0
 
-  alias Tymeslot.DatabaseQueries.MeetingQueries
+  alias DateTime, as: DT
+  alias Tymeslot.DatabaseQueries.{MeetingQueries, MeetingTypeQueries}
   alias Tymeslot.Meetings
+  alias Tymeslot.Utils.ReminderUtils
   require Logger
 
   # Configuration
@@ -402,7 +404,7 @@ defmodule Tymeslot.Workers.VideoRoomWorker do
           meeting.reminders
 
         meeting.meeting_type_id ->
-          case Tymeslot.DatabaseQueries.MeetingTypeQueries.get_meeting_type_t(
+          case MeetingTypeQueries.get_meeting_type_t(
                  meeting.meeting_type_id,
                  meeting.organizer_user_id
                ) do
@@ -431,7 +433,7 @@ defmodule Tymeslot.Workers.VideoRoomWorker do
             unit = Map.get(r, :unit) || Map.get(r, "unit")
 
             try do
-              Tymeslot.Utils.ReminderUtils.reminder_interval_seconds(val, unit)
+              ReminderUtils.reminder_interval_seconds(val, unit)
             rescue
               _ -> 0
             end
