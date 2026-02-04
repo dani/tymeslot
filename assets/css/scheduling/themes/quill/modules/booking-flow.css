@@ -112,38 +112,47 @@
 .form-field textarea {
   width: 100%;
   padding: 0.75rem 1rem;
-  border: 1px solid rgba(255,255,255,0.3);
+  border: 1px solid var(--input-border-glass);
   border-radius: var(--input-border-radius);
-  background: rgba(0,0,0,0.3);
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
+  background: var(--input-bg-glass);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
   font-size: 0.875rem;
   transition: all 0.2s ease-in-out;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.1);
+  box-shadow: 0 2px 8px var(--input-shadow-base), inset 0 1px 0 var(--input-inset-highlight);
+}
+
+/* Fallback for browsers without backdrop-filter support */
+@supports not (backdrop-filter: blur(10px)) {
+  .form-field__input,
+  .form-field textarea {
+    background: rgba(0, 0, 0, 0.85);
+  }
 }
 
 .form-field__input:focus,
 .form-field textarea:focus {
   outline: none;
   border-color: var(--theme-primary);
-  background: rgba(0,0,0,0.4);
-  box-shadow: 0 0 0 3px var(--theme-primary), 0 4px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.15);
+  background: var(--input-bg-glass-focus);
+  box-shadow: 0 0 0 3px var(--theme-primary-focus), 0 4px 12px var(--input-shadow-focus), inset 0 1px 0 var(--input-inset-highlight-focus);
 }
 
 .form-field__input::placeholder,
 .form-field textarea::placeholder {
-  color: rgba(255,255,255,0.5);
+  color: var(--input-placeholder-glass);
 }
 
 .form-field__input--error {
-  border-color: rgba(239,68,68,0.6);
-  background: rgba(254,226,226,0.08);
+  border-color: var(--input-error-border);
+  background: var(--input-error-bg);
 }
 
 .form-field__input--error:focus {
-  border-color: rgba(239,68,68,0.8);
-  box-shadow: 0 0 0 3px rgba(239,68,68,0.15), 0 4px 12px rgba(0,0,0,0.2);
+  border-color: var(--input-error-border-focus);
+  box-shadow: 0 0 0 3px var(--input-error-focus-ring), 0 4px 12px var(--input-shadow-focus);
 }
 
 .form-field__error {
@@ -152,6 +161,111 @@
   font-size: 0.875rem;
   color: #ef4444;
   font-weight: 500;
+}
+
+/* Override CoreComponents .input class for Quill theme glassmorphism */
+.quill-theme-wrapper .input,
+.quill-theme-wrapper input.input,
+.quill-theme-wrapper textarea.input,
+.quill-theme-wrapper select.input {
+  width: 100%;
+  max-width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--input-border-glass);
+  border-radius: var(--input-border-radius);
+  background: var(--input-bg-glass);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  font-size: var(--theme-font-size-base);
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 2px 8px var(--input-shadow-base), inset 0 1px 0 var(--input-inset-highlight);
+  box-sizing: border-box;
+}
+
+/* Fallback for browsers without backdrop-filter support */
+@supports not (backdrop-filter: blur(10px)) {
+  .quill-theme-wrapper .input,
+  .quill-theme-wrapper input.input,
+  .quill-theme-wrapper textarea.input,
+  .quill-theme-wrapper select.input {
+    background: rgba(0, 0, 0, 0.85);
+  }
+}
+
+.quill-theme-wrapper .input:focus,
+.quill-theme-wrapper input.input:focus,
+.quill-theme-wrapper textarea.input:focus,
+.quill-theme-wrapper select.input:focus {
+  outline: none;
+  border-color: var(--theme-primary);
+  background: var(--input-bg-glass-focus);
+  box-shadow: 0 0 0 3px var(--theme-primary-focus), 0 4px 12px var(--input-shadow-focus), inset 0 1px 0 var(--input-inset-highlight-focus);
+}
+
+/* Keyboard-only focus indicator for better accessibility */
+.quill-theme-wrapper .input:focus-visible,
+.quill-theme-wrapper input.input:focus-visible,
+.quill-theme-wrapper textarea.input:focus-visible,
+.quill-theme-wrapper select.input:focus-visible {
+  outline: 3px solid var(--theme-primary);
+  outline-offset: 2px;
+}
+
+.quill-theme-wrapper .input::placeholder,
+.quill-theme-wrapper input.input::placeholder,
+.quill-theme-wrapper textarea.input::placeholder {
+  color: var(--input-placeholder-glass);
+}
+
+.quill-theme-wrapper .input:disabled,
+.quill-theme-wrapper input.input:disabled,
+.quill-theme-wrapper textarea.input:disabled,
+.quill-theme-wrapper select.input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: var(--input-bg-glass-disabled);
+  border-color: var(--input-border-glass-disabled);
+}
+
+.quill-theme-wrapper .input-error,
+.quill-theme-wrapper input.input-error,
+.quill-theme-wrapper textarea.input-error {
+  border-color: var(--input-error-border);
+  background: var(--input-error-bg);
+}
+
+.quill-theme-wrapper .input-error:focus,
+.quill-theme-wrapper input.input-error:focus,
+.quill-theme-wrapper textarea.input-error:focus {
+  border-color: var(--input-error-border-focus);
+  box-shadow: 0 0 0 3px var(--input-error-focus-ring), 0 4px 12px var(--input-shadow-focus);
+}
+
+/* Override label styling for Quill theme */
+.quill-theme-wrapper .label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.9);
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+/* Ensure form field wrapper takes full width */
+.quill-theme-wrapper .form-field-wrapper {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Textarea specific styling for Quill theme */
+.quill-theme-wrapper textarea.input {
+  resize: vertical;
+  min-height: 120px;
+  max-height: 400px;
 }
 
 /* Textarea specific */
@@ -202,29 +316,25 @@
   }
 }
 
-/* Booking form layout - flex column with buttons at bottom */
+/* Booking form layout - natural height */
 .glass-morphism-card:has(form[phx-change="validate"]) > div {
   display: flex;
   flex-direction: column;
-  height: 100%;
 }
 
 .glass-morphism-card form[phx-change="validate"] {
   display: flex;
   flex-direction: column;
-  flex: 1;
 }
 
 .glass-morphism-card form[phx-change="validate"] .space-y-2 {
-  flex: 1;
   display: flex;
   flex-direction: column;
 }
 
-/* Push buttons to bottom */
+/* Comfortable spacing before buttons */
 .glass-morphism-card form[phx-change="validate"] .mt-3 {
-  margin-top: auto;
-  padding-top: 2rem;
+  margin-top: 1.5rem;
 }
 
 /* Larger message field on desktop */

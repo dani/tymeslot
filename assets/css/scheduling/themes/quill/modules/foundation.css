@@ -16,12 +16,29 @@
   /* Theme Colors */
   --theme-primary: #06b6d4;
   --theme-primary-hover: #0891b2;
+  --theme-primary-focus: rgba(6, 182, 212, 0.2);
   --theme-secondary: #14b8a6;
   --theme-accent: #10b981;
   --theme-background-color: #0f172a;
   --theme-surface: rgba(30, 41, 59, 0.5);
   --theme-text: #e2e8f0;
   --theme-text-secondary: #94a3b8;
+  
+  /* Input glassmorphism colors */
+  --input-border-glass: rgba(255, 255, 255, 0.3);
+  --input-border-glass-disabled: rgba(255, 255, 255, 0.2);
+  --input-bg-glass: rgba(0, 0, 0, 0.5);
+  --input-bg-glass-focus: rgba(0, 0, 0, 0.6);
+  --input-bg-glass-disabled: rgba(0, 0, 0, 0.2);
+  --input-placeholder-glass: rgba(255, 255, 255, 0.5);
+  --input-error-border: rgba(239, 68, 68, 0.6);
+  --input-error-border-focus: rgba(239, 68, 68, 0.8);
+  --input-error-bg: rgba(254, 226, 226, 0.08);
+  --input-error-focus-ring: rgba(239, 68, 68, 0.15);
+  --input-shadow-base: rgba(0, 0, 0, 0.15);
+  --input-shadow-focus: rgba(0, 0, 0, 0.2);
+  --input-inset-highlight: rgba(255, 255, 255, 0.1);
+  --input-inset-highlight-focus: rgba(255, 255, 255, 0.15);
   
   /* Background gradients */
   --theme-background: linear-gradient(135deg, #1a1b3a 0%, #2d1b69 100%);

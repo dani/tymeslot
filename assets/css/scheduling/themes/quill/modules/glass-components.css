@@ -14,33 +14,41 @@
   color: var(--theme-text);
 }
 
-/* Calendar and booking form cards need more height */
-.glass-morphism-card.calendar-card,
-.glass-morphism-card.booking-form-card {
-  min-height: 500px; /* Ensure minimum height on desktop */
+/* Calendar card needs more height for the month grid */
+.glass-morphism-card.calendar-card {
+  min-height: 500px;
   display: flex;
   flex-direction: column;
 }
 
-/* Responsive height adjustments for calendar and form cards */
+/* Booking form card - use natural content height */
+.glass-morphism-card.booking-form-card {
+  min-height: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Responsive height adjustments for calendar card */
 @media (min-width: 768px) {
-  .glass-morphism-card.calendar-card,
-  .glass-morphism-card.booking-form-card {
-    min-height: 600px; /* More vertical space on tablets and up */
+  .glass-morphism-card.calendar-card {
+    min-height: 600px;
   }
 }
 
 @media (min-width: 1024px) {
-  .glass-morphism-card.calendar-card,
+  .glass-morphism-card.calendar-card {
+    min-height: 650px;
+  }
+  
+  /* Add reasonable min-height for booking form on desktop to prevent too-short appearance */
   .glass-morphism-card.booking-form-card {
-    min-height: 650px; /* Comfortable height for desktop */
+    min-height: 450px;
   }
 }
 
 @media (min-width: 1440px) {
-  .glass-morphism-card.calendar-card,
-  .glass-morphism-card.booking-form-card {
-    min-height: 700px; /* Even more space on large screens */
+  .glass-morphism-card.calendar-card {
+    min-height: 700px;
   }
 }
 
