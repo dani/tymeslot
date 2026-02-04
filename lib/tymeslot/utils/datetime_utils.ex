@@ -7,16 +7,23 @@ defmodule Tymeslot.Utils.DateTimeUtils do
   require Logger
 
   @doc """
-  Parses a time string in AM/PM format.
+  Parses a time string in AM/PM format. Supports both string and map input (for demo data).
 
   ## Examples
       iex> Tymeslot.Utils.DateTimeUtils.parse_time_string("2:30 PM")
       {:ok, ~T[14:30:00]}
 
+      iex> Tymeslot.Utils.DateTimeUtils.parse_time_string(%{time: "10:30 pm", available: true})
+      {:ok, ~T[22:30:00]}
+
       iex> Tymeslot.Utils.DateTimeUtils.parse_time_string("12:00 AM")
       {:ok, ~T[00:00:00]}
   """
-  @spec parse_time_string(String.t()) :: {:ok, Time.t()} | {:error, atom()}
+  @spec parse_time_string(String.t() | map()) :: {:ok, Time.t()} | {:error, atom()}
+  def parse_time_string(%{time: time_string}) when is_binary(time_string) do
+    parse_time_string(time_string)
+  end
+
   def parse_time_string(time_string) when is_binary(time_string) do
     trimmed = String.trim(time_string)
 
@@ -33,6 +40,8 @@ defmodule Tymeslot.Utils.DateTimeUtils do
   rescue
     _ -> {:error, :invalid_time_format}
   end
+
+  def parse_time_string(_), do: {:error, :invalid_time_format}
 
   defp parse_12h_time(time_part, period) do
     with {:ok, hour, minute} <- parse_hour_minute(time_part),

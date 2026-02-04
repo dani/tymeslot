@@ -115,4 +115,29 @@ defmodule Tymeslot.Utils.DateTimeUtilsTest do
       assert dt.hour == 12
     end
   end
+
+  describe "parse_time_string/1" do
+    test "parses 12h time strings" do
+      assert {:ok, ~T[14:30:00]} == DateTimeUtils.parse_time_string("2:30 PM")
+      assert {:ok, ~T[02:30:00]} == DateTimeUtils.parse_time_string("2:30 AM")
+      assert {:ok, ~T[00:00:00]} == DateTimeUtils.parse_time_string("12:00 AM")
+      assert {:ok, ~T[12:00:00]} == DateTimeUtils.parse_time_string("12:00 PM")
+    end
+
+    test "parses 24h time strings" do
+      assert {:ok, ~T[14:30:00]} == DateTimeUtils.parse_time_string("14:30")
+      assert {:ok, ~T[09:00:00]} == DateTimeUtils.parse_time_string("09:00")
+    end
+
+    test "parses map input (demo data format)" do
+      assert {:ok, ~T[22:30:00]} == DateTimeUtils.parse_time_string(%{time: "10:30 pm", available: true})
+      assert {:ok, ~T[09:00:00]} == DateTimeUtils.parse_time_string(%{time: "9:00 am"})
+    end
+
+    test "returns error for invalid input" do
+      assert {:error, :invalid_time_format} == DateTimeUtils.parse_time_string("invalid")
+      assert {:error, :invalid_time_format} == DateTimeUtils.parse_time_string("")
+      assert {:error, :invalid_time_format} == DateTimeUtils.parse_time_string(%{not_time: "10:00"})
+    end
+  end
 end
