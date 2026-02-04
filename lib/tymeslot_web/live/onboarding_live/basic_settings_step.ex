@@ -27,7 +27,7 @@ defmodule TymeslotWeb.OnboardingLive.BasicSettingsStep do
   def basic_settings_step(assigns) do
     ~H"""
     <div class="onboarding-step">
-      <div class="text-center mb-12">
+      <div class="text-center mb-6">
         <h2 class="onboarding-step-title">{StepConfig.step_title(:basic_settings)}</h2>
         <p class="onboarding-step-description">{StepConfig.step_description(:basic_settings)}</p>
       </div>
@@ -90,10 +90,10 @@ defmodule TymeslotWeb.OnboardingLive.BasicSettingsStep do
             This will be your unique scheduling link.
           </p>
         </div>
-        
+
     <!-- Timezone component inside form -->
-        <div class="onboarding-form-group pt-4 border-t-2 border-slate-50">
-          <label class="label mb-4">Your Timezone</label>
+        <div class="onboarding-form-group pt-3 border-t-2 border-slate-50">
+          <label class="label mb-3">Your Timezone</label>
           <TimezoneDropdown.timezone_dropdown
             profile={@profile}
             timezone_options={@timezone_options}

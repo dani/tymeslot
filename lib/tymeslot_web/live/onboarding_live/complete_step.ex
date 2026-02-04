@@ -15,9 +15,9 @@ defmodule TymeslotWeb.OnboardingLive.CompleteStep do
   def complete_step(assigns) do
     ~H"""
     <div class="onboarding-step">
-      <div class="mb-12">
+      <div class="mb-4">
         <div class="onboarding-welcome-icon bg-emerald-50 border-emerald-100 shadow-emerald-500/10">
-          <svg class="w-12 h-12 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-10 h-10 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
@@ -25,10 +25,10 @@ defmodule TymeslotWeb.OnboardingLive.CompleteStep do
         <p class="onboarding-subtitle">Your Tymeslot account is ready to launch</p>
       </div>
 
-      <div class="space-y-6 text-left">
-        <div class="bg-slate-50/50 rounded-3xl p-8 border-2 border-slate-50">
-          <h3 class="text-xl font-black text-slate-900 tracking-tight mb-6">Recommended Next Steps</h3>
-          <ul class="space-y-4">
+      <div class="space-y-4 text-left">
+        <div class="bg-slate-50/50 rounded-3xl p-6 border-2 border-slate-50">
+          <h3 class="text-xl font-black text-slate-900 tracking-tight mb-4">Recommended Next Steps</h3>
+          <ul class="space-y-3">
             <li class="flex items-center gap-4 group">
               <div class="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center border border-slate-100 group-hover:border-turquoise-200 transition-colors">
                 <svg class="w-5 h-5 text-turquoise-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -56,7 +56,7 @@ defmodule TymeslotWeb.OnboardingLive.CompleteStep do
           </ul>
         </div>
 
-        <div class="bg-turquoise-50/50 border-2 border-turquoise-100 rounded-2xl p-6 text-center">
+        <div class="bg-turquoise-50/50 border-2 border-turquoise-100 rounded-2xl p-4 text-center">
           <p class="text-turquoise-800 font-bold text-sm">
             <span class="bg-turquoise-600 text-white px-2 py-0.5 rounded uppercase text-[10px] font-black mr-2">Tip</span>
             You can always adjust these settings later from your dashboard.
