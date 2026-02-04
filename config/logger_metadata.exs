@@ -226,5 +226,8 @@ config :logger, :console,
     :exception,
     :kind,
     :feature,
-    :stacktrace
+    :stacktrace,
+    :updated_count,
+    :total_meetings,
+    :scheduled_count
   ]
