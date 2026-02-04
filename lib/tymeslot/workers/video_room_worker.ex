@@ -304,10 +304,12 @@ defmodule Tymeslot.Workers.VideoRoomWorker do
       if send_emails and attempt >= @fallback_email_attempt do
         # Log and send fallback emails only once (first attempt past max)
         if attempt == @fallback_email_attempt do
-          Logger.warning("Video room creation failed after 5 attempts, sending fallback emails and entering recovery",
+          Logger.warning(
+            "Video room creation failed after 5 attempts, sending fallback emails and entering recovery",
             meeting_id: meeting_id,
             reason: inspect(reason)
           )
+
           send_fallback_emails(meeting_id)
         end
 
@@ -323,9 +325,11 @@ defmodule Tymeslot.Workers.VideoRoomWorker do
     # If this is the final attempt and emails should be sent, send them without video
     if send_emails and attempt >= @fallback_email_attempt do
       if attempt == @fallback_email_attempt do
-        Logger.warning("Video room creation timed out after 5 attempts, sending fallback emails and entering recovery",
+        Logger.warning(
+          "Video room creation timed out after 5 attempts, sending fallback emails and entering recovery",
           meeting_id: meeting_id
         )
+
         send_fallback_emails(meeting_id)
       end
 
@@ -391,20 +395,24 @@ defmodule Tymeslot.Workers.VideoRoomWorker do
     # 1. Check meeting-specific reminders first
     # 2. Check meeting type reminder config
     # 3. Fallback to meeting start time
-    
-    reminders = 
+
+    reminders =
       cond do
         is_list(meeting.reminders) and meeting.reminders != [] ->
           meeting.reminders
-          
+
         meeting.meeting_type_id ->
-          case Tymeslot.DatabaseQueries.MeetingTypeQueries.get_meeting_type_t(meeting.meeting_type_id, meeting.organizer_user_id) do
+          case Tymeslot.DatabaseQueries.MeetingTypeQueries.get_meeting_type_t(
+                 meeting.meeting_type_id,
+                 meeting.organizer_user_id
+               ) do
             {:ok, %{reminder_config: config}} when is_list(config) and config != [] ->
               config
+
             _ ->
               []
           end
-          
+
         true ->
           []
       end
@@ -412,7 +420,7 @@ defmodule Tymeslot.Workers.VideoRoomWorker do
     case reminders do
       [] ->
         meeting.start_time
-        
+
       list ->
         # Find the earliest reminder (the one that fires first, i.e., has the largest interval)
         # reminder_interval_seconds returns seconds before the meeting

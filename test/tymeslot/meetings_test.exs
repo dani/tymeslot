@@ -242,7 +242,9 @@ defmodule Tymeslot.MeetingsTest do
          }}
       end)
 
-      assert {:ok, %MeetingSchema{} = updated_meeting} = Meetings.add_video_room_to_meeting(meeting.id)
+      assert {:ok, %MeetingSchema{} = updated_meeting} =
+               Meetings.add_video_room_to_meeting(meeting.id)
+
       assert updated_meeting.video_room_id != nil
       assert updated_meeting.video_room_enabled == true
       assert updated_meeting.id == meeting.id

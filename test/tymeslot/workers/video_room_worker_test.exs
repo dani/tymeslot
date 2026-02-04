@@ -150,18 +150,22 @@ defmodule Tymeslot.Workers.VideoRoomWorkerTest do
 
       # Create a meeting type with a 24-hour reminder
       user = Repo.get!(Tymeslot.DatabaseSchemas.UserSchema, meeting.organizer_user_id)
-      meeting_type = insert(:meeting_type, user: user, reminder_config: [%{value: 24, unit: "hours"}])
-      
+
+      meeting_type =
+        insert(:meeting_type, user: user, reminder_config: [%{value: 24, unit: "hours"}])
+
       # Ensure meeting is far in the future (e.g., 3 days)
       meeting = Repo.get!(MeetingSchema, meeting.id)
-      future_start = DateTime.add(DateTime.utc_now(), 259_200, :second) # 3 days
+      # 3 days
+      future_start = DateTime.add(DateTime.utc_now(), 259_200, :second)
       future_end = DateTime.add(future_start, 3600, :second)
-      
-      {:ok, meeting} = Tymeslot.DatabaseQueries.MeetingQueries.update_meeting(meeting, %{
-        start_time: future_start, 
-        end_time: future_end,
-        meeting_type_id: meeting_type.id
-      })
+
+      {:ok, meeting} =
+        Tymeslot.DatabaseQueries.MeetingQueries.update_meeting(meeting, %{
+          start_time: future_start,
+          end_time: future_end,
+          meeting_type_id: meeting_type.id
+        })
 
       stub(Tymeslot.HTTPClientMock, :post, fn _url, _body, _headers, _opts ->
         {:error, %HTTPoison.Error{reason: :econnrefused}}
@@ -191,7 +195,12 @@ defmodule Tymeslot.Workers.VideoRoomWorkerTest do
       # 24h reminder + 4h from now = 28h from now
       closer_start = DateTime.add(DateTime.utc_now(), 28 * 3600, :second)
       closer_end = DateTime.add(closer_start, 3600, :second)
-      {:ok, meeting} = Tymeslot.DatabaseQueries.MeetingQueries.update_meeting(meeting, %{start_time: closer_start, end_time: closer_end})
+
+      {:ok, meeting} =
+        Tymeslot.DatabaseQueries.MeetingQueries.update_meeting(meeting, %{
+          start_time: closer_start,
+          end_time: closer_end
+        })
 
       # Deadline is 4h away. Cutoff buffer is 5m.
       assert {:ok, expected_snooze_second} =
@@ -218,18 +227,21 @@ defmodule Tymeslot.Workers.VideoRoomWorkerTest do
 
       # Create a meeting type with a 24-hour reminder
       user = Repo.get!(Tymeslot.DatabaseSchemas.UserSchema, meeting.organizer_user_id)
-      meeting_type = insert(:meeting_type, user: user, reminder_config: [%{value: 24, unit: "hours"}])
+
+      meeting_type =
+        insert(:meeting_type, user: user, reminder_config: [%{value: 24, unit: "hours"}])
 
       # Meeting is in 2 hours, but reminder is 24 hours before (deadline passed)
       meeting = Repo.get!(MeetingSchema, meeting.id)
       soon_start = DateTime.add(DateTime.utc_now(), 2 * 3600, :second)
       soon_end = DateTime.add(soon_start, 3600, :second)
 
-      {:ok, meeting} = Tymeslot.DatabaseQueries.MeetingQueries.update_meeting(meeting, %{
-        start_time: soon_start,
-        end_time: soon_end,
-        meeting_type_id: meeting_type.id
-      })
+      {:ok, meeting} =
+        Tymeslot.DatabaseQueries.MeetingQueries.update_meeting(meeting, %{
+          start_time: soon_start,
+          end_time: soon_end,
+          meeting_type_id: meeting_type.id
+        })
 
       stub(Tymeslot.HTTPClientMock, :post, fn _url, _body, _headers, _opts ->
         {:error, %HTTPoison.Error{reason: :econnrefused}}
@@ -252,7 +264,9 @@ defmodule Tymeslot.Workers.VideoRoomWorkerTest do
       # Ensure meeting is in the past
       meeting = Repo.get!(MeetingSchema, meeting.id)
       past_start = DateTime.add(DateTime.utc_now(), -3600, :second)
-      {:ok, meeting} = Tymeslot.DatabaseQueries.MeetingQueries.update_meeting(meeting, %{start_time: past_start})
+
+      {:ok, meeting} =
+        Tymeslot.DatabaseQueries.MeetingQueries.update_meeting(meeting, %{start_time: past_start})
 
       stub(Tymeslot.HTTPClientMock, :post, fn _url, _body, _headers, _opts ->
         {:error, %HTTPoison.Error{reason: :econnrefused}}
