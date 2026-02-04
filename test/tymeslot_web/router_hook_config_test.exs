@@ -3,6 +3,10 @@ defmodule TymeslotWeb.RouterHookConfigTest do
 
   import ExUnit.CaptureLog
 
+  alias TymeslotWeb.Hooks.AuthLiveSessionHook
+  alias TymeslotWeb.Hooks.ClientInfoHook
+  alias TymeslotWeb.Router
+
   setup do
     original = Application.get_env(:tymeslot, :dashboard_additional_hooks)
 
@@ -19,23 +23,23 @@ defmodule TymeslotWeb.RouterHookConfigTest do
 
   test "returns a configured list of hooks" do
     hooks = [
-      {TymeslotWeb.Hooks.AuthLiveSessionHook, :ensure_authenticated},
-      TymeslotWeb.Hooks.ClientInfoHook
+      {AuthLiveSessionHook, :ensure_authenticated},
+      ClientInfoHook
     ]
 
     Application.put_env(:tymeslot, :dashboard_additional_hooks, hooks)
 
-    assert TymeslotWeb.Router.dashboard_additional_hooks() == hooks
+    assert Router.dashboard_additional_hooks() == hooks
   end
 
   test "wraps a single hook value and logs a warning" do
-    hook = {TymeslotWeb.Hooks.AuthLiveSessionHook, :ensure_authenticated}
+    hook = {AuthLiveSessionHook, :ensure_authenticated}
 
     log =
       capture_log(fn ->
         Application.put_env(:tymeslot, :dashboard_additional_hooks, hook)
 
-        assert TymeslotWeb.Router.dashboard_additional_hooks() == [hook]
+        assert Router.dashboard_additional_hooks() == [hook]
       end)
 
     assert log =~ "Expected :dashboard_additional_hooks to be a list, received a single hook"
@@ -46,7 +50,7 @@ defmodule TymeslotWeb.RouterHookConfigTest do
       capture_log(fn ->
         Application.put_env(:tymeslot, :dashboard_additional_hooks, "invalid")
 
-        assert TymeslotWeb.Router.dashboard_additional_hooks() == []
+        assert Router.dashboard_additional_hooks() == []
       end)
 
     assert log =~ "Expected :dashboard_additional_hooks to be a list. Ignoring invalid value"

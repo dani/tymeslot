@@ -21,8 +21,8 @@ defmodule Tymeslot.Security.FormValidation do
     # Check if form is in initial empty state (no user input yet)
     is_initial_state =
       String.trim(sanitized_params["name"] || "") == "" and
-      String.trim(sanitized_params["email"] || "") == "" and
-      String.trim(sanitized_params["message"] || "") == ""
+        String.trim(sanitized_params["email"] || "") == "" and
+        String.trim(sanitized_params["message"] || "") == ""
 
     # Only log validation for non-empty forms to avoid noise during initial render
     if not is_initial_state do
@@ -35,6 +35,7 @@ defmodule Tymeslot.Security.FormValidation do
         if not is_initial_state do
           Logger.info("Booking form validation successful")
         end
+
         {:ok, validated_params}
 
       {:error, errors} ->
@@ -42,6 +43,7 @@ defmodule Tymeslot.Security.FormValidation do
         if not is_initial_state do
           Logger.warning("Booking form validation failed", errors: inspect(errors))
         end
+
         {:error, errors}
     end
   end

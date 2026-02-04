@@ -75,7 +75,7 @@ defmodule Tymeslot.DatabaseQueries.ObanJobQueries do
     # from the database before sending any email, we don't actually need to
     # update the job arguments. The worker will automatically pick up the
     # newly added video_room_id/meeting_url from the database.
-    
+
     # We just return success here to satisfy the Orchestrator.
     {:ok, 0}
   end

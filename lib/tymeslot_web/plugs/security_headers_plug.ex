@@ -121,7 +121,8 @@ defmodule TymeslotWeb.Plugs.SecurityHeadersPlug do
   # CSP frame-ancestors is the primary security mechanism for modern browsers.
   # X-Frame-Options is provided as a best-effort fallback for legacy browsers.
   # Returns {frame_ancestors, x_frame_options | nil}
-  defp build_security_headers(allowed_domains, true) when allowed_domains in [nil, [], ["none"]] do
+  defp build_security_headers(allowed_domains, true)
+       when allowed_domains in [nil, [], ["none"]] do
     # Allow same-origin framing for dashboard "Live Preview" (iframe),
     # while still blocking embedding from other origins.
     {"'self'", "SAMEORIGIN"}

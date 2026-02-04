@@ -361,33 +361,31 @@ defmodule Tymeslot.Meetings do
   @spec list_user_meetings_by_filter(integer(), String.t(), keyword()) ::
           {:ok, CursorPage.t()} | {:error, term()}
   def list_user_meetings_by_filter(user_id, filter, opts \\ []) do
-    try do
-      case Queries.list_user_meetings_by_filter(user_id, filter, opts) do
-        {:ok, page} ->
-          {:ok, page}
+    case Queries.list_user_meetings_by_filter(user_id, filter, opts) do
+      {:ok, page} ->
+        {:ok, page}
 
-        {:error, :invalid_cursor} ->
-          Logger.warning("Invalid pagination cursor provided", user_id: user_id)
-          {:error, :invalid_cursor}
+      {:error, :invalid_cursor} ->
+        Logger.warning("Invalid pagination cursor provided", user_id: user_id)
+        {:error, :invalid_cursor}
 
-        {:error, reason} ->
-          Logger.error("Failed to list meetings by filter",
-            user_id: user_id,
-            reason: inspect(reason)
-          )
-
-          {:error, :failed_to_list_meetings}
-      end
-    rescue
-      error ->
-        Logger.error("Exception while listing meetings by filter",
+      {:error, reason} ->
+        Logger.error("Failed to list meetings by filter",
           user_id: user_id,
-          error: inspect(error),
-          stacktrace: __STACKTRACE__
+          reason: inspect(reason)
         )
 
         {:error, :failed_to_list_meetings}
     end
+  rescue
+    error ->
+      Logger.error("Exception while listing meetings by filter",
+        user_id: user_id,
+        error: inspect(error),
+        stacktrace: __STACKTRACE__
+      )
+
+      {:error, :failed_to_list_meetings}
   end
 
   @doc """
