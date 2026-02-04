@@ -17,7 +17,6 @@ defmodule Tymeslot.Workers.VideoRoomWorker do
     # Highest priority for video room creation
     priority: 0
 
-  alias DateTime, as: DT
   alias Tymeslot.DatabaseQueries.{MeetingQueries, MeetingTypeQueries}
   alias Tymeslot.Meetings
   alias Tymeslot.Utils.ReminderUtils
