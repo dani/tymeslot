@@ -103,4 +103,31 @@
   .btn-tag-selector-blue--active {
     @apply bg-blue-50 text-blue-700 border-blue-200 shadow-sm;
   }
+
+  /* Semantic Variants - Use these in preference to color-specific names
+   * Mapping:
+   * - primary -> turquoise (brand primary actions, main interactive elements)
+   * - secondary -> cyan (secondary/alternative actions)
+   * - tertiary -> blue (tertiary/informational actions)
+   */
+  .btn-tag-selector-primary {
+    @apply hover:border-turquoise-100 hover:text-turquoise-600 hover:bg-tymeslot-50;
+  }
+  .btn-tag-selector-primary--active {
+    @apply bg-turquoise-50 text-turquoise-700 border-turquoise-200 shadow-sm;
+  }
+
+  .btn-tag-selector-secondary {
+    @apply hover:border-cyan-100 hover:text-cyan-600 hover:bg-tymeslot-50;
+  }
+  .btn-tag-selector-secondary--active {
+    @apply bg-cyan-50 text-cyan-700 border-cyan-200 shadow-sm;
+  }
+
+  .btn-tag-selector-tertiary {
+    @apply hover:border-blue-100 hover:text-blue-600 hover:bg-tymeslot-50;
+  }
+  .btn-tag-selector-tertiary--active {
+    @apply bg-blue-50 text-blue-700 border-blue-200 shadow-sm;
+  }
 }

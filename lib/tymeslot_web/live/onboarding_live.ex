@@ -94,7 +94,7 @@ defmodule TymeslotWeb.OnboardingLive do
   @spec render(map()) :: Phoenix.LiveView.Rendered.t()
   def render(assigns) do
     ~H"""
-    <main class="min-h-screen bg-gradient-to-br from-turquoise-600 via-cyan-600 to-blue-600 flex items-center justify-center p-6 relative overflow-hidden">
+    <main class="min-h-screen bg-gradient-to-br from-turquoise-600 via-cyan-600 to-blue-600 flex items-start sm:items-center justify-center px-4 py-6 sm:p-6 relative overflow-y-auto">
       <!-- Animated background elements -->
       <div class="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.15),transparent_50%)]"></div>
       <div class="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(6,182,212,0.3),transparent_50%)]"></div>
@@ -119,7 +119,7 @@ defmodule TymeslotWeb.OnboardingLive do
                       )
                     ]}>
                       <%= if StepConfig.step_completed?(step, @current_step) do %>
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
                         </svg>
                       <% else %>
@@ -143,8 +143,19 @@ defmodule TymeslotWeb.OnboardingLive do
             </div>
 
     <!-- Main content card -->
-            <div class="card-glass shadow-2xl shadow-slate-900/20 p-10 lg:p-16">
-              <div class="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div class="card-glass">
+              <div class="p-6 sm:p-8 lg:p-10">
+                <!-- Company logo and name -->
+                <div class="flex items-center justify-center space-x-3 mb-6">
+                  <img
+                    src="/images/brand/logo.svg"
+                    alt="Tymeslot logo"
+                    class="h-8 sm:h-10"
+                  />
+                  <span class="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter">Tymeslot</span>
+                </div>
+
+                <div class="animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <%= case @current_step do %>
                   <% :welcome -> %>
                     <WelcomeStep.welcome_step />
@@ -164,25 +175,26 @@ defmodule TymeslotWeb.OnboardingLive do
                     />
                   <% :complete -> %>
                     <CompleteStep.complete_step />
-                <% end %>
-              </div>
-
-    <!-- Navigation buttons -->
-              <div class="flex flex-col sm:flex-row items-center justify-between mt-12 pt-10 border-t-2 border-slate-50 gap-6">
-                <button type="button" phx-click="show_skip_modal" class="text-slate-400 hover:text-slate-600 font-black uppercase tracking-widest text-xs transition-colors">
-                  Skip for now
-                </button>
-
-                <div class="flex items-center gap-4 w-full sm:w-auto">
-                  <%= if @current_step != :welcome do %>
-                    <button type="button" phx-click="previous_step" class="btn-secondary flex-1 sm:flex-none px-8 py-4">
-                      Back
-                    </button>
                   <% end %>
+                </div>
 
-                  <button type="button" phx-click="next_step" class="btn-primary flex-1 sm:flex-none px-10 py-4">
-                    {StepConfig.next_button_text(@current_step)}
+      <!-- Navigation buttons -->
+                <div class="flex flex-col sm:flex-row items-center justify-between mt-6 pt-6 border-t-2 border-slate-50 gap-4">
+                  <button type="button" phx-click="show_skip_modal" class="text-slate-400 hover:text-slate-600 font-black uppercase tracking-widest text-xs transition-colors">
+                    Skip for now
                   </button>
+
+                  <div class="flex items-center gap-3 w-full sm:w-auto">
+                    <%= if @current_step != :welcome do %>
+                      <button type="button" phx-click="previous_step" class="btn-secondary flex-1 sm:flex-none px-6 py-4 sm:py-3">
+                        Back
+                      </button>
+                    <% end %>
+
+                    <button type="button" phx-click="next_step" class="btn-primary flex-1 sm:flex-none px-8 py-4 sm:py-3">
+                      {StepConfig.next_button_text(@current_step)}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

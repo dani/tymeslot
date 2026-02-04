@@ -43,8 +43,8 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
             phx-value-buffer_minutes={minutes}
             phx-target={@myself}
             class={[
-              "btn-tag-selector btn-tag-selector-turquoise",
-              if(@buffer_value == minutes, do: "btn-tag-selector-turquoise--active")
+              "btn-tag-selector btn-tag-selector-primary",
+              if(@buffer_value == minutes, do: "btn-tag-selector-primary--active")
             ]}
           >
             <%= if minutes == 0 do %>
@@ -57,7 +57,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
         
     <!-- Custom input tag -->
         <%= if @buffer_value not in [0, 5, 10, 15, 30, 60] do %>
-          <div class="btn-tag-selector btn-tag-selector-turquoise--active !p-0 overflow-hidden">
+          <div class="btn-tag-selector btn-tag-selector-primary--active !p-0 overflow-hidden">
             <input
               type="number"
               min="0"
@@ -80,7 +80,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
             phx-click="focus_custom_input"
             phx-value-setting="buffer_minutes"
             phx-target={@myself}
-            class="btn-tag-selector btn-tag-selector-turquoise"
+            class="btn-tag-selector btn-tag-selector-primary"
           >
             Custom
           </button>
@@ -132,8 +132,8 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
             phx-value-advance_booking_days={days}
             phx-target={@myself}
             class={[
-              "btn-tag-selector btn-tag-selector-cyan",
-              if(@booking_days == days, do: "btn-tag-selector-cyan--active")
+              "btn-tag-selector btn-tag-selector-secondary",
+              if(@booking_days == days, do: "btn-tag-selector-secondary--active")
             ]}
           >
             {label}
@@ -142,7 +142,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
         
     <!-- Custom input tag -->
         <%= if @booking_days not in [7, 14, 30, 60, 90, 180] do %>
-          <div class="btn-tag-selector btn-tag-selector-cyan--active !p-0 overflow-hidden">
+          <div class="btn-tag-selector btn-tag-selector-secondary--active !p-0 overflow-hidden">
             <input
               type="number"
               min="1"
@@ -165,7 +165,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
             phx-click="focus_custom_input"
             phx-value-setting="advance_booking_days"
             phx-target={@myself}
-            class="btn-tag-selector btn-tag-selector-cyan"
+            class="btn-tag-selector btn-tag-selector-secondary"
           >
             Custom
           </button>
@@ -217,8 +217,8 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
             phx-value-min_advance_hours={hours}
             phx-target={@myself}
             class={[
-              "btn-tag-selector btn-tag-selector-blue",
-              if(@notice_hours == hours, do: "btn-tag-selector-blue--active")
+              "btn-tag-selector btn-tag-selector-tertiary",
+              if(@notice_hours == hours, do: "btn-tag-selector-tertiary--active")
             ]}
           >
             {label}
@@ -227,7 +227,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
         
     <!-- Custom input tag -->
         <%= if @notice_hours not in [0, 1, 4, 24, 48, 168] do %>
-          <div class="btn-tag-selector btn-tag-selector-blue--active !p-0 overflow-hidden">
+          <div class="btn-tag-selector btn-tag-selector-tertiary--active !p-0 overflow-hidden">
             <input
               type="number"
               min="0"
@@ -250,7 +250,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
             phx-click="focus_custom_input"
             phx-value-setting="min_advance_hours"
             phx-target={@myself}
-            class="btn-tag-selector btn-tag-selector-blue"
+            class="btn-tag-selector btn-tag-selector-tertiary"
           >
             Custom
           </button>

@@ -22,17 +22,21 @@ defmodule TymeslotWeb.OnboardingLive.SchedulingPreferencesStep do
   def scheduling_preferences_step(assigns) do
     ~H"""
     <div class="onboarding-step">
-      <div class="text-center mb-12">
+      <div class="text-center mb-6">
         <h2 class="onboarding-step-title">{StepConfig.step_title(:scheduling_preferences)}</h2>
         <p class="onboarding-step-description">{StepConfig.step_description(:scheduling_preferences)}</p>
       </div>
 
-      <div class="onboarding-form space-y-10 text-left">
+      <div class="onboarding-form text-left">
         <!-- Buffer Time Between Meetings -->
         <div class="onboarding-form-group">
           <label class="label">
             Buffer Between Meetings
           </label>
+
+          <p class="text-sm mb-3 font-bold text-slate-400 uppercase tracking-widest">
+            Time to block after every appointment
+          </p>
 
           <div class="flex flex-wrap items-center gap-3">
             <%= for {label, value} <- StepConfig.buffer_time_options() do %>
@@ -41,10 +45,9 @@ defmodule TymeslotWeb.OnboardingLive.SchedulingPreferencesStep do
                 phx-click="update_scheduling_preferences"
                 phx-value-buffer_minutes={value}
                 class={[
-                  "inline-flex items-center px-4 py-2 rounded-xl text-sm font-black transition-all duration-300 border-2",
+                  "btn-tag-selector btn-tag-selector-primary",
                   if(@profile.buffer_minutes == value,
-                    do: "bg-turquoise-50 text-turquoise-700 border-turquoise-200 shadow-sm",
-                    else: "bg-white text-slate-500 border-slate-100 hover:border-turquoise-100 hover:text-turquoise-600 hover:bg-slate-50"
+                    do: "btn-tag-selector-primary--active"
                   )
                 ]}
               >
@@ -53,19 +56,20 @@ defmodule TymeslotWeb.OnboardingLive.SchedulingPreferencesStep do
             <% end %>
           </div>
 
-          <p class="text-sm mt-3 font-bold text-slate-400 uppercase tracking-widest">
-            Time to block after every appointment
-          </p>
           <%= if @form_errors[:buffer_minutes] do %>
             <p class="mt-2 text-sm text-red-600 font-bold">{@form_errors[:buffer_minutes]}</p>
           <% end %>
         </div>
-        
+
     <!-- Advance Booking Window -->
-        <div class="onboarding-form-group pt-8 border-t-2 border-slate-50">
+        <div class="onboarding-form-group pt-6 border-t-2 border-slate-50">
           <label class="label">
             Booking Window
           </label>
+
+          <p class="text-sm mb-3 font-bold text-slate-400 uppercase tracking-widest">
+            How far in advance clients can schedule
+          </p>
 
           <div class="flex flex-wrap items-center gap-3">
             <%= for {label, value} <- StepConfig.advance_booking_options() do %>
@@ -74,10 +78,9 @@ defmodule TymeslotWeb.OnboardingLive.SchedulingPreferencesStep do
                 phx-click="update_scheduling_preferences"
                 phx-value-advance_booking_days={value}
                 class={[
-                  "inline-flex items-center px-4 py-2 rounded-xl text-sm font-black transition-all duration-300 border-2",
+                  "btn-tag-selector btn-tag-selector-secondary",
                   if(@profile.advance_booking_days == value,
-                    do: "bg-cyan-50 text-cyan-700 border-cyan-200 shadow-sm",
-                    else: "bg-white text-slate-500 border-slate-100 hover:border-cyan-100 hover:text-cyan-600 hover:bg-slate-50"
+                    do: "btn-tag-selector-secondary--active"
                   )
                 ]}
               >
@@ -86,19 +89,20 @@ defmodule TymeslotWeb.OnboardingLive.SchedulingPreferencesStep do
             <% end %>
           </div>
 
-          <p class="text-sm mt-3 font-bold text-slate-400 uppercase tracking-widest">
-            How far in advance clients can schedule
-          </p>
           <%= if @form_errors[:advance_booking_days] do %>
             <p class="mt-2 text-sm text-red-600 font-bold">{@form_errors[:advance_booking_days]}</p>
           <% end %>
         </div>
-        
+
     <!-- Minimum Advance Notice -->
-        <div class="onboarding-form-group pt-8 border-t-2 border-slate-50">
+        <div class="onboarding-form-group pt-6 border-t-2 border-slate-50">
           <label class="label">
             Minimum Notice
           </label>
+
+          <p class="text-sm mb-3 font-bold text-slate-400 uppercase tracking-widest">
+            Prevents last-minute surprise bookings
+          </p>
 
           <div class="flex flex-wrap items-center gap-3">
             <%= for {label, value} <- StepConfig.min_advance_options() do %>
@@ -107,10 +111,9 @@ defmodule TymeslotWeb.OnboardingLive.SchedulingPreferencesStep do
                 phx-click="update_scheduling_preferences"
                 phx-value-min_advance_hours={value}
                 class={[
-                  "inline-flex items-center px-4 py-2 rounded-xl text-sm font-black transition-all duration-300 border-2",
+                  "btn-tag-selector btn-tag-selector-tertiary",
                   if(@profile.min_advance_hours == value,
-                    do: "bg-blue-50 text-blue-700 border-blue-200 shadow-sm",
-                    else: "bg-white text-slate-500 border-slate-100 hover:border-blue-100 hover:text-blue-600 hover:bg-slate-50"
+                    do: "btn-tag-selector-tertiary--active"
                   )
                 ]}
               >
@@ -119,9 +122,6 @@ defmodule TymeslotWeb.OnboardingLive.SchedulingPreferencesStep do
             <% end %>
           </div>
 
-          <p class="text-sm mt-3 font-bold text-slate-400 uppercase tracking-widest">
-            Prevents last-minute surprise bookings
-          </p>
           <%= if @form_errors[:min_advance_hours] do %>
             <p class="mt-2 text-sm text-red-600 font-bold">{@form_errors[:min_advance_hours]}</p>
           <% end %>

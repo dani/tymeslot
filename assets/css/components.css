@@ -273,11 +273,11 @@ body,
 
 /* Onboarding Progress Indicator */
 .progress-indicator {
-  @apply mb-12;
+  @apply mb-6;
 }
 
 .progress-indicator-container {
-  @apply flex items-center justify-center gap-4;
+  @apply flex items-center justify-center gap-2;
 }
 
 .progress-step {
@@ -285,7 +285,7 @@ body,
 }
 
 .progress-step-circle {
-  @apply w-10 h-10 rounded-token-xl flex items-center justify-center text-token-sm font-black transition-glass border-2;
+  @apply w-9 h-9 rounded-token-xl flex items-center justify-center text-token-sm font-black transition-glass border-2;
 }
 
 .progress-step-circle--completed {
@@ -301,7 +301,7 @@ body,
 }
 
 .progress-step-connector {
-  @apply w-12 h-[2px] bg-tymeslot-100 mx-2 transition-colors duration-300;
+  @apply w-10 h-[2px] bg-tymeslot-100 mx-1.5 transition-colors duration-300;
 }
 
 .progress-step-connector--completed {
@@ -314,11 +314,11 @@ body,
 }
 
 .onboarding-welcome-icon {
-  @apply w-24 h-24 bg-turquoise-50 rounded-token-3xl border-2 border-turquoise-100 flex items-center justify-center mx-auto mb-8 shadow-xl shadow-turquoise-500/10 transform hover:scale-110 hover:rotate-3 transition-glass;
+  @apply w-20 h-20 bg-turquoise-50 rounded-token-3xl border-2 border-turquoise-100 flex items-center justify-center mx-auto mb-4 shadow-xl shadow-turquoise-500/10 transform hover:scale-110 hover:rotate-3 transition-glass;
 }
 
 .onboarding-feature-icon {
-  @apply w-12 h-12 bg-tymeslot-50 rounded-token-xl border-2 border-tymeslot-100 flex items-center justify-center mt-1 shadow-sm transition-transform;
+  @apply w-10 h-10 bg-tymeslot-50 rounded-token-xl border-2 border-tymeslot-100 flex items-center justify-center shadow-sm transition-transform;
 }
 
 .onboarding-feature-item:hover .onboarding-feature-icon {
@@ -326,15 +326,15 @@ body,
 }
 
 .onboarding-feature-list {
-  @apply flex flex-col gap-6 text-left mt-12;
+  @apply flex flex-col gap-4 text-left;
 }
 
 .onboarding-feature-item {
-  @apply flex items-start gap-5 p-5 rounded-token-2xl bg-white border-2 border-tymeslot-50 hover:border-turquoise-100 hover:shadow-xl hover:shadow-turquoise-500/5 transition-glass;
+  @apply flex items-start gap-4 p-4 rounded-token-2xl bg-white border-2 border-tymeslot-50 hover:border-turquoise-100 hover:shadow-xl hover:shadow-turquoise-500/5 transition-glass;
 }
 
 .onboarding-title {
-  @apply text-token-4xl lg:text-token-5xl font-black text-tymeslot-900 mb-4 tracking-tight;
+  @apply text-token-4xl lg:text-token-5xl font-black text-tymeslot-900 mb-2 tracking-tight;
 }
 
 .onboarding-subtitle {
@@ -342,7 +342,7 @@ body,
 }
 
 .onboarding-step-title {
-  @apply text-token-3xl font-black text-tymeslot-900 mb-3 tracking-tight;
+  @apply text-token-3xl font-black text-tymeslot-900 mb-2 tracking-tight;
 }
 
 .onboarding-step-description {
@@ -364,7 +364,7 @@ body,
 
 /* Onboarding Form Styling */
 .onboarding-form {
-  @apply space-y-8;
+  @apply space-y-6;
 }
 
 .onboarding-form-group {
@@ -373,6 +373,18 @@ body,
 
 .onboarding-form-label {
   @apply label;
+}
+
+/* Mobile-specific spacing adjustments for very small screens */
+/* Targeting screens smaller than iPhone SE (375px) and small Android devices */
+@media (max-width: 374px) {
+  .progress-indicator {
+    @apply mb-4;
+  }
+  
+  .onboarding-feature-list {
+    @apply gap-3;
+  }
 }
 
 .onboarding-form-input {
