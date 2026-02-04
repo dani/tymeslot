@@ -85,6 +85,8 @@ defmodule TymeslotWeb.Router do
       {TymeslotWeb.Hooks.FeatureAssignsHook, :set_feature_assigns}
     ]
 
+    @additional_hooks Application.compile_env(:tymeslot, :dashboard_additional_hooks, [])
+
     @spec on_mount(
             :dashboard_hooks,
             map(),
@@ -92,9 +94,7 @@ defmodule TymeslotWeb.Router do
             Phoenix.LiveView.Socket.t()
           ) :: {:cont, Phoenix.LiveView.Socket.t()} | {:halt, Phoenix.LiveView.Socket.t()}
     def on_mount(:dashboard_hooks, params, session, socket) do
-      hooks =
-        @dashboard_hooks ++
-          Application.get_env(:tymeslot, :dashboard_additional_hooks, [])
+      hooks = @dashboard_hooks ++ @additional_hooks
 
       Enum.reduce_while(hooks, {:cont, socket}, fn
         {module, function}, {:cont, socket} ->
@@ -109,8 +109,8 @@ defmodule TymeslotWeb.Router do
             {:halt, socket} -> {:halt, {:halt, socket}}
           end
 
-        _other, acc ->
-          {:halt, acc}
+        _other, {:cont, socket} ->
+          {:cont, {:cont, socket}}
       end)
     end
 

@@ -41,11 +41,7 @@ defmodule TymeslotWeb.Endpoint do
     only: TymeslotWeb.static_paths()
 
   defp serve_robots(%{request_path: "/robots.txt"} = conn, _opts) do
-    deployment_type = System.get_env("DEPLOYMENT_TYPE")
-    standalone? = deployment_type in ["docker", "cloudron"]
-    saas_loaded? = Code.ensure_loaded?(TymeslotSaasWeb)
-
-    file = if standalone? or not saas_loaded?, do: "robots.core.txt", else: "robots.saas.txt"
+    file = Application.get_env(:tymeslot, :robots_file, "robots.core.txt")
 
     conn
     |> put_resp_content_type("text/plain")

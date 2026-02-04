@@ -5,7 +5,8 @@ FROM elixir:1.19.3-otp-28-slim AS builder
 # Build arguments and environment
 ARG MIX_ENV=prod
 ENV MIX_ENV=${MIX_ENV} \
-    LANG=C.UTF-8
+    LANG=C.UTF-8 \
+    DEPLOYMENT_TYPE=cloudron
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -34,9 +35,13 @@ COPY . .
 RUN mix assets.setup
 RUN mix assets.deploy
 
-# Create the release
-RUN mix compile
-RUN mix release --overwrite --path /opt/release
+# Compile and create the release, then copy core runtime config into it.
+# mix release does not include per-app runtime.exs for umbrella projects;
+# root runtime.exs loads it at startup to configure the database, endpoint, etc.
+RUN mix compile && \
+    mix release tymeslot --overwrite --path /opt/release && \
+    mkdir -p /opt/release/apps/tymeslot/config && \
+    cp apps/tymeslot/config/runtime.exs /opt/release/apps/tymeslot/config/
 
 # --- Runtime Stage ---
 FROM cloudron/base:5.0.0 AS runtime

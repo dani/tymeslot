@@ -43,11 +43,10 @@ if config_env() == :prod do
   deployment_type =
     case System.get_env("DEPLOYMENT_TYPE") do
       "cloudron" -> "cloudron"
+      "main" -> "cloudron"
       _ -> "docker"
     end
 
-  # Configure upload directory for production
-  config :tymeslot, :upload_directory, "/app/data/uploads"
   # The secret key base is used to sign/encrypt cookies and other secrets.
   # A default value is used in config/dev.exs and config/test.exs but you
   # want to use a different value for prod and you most likely don't want
@@ -89,11 +88,11 @@ if config_env() == :prod do
       "docker" -> "http"
     end
 
-  # For Cloudron, use port 80 internally (reverse proxy is on 443)
+  # For Cloudron, use port 443 for URL generation (reverse proxy is on 443)
   # For Docker, use standard HTTP port
   url_port =
     case deployment_type do
-      "cloudron" -> 80
+      "cloudron" -> 443
       "docker" -> parse_int.("PORT", 4000)
     end
 
@@ -122,7 +121,7 @@ if config_env() == :prod do
             hostname: System.get_env("CLOUDRON_POSTGRESQL_HOST"),
             port: System.get_env("CLOUDRON_POSTGRESQL_PORT"),
             database: System.get_env("CLOUDRON_POSTGRESQL_DATABASE"),
-            pool_size: parse_int.("DATABASE_POOL_SIZE", 100),
+            pool_size: parse_int.("DATABASE_POOL_SIZE", 20),
             idle_interval: 60_000,
             queue_target: 5000,
             queue_interval: 10000

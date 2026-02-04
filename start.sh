@@ -28,4 +28,4 @@ echo "Running database migrations..."
 
 # Start the Phoenix server
 echo "Starting Phoenix server..."
-PHX_SERVER=true /app/bin/tymeslot start
+/app/bin/tymeslot start
