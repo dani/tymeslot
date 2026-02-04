@@ -45,6 +45,10 @@ config :tymeslot,
   # Additional CSS files for scheduling pages - empty by default (external layers can inject CSS)
   scheduling_additional_css: [],
 
+  # Analytics configuration - nil by default (no analytics)
+  # Can be configured as a list of provider configs
+  analytics_providers: nil,
+
   # Whether to show "Powered by Tymeslot" branding on scheduling pages.
   # This should remain false in the standalone open-source version.
   show_branding: false,

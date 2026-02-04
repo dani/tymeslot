@@ -124,4 +124,53 @@ defmodule TymeslotWeb.Layouts do
   end
 
   defp filter_valid_extensions(_), do: []
+
+  @doc """
+  Renders analytics scripts based on application configuration.
+  Currently supports Umami analytics.
+  Returns empty content if no analytics providers are configured.
+  """
+  @spec analytics_scripts(map()) :: Phoenix.LiveView.Rendered.t()
+  def analytics_scripts(assigns) do
+    providers = Application.get_env(:tymeslot, :analytics_providers, nil)
+    assigns = assign(assigns, :providers, filter_valid_providers(providers))
+
+    ~H"""
+    <%= for provider <- @providers do %>
+      {render_provider_script(provider, assigns)}
+    <% end %>
+    """
+  end
+
+  defp render_provider_script(%{provider: :umami, script_url: url, website_id: id}, assigns)
+       when is_binary(url) and is_binary(id) do
+    assigns =
+      assigns
+      |> assign(:url, url)
+      |> assign(:id, id)
+
+    ~H"""
+    <script defer src={@url} data-website-id={@id}></script>
+    """
+  end
+
+  defp render_provider_script(_invalid, assigns), do: ~H""
+
+  defp filter_valid_providers(nil), do: []
+  defp filter_valid_providers([]), do: []
+
+  defp filter_valid_providers(providers) when is_list(providers) do
+    Enum.filter(providers, fn provider ->
+      case provider do
+        %{provider: :umami, script_url: url, website_id: id}
+        when is_binary(url) and is_binary(id) and url != "" and id != "" ->
+          String.starts_with?(url, ["https://", "http://", "/"])
+
+        _ ->
+          false
+      end
+    end)
+  end
+
+  defp filter_valid_providers(_), do: []
 end
