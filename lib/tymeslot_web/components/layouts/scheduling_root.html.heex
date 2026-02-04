@@ -23,14 +23,6 @@
 
     <script defer phx-track-static type="text/javascript" src={~p"/assets/app.js"}>
     </script>
-    <%= if System.get_env("UMAMI_SCRIPT_URL") && System.get_env("UMAMI_WEBSITE_ID") do %>
-      <script
-        defer
-        src={System.get_env("UMAMI_SCRIPT_URL")}
-        data-website-id={System.get_env("UMAMI_WEBSITE_ID")}
-      >
-      </script>
-    <% end %>
   </head>
   <body class={"theme-#{assigns[:theme_id] || "1"} #{theme_class(assigns[:theme_id] || "1")}"}>
     <.noscript_warning message="This scheduling page requires JavaScript to book meetings. Please enable it to continue." />

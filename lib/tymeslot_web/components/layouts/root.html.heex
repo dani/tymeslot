@@ -13,14 +13,6 @@
     <link phx-track-static rel="stylesheet" href={~p"/assets/app.css"} />
     <script defer phx-track-static type="text/javascript" src={~p"/assets/app.js"}>
     </script>
-    <%= if System.get_env("UMAMI_SCRIPT_URL") && System.get_env("UMAMI_WEBSITE_ID") do %>
-      <script
-        defer
-        src={System.get_env("UMAMI_SCRIPT_URL")}
-        data-website-id={System.get_env("UMAMI_WEBSITE_ID")}
-      >
-      </script>
-    <% end %>
   </head>
   <body>
     <.noscript_warning message="This app requires JavaScript to function. Please enable it in your browser settings." />
