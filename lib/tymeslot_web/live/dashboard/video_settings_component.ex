@@ -43,6 +43,10 @@ defmodule TymeslotWeb.Dashboard.VideoSettingsComponent do
     {:ok, socket}
   end
 
+  def handle_event("track_form_change", %{"integration" => params}, socket) do
+    {:noreply, assign(socket, :form_values, params)}
+  end
+
   @impl true
   def handle_event("back_to_providers", _params, socket) do
     {:noreply,
