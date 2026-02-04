@@ -18,6 +18,17 @@ defmodule Tymeslot.Security.FormValidationTest do
       assert sanitized["message"] == "Hello there"
     end
 
+    test "validates empty form (initial state) and returns errors without excessive logging" do
+      # This simulates the state when phx-change="validate" fires on initial form render
+      # with empty fields. The validation should return errors, but not log warnings
+      # since this is expected behavior during initial render.
+      params = %{"name" => "", "email" => "", "message" => ""}
+
+      assert {:error, errors} = FormValidation.validate_booking_form(params)
+      assert {:name, "Name is required"} in errors
+      assert {:email, "Email is required"} in errors
+    end
+
     test "requires name" do
       params = %{"name" => "", "email" => "user@example.com", "message" => "Hello"}
 

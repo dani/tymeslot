@@ -15,19 +15,33 @@ defmodule Tymeslot.Security.FormValidation do
   """
   @spec validate_booking_form(map()) :: {:ok, map()} | {:error, list({atom(), String.t()})}
   def validate_booking_form(params) do
-    Logger.info("Validating booking form", param_keys: Map.keys(params))
-
     # First sanitize the params
     sanitized_params = sanitize_booking_form_params(params)
+
+    # Check if form is in initial empty state (no user input yet)
+    is_initial_state =
+      String.trim(sanitized_params["name"] || "") == "" and
+      String.trim(sanitized_params["email"] || "") == "" and
+      String.trim(sanitized_params["message"] || "") == ""
+
+    # Only log validation for non-empty forms to avoid noise during initial render
+    if not is_initial_state do
+      Logger.info("Validating booking form", param_keys: Map.keys(params))
+    end
 
     # Then validate the sanitized params
     case validate_booking_params(sanitized_params) do
       {:ok, validated_params} ->
-        Logger.info("Booking form validation successful")
+        if not is_initial_state do
+          Logger.info("Booking form validation successful")
+        end
         {:ok, validated_params}
 
       {:error, errors} ->
-        Logger.warning("Booking form validation failed", errors: inspect(errors))
+        # Only log warnings for non-empty forms to avoid false alarms on initial render
+        if not is_initial_state do
+          Logger.warning("Booking form validation failed", errors: inspect(errors))
+        end
         {:error, errors}
     end
   end
