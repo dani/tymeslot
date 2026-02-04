@@ -36,6 +36,12 @@ defmodule TymeslotWeb.Themes.Shared.BookingFlow do
   @spec handle_form_validation(Phoenix.LiveView.Socket.t(), map()) ::
           {:noreply, Phoenix.LiveView.Socket.t()}
   def handle_form_validation(socket, booking_params) do
+    # Track whether the user has interacted with the form to avoid showing
+    # validation errors on initial render or prefilled data.
+    form_touched =
+      socket.assigns[:form_touched] ||
+        Map.has_key?(booking_params, "_target")
+
     case FormValidation.validate_booking_form(booking_params) do
       {:ok, sanitized_params} ->
         form = Component.to_form(sanitized_params)
@@ -44,6 +50,7 @@ defmodule TymeslotWeb.Themes.Shared.BookingFlow do
           socket
           |> assign(:form, form)
           |> assign(:validation_errors, [])
+          |> assign(:form_touched, form_touched)
 
         {:noreply, socket}
 
@@ -53,10 +60,20 @@ defmodule TymeslotWeb.Themes.Shared.BookingFlow do
 
         form = Component.to_form(sanitized_params)
 
+        # Only assign validation errors if the form has been touched.
+        # This prevents showing errors immediately when the booking step loads.
         socket =
-          socket
-          |> assign(:form, form)
-          |> Helpers.assign_form_errors(errors)
+          if form_touched do
+            socket
+            |> assign(:form, form)
+            |> Helpers.assign_form_errors(errors)
+          else
+            socket
+            |> assign(:form, form)
+            |> assign(:validation_errors, [])
+          end
+
+        socket = assign(socket, :form_touched, form_touched)
 
         {:noreply, socket}
     end
