@@ -394,41 +394,49 @@ defmodule Tymeslot.Utils.DateTimeUtils do
     cond do
       # Time duration: PT1H30M
       String.starts_with?(duration_str, "PT") ->
-        case Regex.run(~r/^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/, duration_str) do
-          [_ | captures] ->
-            hours = parse_duration_component(Enum.at(captures, 0), 3600)
-            minutes = parse_duration_component(Enum.at(captures, 1), 60)
-            seconds = parse_duration_component(Enum.at(captures, 2), 1)
-
-            if hours + minutes + seconds > 0 or duration_str == "PT0S" do
-              {:ok, hours + minutes + seconds}
-            else
-              {:error, "Invalid time duration values"}
-            end
-
-          _ ->
-            {:error, "Invalid time duration format"}
-        end
+        parse_time_duration(duration_str)
 
       # Day duration: P1D or P1W
       String.starts_with?(duration_str, "P") ->
-        case Regex.run(~r/^P(?:(\d+)W)?(?:(\d+)D)?$/, duration_str) do
-          [_ | captures] ->
-            weeks = parse_duration_component(Enum.at(captures, 0), 86_400 * 7)
-            days = parse_duration_component(Enum.at(captures, 1), 86_400)
-
-            if weeks + days > 0 or duration_str == "P0D" or duration_str == "P" do
-              {:ok, weeks + days}
-            else
-              {:error, "Unsupported or invalid duration format"}
-            end
-
-          _ ->
-            {:error, "Invalid day/week duration format or unsupported components"}
-        end
+        parse_day_duration(duration_str)
 
       true ->
         {:error, "Invalid duration format"}
+    end
+  end
+
+  defp parse_time_duration(duration_str) do
+    case Regex.run(~r/^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/, duration_str) do
+      [_ | captures] ->
+        hours = parse_duration_component(Enum.at(captures, 0), 3600)
+        minutes = parse_duration_component(Enum.at(captures, 1), 60)
+        seconds = parse_duration_component(Enum.at(captures, 2), 1)
+
+        if hours + minutes + seconds > 0 or duration_str == "PT0S" do
+          {:ok, hours + minutes + seconds}
+        else
+          {:error, "Invalid time duration values"}
+        end
+
+      _ ->
+        {:error, "Invalid time duration format"}
+    end
+  end
+
+  defp parse_day_duration(duration_str) do
+    case Regex.run(~r/^P(?:(\d+)W)?(?:(\d+)D)?$/, duration_str) do
+      [_ | captures] ->
+        weeks = parse_duration_component(Enum.at(captures, 0), 86_400 * 7)
+        days = parse_duration_component(Enum.at(captures, 1), 86_400)
+
+        if weeks + days > 0 or duration_str == "P0D" do
+          {:ok, weeks + days}
+        else
+          {:error, "Unsupported or invalid duration format"}
+        end
+
+      _ ->
+        {:error, "Invalid day/week duration format or unsupported components"}
     end
   end
 

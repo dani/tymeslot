@@ -21,6 +21,7 @@ defmodule Tymeslot.Utils.DateTimeUtilsTest do
     test "returns error for invalid formats" do
       assert {:error, "Invalid duration format"} == DateTimeUtils.parse_duration("invalid")
       assert {:error, "Invalid duration format"} == DateTimeUtils.parse_duration("")
+      assert {:error, "Unsupported or invalid duration format"} == DateTimeUtils.parse_duration("P")
     end
 
     property "never crashes and returns either ok or error for random strings" do
@@ -130,14 +131,18 @@ defmodule Tymeslot.Utils.DateTimeUtilsTest do
     end
 
     test "parses map input (demo data format)" do
-      assert {:ok, ~T[22:30:00]} == DateTimeUtils.parse_time_string(%{time: "10:30 pm", available: true})
+      assert {:ok, ~T[22:30:00]} ==
+               DateTimeUtils.parse_time_string(%{time: "10:30 pm", available: true})
+
       assert {:ok, ~T[09:00:00]} == DateTimeUtils.parse_time_string(%{time: "9:00 am"})
     end
 
     test "returns error for invalid input" do
       assert {:error, :invalid_time_format} == DateTimeUtils.parse_time_string("invalid")
       assert {:error, :invalid_time_format} == DateTimeUtils.parse_time_string("")
-      assert {:error, :invalid_time_format} == DateTimeUtils.parse_time_string(%{not_time: "10:00"})
+
+      assert {:error, :invalid_time_format} ==
+               DateTimeUtils.parse_time_string(%{not_time: "10:00"})
     end
   end
 end
