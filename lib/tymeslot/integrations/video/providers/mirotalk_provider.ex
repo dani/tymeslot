@@ -9,6 +9,7 @@ defmodule Tymeslot.Integrations.Video.Providers.MiroTalkProvider do
   @behaviour Tymeslot.Integrations.Video.Providers.ProviderBehaviour
 
   require Logger
+  alias Tymeslot.Infrastructure.HTTPClient
   alias Tymeslot.Infrastructure.Logging.Redactor
   alias Tymeslot.Security.RateLimiter
 
