@@ -1,6 +1,8 @@
 defmodule TymeslotWeb.Router do
   use TymeslotWeb, :router
 
+  require Logger
+
   # =============================================================================
   # Healthcheck (early to avoid wildcard username routes)
   # =============================================================================
@@ -85,8 +87,6 @@ defmodule TymeslotWeb.Router do
       {TymeslotWeb.Hooks.FeatureAssignsHook, :set_feature_assigns}
     ]
 
-    @additional_hooks Application.compile_env(:tymeslot, :dashboard_additional_hooks, [])
-
     @spec on_mount(
             :dashboard_hooks,
             map(),
@@ -94,7 +94,7 @@ defmodule TymeslotWeb.Router do
             Phoenix.LiveView.Socket.t()
           ) :: {:cont, Phoenix.LiveView.Socket.t()} | {:halt, Phoenix.LiveView.Socket.t()}
     def on_mount(:dashboard_hooks, params, session, socket) do
-      hooks = @dashboard_hooks ++ @additional_hooks
+      hooks = @dashboard_hooks ++ dashboard_additional_hooks()
 
       Enum.reduce_while(hooks, {:cont, socket}, fn
         {module, function}, {:cont, socket} ->
@@ -112,6 +112,29 @@ defmodule TymeslotWeb.Router do
         _other, {:cont, socket} ->
           {:cont, {:cont, socket}}
       end)
+    end
+
+    @doc false
+    @spec dashboard_additional_hooks() :: list()
+    def dashboard_additional_hooks do
+      case Application.get_env(:tymeslot, :dashboard_additional_hooks, []) do
+        hooks when is_list(hooks) ->
+          hooks
+
+        hook when is_tuple(hook) or is_atom(hook) ->
+          Logger.warning(
+            "Expected :dashboard_additional_hooks to be a list, received a single hook. Wrapping."
+          )
+
+          [hook]
+
+        other ->
+          Logger.warning(
+            "Expected :dashboard_additional_hooks to be a list. Ignoring invalid value: #{inspect(other)}"
+          )
+
+          []
+      end
     end
 
     live_session :authenticated,
@@ -189,33 +212,6 @@ defmodule TymeslotWeb.Router do
   # =============================================================================
   # API Routes
   # =============================================================================
-  # =============================================================================
-  # Development Routes
-  # =============================================================================
-
-  if Application.compile_env(:tymeslot, :dev_routes) do
-    pipeline :local_only do
-      plug TymeslotWeb.Plugs.EnsureLocalAccessPlug
-    end
-
-    # Swoosh mailbox preview
-    scope "/dev" do
-      pipe_through :browser
-      forward "/mailbox", Plug.Swoosh.MailboxPreview
-    end
-
-    # Debug routes
-    scope "/debug", TymeslotWeb do
-      pipe_through [:browser, :local_only, :require_authenticated_user]
-
-      live_session :debug_onboarding,
-        on_mount: [{TymeslotWeb.Hooks.AuthLiveSessionHook, :ensure_authenticated}] do
-        live "/onboarding", OnboardingLive, :debug_welcome
-        live "/onboarding/:step", OnboardingLive, :debug_step
-      end
-    end
-  end
-
   # =============================================================================
   # Catch-all Route
   # =============================================================================
