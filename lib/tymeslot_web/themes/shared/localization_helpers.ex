@@ -29,11 +29,10 @@ defmodule TymeslotWeb.Themes.Shared.LocalizationHelpers do
   def format_booking_datetime(date, time, timezone)
       when is_binary(date) and is_binary(time) and is_binary(timezone) do
     with {:ok, date_struct} <- parse_date(date),
-         time_string <- ensure_time_format(time),
-         {:ok, time_obj} <- Time.from_iso8601(time_string),
+         {:ok, time_obj} <- DateTimeUtils.parse_time_string(time),
          {:ok, naive_dt} <- NaiveDateTime.new(date_struct, time_obj),
          {:ok, dt} <- DateTime.from_naive(naive_dt, timezone) do
-      weekday = get_weekday_name(dt.day_of_week)
+      weekday = get_weekday_name(Date.day_of_week(DateTime.to_date(dt)))
       month = get_month_name(dt.month)
       time_str = format_time_by_locale(dt)
 
@@ -217,12 +216,4 @@ defmodule TymeslotWeb.Themes.Shared.LocalizationHelpers do
   end
 
   defp parse_date(date) when is_binary(date), do: Date.from_iso8601(date)
-
-  defp ensure_time_format(time) when is_binary(time) do
-    case String.split(time, ":") do
-      [_h, _m, _s] -> time
-      [_h, _m] -> time <> ":00"
-      _ -> time
-    end
-  end
 end

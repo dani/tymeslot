@@ -417,7 +417,7 @@ defmodule Tymeslot.Utils.DateTimeUtils do
             weeks = parse_duration_component(Enum.at(captures, 0), 86_400 * 7)
             days = parse_duration_component(Enum.at(captures, 1), 86_400)
 
-            if weeks + days > 0 or duration_str == "P0D" do
+            if weeks + days > 0 or duration_str == "P0D" or duration_str == "P" do
               {:ok, weeks + days}
             else
               {:error, "Unsupported or invalid duration format"}
