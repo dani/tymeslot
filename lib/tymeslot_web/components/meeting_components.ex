@@ -169,8 +169,63 @@ defmodule TymeslotWeb.Components.MeetingComponents do
   attr :disabled, :boolean, default: false
   attr :rest, :global
 
+  @spec normalize_slot_time(term()) :: {:ok, String.t()} | :error
+  def normalize_slot_time(slot) do
+    cond do
+      is_binary(slot) ->
+        {:ok, slot}
+
+      match?(%Time{}, slot) ->
+        {:ok, DateTimeUtils.format_time_for_display(slot)}
+
+      match?(%NaiveDateTime{}, slot) ->
+        {:ok, slot |> NaiveDateTime.to_time() |> DateTimeUtils.format_time_for_display()}
+
+      match?(%DateTime{}, slot) ->
+        {:ok, slot |> DateTime.to_time() |> DateTimeUtils.format_time_for_display()}
+
+      is_map(slot) ->
+        value =
+          Map.get(slot, :time) ||
+            Map.get(slot, "time") ||
+            Map.get(slot, :start_time) ||
+            Map.get(slot, "start_time")
+
+        normalize_slot_time(value)
+
+      true ->
+        :error
+    end
+  end
+
+  @spec normalize_slot_list(term()) :: [String.t()]
+  def normalize_slot_list(slots) when is_list(slots) do
+    Enum.flat_map(slots, fn slot ->
+      case normalize_slot_time(slot) do
+        {:ok, value} -> [value]
+        :error -> []
+      end
+    end)
+  end
+
+  def normalize_slot_list(_), do: []
+
   @spec time_slot_button(map()) :: Phoenix.LiveView.Rendered.t()
   def time_slot_button(assigns) do
+    # Ensure @rest does not contain map values that Protocol.HTML.Safe cannot handle.
+    # Specifically, phx-value-time might be a map if passed directly from slots.
+    assigns =
+      case Map.get(assigns.rest, :"phx-value-time") do
+        nil ->
+          assigns
+
+        value ->
+          case normalize_slot_time(value) do
+            {:ok, time_val} -> put_in(assigns, [:rest, :"phx-value-time"], time_val)
+            :error -> update_in(assigns, [:rest], &Map.delete(&1, :"phx-value-time"))
+          end
+      end
+
     ~H"""
     <button
       class={[
@@ -355,6 +410,7 @@ defmodule TymeslotWeb.Components.MeetingComponents do
         Available Times
       </h2>
       <div class="slots-box flex-1">
+        <% normalized_slots = normalize_slot_list(@available_slots) %>
         <%= if @selected_date do %>
           <%= if @loading_slots do %>
             <div class="h-full flex items-center justify-center">
@@ -367,9 +423,9 @@ defmodule TymeslotWeb.Components.MeetingComponents do
                 {@calendar_error}
               </.info_box>
             <% end %>
-            <%= if !@calendar_error && length(@available_slots) > 0 do %>
+            <%= if !@calendar_error && length(normalized_slots) > 0 do %>
               <div class="space-y-3 pr-2">
-                <%= for {period, slots} <- group_slots_by_period(@available_slots) do %>
+                <%= for {period, slots} <- group_slots_by_period(normalized_slots) do %>
                   <%= if length(slots) > 0 do %>
                     <div>
                       <div
@@ -379,12 +435,12 @@ defmodule TymeslotWeb.Components.MeetingComponents do
                         {period}
                       </div>
                       <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                        <%= for slot <- slots do %>
+                        <%= for slot_value <- slots do %>
                           <.time_slot_button
                             phx-click="select_time"
-                            phx-value-time={slot}
-                            slot={%{start_time: parse_slot_time(slot)}}
-                            selected={@selected_time == slot}
+                            phx-value-time={slot_value}
+                            slot={%{start_time: parse_slot_time(slot_value)}}
+                            selected={@selected_time == slot_value}
                           />
                         <% end %>
                       </div>

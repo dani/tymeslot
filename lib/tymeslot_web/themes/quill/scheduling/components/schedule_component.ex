@@ -360,7 +360,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ScheduleComponent do
           {gettext("Your timezone")}
         </div>
       </label>
-      
+
     <!-- Current timezone display with modern card design -->
       <div
         class="group relative cursor-pointer"
@@ -415,7 +415,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ScheduleComponent do
           </div>
         </div>
       </div>
-      
+
     <!-- Dropdown with search input at top - no layout shift -->
       <%= if @timezone_dropdown_open do %>
         <div
@@ -459,7 +459,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ScheduleComponent do
               </div>
             </div>
           </div>
-          
+
     <!-- Scrollable timezone options -->
           <div class="max-h-48 md:max-h-56 overflow-y-auto">
             <div class="p-1">
@@ -499,6 +499,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ScheduleComponent do
   defp time_slots_panel(assigns) do
     ~H"""
     <div class="time-slots-panel flex flex-col" id="slots-container" phx-hook="AutoScrollToSlots">
+      <% normalized_slots = normalize_slot_list(@available_slots) %>
       <h2 class="text-sm md:text-base lg:text-lg font-bold mb-1 text-glass-primary">
         {gettext("Available Times")}
       </h2>
@@ -515,9 +516,9 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ScheduleComponent do
                 {@calendar_error}
               </.info_box>
             <% end %>
-            <%= if !@calendar_error && length(@available_slots) > 0 do %>
+            <%= if !@calendar_error && length(normalized_slots) > 0 do %>
               <div class="space-y-3 pr-2">
-                <%= for {period, slots} <- LocalizationHelpers.group_slots_by_period(@available_slots) do %>
+                <%= for {period, slots} <- LocalizationHelpers.group_slots_by_period(normalized_slots) do %>
                   <%= if length(slots) > 0 do %>
                     <div>
                       <div
@@ -527,13 +528,13 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Components.ScheduleComponent do
                         {period}
                       </div>
                       <div class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-1.5">
-                        <%= for slot <- slots do %>
+                        <%= for slot_value <- slots do %>
                           <.time_slot_button
                             phx-click="select_time"
                             phx-target={@target}
-                            phx-value-time={slot}
-                            slot={%{start_time: Helpers.parse_slot_time(slot)}}
-                            selected={@selected_time == slot}
+                            phx-value-time={slot_value}
+                            slot={%{start_time: Helpers.parse_slot_time(slot_value)}}
+                            selected={@selected_time == slot_value}
                             disabled={@loading_slots}
                           />
                         <% end %>

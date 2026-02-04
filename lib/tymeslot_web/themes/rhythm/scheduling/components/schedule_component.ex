@@ -9,6 +9,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ScheduleComponent do
   alias Tymeslot.Demo
   alias Tymeslot.Profiles
   alias Tymeslot.Utils.TimezoneUtils
+  alias TymeslotWeb.Components.MeetingComponents
   alias TymeslotWeb.Live.Scheduling.Helpers
   alias TymeslotWeb.Themes.Shared.LocalizationHelpers
 
@@ -195,7 +196,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ScheduleComponent do
                 </div>
               </div>
             </div>
-            
+
     <!-- Calendar and Time Selection -->
             <div
               class="schedule-grid"
@@ -259,14 +260,15 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ScheduleComponent do
                   <% end %>
                 </div>
               </div>
-              
+
     <!-- Time Slots -->
               <div
                 class="time-slots-section"
                 style="display: flex; flex-direction: column; flex-shrink: 0;"
               >
                 <h3 style="margin-bottom: 8px; flex-shrink: 0;">{gettext("Available Times")}</h3>
-                <div class="time-slots-grid" style={get_slots_container_style(@available_slots)}>
+                <% normalized_slots = MeetingComponents.normalize_slot_list(@available_slots) %>
+                <div class="time-slots-grid" style={get_slots_container_style(normalized_slots)}>
                   <%= if @selected_date do %>
                     <%= if @loading_slots do %>
                       <div class="loading-slots">
@@ -278,8 +280,8 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ScheduleComponent do
                           {@calendar_error}
                         </div>
                       <% end %>
-                      <%= if !@calendar_error && length(@available_slots) > 0 do %>
-                        <%= for {period, slots} <- LocalizationHelpers.group_slots_by_period(@available_slots) do %>
+                      <%= if !@calendar_error && length(normalized_slots) > 0 do %>
+                        <%= for {period, slots} <- LocalizationHelpers.group_slots_by_period(normalized_slots) do %>
                           <%= if length(slots) > 0 do %>
                             <div class="time-period-section" style="margin-bottom: 12px;">
                               <h4
@@ -290,20 +292,20 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ScheduleComponent do
                               </h4>
                                 <div
                                   class="time-period-slots"
-                                  style={get_period_slots_style(@available_slots)}
+                                  style={get_period_slots_style(normalized_slots)}
                                 >
-                                  <%= for slot <- slots do %>
+                                  <%= for slot_value <- slots do %>
                                     <button
-                                      class={"time-slot #{if @selected_time == slot, do: "selected", else: ""}"}
+                                      class={"time-slot #{if @selected_time == slot_value, do: "selected", else: ""}"}
                                       data-testid="time-slot"
-                                      data-time={slot}
-                                      style={get_slot_button_style(@available_slots)}
+                                      data-time={slot_value}
+                                      style={get_slot_button_style(normalized_slots)}
                                       phx-click="select_time"
-                                      phx-value-time={slot}
+                                      phx-value-time={slot_value}
                                       phx-target={@myself}
                                       disabled={@loading_slots}
                                     >
-                                      {LocalizationHelpers.format_time_by_locale(Helpers.parse_slot_time(slot))}
+                                      {LocalizationHelpers.format_time_by_locale(Helpers.parse_slot_time(slot_value))}
                                     </button>
                                   <% end %>
                                 </div>
@@ -327,7 +329,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.ScheduleComponent do
                 </div>
               </div>
             </div>
-            
+
     <!-- Navigation -->
             <div
               class="slide-actions"
