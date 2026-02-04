@@ -359,20 +359,20 @@ msgstr "Duration"
 #: lib/tymeslot_web/themes/rhythm/scheduling/components/overview_component.ex:72
 #, elixir-autogen, elixir-format
 msgid "Hi! I'm %{name}."
-msgstr ""
+msgstr "Hi! I'm %{name}."
 
 #: lib/tymeslot_web/themes/rhythm/scheduling/components/overview_component.ex:75
 #, elixir-autogen, elixir-format
 msgid "Pick a meeting duration below."
-msgstr ""
+msgstr "Pick a meeting duration below."
 
 #: lib/tymeslot_web/themes/rhythm/scheduling/components/booking_component.ex:71
 #: lib/tymeslot_web/themes/rhythm/scheduling/components/schedule_component.ex:144
 #, elixir-autogen, elixir-format, fuzzy
 msgid "Schedule with"
-msgstr "Schedule"
+msgstr "Schedule with"
 
 #: lib/tymeslot_web/themes/rhythm/scheduling/components/overview_component.ex:57
 #, elixir-autogen, elixir-format
 msgid "Schedule with %{name}"
-msgstr ""
+msgstr "Schedule with %{name}"

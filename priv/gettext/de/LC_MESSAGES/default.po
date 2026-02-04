@@ -369,6 +369,9 @@ msgstr "Bitte wählen Sie unten eine Dauer aus."
 msgid "Schedule with"
 msgstr "Termin mit"
 
+msgid "Schedule with %{name}"
+msgstr "Termin mit %{name}"
+
 msgid "Schedule Another Meeting"
 msgstr "Weiteren Termin buchen"
 

@@ -369,6 +369,9 @@ msgstr "Оберіть тривалість зустрічі нижче."
 msgid "Schedule with"
 msgstr "Зустріч із"
 
+msgid "Schedule with %{name}"
+msgstr "Зустріч із %{name}"
+
 msgid "Schedule Another Meeting"
 msgstr "Запланувати ще одну зустріч"
 
