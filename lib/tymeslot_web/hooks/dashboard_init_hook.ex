@@ -8,6 +8,8 @@ defmodule TymeslotWeb.Hooks.DashboardInitHook do
   import Phoenix.Component
   alias Tymeslot.Auth
   alias Tymeslot.Dashboard.DashboardContext
+  alias Tymeslot.DatabaseSchemas.ProfileSchema
+  alias Tymeslot.Features
   alias Tymeslot.Profiles
 
   @spec on_mount(:default, map(), map(), Phoenix.LiveView.Socket.t()) ::
@@ -26,12 +28,12 @@ defmodule TymeslotWeb.Hooks.DashboardInitHook do
       true ->
         profile =
           Profiles.get_profile(user.id) ||
-            %Tymeslot.DatabaseSchemas.ProfileSchema{user_id: user.id}
+            %ProfileSchema{user_id: user.id}
 
         integration_status = DashboardContext.get_integration_status(user.id)
 
         automations_allowed =
-          case Tymeslot.Features.check_access(user.id, :automations_allowed) do
+          case Features.check_access(user.id, :automations_allowed) do
             :ok -> true
             {:error, _} -> false
           end

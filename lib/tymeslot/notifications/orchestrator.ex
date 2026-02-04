@@ -6,6 +6,7 @@ defmodule Tymeslot.Notifications.Orchestrator do
 
   require Logger
 
+  alias Tymeslot.DatabaseQueries.ObanJobQueries
   alias Tymeslot.Emails.EmailService
   alias Tymeslot.Notifications.{ContentBuilder, Recipients, SchedulingRules}
   alias Tymeslot.Utils.ReminderUtils
@@ -227,7 +228,7 @@ defmodule Tymeslot.Notifications.Orchestrator do
     )
 
     # Acknowledge pending reminder jobs (emails re-fetch meeting data at send time)
-    {:ok, count} = Tymeslot.DatabaseQueries.ObanJobQueries.update_pending_reminder_jobs(meeting)
+    {:ok, count} = ObanJobQueries.update_pending_reminder_jobs(meeting)
 
     if count > 0 do
       Logger.info("Pending reminder jobs acknowledged",

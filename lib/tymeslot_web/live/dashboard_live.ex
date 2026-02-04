@@ -143,6 +143,7 @@ defmodule TymeslotWeb.DashboardLive do
 
   use TymeslotWeb, :live_view
 
+  alias Phoenix.Naming
   alias Tymeslot.Dashboard.DashboardContext
   alias Tymeslot.Integrations.Calendar
   alias Tymeslot.Profiles
@@ -392,7 +393,7 @@ defmodule TymeslotWeb.DashboardLive do
     assigns =
       assigns
       |> assign(:placeholder_component, placeholder_components[assigns.section])
-      |> assign(:feature_name, Phoenix.Naming.humanize(assigns.section))
+      |> assign(:feature_name, Naming.humanize(assigns.section))
 
     ~H"""
     <%= if @placeholder_component do %>
