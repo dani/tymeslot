@@ -18,14 +18,14 @@ defmodule TymeslotWeb.Endpoint do
 
   socket "/live", Phoenix.LiveView.Socket,
     websocket: [
-      connect_info: [:peer_data, :x_headers, session: @session_options],
+      connect_info: [:peer_data, :x_headers, :user_agent, session: @session_options],
       # 60 seconds keepalive timeout
       timeout: 60_000,
       # Reduce noise from disconnection logs
       transport_log: false
     ],
     longpoll: [
-      connect_info: [:peer_data, :x_headers, session: @session_options]
+      connect_info: [:peer_data, :x_headers, :user_agent, session: @session_options]
     ]
 
   # Serve at "/" the static files from "priv/static" directory.

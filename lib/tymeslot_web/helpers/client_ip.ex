@@ -93,12 +93,22 @@ defmodule TymeslotWeb.Helpers.ClientIP do
   """
   @spec get_user_agent_from_mount(Phoenix.LiveView.Socket.t()) :: String.t()
   def get_user_agent_from_mount(%Phoenix.LiveView.Socket{} = socket) do
-    with %{} = params <- LiveView.get_connect_params(socket),
-         headers when is_map(headers) <- Map.get(params, "headers", %{}),
-         ua when is_binary(ua) <- Map.get(headers, "user-agent") do
-      ua
-    else
-      _ -> "unknown"
+    # Prefer connect_info (server-side) when available. This works with the standard
+    # LiveView WebSocket connection as long as the endpoint includes :user_agent in
+    # connect_info.
+    case LiveView.get_connect_info(socket, :user_agent) do
+      ua when is_binary(ua) and ua != "" ->
+        ua
+
+      _ ->
+        with %{} = params <- LiveView.get_connect_params(socket),
+             headers when is_map(headers) <- Map.get(params, "headers", %{}),
+             ua when is_binary(ua) <- Map.get(headers, "user-agent"),
+             true <- ua != "" do
+          ua
+        else
+          _ -> "unknown"
+        end
     end
   end
 
