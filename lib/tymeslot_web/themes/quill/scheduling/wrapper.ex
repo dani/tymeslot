@@ -19,7 +19,10 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Wrapper do
       assigns[:theme_customization] &&
         get_background_type(assigns[:theme_customization]) == "video"
 
-    assigns = assign(assigns, :has_video_background, has_video_background)
+    assigns =
+      assigns
+      |> assign(:has_video_background, has_video_background)
+      |> assign(:video_poster, get_background_video_poster(assigns[:theme_customization]))
 
     ~H"""
     <div class="quill-theme-wrapper theme-1" data-locale={assigns[:locale]}>
@@ -46,7 +49,7 @@ defmodule TymeslotWeb.Themes.Quill.Scheduling.Wrapper do
     <!-- Render background video if configured -->
       <%= if @has_video_background do %>
         <div class="video-background" id="quill-video-container" phx-hook="QuillVideo">
-          <video autoplay muted loop playsinline class="video-background video">
+          <video autoplay muted loop playsinline poster={@video_poster} class="video-background video">
             <% background_video_path = get_background_video_path(@theme_customization) %>
             <%= if background_video_path do %>
               <% sanitized_path = sanitize_path(background_video_path) %>

@@ -185,6 +185,32 @@ defmodule TymeslotWeb.Themes.Shared.Customization.Helpers do
   def get_background_value(%{"background_value" => value}), do: value
   def get_background_value(_), do: nil
 
+  @doc """
+  Gets a poster image path for video background presets, if available.
+  """
+  @spec get_background_video_poster(map() | struct() | nil) :: String.t() | nil
+  def get_background_video_poster(customization) do
+    background_value = get_background_value(customization)
+
+    cond do
+      is_nil(background_value) ->
+        nil
+
+      background_value == "custom" ->
+        nil
+
+      String.starts_with?(background_value, "preset:") ->
+        preset = ThemeCustomizationSchema.video_presets()[background_value]
+
+        if preset && preset.thumbnail do
+          "/images/ui/posters/#{preset.thumbnail}"
+        end
+
+      true ->
+        nil
+    end
+  end
+
   # Helper functions for handling map-based customization data
   defp get_gradient_background_style_from_map(customization) do
     background_value =

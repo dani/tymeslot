@@ -18,7 +18,10 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Wrapper do
       assigns[:theme_customization] &&
         get_background_type(assigns[:theme_customization]) == "video"
 
-    assigns = assign(assigns, :has_video_background, has_video_background)
+    assigns =
+      assigns
+      |> assign(:has_video_background, has_video_background)
+      |> assign(:video_poster, get_background_video_poster(assigns[:theme_customization]))
 
     ~H"""
     <div class="rhythm-theme-wrapper theme-2" data-locale={assigns[:locale]}>
@@ -41,6 +44,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Wrapper do
               muted
               loop
               playsinline
+              poster={@video_poster}
               class="video-background-video active"
               preload="metadata"
             >
@@ -67,6 +71,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Wrapper do
               muted
               loop
               playsinline
+              poster={@video_poster}
               class="video-background-video inactive"
               preload="metadata"
             >

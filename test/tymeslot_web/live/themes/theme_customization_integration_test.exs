@@ -86,6 +86,8 @@ defmodule TymeslotWeb.Live.Themes.ThemeCustomizationIntegrationTest do
       assert html =~ "<video"
       # Just check for the filename part since multiple formats are generated
       assert html =~ "rhythm-background-desktop"
+      # Poster should use the preset poster image
+      assert html =~ ~s(poster="/images/ui/posters/rhythm-background-thumbnail.jpg")
     end
   end
 end
