@@ -12,6 +12,8 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.BookingComponent do
   alias TymeslotWeb.Live.Scheduling.Helpers
   alias TymeslotWeb.Themes.Shared.LocalizationHelpers
 
+  import TymeslotWeb.Components.CoreComponents
+
   @impl true
   def update(assigns, socket) do
     filtered_assigns = Map.drop(assigns, [:flash, :socket])
@@ -108,6 +110,7 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.BookingComponent do
 
     <!-- Contact Form -->
             <.form
+              :let={f}
               for={@form}
               phx-submit="submit"
               phx-change="validate"
@@ -117,79 +120,35 @@ defmodule TymeslotWeb.Themes.Rhythm.Scheduling.Components.BookingComponent do
               style="flex: 1;"
               as={:booking}
             >
-              <div class="form-group compact">
-                <label for="name" class="form-group label">
-                  {gettext("name")}
-                </label>
-                <input
-                  type="text"
-                  id="name"
-                  name="booking[name]"
-                  class={["form-input", Helpers.field_error_class(@form, :name)]}
-                  placeholder={gettext("enter_full_name")}
-                  value={@form[:name].value || ""}
-                  phx-blur="field_blur"
-                  phx-value-field="name"
-                  phx-target={@myself}
-                />
-                <%= for error <- Helpers.get_field_errors(@form, :name) do %>
-                  <span
-                    class="error-message"
-                    style="color: #ef4444; font-size: 0.8rem; margin-top: 2px; display: block; opacity: 0.9;"
-                  >
-                    {error}
-                  </span>
-                <% end %>
-              </div>
+              <.input
+                field={f[:name]}
+                label={gettext("name")}
+                placeholder={gettext("enter_full_name")}
+                phx-blur="field_blur"
+                phx-value-field="name"
+                phx-target={@myself}
+              />
 
-              <div class="form-group compact">
-                <label for="email" class="form-group label">
-                  {gettext("email")}
-                </label>
-                <input
-                  type="email"
-                  id="email"
-                  name="booking[email]"
-                  class={["form-input", Helpers.field_error_class(@form, :email)]}
-                  placeholder={gettext("enter_email")}
-                  value={@form[:email].value || ""}
-                  phx-blur="field_blur"
-                  phx-value-field="email"
-                  phx-target={@myself}
-                />
-                <%= for error <- Helpers.get_field_errors(@form, :email) do %>
-                  <span
-                    class="error-message"
-                    style="color: #ef4444; font-size: 0.8rem; margin-top: 2px; display: block; opacity: 0.9;"
-                  >
-                    {error}
-                  </span>
-                <% end %>
-              </div>
+              <.input
+                field={f[:email]}
+                label={gettext("email")}
+                type="email"
+                placeholder={gettext("enter_email")}
+                phx-blur="field_blur"
+                phx-value-field="email"
+                phx-target={@myself}
+              />
 
-              <div class="form-group compact">
-                <label for="message" class="form-group label">
-                  {gettext("message_optional")}
-                </label>
-                <textarea
-                  id="message"
-                  name="booking[message]"
-                  rows="4"
-                  class={["form-textarea", Helpers.field_error_class(@form, :message)]}
-                  placeholder={gettext("add_details")}
-                  phx-blur="field_blur"
-                  phx-value-field="message"
-                  phx-target={@myself}
-                >{@form[:message].value || ""}</textarea>
-                <%= for error <- Helpers.get_field_errors(@form, :message) do %>
-                  <span
-                    class="error-message"
-                    style="color: #ef4444; font-size: 0.8rem; margin-top: 2px; display: block; opacity: 0.9;"
-                  >
-                    {error}
-                  </span>
-                <% end %>
-              </div>
+              <.input
+                field={f[:message]}
+                type="textarea"
+                label={gettext("message_optional")}
+                placeholder={gettext("add_details")}
+                rows={4}
+                phx-blur="field_blur"
+                phx-value-field="message"
+                phx-target={@myself}
+              />
 
     <!-- Navigation -->
               <div class="slide-actions horizontal">

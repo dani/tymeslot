@@ -13,6 +13,9 @@
   --theme-primary-hover: #0891b2;
   --theme-secondary: #14b8a6;
   --theme-accent: #10b981;
+  --theme-error: rgba(239, 68, 68, 0.95);
+  --theme-error-bg: rgba(239, 68, 68, 0.1);
+  --theme-error-border: rgba(239, 68, 68, 0.6);
   --theme-background-color: #0f172a;
   --theme-surface: rgba(30, 41, 59, 0.5);
   --theme-text: #e2e8f0;

@@ -34,9 +34,10 @@
 }
 
 /* Input and textarea font sizes for better mobile usability */
-.form-input,
-.form-textarea {
-  font-size: max(16px, 1rem); /* Prevents zoom on iOS */
+.rhythm-theme-wrapper .booking-form .input,
+.rhythm-theme-wrapper .booking-form input.input,
+.rhythm-theme-wrapper .booking-form textarea.input {
+  font-size: max(16px, 1rem) !important; /* Prevents zoom on iOS */
 }
 
 /* Time slot and small interactive elements */
