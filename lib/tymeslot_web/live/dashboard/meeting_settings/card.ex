@@ -3,6 +3,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Card do
   Component for displaying meeting type cards with toggle and action buttons.
   """
   use Phoenix.Component
+  alias Tymeslot.Integrations.Calendar
   alias TymeslotWeb.Components.Icons.ProviderIcon
 
   @doc """
@@ -36,9 +37,11 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Card do
         <% end %>
 
         <div class="flex flex-col sm:flex-row sm:items-center sm:space-x-4 min-w-0 flex-grow">
-          <h3 class="text-token-base font-medium text-tymeslot-800 truncate">{@type.name}</h3>
+          <h3 class="text-token-base font-medium text-tymeslot-800 truncate w-48">
+            {@type.name}
+          </h3>
           <div class="flex items-center space-x-3 text-token-xs text-tymeslot-600 flex-shrink-0">
-            <span class="flex items-center">
+            <span class="flex items-center w-20 flex-shrink-0">
               <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   stroke-linecap="round"
@@ -49,39 +52,59 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Card do
               </svg>
               {@type.duration_minutes} min
             </span>
-            <%= if @type.allow_video do %>
-              <span class="flex items-center">
-                <%= if @type.video_integration do %>
+            <div class="flex flex-col space-y-1 w-52">
+              <%= if @type.allow_video do %>
+                <span class="flex items-center w-full min-w-0">
+                  <%= if @type.video_integration do %>
+                    <span class="mr-1.5 flex-shrink-0">
+                      <ProviderIcon.provider_icon
+                        provider={@type.video_integration.provider}
+                        size="mini"
+                      />
+                    </span>
+                    <span class="flex-1 min-w-0 truncate">
+                      {@type.video_integration.name}
+                    </span>
+                  <% else %>
+                    <svg
+                      class="w-3.5 h-3.5 mr-1 text-blue-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                      />
+                    </svg>
+                  <span class="flex-1 min-w-0 truncate">Video</span>
+                  <% end %>
+                </span>
+              <% else %>
+                <span class="flex items-center w-full min-w-0">
+                  <ProviderIcon.provider_icon provider="in_person" size="mini" class="mr-1" />
+                  <span class="flex-1 min-w-0 truncate">In-person</span>
+                </span>
+              <% end %>
+              <%= if @type.calendar_integration do %>
+                <span class="flex items-center w-full min-w-0">
                   <span class="mr-1.5 flex-shrink-0">
                     <ProviderIcon.provider_icon
-                      provider={@type.video_integration.provider}
+                      provider={@type.calendar_integration.provider}
                       size="mini"
                     />
                   </span>
-                  {@type.video_integration.name}
-                <% else %>
-                  <svg
-                    class="w-3.5 h-3.5 mr-1 text-blue-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-                    />
-                  </svg>
-                  Video
-                <% end %>
-              </span>
-            <% else %>
-              <span class="flex items-center">
-                <ProviderIcon.provider_icon provider="in_person" size="mini" class="mr-1" />
-                In-person
-              </span>
-            <% end %>
+                  <span class="flex-1 min-w-0 truncate">
+                    {@type.calendar_integration.name}
+                  </span>
+                  <span class="ml-1 text-tymeslot-500 flex-shrink-0">
+                    ({calendar_display_name(@type)})
+                  </span>
+                </span>
+              <% end %>
+            </div>
           </div>
         </div>
       </div>
@@ -170,4 +193,36 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Card do
     </div>
     """
   end
+
+  defp calendar_display_name(%{calendar_integration: nil}), do: "Calendar"
+
+  defp calendar_display_name(%{calendar_integration: integration} = type) do
+    calendar =
+      (integration.calendar_list || [])
+      |> Enum.find(fn cal ->
+        (cal["id"] || cal[:id]) == type.target_calendar_id
+      end)
+
+    name =
+      if calendar do
+        Calendar.extract_calendar_display_name(calendar)
+      else
+        "Calendar"
+      end
+
+    truncate_calendar_name(name)
+  end
+
+  defp truncate_calendar_name(name) when is_binary(name) do
+    max_length = 15
+    ellipsis = "..."
+
+    if String.length(name) > max_length do
+      String.slice(name, 0, max_length - String.length(ellipsis)) <> ellipsis
+    else
+      name
+    end
+  end
+
+  defp truncate_calendar_name(_), do: "Calendar"
 end

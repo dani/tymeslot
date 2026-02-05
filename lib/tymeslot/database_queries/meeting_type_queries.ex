@@ -15,7 +15,7 @@ defmodule Tymeslot.DatabaseQueries.MeetingTypeQueries do
       from(mt in MeetingTypeSchema,
         where: mt.user_id == ^user_id and mt.is_active == true,
         order_by: [asc: mt.sort_order, asc: mt.name],
-        preload: [:video_integration]
+        preload: [:video_integration, :calendar_integration]
       )
 
     Repo.all(query)
@@ -30,7 +30,7 @@ defmodule Tymeslot.DatabaseQueries.MeetingTypeQueries do
       from(mt in MeetingTypeSchema,
         where: mt.user_id == ^user_id,
         order_by: [asc: mt.sort_order, asc: mt.name],
-        preload: [:video_integration]
+        preload: [:video_integration, :calendar_integration]
       )
 
     Repo.all(query)
@@ -44,7 +44,7 @@ defmodule Tymeslot.DatabaseQueries.MeetingTypeQueries do
     query =
       from(mt in MeetingTypeSchema,
         where: mt.id == ^id and mt.user_id == ^user_id,
-        preload: [:video_integration]
+        preload: [:video_integration, :calendar_integration]
       )
 
     Repo.one(query)
