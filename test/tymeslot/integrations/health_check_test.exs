@@ -3,10 +3,14 @@ defmodule Tymeslot.Integrations.HealthCheckTest do
 
   use Oban.Testing, repo: Tymeslot.Repo
   import Tymeslot.Factory
+  import Ecto.Query
   import Mox
 
   alias Tymeslot.DatabaseQueries.CalendarIntegrationQueries
   alias Tymeslot.Integrations.HealthCheck
+  alias Oban.Job
+
+  setup :verify_on_exit!
 
   setup do
     # Start the GenServer with initial_delay: 0 to disable automatic checks
@@ -31,18 +35,14 @@ defmodule Tymeslot.Integrations.HealthCheckTest do
     test "deactivates integration after repeated failures" do
       user = insert(:user)
       integration = insert(:calendar_integration, user: user, is_active: true, provider: "google")
-      test_pid = self()
 
       # Mock failure for 3 checks (threshold is 3)
-      # We use fn -> send(...) end to synchronize
       expect(GoogleCalendarAPIMock, :list_primary_events, 3, fn _int, _start, _end ->
-        send(test_pid, :mock_called)
         {:error, :unauthorized, "Token expired"}
       end)
 
       # 1st failure
       run_health_checks()
-      assert_receive :mock_called, 1000
       sync_with_server()
       status = HealthCheck.get_health_status(:calendar, integration.id)
       assert status.status == :degraded
@@ -50,7 +50,6 @@ defmodule Tymeslot.Integrations.HealthCheckTest do
 
       # 2nd failure
       run_health_checks()
-      assert_receive :mock_called, 1000
       sync_with_server()
       status = HealthCheck.get_health_status(:calendar, integration.id)
       assert status.status == :degraded
@@ -58,7 +57,6 @@ defmodule Tymeslot.Integrations.HealthCheckTest do
 
       # 3rd failure
       run_health_checks()
-      assert_receive :mock_called, 1000
       sync_with_server()
       status = HealthCheck.get_health_status(:calendar, integration.id)
       assert status.status == :unhealthy
@@ -72,58 +70,81 @@ defmodule Tymeslot.Integrations.HealthCheckTest do
     test "recovers integration after repeated successes" do
       user = insert(:user)
       integration = insert(:calendar_integration, user: user, is_active: true, provider: "google")
-      test_pid = self()
 
       # Initial failure to make it degraded
       expect(GoogleCalendarAPIMock, :list_primary_events, 1, fn _int, _start, _end ->
-        send(test_pid, :mock_called)
         {:error, :unauthorized}
       end)
 
       run_health_checks()
-      assert_receive :mock_called, 1000
       sync_with_server()
       assert HealthCheck.get_health_status(:calendar, integration.id).status == :degraded
 
       # Mock success for 2 checks (recovery threshold is 2)
       expect(GoogleCalendarAPIMock, :list_primary_events, 2, fn _int, _start, _end ->
-        send(test_pid, :mock_called)
         {:ok, []}
       end)
 
       # 1st success
       run_health_checks()
-      assert_receive :mock_called, 1000
       sync_with_server()
       assert HealthCheck.get_health_status(:calendar, integration.id).status == :degraded
 
       # 2nd success
       run_health_checks()
-      assert_receive :mock_called, 1000
       sync_with_server()
       assert HealthCheck.get_health_status(:calendar, integration.id).status == :healthy
     end
 
-    test "handles integration check timeout" do
+    test "treats timeout as transient and keeps healthy status" do
       user = insert(:user)
       integration = insert(:calendar_integration, user: user, is_active: true, provider: "google")
-      test_pid = self()
 
       # Mock a slow response
       # Note: Oban doesn't have a built-in "timeout" return value like Task.yield,
       # but the underlying integration call might timeout.
       expect(GoogleCalendarAPIMock, :list_primary_events, 1, fn _int, _start, _end ->
-        send(test_pid, :mock_called)
         {:error, :timeout}
       end)
 
       # Trigger check
       run_health_checks()
+      sync_with_server()
 
-      # Wait for mock to be called
-      assert_receive :mock_called, 1000
+      status = HealthCheck.get_health_status(:calendar, integration.id)
+      assert status.status == :healthy
+      assert status.failures == 0
+      assert status.last_error_class == :transient
+    end
 
-      # Wait for the processing to finish
+    test "treats timeout exception as transient" do
+      user = insert(:user)
+      integration = insert(:calendar_integration, user: user, is_active: true, provider: "google")
+
+      expect(GoogleCalendarAPIMock, :list_primary_events, 1, fn _int, _start, _end ->
+        raise "Timeout while contacting provider"
+      end)
+
+      run_health_checks()
+      sync_with_server()
+
+      status = HealthCheck.get_health_status(:calendar, integration.id)
+      assert status.status == :healthy
+      assert status.failures == 0
+      assert status.last_error_class == :transient
+    end
+
+    test "handles integration check crash" do
+      user = insert(:user)
+      integration = insert(:calendar_integration, user: user, is_active: true, provider: "google")
+
+      # Mock a crash
+      expect(GoogleCalendarAPIMock, :list_primary_events, 1, fn _int, _start, _end ->
+        raise "Unexpected crash"
+      end)
+
+      # Trigger check
+      run_health_checks()
       sync_with_server()
 
       status = HealthCheck.get_health_status(:calendar, integration.id)
@@ -131,29 +152,55 @@ defmodule Tymeslot.Integrations.HealthCheckTest do
       assert status.failures == 1
     end
 
-    test "handles integration check crash" do
+    test "treats http 429 as transient" do
       user = insert(:user)
       integration = insert(:calendar_integration, user: user, is_active: true, provider: "google")
-      test_pid = self()
 
-      # Mock a crash
       expect(GoogleCalendarAPIMock, :list_primary_events, 1, fn _int, _start, _end ->
-        send(test_pid, :mock_called)
-        raise "Unexpected crash"
+        {:http_error, 429, "Too Many Requests"}
       end)
 
-      # Trigger check
       run_health_checks()
+      sync_with_server()
 
-      # Wait for mock to be called
-      assert_receive :mock_called, 1000
+      status = HealthCheck.get_health_status(:calendar, integration.id)
+      assert status.status == :healthy
+      assert status.failures == 0
+      assert status.last_error_class == :transient
+    end
 
-      # Wait for the processing to finish
+    test "treats rate limited message as transient" do
+      user = insert(:user)
+      integration = insert(:calendar_integration, user: user, is_active: true, provider: "google")
+
+      expect(GoogleCalendarAPIMock, :list_primary_events, 1, fn _int, _start, _end ->
+        {:error, :rate_limited, "Rate limited"}
+      end)
+
+      run_health_checks()
+      sync_with_server()
+
+      status = HealthCheck.get_health_status(:calendar, integration.id)
+      assert status.status == :healthy
+      assert status.failures == 0
+      assert status.last_error_class == :transient
+    end
+
+    test "handles non-utf8 error messages without crashing" do
+      user = insert(:user)
+      integration = insert(:calendar_integration, user: user, is_active: true, provider: "google")
+
+      expect(GoogleCalendarAPIMock, :list_primary_events, 1, fn _int, _start, _end ->
+        {:error, <<255>>}
+      end)
+
+      run_health_checks()
       sync_with_server()
 
       status = HealthCheck.get_health_status(:calendar, integration.id)
       assert status.status == :degraded
       assert status.failures == 1
+      assert status.last_error_class == :hard
     end
   end
 
@@ -162,22 +209,17 @@ defmodule Tymeslot.Integrations.HealthCheckTest do
       user = insert(:user)
       c1 = insert(:calendar_integration, user: user, provider: "google")
       v1 = insert(:video_integration, user: user, provider: "mirotalk")
-      test_pid = self()
 
       # Mock success for both
       expect(GoogleCalendarAPIMock, :list_primary_events, 1, fn _int, _start, _end ->
-        send(test_pid, :calendar_mock_called)
         {:ok, []}
       end)
 
-      stub(Tymeslot.HTTPClientMock, :post, fn _url, _body, _headers, _opts ->
-        send(test_pid, :video_mock_called)
+      expect(Tymeslot.HTTPClientMock, :post, 1, fn _url, _body, _headers, _opts ->
         {:ok, %HTTPoison.Response{status_code: 200}}
       end)
 
       run_health_checks()
-      assert_receive :calendar_mock_called, 1000
-      assert_receive :video_mock_called, 1000
       sync_with_server()
 
       report = HealthCheck.get_user_health_report(user.id)
@@ -198,7 +240,16 @@ defmodule Tymeslot.Integrations.HealthCheckTest do
   end
 
   defp run_health_checks do
+    Tymeslot.Repo.delete_all(from(j in Job, where: j.queue == "calendar_integrations"))
+
     HealthCheck.check_all_integrations()
+    now = DateTime.utc_now()
+
+    Tymeslot.Repo.update_all(
+      from(j in Job, where: j.queue == "calendar_integrations" and j.state == "scheduled"),
+      set: [scheduled_at: now, state: "available"]
+    )
+
     Oban.drain_queue(queue: :calendar_integrations, with_limit: 100)
   end
 end

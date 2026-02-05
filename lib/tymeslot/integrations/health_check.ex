@@ -20,6 +20,8 @@ defmodule Tymeslot.Integrations.HealthCheck do
   alias Tymeslot.Workers.IntegrationHealthWorker
 
   @check_interval :timer.minutes(5)
+  @max_backoff :timer.hours(1)
+  @max_jitter_ms 30_000
   @failure_threshold 3
   @recovery_threshold 2
 
@@ -40,7 +42,9 @@ defmodule Tymeslot.Integrations.HealthCheck do
           failures: non_neg_integer(),
           successes: non_neg_integer(),
           last_check: DateTime.t() | nil,
-          status: health_status()
+          status: health_status(),
+          backoff_ms: pos_integer(),
+          last_error_class: :transient | :hard | nil
         }
 
   defmodule State do
@@ -111,8 +115,8 @@ defmodule Tymeslot.Integrations.HealthCheck do
   @impl true
   def handle_call(:check_all, _from, state) do
     Logger.info("Manual health check triggered for all integrations")
-    schedule_integration_jobs()
-    {:reply, :ok, state}
+    {new_state, _scheduled} = schedule_integration_jobs(state, force: true)
+    {:reply, :ok, new_state}
   end
 
   def handle_call({:perform_single_check, type, id}, _from, state) do
@@ -139,30 +143,59 @@ defmodule Tymeslot.Integrations.HealthCheck do
   def handle_info(:scheduled_check, state) do
     Logger.debug("Scheduling health check jobs for all integrations")
 
-    schedule_integration_jobs()
+    {new_state, _scheduled} = schedule_integration_jobs(state)
 
     # Schedule next check
     timer = schedule_next_check(@check_interval)
 
-    {:noreply, %{state | check_timer: timer}}
+    {:noreply, %{new_state | check_timer: timer}}
   end
 
   # Private Functions
 
-  defp schedule_integration_jobs do
-    Enum.each(CalendarIntegrationQueries.list_all_active(), &schedule_calendar_health_check/1)
-    Enum.each(VideoIntegrationQueries.list_all_active(), &schedule_video_health_check/1)
-    :ok
+  defp schedule_integration_jobs(state, opts \\ []) do
+    now = DateTime.utc_now()
+    force = Keyword.get(opts, :force, false)
+
+    state =
+      Enum.reduce(CalendarIntegrationQueries.list_all_active(), state, fn int, acc ->
+        schedule_health_check(:calendar, int, acc, now, force)
+      end)
+
+    state =
+      Enum.reduce(VideoIntegrationQueries.list_all_active(), state, fn int, acc ->
+        schedule_health_check(:video, int, acc, now, force)
+      end)
+
+    {state, :ok}
   end
 
-  defp schedule_calendar_health_check(int) do
-    Logger.debug("Scheduling calendar health check", id: int.id)
-    enqueue_health_check(:calendar, int.id)
-  end
+  defp schedule_health_check(type, integration, state, now, force) do
+    health_map_key = if type == :calendar, do: :calendar_health, else: :video_health
+    current_health_map = Map.get(state, health_map_key)
+    health_state = Map.get(current_health_map, integration.id, initial_health_state())
 
-  defp schedule_video_health_check(int) do
-    Logger.debug("Scheduling video health check", id: int.id)
-    enqueue_health_check(:video, int.id)
+    if force || due_for_check?(health_state, now) do
+      Logger.debug("Scheduling integration health check",
+        type: type,
+        integration_id: integration.id,
+        provider: integration.provider,
+        backoff_ms: health_state.backoff_ms,
+        last_error_class: health_state.last_error_class
+      )
+
+      enqueue_health_check(type, integration.id)
+    else
+      Logger.debug("Skipping integration health check (backoff)",
+        type: type,
+        integration_id: integration.id,
+        provider: integration.provider,
+        backoff_ms: health_state.backoff_ms,
+        last_error_class: health_state.last_error_class
+      )
+    end
+
+    state
   end
 
   defp enqueue_health_check(type, integration_id) do
@@ -170,12 +203,20 @@ defmodule Tymeslot.Integrations.HealthCheck do
       IntegrationHealthWorker.new(%{
         "type" => Atom.to_string(type),
         "integration_id" => integration_id
-      })
+      }, scheduled_at: scheduled_at_with_jitter())
 
     result = Oban.insert(job)
 
     case result do
       {:ok, _job} ->
+        :ok
+
+      {:error, %Ecto.Changeset{errors: [unique: _]}} ->
+        Logger.debug("Integration health check already scheduled",
+          type: type,
+          integration_id: integration_id
+        )
+
         :ok
 
       {:error, changeset} ->
@@ -307,25 +348,53 @@ defmodule Tymeslot.Integrations.HealthCheck do
       failures: 0,
       successes: health_state.successes + 1,
       last_check: DateTime.utc_now(),
-      status: determine_status(0, health_state.successes + 1)
+      status: determine_status(0, health_state.successes + 1),
+      backoff_ms: @check_interval,
+      last_error_class: nil
     }
   end
 
+  defp update_health_state(health_state, {:error, reason, message}) do
+    update_health_state(health_state, {:error, {:error, reason, message}})
+  end
+
   defp update_health_state(health_state, {:error, reason}) do
-    failures = health_state.failures + 1
+    case classify_error(reason) do
+      :transient ->
+        Logger.warning("Integration health check transient failure",
+          reason: reason,
+          backoff_ms: next_backoff_ms(health_state.backoff_ms, :transient),
+          error_class: :transient
+        )
 
-    Logger.warning("Integration health check failed",
-      reason: reason,
-      failures: failures,
-      threshold: @failure_threshold
-    )
+        %{
+          failures: health_state.failures,
+          successes: health_state.successes,
+          last_check: DateTime.utc_now(),
+          status: health_state.status,
+          backoff_ms: next_backoff_ms(health_state.backoff_ms, :transient),
+          last_error_class: :transient
+        }
 
-    %{
-      failures: failures,
-      successes: 0,
-      last_check: DateTime.utc_now(),
-      status: determine_status(failures, 0)
-    }
+      :hard ->
+        failures = health_state.failures + 1
+
+        Logger.warning("Integration health check failed",
+          reason: reason,
+          failures: failures,
+          threshold: @failure_threshold,
+          error_class: :hard
+        )
+
+        %{
+          failures: failures,
+          successes: 0,
+          last_check: DateTime.utc_now(),
+          status: determine_status(failures, 0),
+          backoff_ms: @check_interval,
+          last_error_class: :hard
+        }
+    end
   end
 
   @spec determine_status(non_neg_integer(), non_neg_integer()) :: health_status()
@@ -333,6 +402,70 @@ defmodule Tymeslot.Integrations.HealthCheck do
   defp determine_status(failures, _) when failures > 0, do: :degraded
   defp determine_status(_, successes) when successes >= @recovery_threshold, do: :healthy
   defp determine_status(_, _), do: :degraded
+
+  defp due_for_check?(%{last_check: nil}, _now), do: true
+
+  defp due_for_check?(%{last_check: last_check, backoff_ms: backoff_ms}, now) do
+    case DateTime.add(last_check, backoff_ms, :millisecond) do
+      %DateTime{} = next_time -> DateTime.compare(next_time, now) != :gt
+      _ -> true
+    end
+  end
+
+  defp scheduled_at_with_jitter do
+    jitter_ms = :rand.uniform(@max_jitter_ms + 1) - 1
+    DateTime.add(DateTime.utc_now(), jitter_ms, :millisecond)
+  end
+
+  defp next_backoff_ms(current, :transient) do
+    current
+    |> max(@check_interval)
+    |> Kernel.*(2)
+    |> min(@max_backoff)
+  end
+
+  defp next_backoff_ms(_current, _), do: @check_interval
+
+  defp classify_error({:error, :rate_limited}), do: :transient
+  defp classify_error({:error, :rate_limited, _message}), do: :transient
+  defp classify_error({:http_error, status, _message}) when status in [408, 425, 429], do: :transient
+  defp classify_error({:http_error, status, _message}) when status >= 500, do: :transient
+
+  defp classify_error(reason) when reason in [:timeout, :nxdomain, :econnrefused, :network_error],
+    do: :transient
+
+  defp classify_error(reason) when reason in [:unauthorized, :invalid_credentials, :token_expired],
+    do: :hard
+
+  defp classify_error({:exception, message}) when is_binary(message),
+    do: classify_error(message)
+
+  defp classify_error(reason) when is_binary(reason) do
+    if String.valid?(reason) do
+      reason_downcased = String.downcase(reason)
+
+      cond do
+        String.contains?(reason_downcased, "rate limit") ->
+          :transient
+
+        String.contains?(reason_downcased, "rate limited") ->
+          :transient
+
+        String.contains?(reason_downcased, "too many") ->
+          :transient
+
+        String.contains?(reason_downcased, "timeout") ->
+          :transient
+
+        true ->
+          :hard
+      end
+    else
+      :hard
+    end
+  end
+
+  defp classify_error(_reason), do: :hard
 
   @spec handle_health_transition(integration_type(), map(), health_state(), health_state()) :: :ok
   defp handle_health_transition(type, integration, old_state, new_state) do
@@ -356,8 +489,7 @@ defmodule Tymeslot.Integrations.HealthCheck do
     Logger.error("Integration health check failed on first attempt",
       type: type,
       integration_id: integration.id,
-      provider: integration.provider,
-      user_id: integration.user_id
+      provider: integration.provider
     )
 
     deactivate_integration(type, integration)
@@ -394,8 +526,7 @@ defmodule Tymeslot.Integrations.HealthCheck do
     Logger.error("Integration health critical - deactivating",
       type: type,
       integration_id: integration.id,
-      provider: integration.provider,
-      user_id: integration.user_id
+      provider: integration.provider
     )
 
     deactivate_integration(type, integration)
@@ -406,8 +537,7 @@ defmodule Tymeslot.Integrations.HealthCheck do
     Logger.info("Integration health recovered",
       type: type,
       integration_id: integration.id,
-      provider: integration.provider,
-      user_id: integration.user_id
+      provider: integration.provider
     )
 
     :ok
@@ -419,7 +549,6 @@ defmodule Tymeslot.Integrations.HealthCheck do
       type: type,
       integration_id: integration.id,
       provider: integration.provider,
-      user_id: integration.user_id,
       failures: new_state.failures
     )
 
@@ -508,7 +637,9 @@ defmodule Tymeslot.Integrations.HealthCheck do
       failures: 0,
       successes: 0,
       last_check: nil,
-      status: :healthy
+      status: :healthy,
+      backoff_ms: @check_interval,
+      last_error_class: nil
     }
   end
 

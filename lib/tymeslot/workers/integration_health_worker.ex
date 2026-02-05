@@ -3,10 +3,17 @@ defmodule Tymeslot.Workers.IntegrationHealthWorker do
   Oban worker for performing health checks on individual integrations.
   """
 
+  @unique_period_seconds 300
+
   use Oban.Worker,
     queue: :calendar_integrations,
     max_attempts: 3,
-    priority: 2
+    priority: 2,
+    unique: [
+      fields: [:worker, :args],
+      period: @unique_period_seconds,
+      states: [:available, :scheduled, :executing, :retryable]
+    ]
 
   require Logger
   alias Tymeslot.Integrations.HealthCheck

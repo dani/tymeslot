@@ -8,6 +8,8 @@ defmodule Tymeslot.Workers.IntegrationHealthWorkerTest do
   alias Tymeslot.Integrations.HealthCheck
   alias Tymeslot.Workers.IntegrationHealthWorker
 
+  setup :verify_on_exit!
+
   setup do
     {:ok, pid} = HealthCheck.start_link(check_interval: 1_000_000, initial_delay: 0)
 
@@ -36,24 +38,22 @@ defmodule Tymeslot.Workers.IntegrationHealthWorkerTest do
     assert {:discard, "Invalid integration type"} = IntegrationHealthWorker.perform(job)
   end
 
-  test "returns ok when health check reports error" do
+  test "returns ok when health check reports transient error" do
     user = insert(:user)
     integration = insert(:calendar_integration, user: user, is_active: true, provider: "google")
-    test_pid = self()
 
     expect(GoogleCalendarAPIMock, :list_primary_events, 1, fn _int, _start, _end ->
-      send(test_pid, :mock_called)
       {:error, :timeout}
     end)
 
     job = %Oban.Job{args: %{"type" => "calendar", "integration_id" => integration.id}, id: 1}
 
     assert :ok = IntegrationHealthWorker.perform(job)
-    assert_receive :mock_called, 1000
     _ = :sys.get_state(HealthCheck, 5000)
 
     status = HealthCheck.get_health_status(:calendar, integration.id)
-    assert status.status == :degraded
-    assert status.failures == 1
+    assert status.status == :healthy
+    assert status.failures == 0
+    assert status.last_error_class == :transient
   end
 end
