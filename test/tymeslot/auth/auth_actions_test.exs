@@ -259,5 +259,61 @@ defmodule Tymeslot.Auth.AuthActionsTest do
       assert {:error, "You must accept the terms to continue."} =
                AuthActions.complete_oauth_registration(params, socket)
     end
+
+    test "returns missing required fields for absent provider" do
+      params = %{
+        "auth" => %{
+          "email" => "test@example.com",
+          "verified_email" => true,
+          "terms_accepted" => "true"
+        },
+        "profile" => %{}
+      }
+
+      socket = %Phoenix.LiveView.Socket{
+        assigns: %{client_ip: "127.0.0.1", user_agent: "AuthActionsTest/1.0"}
+      }
+
+      assert {:error, "Missing required fields: provider"} =
+               AuthActions.complete_oauth_registration(params, socket)
+    end
+
+    test "returns error for unsupported provider" do
+      params = %{
+        "auth" => %{
+          "provider" => "invalid_provider",
+          "email" => "test@example.com",
+          "verified_email" => true,
+          "terms_accepted" => "true"
+        },
+        "profile" => %{}
+      }
+
+      socket = %Phoenix.LiveView.Socket{
+        assigns: %{client_ip: "127.0.0.1", user_agent: "AuthActionsTest/1.0"}
+      }
+
+      assert {:error, "Unsupported authentication provider"} =
+               AuthActions.complete_oauth_registration(params, socket)
+    end
+
+    test "returns error when email is not verified by provider" do
+      params = %{
+        "auth" => %{
+          "provider" => "google",
+          "email" => "test@example.com",
+          "verified_email" => false,
+          "terms_accepted" => "true"
+        },
+        "profile" => %{}
+      }
+
+      socket = %Phoenix.LiveView.Socket{
+        assigns: %{client_ip: "127.0.0.1", user_agent: "AuthActionsTest/1.0"}
+      }
+
+      assert {:error, "Email not verified by provider"} =
+               AuthActions.complete_oauth_registration(params, socket)
+    end
   end
 end

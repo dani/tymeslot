@@ -22,12 +22,27 @@ defmodule Tymeslot.Auth.AuthActions do
   @spec complete_oauth_registration(map(), Phoenix.LiveView.Socket.t()) ::
           {:ok, Phoenix.LiveView.Socket.t(), String.t()} | {:error, String.t()}
   def complete_oauth_registration(params, socket) do
-    auth_params =
-      params["auth"]
-      |> Kernel.||(%{})
-      |> convert_terms_accepted()
+    auth_params = extract_auth_params(params)
     profile_params = params["profile"] || %{}
 
+    with {:ok, converted_profile} <- convert_profile_params(profile_params),
+         :ok <- ensure_terms_accepted(auth_params),
+         :ok <- SocialAuthentication.check_email_availability(auth_params["email"]),
+         {:ok, user, message} <- finalize_registration(auth_params, converted_profile, socket),
+         {:ok, updated_socket, _token} <- Session.create_session(socket, user) do
+      {:ok, updated_socket, message}
+    else
+      error -> handle_registration_error(error)
+    end
+  end
+
+  defp extract_auth_params(params) do
+    params["auth"]
+    |> Kernel.||(%{})
+    |> convert_terms_accepted()
+  end
+
+  defp finalize_registration(auth_params, profile_params, socket) do
     temp_user = %{
       provider: auth_params["provider"],
       email: auth_params["email"],
@@ -43,19 +58,16 @@ defmodule Tymeslot.Auth.AuthActions do
       terms_accepted: Map.get(auth_params, "terms_accepted")
     }
 
-    with {:ok, converted_profile} <- convert_profile_params(profile_params),
-         :ok <- ensure_terms_accepted(auth_params),
-         :ok <- SocialAuthentication.check_email_availability(auth_params["email"]),
-         {:ok, user, message} <-
-           SocialAuthentication.finalize_social_login_registration(
-             auth_params,
-             converted_profile,
-             temp_user,
-             metadata: metadata
-           ),
-         {:ok, updated_socket, _token} <- Session.create_session(socket, user) do
-      {:ok, updated_socket, message}
-    else
+    SocialAuthentication.finalize_social_login_registration(
+      auth_params,
+      profile_params,
+      temp_user,
+      metadata: metadata
+    )
+  end
+
+  defp handle_registration_error(error) do
+    case error do
       # Handle 3-element error tuples from create_session
       {:error, :session_creation_failed, reason} ->
         {:error, reason}
@@ -69,9 +81,17 @@ defmodule Tymeslot.Auth.AuthActions do
       {:error, message} when is_binary(message) ->
         {:error, message}
 
+      # Handle missing required fields from provider validation
+      {:error, :missing_required_fields, fields} when is_list(fields) ->
+        {:error, "Missing required fields: #{Enum.join(fields, ", ")}"}
+
       # Handle atom errors from convert_profile_params
       {:error, reason} when is_atom(reason) ->
         {:error, normalize_auth_error(reason)}
+
+      # Default fallback
+      _ ->
+        {:error, "An unexpected error occurred during registration."}
     end
   end
 
@@ -271,11 +291,14 @@ defmodule Tymeslot.Auth.AuthActions do
       :server_error -> "A server error occurred. Please try again"
       :invalid_input -> "Invalid input provided"
       :invalid_password -> "Invalid password"
+      :invalid_provider -> "Unsupported authentication provider"
+      :email_not_verified -> "Email not verified by provider"
       :invalid_token -> get_token_error_message(:invalid_token)
       :token_expired -> get_token_error_message(:token_expired)
       # OAuth registration errors
       :invalid_profile_params -> get_oauth_error_message(:invalid_profile_params)
       :conversion_failed -> get_oauth_error_message(:conversion_failed)
+      _ -> "An unexpected error occurred during registration."
     end
   end
 
