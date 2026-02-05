@@ -429,7 +429,7 @@ defmodule Tymeslot.Integrations.Calendar do
 
   @doc """
   Create an event using the user's booking calendar.
-  
+
   Accepts a user_id, Meeting, or MeetingType to determine the target calendar.
   If a Meeting or MeetingType is provided, uses their configured calendar integration.
   Falls back to the user's primary calendar if not specified.

@@ -7,8 +7,8 @@ defmodule TymeslotWeb.Dashboard.ProfileSettings.DisplayNameFormComponent do
 
   alias Tymeslot.Profiles
   alias Tymeslot.Security.SettingsInputProcessor
-  import TymeslotWeb.Components.CoreComponents
   alias TymeslotWeb.Live.Shared.FormValidationHelpers
+  import TymeslotWeb.Components.CoreComponents
 
   @impl true
   def update(assigns, socket) do

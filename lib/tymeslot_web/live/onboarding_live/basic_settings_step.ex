@@ -9,8 +9,8 @@ defmodule TymeslotWeb.OnboardingLive.BasicSettingsStep do
   use Phoenix.Component
 
   alias TymeslotWeb.Components.TimezoneDropdown
-  alias TymeslotWeb.OnboardingLive.StepConfig
   alias TymeslotWeb.Live.Shared.FormValidationHelpers
+  alias TymeslotWeb.OnboardingLive.StepConfig
 
   @doc """
   Renders the basic settings step component.

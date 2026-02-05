@@ -9,8 +9,8 @@ defmodule Tymeslot.Meetings do
 
   alias Tymeslot.Availability.TimeSlots
   alias Tymeslot.Bookings.{Cancel, Create, Reschedule, RescheduleRequest}
-  alias Tymeslot.DatabaseSchemas.MeetingSchema
   alias Tymeslot.DatabaseQueries.MeetingQueries
+  alias Tymeslot.DatabaseSchemas.MeetingSchema
   alias Tymeslot.Meetings.{Queries, VideoRooms}
   alias Tymeslot.Pagination.CursorPage
   alias Tymeslot.Workers.CalendarEventWorker

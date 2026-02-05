@@ -20,7 +20,7 @@ defmodule TymeslotWeb.Live.Shared.FormValidationHelpers do
   @spec atomize_field(String.t(), [String.t()]) :: atom() | nil
   def atomize_field(field, allowed_fields) when is_binary(field) and is_list(allowed_fields) do
     if field in allowed_fields do
-      String.to_atom(field)
+      String.to_existing_atom(field)
     else
       nil
     end
@@ -28,8 +28,8 @@ defmodule TymeslotWeb.Live.Shared.FormValidationHelpers do
 
   @spec normalize_errors_map(map(), [String.t()]) :: map()
   def normalize_errors_map(errors, allowed_fields) when is_map(errors) do
-    allowed_atoms = MapSet.new(Enum.map(allowed_fields, &String.to_atom/1))
-    allowed_lookup = Map.new(allowed_fields, &{&1, String.to_atom(&1)})
+    allowed_atoms = MapSet.new(Enum.map(allowed_fields, &String.to_existing_atom/1))
+    allowed_lookup = Map.new(allowed_fields, &{&1, String.to_existing_atom(&1)})
 
     errors
     |> Enum.map(fn {field, msg} ->
@@ -57,6 +57,25 @@ defmodule TymeslotWeb.Live.Shared.FormValidationHelpers do
     errors
     |> Map.delete(field)
     |> Map.delete(Atom.to_string(field))
+  end
+
+  @doc """
+  Updates form errors for a specific field based on validation results.
+  """
+  @spec update_field_errors(map(), atom() | nil, {:ok, any()} | {:error, map()}, (map() -> map())) :: map()
+  def update_field_errors(current_errors, nil, _validation_result, _normalize_fn), do: current_errors
+
+  def update_field_errors(current_errors, atom_field, {:ok, _}, _normalize_fn) do
+    delete_field_error(current_errors, atom_field)
+  end
+
+  def update_field_errors(current_errors, atom_field, {:error, errors}, normalize_fn) do
+    normalized_errors = normalize_fn.(errors)
+    field_errors = errors_for_field(normalized_errors, atom_field)
+
+    current_errors
+    |> delete_field_error(atom_field)
+    |> Map.merge(field_errors)
   end
 
   @spec field_errors(map(), atom()) :: [String.t()]

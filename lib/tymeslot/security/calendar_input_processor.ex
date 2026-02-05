@@ -224,35 +224,12 @@ defmodule Tymeslot.Security.CalendarInputProcessor do
   defp validate_server_url("", _metadata), do: {:ok, ""}
 
   defp validate_server_url(url, metadata) when is_binary(url) do
-    # Normalize URL by adding https:// if no protocol is present
-    normalized_url = normalize_url_protocol(url)
-
-    case UniversalSanitizer.sanitize_and_validate(normalized_url,
-           allow_html: false,
-           metadata: metadata
+    case SharedInputValidators.validate_server_url(url, metadata,
+           error_message: "Please enter a valid server URL (e.g., https://cloud.example.com)",
+           validate_url_fn: &validate_calendar_url/1
          ) do
-      {:ok, sanitized_url} ->
-        # URI.parse("https://fjfj") returns %URI{scheme: "https", host: "fjfj"}
-        # We need to ensure the host actually looks like a valid server address.
-        uri = URI.parse(sanitized_url)
-
-        cond do
-          is_nil(uri.host) or uri.host == "" ->
-            {:error, %{url: "Please enter a valid server URL (e.g., https://cloud.example.com)"}}
-
-          # Require at least one dot for public domains, or allow 'localhost'
-          not String.contains?(uri.host, ".") and uri.host != "localhost" ->
-            {:error, %{url: "Please enter a valid server URL (e.g., https://cloud.example.com)"}}
-
-          true ->
-            case validate_calendar_url(sanitized_url) do
-              :ok -> {:ok, sanitized_url}
-              {:error, error} -> {:error, %{url: error}}
-            end
-        end
-
-      {:error, error} ->
-        {:error, %{url: error}}
+      {:ok, sanitized_url} -> {:ok, sanitized_url}
+      {:error, error} -> {:error, %{url: error}}
     end
   end
 
@@ -340,24 +317,6 @@ defmodule Tymeslot.Security.CalendarInputProcessor do
 
   defp validate_calendar_paths(_, _metadata) do
     {:error, %{calendar_paths: "Calendar paths must be text"}}
-  end
-
-  defp normalize_url_protocol(url) do
-    trimmed_url = String.trim(url)
-
-    cond do
-      # Already has a protocol
-      String.starts_with?(trimmed_url, ["http://", "https://"]) ->
-        trimmed_url
-
-      # No protocol - add https://
-      trimmed_url != "" ->
-        "https://" <> trimmed_url
-
-      # Empty string
-      true ->
-        trimmed_url
-    end
   end
 
   defp validate_calendar_paths_format(paths) do

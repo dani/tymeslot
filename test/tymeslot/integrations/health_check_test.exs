@@ -6,9 +6,10 @@ defmodule Tymeslot.Integrations.HealthCheckTest do
   import Ecto.Query
   import Mox
 
+  alias Oban.Job
   alias Tymeslot.DatabaseQueries.CalendarIntegrationQueries
   alias Tymeslot.Integrations.HealthCheck
-  alias Oban.Job
+  alias Tymeslot.Repo
 
   setup :verify_on_exit!
 
@@ -240,12 +241,12 @@ defmodule Tymeslot.Integrations.HealthCheckTest do
   end
 
   defp run_health_checks do
-    Tymeslot.Repo.delete_all(from(j in Job, where: j.queue == "calendar_integrations"))
+    Repo.delete_all(from(j in Job, where: j.queue == "calendar_integrations"))
 
     HealthCheck.check_all_integrations()
     now = DateTime.utc_now()
 
-    Tymeslot.Repo.update_all(
+    Repo.update_all(
       from(j in Job, where: j.queue == "calendar_integrations" and j.state == "scheduled"),
       set: [scheduled_at: now, state: "available"]
     )

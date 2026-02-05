@@ -124,8 +124,10 @@ defmodule Tymeslot.Meetings.Queries do
     now = DateTime.utc_now()
     one_hour_from_now = DateTime.add(now, 1, :hour)
 
-    MeetingQueries.list_meetings_needing_reminders(now, one_hour_from_now)
-    |> Enum.filter(&needs_reminder?/1)
+    Enum.filter(
+      MeetingQueries.list_meetings_needing_reminders(now, one_hour_from_now),
+      &needs_reminder?/1
+    )
   end
 
   # =====================================

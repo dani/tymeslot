@@ -188,32 +188,12 @@ defmodule Tymeslot.Security.VideoInputProcessor do
   defp validate_base_url("", _metadata), do: {:error, %{base_url: "Base URL is required"}}
 
   defp validate_base_url(base_url, metadata) when is_binary(base_url) do
-    # Normalize URL by adding https:// if no protocol is present
-    normalized_url = normalize_url_protocol(base_url)
-
-    case UniversalSanitizer.sanitize_and_validate(normalized_url, allow_html: false, metadata: metadata) do
-      {:ok, sanitized_url} ->
-        # URI.parse("https://fjfj") returns %URI{scheme: "https", host: "fjfj"}
-        # We need to ensure the host actually looks like a valid server address.
-        uri = URI.parse(sanitized_url)
-
-        cond do
-          is_nil(uri.host) or uri.host == "" ->
-            {:error, %{base_url: "Please enter a valid server URL (e.g., https://mirotalk.example.com)"}}
-
-          # Require at least one dot for public domains, or allow 'localhost'
-          not String.contains?(uri.host, ".") and not String.contains?(uri.host, "localhost") ->
-            {:error, %{base_url: "Please enter a valid server URL (e.g., https://mirotalk.example.com)"}}
-
-          true ->
-            case validate_video_url(sanitized_url) do
-              :ok -> {:ok, sanitized_url}
-              {:error, error} -> {:error, %{base_url: error}}
-            end
-        end
-
-      {:error, error} ->
-        {:error, %{base_url: error}}
+    case SharedInputValidators.validate_server_url(base_url, metadata,
+           error_message: "Please enter a valid server URL (e.g., https://mirotalk.example.com)",
+           validate_url_fn: &validate_video_url/1
+         ) do
+      {:ok, sanitized_url} -> {:ok, sanitized_url}
+      {:error, error} -> {:error, %{base_url: error}}
     end
   end
 
@@ -230,8 +210,7 @@ defmodule Tymeslot.Security.VideoInputProcessor do
   defp validate_meeting_url(meeting_url, metadata) when is_binary(meeting_url) do
     trimmed_url = String.trim(meeting_url)
     has_protocol = String.starts_with?(trimmed_url, ["http://", "https://"])
-    # Normalize URL by adding https:// if no protocol is present
-    normalized_url = normalize_url_protocol(trimmed_url)
+
     invalid_meeting_url_error =
       if has_protocol do
         "Please enter a valid meeting URL (e.g., https://meet.google.com/abc-defg-hij)"
@@ -239,55 +218,17 @@ defmodule Tymeslot.Security.VideoInputProcessor do
         "Only HTTP and HTTPS URLs are allowed"
       end
 
-    case UniversalSanitizer.sanitize_and_validate(normalized_url,
-           allow_html: false,
-           metadata: metadata
+    case SharedInputValidators.validate_server_url(trimmed_url, metadata,
+           error_message: invalid_meeting_url_error,
+           validate_url_fn: &validate_video_url/1
          ) do
-      {:ok, sanitized_url} ->
-        # URI.parse("https://fjfj") returns %URI{scheme: "https", host: "fjfj"}
-        # We need to ensure the host actually looks like a valid server address.
-        uri = URI.parse(sanitized_url)
-
-        cond do
-          is_nil(uri.host) or uri.host == "" ->
-            {:error, %{custom_meeting_url: invalid_meeting_url_error}}
-
-          # Require at least one dot for public domains, or allow 'localhost'
-          not String.contains?(uri.host, ".") and not String.contains?(uri.host, "localhost") ->
-            {:error, %{custom_meeting_url: invalid_meeting_url_error}}
-
-          true ->
-            case validate_video_url(sanitized_url) do
-              :ok -> {:ok, sanitized_url}
-              {:error, error} -> {:error, %{custom_meeting_url: error}}
-            end
-        end
-
-      {:error, error} ->
-        {:error, %{custom_meeting_url: error}}
+      {:ok, sanitized_url} -> {:ok, sanitized_url}
+      {:error, error} -> {:error, %{custom_meeting_url: error}}
     end
   end
 
   defp validate_meeting_url(_, _metadata) do
     {:error, %{custom_meeting_url: "Meeting URL must be text"}}
-  end
-
-  defp normalize_url_protocol(url) do
-    trimmed_url = String.trim(url)
-
-    cond do
-      # Already has a protocol
-      String.starts_with?(trimmed_url, ["http://", "https://"]) ->
-        trimmed_url
-
-      # No protocol - add https://
-      trimmed_url != "" ->
-        "https://" <> trimmed_url
-
-      # Empty string
-      true ->
-        trimmed_url
-    end
   end
 
   defp validate_video_url(url) do

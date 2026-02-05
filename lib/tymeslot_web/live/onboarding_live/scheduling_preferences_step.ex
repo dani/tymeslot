@@ -8,8 +8,8 @@ defmodule TymeslotWeb.OnboardingLive.SchedulingPreferencesStep do
 
   use Phoenix.Component
 
-  alias TymeslotWeb.OnboardingLive.StepConfig
   alias TymeslotWeb.Live.Shared.FormValidationHelpers
+  alias TymeslotWeb.OnboardingLive.StepConfig
 
   @doc """
   Renders the scheduling preferences step component.

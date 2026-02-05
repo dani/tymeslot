@@ -257,7 +257,7 @@ defmodule Tymeslot.Integrations.Common.UserResolver do
   # Private functions
 
   defp get_integrations_from_database(user_id, :calendar) do
-    if !is_nil(user_id) do
+    if user_id do
       CalendarIntegrationQueries.list_all_for_user(user_id)
     else
       # Legacy support: if no user_id provided, get all integrations for user 1 as fallback
@@ -267,7 +267,7 @@ defmodule Tymeslot.Integrations.Common.UserResolver do
   end
 
   defp get_integrations_from_database(user_id, :video) do
-    if !is_nil(user_id) do
+    if user_id do
       VideoIntegrationQueries.list_all_for_user(user_id)
     else
       # Legacy support: if no user_id provided, get all integrations for user 1 as fallback

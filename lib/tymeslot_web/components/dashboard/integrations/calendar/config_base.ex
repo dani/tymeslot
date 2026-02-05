@@ -128,8 +128,8 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.ConfigBase do
 
       defp handle_valid_field(socket, field_atom) do
         {:noreply,
-         socket
-         |> Component.assign(
+         Component.assign(
+           socket,
            :form_errors,
            FormValidationHelpers.delete_field_error(socket.assigns.form_errors, field_atom)
          )}
