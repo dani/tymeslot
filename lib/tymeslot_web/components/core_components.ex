@@ -18,8 +18,20 @@ defmodule TymeslotWeb.Components.CoreComponents do
     Icons,
     Layout,
     Modal,
-    Navigation
+    Navigation,
+    Brand
   }
+
+  # ========== BRAND ==========
+
+  @doc """
+  Renders the Tymeslot logo.
+  """
+  attr :mode, :atom, default: :full, values: [:full, :icon]
+  attr :class, :string, default: nil
+  attr :img_class, :string, default: "h-10"
+  @spec logo(map()) :: Phoenix.LiveView.Rendered.t()
+  def logo(assigns), do: Brand.logo(assigns)
 
   # ========== LAYOUT ==========
 

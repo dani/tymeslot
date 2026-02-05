@@ -146,13 +146,11 @@ defmodule TymeslotWeb.OnboardingLive do
             <div class="card-glass">
               <div class="p-6 sm:p-8 lg:p-10">
                 <!-- Company logo and name -->
-                <div class="flex items-center justify-center space-x-3 mb-6">
-                  <img
-                    src="/images/brand/logo.svg"
-                    alt="Tymeslot logo"
-                    class="h-8 sm:h-10"
+                <div class="flex items-center justify-center mb-6">
+                  <TymeslotWeb.Components.CoreComponents.logo
+                    mode={:full}
+                    img_class="h-8 sm:h-10"
                   />
-                  <span class="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter">Tymeslot</span>
                 </div>
 
                 <div class="animate-in fade-in slide-in-from-bottom-4 duration-500">

@@ -7,6 +7,7 @@ defmodule TymeslotWeb.Shared.Auth.LayoutComponents do
 
   alias Tymeslot.Infrastructure.Config
   alias TymeslotWeb.Components.Auth.AuthVideoConfig
+  import TymeslotWeb.Components.CoreComponents, only: [logo: 1]
 
   @spec auth_logo_header(map()) :: Phoenix.LiveView.Rendered.t()
   def auth_logo_header(assigns) do
@@ -15,11 +16,7 @@ defmodule TymeslotWeb.Shared.Auth.LayoutComponents do
     ~H"""
     <div class="flex flex-col items-center mb-8">
       <div class="w-16 h-16 bg-white rounded-2xl shadow-xl flex items-center justify-center mb-4 border-2 border-slate-50 transform hover:scale-105 transition-all duration-300">
-        <img
-          src="/images/brand/logo.svg"
-          alt="App Logo"
-          class="w-10 h-10"
-        />
+        <.logo mode={:icon} img_class="w-10 h-10" />
       </div>
       <div class="text-center">
         <h1 class="text-2xl font-black text-slate-900 tracking-tight">

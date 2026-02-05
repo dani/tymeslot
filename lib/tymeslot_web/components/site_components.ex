@@ -13,6 +13,7 @@ defmodule TymeslotWeb.Components.SiteComponents do
   # Import JS helpers for LiveView interactions
   alias Phoenix.LiveView.JS
   alias Tymeslot.Infrastructure.Config
+  import TymeslotWeb.Components.CoreComponents, only: [logo: 1]
 
   @doc """
   Main navigation component used across the application.
@@ -26,10 +27,9 @@ defmodule TymeslotWeb.Components.SiteComponents do
       <div class="container mx-auto flex justify-between items-center px-6 py-5">
         <.link
           navigate={logo_link(@current_user)}
-          class="flex items-center space-x-3 text-slate-900 text-3xl font-black hover:text-turquoise-600 transition-all transform hover:scale-105"
+          class="flex items-center text-slate-900 hover:text-turquoise-600 transition-all transform hover:scale-105"
         >
-          <img src="/images/brand/logo.svg" alt="Tymeslot" class="h-12 flex-shrink-0" />
-          <span class="tracking-tighter">Tymeslot</span>
+          <.logo mode={:full} img_class="h-12 flex-shrink-0" />
         </.link>
         
     <!-- Desktop Navigation -->

@@ -1,0 +1,36 @@
+defmodule TymeslotWeb.Components.CoreComponents.Brand do
+  @moduledoc "Brand-related components (logos, marks) extracted from CoreComponents."
+  use Phoenix.Component
+
+  @doc """
+  Renders the Tymeslot logo.
+
+  ## Attributes
+    * `mode` - Either :full (logo + text) or :icon (logo only). Defaults to :full.
+    * `class` - Additional CSS classes for the container.
+    * `img_class` - Additional CSS classes for the image element.
+  """
+  attr :mode, :atom, default: :full, values: [:full, :icon]
+  attr :class, :string, default: nil
+  attr :img_class, :string, default: "h-10"
+
+  def logo(assigns) do
+    ~H"""
+    <div class={["flex items-center", @class]}>
+      <%= if @mode == :full do %>
+        <img
+          src="/images/brand/logo-with-text.svg"
+          alt="Tymeslot"
+          class={@img_class}
+        />
+      <% else %>
+        <img
+          src="/images/brand/logo.svg"
+          alt="Tymeslot logo"
+          class={@img_class}
+        />
+      <% end %>
+    </div>
+    """
+  end
+end
