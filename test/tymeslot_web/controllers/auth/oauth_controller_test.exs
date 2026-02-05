@@ -158,15 +158,28 @@ defmodule TymeslotWeb.OAuthControllerTest do
   end
 
   describe "POST /auth/complete" do
+    setup do
+      original_value = Application.get_env(:tymeslot, :enforce_legal_agreements, false)
+      Application.put_env(:tymeslot, :enforce_legal_agreements, false)
+      :meck.expect(RateLimiter, :check_oauth_completion_rate_limit, fn _ip -> :ok end)
+
+      on_exit(fn ->
+        Application.put_env(:tymeslot, :enforce_legal_agreements, original_value)
+      end)
+
+      :ok
+    end
+
     test "creates user and logs in", %{conn: conn} do
       user_data = %{
         "oauth_provider" => "github",
         "oauth_email" => "new@example.com",
         "oauth_github_id" => "12345",
-        "oauth_name" => "New User"
+        "oauth_name" => "New User",
+        "terms_accepted" => "on"
       }
 
-      :meck.expect(OAuthHelper, :create_oauth_user, fn :github, _data, _profile ->
+      :meck.expect(OAuthHelper, :create_oauth_user, fn :github, _data, _profile, _opts ->
         user = Factory.insert(:user, email: "new@example.com", provider: "github")
         {:ok, user}
       end)
@@ -177,10 +190,26 @@ defmodule TymeslotWeb.OAuthControllerTest do
       assert Flash.get(conn.assigns.flash, :info) =~ "Successfully signed up"
     end
 
+    test "requires terms acceptance when enforced", %{conn: conn} do
+      Application.put_env(:tymeslot, :enforce_legal_agreements, true)
+
+      user_data = %{
+        "oauth_provider" => "github",
+        "oauth_email" => "new@example.com",
+        "oauth_github_id" => "12345"
+      }
+
+      conn = post(conn, ~p"/auth/complete", user_data)
+
+      assert redirected_to(conn) =~ "/auth/complete-registration"
+      assert Flash.get(conn.assigns.flash, :error) =~ "must accept the terms"
+    end
+
     test "fails if email missing", %{conn: conn} do
       user_data = %{
         "oauth_provider" => "github",
-        "oauth_github_id" => "12345"
+        "oauth_github_id" => "12345",
+        "terms_accepted" => "on"
       }
 
       conn = post(conn, ~p"/auth/complete", user_data)
@@ -194,10 +223,11 @@ defmodule TymeslotWeb.OAuthControllerTest do
         "oauth_provider" => "github",
         "oauth_email" => "unverified@example.com",
         "oauth_github_id" => "12345",
-        "oauth_verified" => "false"
+        "oauth_verified" => "false",
+        "terms_accepted" => "on"
       }
 
-      :meck.expect(OAuthHelper, :create_oauth_user, fn :github, _data, _profile ->
+      :meck.expect(OAuthHelper, :create_oauth_user, fn :github, _data, _profile, _opts ->
         user =
           Factory.insert(:user,
             email: "unverified@example.com",
@@ -220,10 +250,11 @@ defmodule TymeslotWeb.OAuthControllerTest do
       user_data = %{
         "oauth_provider" => "github",
         "oauth_email" => "fail@example.com",
-        "oauth_github_id" => "12345"
+        "oauth_github_id" => "12345",
+        "terms_accepted" => "on"
       }
 
-      :meck.expect(OAuthHelper, :create_oauth_user, fn :github, _data, _profile ->
+      :meck.expect(OAuthHelper, :create_oauth_user, fn :github, _data, _profile, _opts ->
         changeset = Changeset.add_error(%Changeset{}, :email, "can't be blank")
         {:error, changeset}
       end)
@@ -238,10 +269,11 @@ defmodule TymeslotWeb.OAuthControllerTest do
       user_data = %{
         "oauth_provider" => "github",
         "oauth_email" => "error@example.com",
-        "oauth_github_id" => "12345"
+        "oauth_github_id" => "12345",
+        "terms_accepted" => "on"
       }
 
-      :meck.expect(OAuthHelper, :create_oauth_user, fn :github, _data, _profile ->
+      :meck.expect(OAuthHelper, :create_oauth_user, fn :github, _data, _profile, _opts ->
         {:error, :user_creation_failed}
       end)
 

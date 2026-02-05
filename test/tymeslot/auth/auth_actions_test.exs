@@ -20,6 +20,12 @@ defmodule Tymeslot.Auth.AuthActionsTest do
       assert result["terms_accepted"] == true
     end
 
+    test "converts string 'on' to boolean true" do
+      params = %{"terms_accepted" => "on", "email" => "test@test.com"}
+      result = AuthActions.convert_terms_accepted(params)
+      assert result["terms_accepted"] == true
+    end
+
     test "converts string 'false' to boolean false" do
       params = %{"terms_accepted" => "false", "email" => "test@test.com"}
       result = AuthActions.convert_terms_accepted(params)
@@ -228,6 +234,30 @@ defmodule Tymeslot.Auth.AuthActionsTest do
                AuthActions.validate_complete_registration(auth_params, profile_params)
 
       assert valid["full_name"] in [nil, ""]
+    end
+  end
+
+  describe "complete_oauth_registration/2" do
+    test "requires terms acceptance when enforced" do
+      original = Application.get_env(:tymeslot, :enforce_legal_agreements)
+      Application.put_env(:tymeslot, :enforce_legal_agreements, true)
+      on_exit(fn -> Application.put_env(:tymeslot, :enforce_legal_agreements, original) end)
+
+      params = %{
+        "auth" => %{
+          "provider" => "github",
+          "email" => "test@example.com",
+          "terms_accepted" => "false"
+        },
+        "profile" => %{}
+      }
+
+      socket = %Phoenix.LiveView.Socket{
+        assigns: %{client_ip: "127.0.0.1", user_agent: "AuthActionsTest/1.0"}
+      }
+
+      assert {:error, "You must accept the terms to continue."} =
+               AuthActions.complete_oauth_registration(params, socket)
     end
   end
 end

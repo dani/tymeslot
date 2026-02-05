@@ -6,6 +6,7 @@ defmodule Tymeslot.Auth.OAuth.UserRegistration do
   require Logger
   alias Tymeslot.Auth.OAuth.TransactionalUserCreation
   alias Tymeslot.Infrastructure.Config
+  alias Tymeslot.Infrastructure.PubSub
 
   @type provider :: :github | :google
 
@@ -39,20 +40,26 @@ defmodule Tymeslot.Auth.OAuth.UserRegistration do
   @doc """
   Creates a new user from OAuth provider information.
   """
-  @spec create_oauth_user(provider, map(), map()) :: {:ok, map()} | {:error, any()}
-  def create_oauth_user(provider, oauth_user, profile_params \\ %{}) do
+  @spec create_oauth_user(provider, map(), map(), keyword()) :: {:ok, map()} | {:error, any()}
+  def create_oauth_user(provider, oauth_user, profile_params \\ %{}, opts \\ []) do
     placeholder_password = "$2b$12$oauth_user_no_password_placeholder_hash_not_for_authentication"
     email_verified = determine_email_verification_status(oauth_user)
+    metadata = Keyword.get(opts, :metadata, %{})
 
     auth_params = build_auth_params(provider, oauth_user, email_verified, placeholder_password)
 
     case TransactionalUserCreation.find_or_create_oauth_user(
            provider,
            auth_params,
-           profile_params
+           profile_params,
+           opts
          ) do
       {:ok, %{user: user, created: true}} ->
-        handle_user_verification_status(user, email_verified, oauth_user.email)
+        case handle_user_verification_status(user, email_verified, oauth_user.email) do
+          {:ok, updated_user} ->
+            PubSub.broadcast_user_registered(updated_user, metadata)
+            {:ok, updated_user}
+        end
 
       {:ok, %{user: user, created: false}} ->
         case check_oauth_account_linking(provider, user, oauth_user) do

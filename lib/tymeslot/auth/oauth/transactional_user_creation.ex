@@ -12,7 +12,6 @@ defmodule Tymeslot.Auth.OAuth.TransactionalUserCreation do
   alias Ecto.Changeset
   alias Tymeslot.DatabaseQueries.{ProfileQueries, UserQueries}
   alias Tymeslot.DatabaseSchemas.UserSchema
-  alias Tymeslot.Infrastructure.PubSub
   alias Tymeslot.Repo
 
   @doc """
@@ -35,17 +34,16 @@ defmodule Tymeslot.Auth.OAuth.TransactionalUserCreation do
   - {:error, :user_already_exists, reason} when user already exists
   - {:error, operation, reason} on other failures
   """
-  @spec create_oauth_user_transactionally(map(), map()) ::
+  @spec create_oauth_user_transactionally(map(), map(), keyword()) ::
           {:ok, %{user: UserSchema.t(), profile: any()}}
           | {:error, :user_already_exists, any()}
           | {:error, atom(), any()}
-  def create_oauth_user_transactionally(auth_params, profile_params) do
+  def create_oauth_user_transactionally(auth_params, profile_params, _opts \\ []) do
     result =
       UserQueries.transaction(fn ->
         with {:ok, :no_existing_user} <- check_for_existing_user(Repo, auth_params),
              {:ok, user} <- create_user(Repo, auth_params),
              {:ok, profile} <- create_profile(Repo, user, profile_params) do
-          broadcast_user_registered(user)
           %{user: user, profile: profile}
         else
           {:error, {:user_already_exists, reason}} ->
@@ -83,10 +81,10 @@ defmodule Tymeslot.Auth.OAuth.TransactionalUserCreation do
   - {:ok, %{user: user, created: boolean}} where created indicates if user was newly created
   - {:error, reason} on failure
   """
-  @spec find_or_create_oauth_user(atom(), map(), map()) ::
+  @spec find_or_create_oauth_user(atom(), map(), map(), keyword()) ::
           {:ok, %{user: UserSchema.t(), created: boolean()}}
           | {:error, any()}
-  def find_or_create_oauth_user(provider, auth_params, profile_params \\ %{}) do
+  def find_or_create_oauth_user(provider, auth_params, profile_params \\ %{}, _opts \\ []) do
     provider_field = provider_uid_field(provider)
     provider_uid = auth_params[provider_field]
 
@@ -95,10 +93,6 @@ defmodule Tymeslot.Auth.OAuth.TransactionalUserCreation do
         with {:ok, {user, created}} <-
                find_or_create_by_provider(Repo, provider, provider_uid, auth_params),
              {:ok, _} <- ensure_profile(Repo, user, created, profile_params) do
-          if created do
-            broadcast_user_registered(user)
-          end
-
           {user, created}
         else
           {:error, {operation, reason}} ->
@@ -169,10 +163,6 @@ defmodule Tymeslot.Auth.OAuth.TransactionalUserCreation do
         Logger.error("Profile creation failed for user_id=#{user.id}: #{inspect(reason)}")
         {:error, {:create_profile, reason}}
     end
-  end
-
-  defp broadcast_user_registered(user) do
-    PubSub.broadcast_user_registered(user)
   end
 
   defp find_or_create_by_provider(repo, provider, provider_uid, auth_params) do

@@ -9,6 +9,7 @@ defmodule Tymeslot.Auth.SocialAuthentication do
   alias Plug.Conn
   alias Plug.Crypto
   alias Tymeslot.Auth.OAuth.TransactionalUserCreation
+  alias Tymeslot.Infrastructure.PubSub
 
   @type provider :: String.t()
   @type user_info :: map()
@@ -84,18 +85,22 @@ defmodule Tymeslot.Auth.SocialAuthentication do
   - {:ok, user, message} if registration is successful
   - {:error, reason, details} if there was an error
   """
-  @spec finalize_social_login_registration(map(), map(), map()) ::
+  @spec finalize_social_login_registration(map(), map(), map(), keyword()) ::
           {:ok, map(), String.t()} | {:error, atom(), any()}
-  def finalize_social_login_registration(auth_params, profile_params, temp_user) do
+  def finalize_social_login_registration(auth_params, profile_params, temp_user, opts \\ []) do
+    metadata = Keyword.get(opts, :metadata, %{})
+
     with :ok <- validate_provider_response(auth_params),
          auth_params <- prepare_auth_params(auth_params, temp_user) do
       # Use transactional user creation to prevent race conditions
       case TransactionalUserCreation.create_oauth_user_transactionally(
              auth_params,
-             profile_params
+             profile_params,
+             opts
            ) do
         {:ok, %{user: user, profile: _profile}} ->
           {:ok, user, message} = handle_verification(user, profile_params)
+          PubSub.broadcast_user_registered(user, metadata)
           {:ok, Map.from_struct(user), message}
 
         {:error, :user_already_exists, reason} ->

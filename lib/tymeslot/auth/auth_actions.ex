@@ -8,6 +8,7 @@ defmodule Tymeslot.Auth.AuthActions do
   import Phoenix.Component, only: [assign: 3]
 
   alias Tymeslot.Auth.{PasswordReset, Registration, Session, SocialAuthentication}
+  alias Tymeslot.Infrastructure.Config
   alias Tymeslot.Security.AuthValidation
   alias TymeslotWeb.Helpers.ClientIP
 
@@ -21,7 +22,10 @@ defmodule Tymeslot.Auth.AuthActions do
   @spec complete_oauth_registration(map(), Phoenix.LiveView.Socket.t()) ::
           {:ok, Phoenix.LiveView.Socket.t(), String.t()} | {:error, String.t()}
   def complete_oauth_registration(params, socket) do
-    auth_params = params["auth"] || %{}
+    auth_params =
+      params["auth"]
+      |> Kernel.||(%{})
+      |> convert_terms_accepted()
     profile_params = params["profile"] || %{}
 
     temp_user = %{
@@ -32,13 +36,22 @@ defmodule Tymeslot.Auth.AuthActions do
       google_user_id: auth_params["google_user_id"]
     }
 
+    metadata = %{
+      ip: ClientIP.get(socket),
+      user_agent: ClientIP.get_user_agent(socket),
+      source: "oauth_signup",
+      terms_accepted: Map.get(auth_params, "terms_accepted")
+    }
+
     with {:ok, converted_profile} <- convert_profile_params(profile_params),
+         :ok <- ensure_terms_accepted(auth_params),
          :ok <- SocialAuthentication.check_email_availability(auth_params["email"]),
          {:ok, user, message} <-
            SocialAuthentication.finalize_social_login_registration(
              auth_params,
              converted_profile,
-             temp_user
+             temp_user,
+             metadata: metadata
            ),
          {:ok, updated_socket, _token} <- Session.create_session(socket, user) do
       {:ok, updated_socket, message}
@@ -70,10 +83,20 @@ defmodule Tymeslot.Auth.AuthActions do
   @spec register_user(map(), Phoenix.LiveView.Socket.t()) ::
           {:ok, atom(), String.t()} | {:error, String.t()}
   def register_user(user_params, socket) do
+    converted_params = convert_terms_accepted(user_params)
+
+    metadata = %{
+      ip: ClientIP.get(socket),
+      user_agent: ClientIP.get_user_agent(socket),
+      source: "signup",
+      terms_accepted: Map.get(converted_params, "terms_accepted")
+    }
+
     case Registration.register_user(
-           convert_terms_accepted(user_params),
+           converted_params,
            socket,
-           calling_app: :auth
+           calling_app: :auth,
+           metadata: metadata
          ) do
       {:ok, _user, message} ->
         {:ok, :verify_email, message}
@@ -223,9 +246,20 @@ defmodule Tymeslot.Auth.AuthActions do
   def convert_terms_accepted(user_params) do
     Map.update(user_params, "terms_accepted", false, fn
       "true" -> true
+      "on" -> true
       true -> true
       _ -> false
     end)
+  end
+
+  defp ensure_terms_accepted(%{"terms_accepted" => true}), do: :ok
+
+  defp ensure_terms_accepted(_params) do
+    if Config.enforce_legal_agreements?() do
+      {:error, "You must accept the terms to continue."}
+    else
+      :ok
+    end
   end
 
   # Private Functions

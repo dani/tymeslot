@@ -98,8 +98,8 @@ defmodule Tymeslot.Auth.OAuth.Helper do
   end
 
   @impl true
-  def create_oauth_user(provider, oauth_user, profile_params \\ %{}) do
-    UserRegistration.create_oauth_user(provider, oauth_user, profile_params)
+  def create_oauth_user(provider, oauth_user, profile_params \\ %{}, opts \\ []) do
+    UserRegistration.create_oauth_user(provider, oauth_user, profile_params, opts)
   end
 
   # --- State Management ---

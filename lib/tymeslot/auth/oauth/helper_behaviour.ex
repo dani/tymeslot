@@ -18,7 +18,7 @@ defmodule Tymeslot.Auth.OAuth.HelperBehaviour do
   @callback registration_complete?(atom(), map()) :: boolean()
   @callback check_oauth_requirements(atom(), map()) :: {:missing, list(atom())} | :complete
   @callback find_existing_user(atom(), map()) :: {:ok, map()} | {:error, :not_found}
-  @callback create_oauth_user(atom(), map(), map()) :: {:ok, map()} | {:error, any()}
+  @callback create_oauth_user(atom(), map(), map(), keyword()) :: {:ok, map()} | {:error, any()}
   @callback update_client_headers(OAuth2.Client.t(), atom()) :: OAuth2.Client.t()
   @callback parse_access_token(String.t()) :: String.t()
 

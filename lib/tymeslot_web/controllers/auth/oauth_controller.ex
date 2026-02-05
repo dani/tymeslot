@@ -11,6 +11,7 @@ defmodule TymeslotWeb.OAuthController do
   alias Tymeslot.Auth.OAuth.Helper, as: OAuthHelper
   alias Tymeslot.Auth.OAuth.URLs
   alias Tymeslot.Auth.{Session, SocialAuthentication, Verification}
+  alias Tymeslot.Infrastructure.Config
   alias Tymeslot.Security.RateLimiter
   alias TymeslotWeb.AuthControllerHelpers
   alias TymeslotWeb.Helpers.ClientIP
@@ -244,9 +245,16 @@ defmodule TymeslotWeb.OAuthController do
   defp handle_oauth_with_provider(conn, oauth_data, params, profile_params) do
     case validate_oauth_provider(oauth_data.provider) do
       {:ok, provider} ->
+        metadata = %{
+          ip: ClientIP.get(conn),
+          user_agent: ClientIP.get_user_agent(conn),
+          source: "oauth_signup",
+          terms_accepted: oauth_data.terms_accepted
+        }
+
         case validate_oauth_completion_data(oauth_data) do
           :ok ->
-            case OAuthHelper.create_oauth_user(provider, oauth_data, profile_params) do
+            case OAuthHelper.create_oauth_user(provider, oauth_data, profile_params, metadata: metadata) do
               {:ok, user} ->
                 handle_oauth_user_creation(conn, user, oauth_data)
 
@@ -283,7 +291,8 @@ defmodule TymeslotWeb.OAuthController do
       email_from_provider: email_from_provider,
       github_user_id: params["oauth_github_id"],
       google_user_id: params["oauth_google_id"],
-      name: params["oauth_name"] || ""
+      name: params["oauth_name"] || "",
+      terms_accepted: get_terms_accepted(params)
     }
   end
 
@@ -375,6 +384,9 @@ defmodule TymeslotWeb.OAuthController do
       not valid_email_format?(email) ->
         {:error, :invalid_email}
 
+      Config.enforce_legal_agreements?() and not oauth_data.terms_accepted ->
+        {:error, :terms_not_accepted}
+
       true ->
         # Check if email already exists in database
         case SocialAuthentication.check_email_availability(email) do
@@ -435,12 +447,14 @@ defmodule TymeslotWeb.OAuthController do
     do: "Email address is required to complete registration."
 
   defp format_error_for_flash(:invalid_email), do: "Please provide a valid email address."
+  defp format_error_for_flash(:terms_not_accepted), do: "You must accept the terms to continue."
   defp format_error_for_flash(error_message) when is_binary(error_message), do: error_message
 
   @spec format_error_for_params(any()) :: String.t()
   defp format_error_for_params(%Ecto.Changeset{}), do: "validation_failed"
   defp format_error_for_params(:email_required), do: "email_required"
   defp format_error_for_params(:invalid_email), do: "invalid_email"
+  defp format_error_for_params(:terms_not_accepted), do: "terms_not_accepted"
 
   defp format_error_for_params(error_message) when is_binary(error_message),
     do: "email_already_taken"
@@ -526,6 +540,9 @@ defmodule TymeslotWeb.OAuthController do
         :invalid_email ->
           "Please provide a valid email address."
 
+        :terms_not_accepted ->
+          "You must accept the terms to continue."
+
         :email_already_taken ->
           "This email address is already associated with another account. Please use a different email or sign in to your existing account."
 
@@ -548,6 +565,15 @@ defmodule TymeslotWeb.OAuthController do
 
       _ ->
         "Registration failed due to validation errors. Please check your information and try again."
+    end
+  end
+
+  defp get_terms_accepted(params) do
+    case get_in(params, ["auth", "terms_accepted"]) || params["terms_accepted"] do
+      true -> true
+      "true" -> true
+      "on" -> true
+      _ -> false
     end
   end
 end
