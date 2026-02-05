@@ -41,7 +41,16 @@ config/*.secret.exs
 config/prod.secret.exs
 
 # Phoenix specific
-priv/static/
+# Compiled asset bundles and digester output; source assets (videos, images,
+# icons) are tracked. The 32-? glob matches Phoenix's hex-hash digest copies.
+priv/static/assets/
+priv/static/cache_manifest.json
+priv/static/**/*.gz
+priv/static/**/*-????????????????????????????????.*
+# Built embed script from assets.deploy (source is in assets/js/embed.js)
+priv/static/embed.js
+# Legacy theme CSS superseded by tailwind quill/rhythm builds in assets/
+priv/static/css/
 priv/cert/
 .elixir_ls/
 .dialyzer/
