@@ -123,7 +123,9 @@ defmodule Tymeslot.Meetings.Queries do
   def meetings_needing_reminders do
     now = DateTime.utc_now()
     one_hour_from_now = DateTime.add(now, 1, :hour)
+
     MeetingQueries.list_meetings_needing_reminders(now, one_hour_from_now)
+    |> Enum.filter(&needs_reminder?/1)
   end
 
   # =====================================
@@ -165,8 +167,35 @@ defmodule Tymeslot.Meetings.Queries do
   @spec get_meeting_for_user(String.t() | integer(), String.t()) ::
           {:ok, MeetingSchema.t()} | {:error, :not_found}
   def get_meeting_for_user(id, user_email) do
-    case MeetingQueries.get_meeting_for_user(id, user_email) do
-      {:ok, meeting} -> {:ok, meeting}
+    with {:ok, meeting} <- MeetingQueries.get_meeting(id),
+         true <- meeting.organizer_email == user_email or meeting.attendee_email == user_email do
+      {:ok, meeting}
+    else
+      _ -> {:error, :not_found}
+    end
+  end
+
+  @doc """
+  Gets a single meeting by UID for a specific user.
+
+  This function verifies that the meeting belongs to the specified user
+  (either as organizer or attendee) before returning it.
+
+  ## Parameters
+    - uid: Meeting UID (string)
+    - user_email: Email address of the user
+
+  ## Returns
+    - {:ok, meeting} if found and belongs to user
+    - {:error, :not_found} if not found or doesn't belong to user
+  """
+  @spec get_meeting_by_uid_for_user(String.t(), String.t()) ::
+          {:ok, MeetingSchema.t()} | {:error, :not_found}
+  def get_meeting_by_uid_for_user(uid, user_email) do
+    with {:ok, meeting} <- MeetingQueries.get_meeting_by_uid(uid),
+         true <- meeting.organizer_email == user_email or meeting.attendee_email == user_email do
+      {:ok, meeting}
+    else
       _ -> {:error, :not_found}
     end
   end
@@ -300,7 +329,7 @@ defmodule Tymeslot.Meetings.Queries do
 
   ## Returns
     - {:ok, %CursorPage{}} with filtered meetings
-    - {:error, term()} on failure
+    - {:error, :invalid_cursor} if cursor is malformed
 
   ## Examples
 
@@ -311,7 +340,7 @@ defmodule Tymeslot.Meetings.Queries do
       {:ok, %CursorPage{items: [...]}}
   """
   @spec list_user_meetings_by_filter(integer(), String.t(), keyword()) ::
-          {:ok, CursorPage.t()} | {:error, term()}
+          {:ok, CursorPage.t()} | {:error, :invalid_cursor}
   def list_user_meetings_by_filter(user_id, filter, opts \\ []) do
     per_page = Keyword.get(opts, :per_page, 20)
     after_cursor = Keyword.get(opts, :after)
@@ -382,5 +411,22 @@ defmodule Tymeslot.Meetings.Queries do
       page_size: per_page,
       has_more: has_more
     }
+  end
+
+  defp needs_reminder?(meeting) do
+    case meeting.reminders do
+      nil ->
+        not meeting.reminder_email_sent
+
+      [] ->
+        false
+
+      reminders when is_list(reminders) ->
+        reminders_sent = meeting.reminders_sent || []
+        length(reminders) > length(reminders_sent)
+
+      _ ->
+        true
+    end
   end
 end

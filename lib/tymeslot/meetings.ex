@@ -10,6 +10,7 @@ defmodule Tymeslot.Meetings do
   alias Tymeslot.Availability.TimeSlots
   alias Tymeslot.Bookings.{Cancel, Create, Reschedule, RescheduleRequest}
   alias Tymeslot.DatabaseSchemas.MeetingSchema
+  alias Tymeslot.DatabaseQueries.MeetingQueries
   alias Tymeslot.Meetings.{Queries, VideoRooms}
   alias Tymeslot.Pagination.CursorPage
   alias Tymeslot.Workers.CalendarEventWorker
@@ -359,7 +360,7 @@ defmodule Tymeslot.Meetings do
   High-level function to list meetings for a user based on a filter string.
   """
   @spec list_user_meetings_by_filter(integer(), String.t(), keyword()) ::
-          {:ok, CursorPage.t()} | {:error, term()}
+          {:ok, CursorPage.t()} | {:error, :invalid_cursor}
   def list_user_meetings_by_filter(user_id, filter, opts \\ []) do
     case Queries.list_user_meetings_by_filter(user_id, filter, opts) do
       {:ok, page} ->
@@ -368,14 +369,6 @@ defmodule Tymeslot.Meetings do
       {:error, :invalid_cursor} ->
         Logger.warning("Invalid pagination cursor provided", user_id: user_id)
         {:error, :invalid_cursor}
-
-      {:error, reason} ->
-        Logger.error("Failed to list meetings by filter",
-          user_id: user_id,
-          reason: inspect(reason)
-        )
-
-        {:error, :failed_to_list_meetings}
     end
   rescue
     error ->
@@ -405,6 +398,37 @@ defmodule Tymeslot.Meetings do
     case Queries.get_meeting_for_user(id, user_email) do
       {:ok, meeting} -> {:ok, meeting}
       _ -> {:error, :not_found}
+    end
+  end
+
+  @doc """
+  Updates a meeting for a specific user.
+  Only the organizer can update a meeting.
+  Returns {:ok, meeting} if authorized and updated, {:error, :unauthorized} if not authorized.
+  """
+  @spec update_meeting_for_user(MeetingSchema.t(), map(), String.t()) ::
+          {:ok, MeetingSchema.t()} | {:error, :unauthorized | Ecto.Changeset.t()}
+  def update_meeting_for_user(%MeetingSchema{} = meeting, attrs, user_email)
+      when is_binary(user_email) do
+    if meeting.organizer_email == user_email do
+      MeetingQueries.update_meeting(meeting, attrs)
+    else
+      {:error, :unauthorized}
+    end
+  end
+
+  @doc """
+  Deletes a meeting for a specific user.
+  Only the organizer can delete a meeting.
+  Returns {:ok, meeting} if authorized and deleted, {:error, :unauthorized} if not authorized.
+  """
+  @spec delete_meeting_for_user(MeetingSchema.t(), String.t()) ::
+          {:ok, MeetingSchema.t()} | {:error, :unauthorized | Ecto.Changeset.t()}
+  def delete_meeting_for_user(%MeetingSchema{} = meeting, user_email) when is_binary(user_email) do
+    if meeting.organizer_email == user_email do
+      MeetingQueries.delete_meeting(meeting)
+    else
+      {:error, :unauthorized}
     end
   end
 

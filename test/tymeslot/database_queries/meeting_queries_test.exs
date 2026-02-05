@@ -26,24 +26,16 @@ defmodule Tymeslot.DatabaseQueries.MeetingQueriesTest do
     test "queries meetings in time window for reminders" do
       now = DateTime.utc_now()
 
-      meeting_needing_reminder =
+      meeting_in_window =
         insert(:meeting,
           start_time: DateTime.add(now, 30, :minute),
           status: "confirmed",
-          reminder_email_sent: false,
-          reminders: nil
+          reminder_email_sent: true
         )
 
       # Should not appear: too far in future
       insert(:meeting,
         start_time: DateTime.add(now, 2, :hour),
-        status: "confirmed",
-        reminder_email_sent: false
-      )
-
-      # Should not appear: reminder already sent
-      insert(:meeting,
-        start_time: DateTime.add(now, 30, :minute),
         status: "confirmed",
         reminder_email_sent: true
       )
@@ -52,14 +44,14 @@ defmodule Tymeslot.DatabaseQueries.MeetingQueriesTest do
       insert(:meeting,
         start_time: DateTime.add(now, 30, :minute),
         status: "pending",
-        reminder_email_sent: false
+        reminder_email_sent: true
       )
 
       one_hour_from_now = DateTime.add(now, 1, :hour)
       meetings = MeetingQueries.list_meetings_needing_reminders(now, one_hour_from_now)
 
       assert length(meetings) == 1
-      assert hd(meetings).id == meeting_needing_reminder.id
+      assert hd(meetings).id == meeting_in_window.id
     end
   end
 

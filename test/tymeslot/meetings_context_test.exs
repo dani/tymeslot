@@ -345,6 +345,50 @@ defmodule Tymeslot.MeetingsContextTest do
     end
   end
 
+  describe "when updating or deleting a meeting as a user" do
+    test "organizer can update meeting" do
+      meeting = insert(:meeting, organizer_email: "organizer@example.com")
+
+      assert {:ok, updated} =
+               Meetings.update_meeting_for_user(
+                 meeting,
+                 %{title: "New Title"},
+                 "organizer@example.com"
+               )
+
+      assert updated.title == "New Title"
+    end
+
+    test "attendee cannot update meeting" do
+      meeting =
+        insert(:meeting,
+          organizer_email: "organizer@example.com",
+          attendee_email: "attendee@example.com"
+        )
+
+      assert {:error, :unauthorized} =
+               Meetings.update_meeting_for_user(meeting, %{title: "New Title"}, "attendee@example.com")
+    end
+
+    test "organizer can delete meeting" do
+      meeting = insert(:meeting, organizer_email: "organizer@example.com")
+
+      assert {:ok, _} = Meetings.delete_meeting_for_user(meeting, "organizer@example.com")
+      assert {:error, :not_found} = MeetingQueries.get_meeting(meeting.id)
+    end
+
+    test "attendee cannot delete meeting" do
+      meeting =
+        insert(:meeting,
+          organizer_email: "organizer@example.com",
+          attendee_email: "attendee@example.com"
+        )
+
+      assert {:error, :unauthorized} =
+               Meetings.delete_meeting_for_user(meeting, "attendee@example.com")
+    end
+  end
+
   # =====================================
   # Video Room Integration Behaviors
   # =====================================

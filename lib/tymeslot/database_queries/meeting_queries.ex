@@ -11,7 +11,6 @@ defmodule Tymeslot.DatabaseQueries.MeetingQueries do
 
   alias Ecto.Changeset
   alias Ecto.UUID
-  alias Tymeslot.DatabaseQueries.UserQueries
   alias Tymeslot.DatabaseSchemas.MeetingSchema, as: Meeting
   alias Tymeslot.Repo
   alias Tymeslot.Utils.ReminderUtils
@@ -208,77 +207,6 @@ defmodule Tymeslot.DatabaseQueries.MeetingQueries do
   @spec delete_meeting(Meeting.t()) :: {:ok, Meeting.t()} | {:error, Changeset.t()}
   def delete_meeting(%Meeting{} = meeting) do
     Repo.delete(meeting)
-  end
-
-  @doc """
-  Gets a single meeting by ID for a specific user.
-  This is the secure version that checks user authorization.
-  A user can access a meeting if they are the organizer OR the attendee.
-  Returns {:ok, meeting} if found and authorized, {:error, :not_found} otherwise.
-  """
-  @spec get_meeting_for_user(String.t(), String.t()) :: {:ok, Meeting.t()} | {:error, :not_found}
-  def get_meeting_for_user(id, user_email) when is_binary(user_email) do
-    query =
-      from(m in Meeting,
-        where:
-          m.id == ^id and (m.organizer_email == ^user_email or m.attendee_email == ^user_email)
-      )
-
-    case Repo.one(query) do
-      nil -> {:error, :not_found}
-      meeting -> {:ok, meeting}
-    end
-  end
-
-  @doc """
-  Gets a single meeting by UID for a specific user.
-  This is the secure version that checks user authorization.
-  Returns {:ok, meeting} if found and authorized, {:error, :not_found} otherwise.
-  """
-  @spec get_meeting_by_uid_for_user(String.t(), String.t()) ::
-          {:ok, Meeting.t()} | {:error, :not_found}
-  def get_meeting_by_uid_for_user(uid, user_email) when is_binary(user_email) do
-    query =
-      from(m in Meeting,
-        where:
-          m.uid == ^uid and (m.organizer_email == ^user_email or m.attendee_email == ^user_email)
-      )
-
-    case Repo.one(query) do
-      nil -> {:error, :not_found}
-      meeting -> {:ok, meeting}
-    end
-  end
-
-  @doc """
-  Updates a meeting for a specific user.
-  Only the organizer can update a meeting.
-  Returns {:ok, meeting} if authorized and updated, {:error, :unauthorized} if not authorized.
-  """
-  @spec update_meeting_for_user(Meeting.t(), map(), String.t()) ::
-          {:ok, Meeting.t()} | {:error, :unauthorized | Changeset.t()}
-  def update_meeting_for_user(%Meeting{} = meeting, attrs, user_email)
-      when is_binary(user_email) do
-    if meeting.organizer_email == user_email do
-      update_meeting(meeting, attrs)
-    else
-      {:error, :unauthorized}
-    end
-  end
-
-  @doc """
-  Deletes a meeting for a specific user.
-  Only the organizer can delete a meeting.
-  Returns {:ok, meeting} if authorized and deleted, {:error, :unauthorized} if not authorized.
-  """
-  @spec delete_meeting_for_user(Meeting.t(), String.t()) ::
-          {:ok, Meeting.t()} | {:error, :unauthorized | Changeset.t()}
-  def delete_meeting_for_user(%Meeting{} = meeting, user_email) when is_binary(user_email) do
-    if meeting.organizer_email == user_email do
-      delete_meeting(meeting)
-    else
-      {:error, :unauthorized}
-    end
   end
 
   @doc """
@@ -507,17 +435,11 @@ defmodule Tymeslot.DatabaseQueries.MeetingQueries do
   end
 
   @doc """
-  Returns meetings that need reminder emails sent.
-  This is a data access function that queries meetings by time window and status.
+  Returns meetings in the reminder window with confirmed status.
   Business logic for determining which meetings need reminders should be in the Meetings context.
-
-  For meetings with per-reminder tracking (reminders field), checks if all reminders have been sent.
-  For legacy meetings without reminders field, falls back to reminder_email_sent boolean flag.
   """
   @spec list_meetings_needing_reminders(DateTime.t(), DateTime.t()) :: [Meeting.t()]
   def list_meetings_needing_reminders(start_time, end_time) do
-    # First get all meetings in the time window with confirmed status
-    # Then filter in application code to check per-reminder tracking
     base_query =
       from(m in Meeting,
         where:
@@ -527,29 +449,7 @@ defmodule Tymeslot.DatabaseQueries.MeetingQueries do
         order_by: [asc: m.start_time]
       )
 
-    meetings = Repo.all(base_query)
-
-    # Filter to only those that still need reminders
-    Enum.filter(meetings, fn meeting ->
-      case meeting.reminders do
-        nil ->
-          # Legacy meeting: use boolean flag
-          not meeting.reminder_email_sent
-
-        [] ->
-          # Empty reminders list: no reminders needed
-          false
-
-        reminders when is_list(reminders) ->
-          # Per-reminder tracking: check if all have been sent
-          reminders_sent = meeting.reminders_sent || []
-          length(reminders) > length(reminders_sent)
-
-        _ ->
-          # Invalid data: assume needs reminder (safer default)
-          true
-      end
-    end)
+    Repo.all(base_query)
   end
 
   @doc """
@@ -598,52 +498,6 @@ defmodule Tymeslot.DatabaseQueries.MeetingQueries do
     |> order_by_start_asc()
     |> apply_limit(limit)
     |> Repo.all()
-  end
-
-  @doc """
-  Get all meetings for a user with filters and preloads.
-  Supports pagination. Takes user_id and looks up user's email.
-  """
-  @spec user_meetings(String.t() | integer(), Keyword.t()) :: [Meeting.t()]
-  def user_meetings(user_id, opts \\ []) do
-    case UserQueries.get_user(user_id) do
-      {:error, :not_found} ->
-        []
-
-      {:ok, user} ->
-        page = Keyword.get(opts, :page, 1)
-        per_page = Keyword.get(opts, :per_page, 20)
-        status = Keyword.get(opts, :status)
-
-        Meeting
-        |> for_user_email(user.email)
-        |> with_status(status)
-        |> order_by_start_desc()
-        |> paginate_offset(page, per_page)
-        |> Repo.all()
-    end
-  end
-
-  @doc """
-  Count total meetings for pagination.
-  Takes user_id and looks up user's email.
-  """
-  @spec count_user_meetings(String.t() | integer(), Keyword.t()) :: non_neg_integer()
-  def count_user_meetings(user_id, opts \\ []) do
-    case UserQueries.get_user(user_id) do
-      {:error, :not_found} ->
-        0
-
-      {:ok, user} ->
-        status = Keyword.get(opts, :status)
-
-        query =
-          Meeting
-          |> for_user_email(user.email)
-          |> with_status(status)
-
-        Repo.aggregate(query, :count, :id)
-    end
   end
 
   @doc """
