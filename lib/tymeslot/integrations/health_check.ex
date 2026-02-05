@@ -354,10 +354,6 @@ defmodule Tymeslot.Integrations.HealthCheck do
     }
   end
 
-  defp update_health_state(health_state, {:error, reason, message}) do
-    update_health_state(health_state, {:error, {:error, reason, message}})
-  end
-
   defp update_health_state(health_state, {:error, reason}) do
     case classify_error(reason) do
       :transient ->
@@ -406,10 +402,8 @@ defmodule Tymeslot.Integrations.HealthCheck do
   defp due_for_check?(%{last_check: nil}, _now), do: true
 
   defp due_for_check?(%{last_check: last_check, backoff_ms: backoff_ms}, now) do
-    case DateTime.add(last_check, backoff_ms, :millisecond) do
-      %DateTime{} = next_time -> DateTime.compare(next_time, now) != :gt
-      _ -> true
-    end
+    next_time = DateTime.add(last_check, backoff_ms, :millisecond)
+    DateTime.compare(next_time, now) != :gt
   end
 
   defp scheduled_at_with_jitter do
@@ -423,8 +417,6 @@ defmodule Tymeslot.Integrations.HealthCheck do
     |> Kernel.*(2)
     |> min(@max_backoff)
   end
-
-  defp next_backoff_ms(_current, _), do: @check_interval
 
   defp classify_error({:error, :rate_limited}), do: :transient
   defp classify_error({:error, :rate_limited, _message}), do: :transient

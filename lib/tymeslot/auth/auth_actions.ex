@@ -85,7 +85,7 @@ defmodule Tymeslot.Auth.AuthActions do
       {:error, :missing_required_fields, fields} when is_list(fields) ->
         {:error, "Missing required fields: #{Enum.join(fields, ", ")}"}
 
-      # Handle atom errors from convert_profile_params
+      # Handle 2-element error tuples with atoms
       {:error, reason} when is_atom(reason) ->
         {:error, normalize_auth_error(reason)}
 
@@ -298,7 +298,7 @@ defmodule Tymeslot.Auth.AuthActions do
       # OAuth registration errors
       :invalid_profile_params -> get_oauth_error_message(:invalid_profile_params)
       :conversion_failed -> get_oauth_error_message(:conversion_failed)
-      _ -> "An unexpected error occurred during registration."
+      :oauth_user -> "This email is already registered via social login."
     end
   end
 

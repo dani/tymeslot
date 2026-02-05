@@ -133,7 +133,8 @@ defmodule Tymeslot.Workers.CalendarEventWorker do
   @doc """
   Schedules calendar event update with medium priority.
   """
-  @spec schedule_calendar_update(integer()) :: {:ok, Oban.Job.t()} | {:error, Ecto.Changeset.t()}
+  @spec schedule_calendar_update(String.t() | integer()) ::
+          {:ok, Oban.Job.t()} | {:error, Ecto.Changeset.t()}
   def schedule_calendar_update(meeting_id) do
     %{"action" => "update", "meeting_id" => meeting_id}
     |> new(
@@ -152,7 +153,7 @@ defmodule Tymeslot.Workers.CalendarEventWorker do
   @doc """
   Schedules calendar event deletion with high priority.
   """
-  @spec schedule_calendar_deletion(integer()) ::
+  @spec schedule_calendar_deletion(String.t() | integer()) ::
           {:ok, Oban.Job.t()} | {:error, Ecto.Changeset.t()}
   def schedule_calendar_deletion(meeting_id) do
     %{"action" => "delete", "meeting_id" => meeting_id}

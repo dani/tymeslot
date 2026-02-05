@@ -60,7 +60,7 @@ defmodule Tymeslot.Auth.SocialAuthentication do
   @doc """
   Validates provider response to ensure required fields are present.
   """
-  @spec validate_provider_response(map()) :: :ok | {:error, atom(), any()}
+  @spec validate_provider_response(map()) :: :ok | {:error, atom()} | {:error, atom(), any()}
   def validate_provider_response(auth_params) do
     required_fields = ["email", "provider"]
 
@@ -86,7 +86,7 @@ defmodule Tymeslot.Auth.SocialAuthentication do
   - {:error, reason, details} if there was an error
   """
   @spec finalize_social_login_registration(map(), map(), map(), keyword()) ::
-          {:ok, map(), String.t()} | {:error, atom(), any()}
+          {:ok, map(), String.t()} | {:error, atom()} | {:error, atom(), any()}
   def finalize_social_login_registration(auth_params, profile_params, temp_user, opts \\ []) do
     metadata = Keyword.get(opts, :metadata, %{})
 
