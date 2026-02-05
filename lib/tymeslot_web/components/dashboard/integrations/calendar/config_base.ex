@@ -77,11 +77,15 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.ConfigBase do
         value = integration_params[field] || ""
         field_atom = field_atom_from(field)
 
-        case CalendarInputProcessor.validate_single_field(field_atom, value,
-               metadata: socket.assigns.metadata
-             ) do
-          {:ok, _} -> handle_valid_field(socket, field_atom)
-          {:error, error} -> handle_invalid_field(socket, field_atom, error)
+        if String.trim(to_string(value)) == "" do
+          handle_valid_field(socket, field_atom)
+        else
+          case CalendarInputProcessor.validate_single_field(field_atom, value,
+                 metadata: socket.assigns.metadata
+               ) do
+            {:ok, _} -> handle_valid_field(socket, field_atom)
+            {:error, error} -> handle_invalid_field(socket, field_atom, error)
+          end
         end
       end
     end

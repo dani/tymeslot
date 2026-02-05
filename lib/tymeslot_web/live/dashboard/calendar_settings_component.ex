@@ -76,24 +76,33 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
       end
 
     if field_atom do
-      case CalendarInputProcessor.validate_single_field(field_atom, value,
-             metadata: socket.assigns.security_metadata
-           ) do
-        {:ok, _} ->
-          {:noreply,
-           assign(
-             socket,
-             :form_errors,
-             FormValidationHelpers.delete_field_error(socket.assigns.form_errors, field_atom)
-           )}
+      if String.trim(to_string(value)) == "" do
+        {:noreply,
+         assign(
+           socket,
+           :form_errors,
+           FormValidationHelpers.delete_field_error(socket.assigns.form_errors, field_atom)
+         )}
+      else
+        case CalendarInputProcessor.validate_single_field(field_atom, value,
+               metadata: socket.assigns.security_metadata
+             ) do
+          {:ok, _} ->
+            {:noreply,
+             assign(
+               socket,
+               :form_errors,
+               FormValidationHelpers.delete_field_error(socket.assigns.form_errors, field_atom)
+             )}
 
-        {:error, error} ->
-          {:noreply,
-           assign(
-             socket,
-             :form_errors,
-             Map.put(socket.assigns.form_errors, field_atom, error)
-           )}
+          {:error, error} ->
+            {:noreply,
+             assign(
+               socket,
+               :form_errors,
+               Map.put(socket.assigns.form_errors, field_atom, error)
+             )}
+        end
       end
     else
       {:noreply, socket}

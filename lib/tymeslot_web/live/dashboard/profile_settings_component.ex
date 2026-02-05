@@ -8,6 +8,7 @@ defmodule TymeslotWeb.Dashboard.ProfileSettingsComponent do
   use TymeslotWeb, :live_component
 
   alias TymeslotWeb.Components.CoreComponents
+  alias TymeslotWeb.Components.Dashboard.Profile.DeleteAvatarModal
 
   alias TymeslotWeb.Dashboard.ProfileSettings.{
     AvatarUploadComponent,
@@ -87,6 +88,13 @@ defmodule TymeslotWeb.Dashboard.ProfileSettingsComponent do
           </div>
         </div>
       </div>
+
+      <!-- Delete Avatar Modal (rendered outside card to avoid z-index stacking issues) -->
+      <.live_component
+        module={DeleteAvatarModal}
+        id="delete-avatar-modal"
+        profile={@profile}
+      />
     </div>
     """
   end

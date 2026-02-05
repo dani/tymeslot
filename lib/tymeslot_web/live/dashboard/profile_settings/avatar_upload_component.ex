@@ -7,7 +7,6 @@ defmodule TymeslotWeb.Dashboard.ProfileSettings.AvatarUploadComponent do
 
   alias Tymeslot.Profiles
   alias Tymeslot.Utils.ChangesetUtils
-  alias TymeslotWeb.Components.CoreComponents
 
   @impl true
   def update(assigns, socket) do
@@ -26,8 +25,6 @@ defmodule TymeslotWeb.Dashboard.ProfileSettings.AvatarUploadComponent do
         )
       end
 
-    socket = ModalHook.mount_modal(socket, [{:delete_avatar, false}])
-
     {:ok, socket}
   end
 
@@ -39,43 +36,6 @@ defmodule TymeslotWeb.Dashboard.ProfileSettings.AvatarUploadComponent do
   def handle_event("upload_avatar", _params, socket) do
     metadata = DashboardHelpers.get_security_metadata(socket)
     {:noreply, consume_avatar_upload(socket, metadata)}
-  end
-
-  def handle_event("show_delete_avatar_modal", _params, socket) do
-    {:noreply, ModalHook.show_modal(socket, :delete_avatar)}
-  end
-
-  def handle_event("hide_delete_avatar_modal", _params, socket) do
-    {:noreply, ModalHook.hide_modal(socket, :delete_avatar)}
-  end
-
-  def handle_event("delete_avatar", _params, socket) do
-    profile = socket.assigns.profile
-    socket = ModalHook.hide_modal(socket, :delete_avatar)
-
-    case Profiles.delete_avatar(profile) do
-      {:ok, updated_profile} ->
-        send(self(), {:profile_updated, updated_profile})
-        Flash.info("Avatar deleted successfully")
-
-        socket =
-          socket
-          |> disallow_upload(:avatar)
-          |> allow_upload(:avatar,
-            accept: ~w(.jpg .jpeg .png .gif .webp),
-            max_entries: 1,
-            max_file_size: 10_000_000,
-            auto_upload: true,
-            progress: &handle_avatar_progress/3
-          )
-
-        socket = push_event(socket, "avatar-upload-complete", %{})
-        {:noreply, assign(socket, profile: updated_profile)}
-
-      {:error, reason} ->
-        Flash.error("Failed to delete avatar: #{inspect(reason)}")
-        {:noreply, socket}
-    end
   end
 
   defp handle_avatar_progress(_config, entry, socket) do
@@ -142,7 +102,7 @@ defmodule TymeslotWeb.Dashboard.ProfileSettings.AvatarUploadComponent do
     ~H"""
     <div id="avatar-upload-container" class="lg:col-span-1 space-y-8 text-center pt-4">
       <.section_header level={3} title="Profile Picture" />
-      
+
       <div class="relative inline-block mb-8" phx-hook="AutoUpload" id="avatar-upload-section">
         <div class="w-40 h-40 rounded-[2.5rem] overflow-hidden bg-tymeslot-100 border-4 border-white shadow-2xl relative z-10 mx-auto">
           <img
@@ -187,8 +147,8 @@ defmodule TymeslotWeb.Dashboard.ProfileSettings.AvatarUploadComponent do
           <%= if @profile.avatar do %>
             <button
               type="button"
-              phx-click="show_delete_avatar_modal"
-              phx-target={@myself}
+              phx-click="show"
+              phx-target="#delete-avatar-modal"
               class="btn-danger w-full py-4 flex items-center justify-center gap-2 whitespace-nowrap"
             >
               <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -197,7 +157,7 @@ defmodule TymeslotWeb.Dashboard.ProfileSettings.AvatarUploadComponent do
               <span>Delete Photo</span>
             </button>
           <% end %>
-          
+
           <button type="submit" id="avatar-submit-btn" class="hidden">Upload</button>
         </form>
 
@@ -243,46 +203,6 @@ defmodule TymeslotWeb.Dashboard.ProfileSettings.AvatarUploadComponent do
           <% end %>
         <% end %>
       </div>
-
-      <!-- Delete Avatar Modal -->
-      <CoreComponents.modal
-        id="delete-avatar-modal"
-        show={@show_delete_avatar_modal}
-        on_cancel={Phoenix.LiveView.JS.push("hide_delete_avatar_modal", target: @myself)}
-        size={:medium}
-      >
-        <:header>
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-red-50 rounded-token-xl flex items-center justify-center border border-red-100">
-              <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            </div>
-            <span class="text-2xl font-black text-tymeslot-900 tracking-tight">Delete Avatar</span>
-          </div>
-        </:header>
-        <p class="text-tymeslot-600 font-medium text-lg leading-relaxed">
-          Are you sure you want to delete your profile picture? This action cannot be undone.
-        </p>
-        <:footer>
-          <div class="flex gap-4">
-            <CoreComponents.action_button
-              variant={:secondary}
-              phx-click={Phoenix.LiveView.JS.push("hide_delete_avatar_modal", target: @myself)}
-              class="flex-1 py-4"
-            >
-              Cancel
-            </CoreComponents.action_button>
-            <CoreComponents.action_button
-              variant={:danger}
-              phx-click={Phoenix.LiveView.JS.push("delete_avatar", target: @myself)}
-              class="flex-1 py-4"
-            >
-              Delete Avatar
-            </CoreComponents.action_button>
-          </div>
-        </:footer>
-      </CoreComponents.modal>
     </div>
     """
   end

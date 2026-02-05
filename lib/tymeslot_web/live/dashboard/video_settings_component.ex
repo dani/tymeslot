@@ -94,25 +94,37 @@ defmodule TymeslotWeb.Dashboard.VideoSettingsComponent do
     metadata = DashboardHelpers.get_security_metadata(socket)
     field_atom = map_field_to_atom(field)
 
-    case VideoInputProcessor.validate_single_field(field_atom, value, metadata: metadata) do
-      {:ok, _sanitized_value} ->
-        current_errors = socket.assigns.form_errors || %{}
-        {:noreply,
-         assign(
-           socket,
-           :form_errors,
-           FormValidationHelpers.delete_field_error(current_errors, field_atom)
-         )}
+    if String.trim(to_string(value)) == "" do
+      current_errors = socket.assigns.form_errors || %{}
 
-      {:error, error} ->
-        current_errors = socket.assigns.form_errors || %{}
+      {:noreply,
+       assign(
+         socket,
+         :form_errors,
+         FormValidationHelpers.delete_field_error(current_errors, field_atom)
+       )}
+    else
+      case VideoInputProcessor.validate_single_field(field_atom, value, metadata: metadata) do
+        {:ok, _sanitized_value} ->
+          current_errors = socket.assigns.form_errors || %{}
 
-        {:noreply,
-         assign(
-           socket,
-           :form_errors,
-           Map.put(current_errors, field_atom, error)
-         )}
+          {:noreply,
+           assign(
+             socket,
+             :form_errors,
+             FormValidationHelpers.delete_field_error(current_errors, field_atom)
+           )}
+
+        {:error, error} ->
+          current_errors = socket.assigns.form_errors || %{}
+
+          {:noreply,
+           assign(
+             socket,
+             :form_errors,
+             Map.put(current_errors, field_atom, error)
+           )}
+      end
     end
   end
 

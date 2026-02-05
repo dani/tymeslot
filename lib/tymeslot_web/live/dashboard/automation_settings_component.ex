@@ -15,6 +15,7 @@ defmodule TymeslotWeb.Dashboard.AutomationSettingsComponent do
   alias TymeslotWeb.Dashboard.Automation.Helpers, as: AutomationHelpers
   alias TymeslotWeb.Dashboard.Automation.Modals
   alias TymeslotWeb.Dashboard.Automation.WebhookFormComponent
+  alias TymeslotWeb.Live.Shared.FormValidationHelpers
 
   @impl true
   @spec mount(Phoenix.LiveView.Socket.t()) :: {:ok, Phoenix.LiveView.Socket.t()}
@@ -84,19 +85,25 @@ defmodule TymeslotWeb.Dashboard.AutomationSettingsComponent do
 
   def handle_event("validate_field", %{"field" => field, "value" => value}, socket) do
     metadata = AutomationHelpers.get_security_metadata(socket)
+    form_values = Map.put(socket.assigns.form_values, field, value)
 
     updated_errors =
-      AutomationHelpers.validate_field(
-        socket.assigns.form_values,
-        socket.assigns.form_errors,
-        field,
-        value,
-        metadata
-      )
+      if is_binary(value) and String.trim(value) == "" do
+        atom_field = FormValidationHelpers.atomize_field(field, ~w(name url events))
+        FormValidationHelpers.delete_field_error(socket.assigns.form_errors, atom_field)
+      else
+        AutomationHelpers.validate_field(
+          form_values,
+          socket.assigns.form_errors,
+          field,
+          value,
+          metadata
+        )
+      end
 
     {:noreply,
      socket
-     |> assign(:form_values, Map.put(socket.assigns.form_values, field, value))
+     |> assign(:form_values, form_values)
      |> assign(:form_errors, updated_errors)}
   end
 
