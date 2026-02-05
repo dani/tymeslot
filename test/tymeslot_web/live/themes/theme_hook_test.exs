@@ -22,14 +22,21 @@ defmodule TymeslotWeb.Live.Themes.ThemeHookTest do
     insert(:meeting_type, user: user)
 
     # Enable video background via theme customization
-    customization =
-      insert(:theme_customization,
-        profile: profile,
-        background_type: "video",
-        background_value: "preset:1"
-      )
+    insert(:theme_customization,
+      profile: profile,
+      theme_id: "1",
+      background_type: "video",
+      background_value: "preset:1"
+    )
 
-    %{user: user, profile: profile, customization: customization}
+    insert(:theme_customization,
+      profile: profile,
+      theme_id: "2",
+      background_type: "video",
+      background_value: "preset:1"
+    )
+
+    %{user: user, profile: profile}
   end
 
   test "quill theme renders QuillVideo hook when video background is active", %{

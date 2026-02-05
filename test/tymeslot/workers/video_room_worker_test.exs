@@ -147,7 +147,7 @@ defmodule Tymeslot.Workers.VideoRoomWorkerTest do
     end
 
     test "sends fallback emails on final failure and enters long-term recovery with distributed snooze" do
-      %{meeting: meeting, meeting_type: meeting_type} = setup_future_meeting_scenario()
+      %{meeting: meeting, meeting_type: _meeting_type} = setup_future_meeting_scenario()
 
       stub(Tymeslot.HTTPClientMock, :post, fn _url, _body, _headers, _opts ->
         {:error, %HTTPoison.Error{reason: :econnrefused}}

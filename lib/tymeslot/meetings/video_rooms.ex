@@ -70,9 +70,8 @@ defmodule Tymeslot.Meetings.VideoRooms do
 
             {:ok, :not_attached} ->
               with {:ok, user_id} <- get_meeting_organizer_user_id(meeting),
-                   {:ok, :proceed} <- should_create_video_room(meeting, user_id),
-                   {:ok, updated_meeting} <- create_and_attach_video_room(meeting, user_id) do
-                updated_meeting
+                   {:ok, :proceed} <- should_create_video_room(meeting, user_id) do
+                create_and_attach_video_room(meeting, user_id)
               else
                 {:error, reason} ->
                   Repo.rollback(reason)
@@ -140,7 +139,7 @@ defmodule Tymeslot.Meetings.VideoRooms do
   end
 
   @spec create_and_attach_video_room(MeetingSchema.t(), integer()) ::
-          {:ok, MeetingSchema.t()} | {:error, term()}
+          MeetingSchema.t() | no_return()
   defp create_and_attach_video_room(meeting, user_id) do
     Logger.info("Adding video room to meeting", meeting_id: meeting.id)
 
@@ -154,7 +153,7 @@ defmodule Tymeslot.Meetings.VideoRooms do
       # After attaching the video room, update the calendar event so Google/other calendars
       # include the meeting link in description/location.
       _ = CalendarEventWorker.schedule_calendar_update(updated_meeting.id)
-      {:ok, updated_meeting}
+      updated_meeting
     else
       {:error, reason} ->
         Logger.error("Failed to create video room",
@@ -162,7 +161,7 @@ defmodule Tymeslot.Meetings.VideoRooms do
           reason: inspect(reason)
         )
 
-        {:error, reason}
+        Repo.rollback(reason)
     end
   end
 
