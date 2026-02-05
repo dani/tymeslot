@@ -1,6 +1,68 @@
 // Video management hooks for LiveView
 // Handles auth video optimization and rhythm video crossfade functionality
 
+const getConnectionInfo = () =>
+  navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+
+const isSlowConnection = (connection) => {
+  if (!connection) return false;
+
+  if (connection.saveData) return true;
+
+  const effectiveType = connection.effectiveType || '';
+  if (effectiveType === 'slow-2g' || effectiveType === '2g') return true;
+
+  // Use RTT/downlink to catch slow WiFi or poor networks regardless of type.
+  const downlink = typeof connection.downlink === 'number' ? connection.downlink : null;
+  const rtt = typeof connection.rtt === 'number' ? connection.rtt : null;
+
+  if (downlink !== null && downlink < 1.5) return true;
+  if (rtt !== null && rtt > 300) return true;
+
+  return false;
+};
+
+const setupConnectionFallback = (connection, onSlow) => {
+  if (!connection) return null;
+
+  const handler = () => {
+    if (isSlowConnection(connection)) {
+      onSlow();
+    }
+  };
+
+  if (typeof connection.addEventListener === 'function') {
+    connection.addEventListener('change', handler);
+    return () => connection.removeEventListener('change', handler);
+  }
+
+  if ('onchange' in connection) {
+    const previousHandler = connection.onchange;
+    const combinedHandler = function(event) {
+      if (typeof previousHandler === 'function') {
+        previousHandler.call(connection, event);
+      }
+      handler();
+    };
+    connection.onchange = combinedHandler;
+    return () => {
+      if (connection.onchange === combinedHandler) {
+        connection.onchange = previousHandler || null;
+      }
+    };
+  }
+
+  return null;
+};
+
+const stopVideoPlayback = (video) => {
+  if (!video) return;
+
+  try { video.pause && video.pause(); } catch (e) {}
+  try { video.removeAttribute && video.removeAttribute('autoplay'); } catch (e) {}
+  try { video.preload = 'none'; } catch (e) {}
+};
+
 // Quill video hook - simple video background with fallback
 export const QuillVideo = {
   mounted() {
@@ -28,11 +90,19 @@ export const QuillVideo = {
       // The CSS background on the container will take over
     });
     
-    // Connection-aware loading
-    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-    if (connection && (connection.effectiveType === 'slow-2g' || connection.effectiveType === '2g' || connection.saveData)) {
+    const applyFallback = () => {
+      stopVideoPlayback(video);
       video.style.display = 'none';
+      container.classList.add('fallback');
+    };
+
+    // Connection-aware loading
+    const connection = getConnectionInfo();
+    if (isSlowConnection(connection)) {
+      applyFallback();
     }
+
+    this._quillConnectionCleanup = setupConnectionFallback(connection, applyFallback);
     
     // Battery-aware loading
     if ('getBattery' in navigator) {
@@ -47,8 +117,10 @@ export const QuillVideo = {
     this._quillVideo = video;
   },
   destroyed() {
+    try { this._quillConnectionCleanup && this._quillConnectionCleanup(); } catch (e) {}
     try { this._quillVideo && this._quillVideo.pause && this._quillVideo.pause(); } catch (e) {}
     this._quillVideo = null;
+    this._quillConnectionCleanup = null;
   }
 };
 
@@ -72,14 +144,32 @@ export const AuthVideo = {
       return;
     }
     
+    const applyFallback = () => {
+      stopVideoPlayback(singleVideo);
+      stopVideoPlayback(video1);
+      stopVideoPlayback(video2);
+      if (singleVideo) singleVideo.style.display = 'none';
+      if (video1) video1.style.display = 'none';
+      if (video2) video2.style.display = 'none';
+      container.classList.add('fallback');
+    };
+
+    // Connection-aware loading
+    const connection = getConnectionInfo();
+    if (isSlowConnection(connection)) {
+      applyFallback();
+      return;
+    }
+
     // Handle single video case
     if (singleVideo && !video1 && !video2) {
+      this._authConnectionCleanup = setupConnectionFallback(connection, applyFallback);
       singleVideo.addEventListener('loadedmetadata', function() {
         singleVideo.style.opacity = '1';
       });
       
       singleVideo.addEventListener('error', function() {
-        container.classList.add('fallback');
+        applyFallback();
       });
       return;
     }
@@ -95,30 +185,26 @@ export const AuthVideo = {
     let nextVideo = video2;
     let isTransitioning = false;
 
-    // Connection-aware video loading
-    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-    let shouldLoadVideo = true;
-
-    if (connection) {
-      if (connection.effectiveType === 'slow-2g' || connection.effectiveType === '2g') {
-        shouldLoadVideo = false;
-      }
-      if (connection.saveData) {
-        shouldLoadVideo = false;
-      }
-    }
-
     // Mobile detection
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     const isSmallScreen = window.innerWidth <= 768;
 
     // Allow videos on mobile but with optimized sources
-    if (!shouldLoadVideo) {
+    const applyFallback = () => {
+      stopVideoPlayback(video1);
+      stopVideoPlayback(video2);
       video1.style.display = 'none';
       video2.style.display = 'none';
       container.classList.add('fallback');
+    };
+
+    const connection = getConnectionInfo();
+    if (isSlowConnection(connection)) {
+      applyFallback();
       return;
     }
+
+    this._authConnectionCleanup = setupConnectionFallback(connection, applyFallback);
 
     // Select appropriate video quality based on device and connection
     if (isMobile || isSmallScreen) {
@@ -261,8 +347,10 @@ export const AuthVideo = {
       try { currentVideo && currentVideo.pause && currentVideo.pause(); } catch (e) {}
       try { nextVideo && nextVideo.pause && nextVideo.pause(); } catch (e) {}
     }
+    try { this._authConnectionCleanup && this._authConnectionCleanup(); } catch (e) {}
     this._observer = null;
     this._authVideoElements = null;
+    this._authConnectionCleanup = null;
   }
 };
 
@@ -282,32 +370,25 @@ export const RhythmVideo = {
       return;
     }
 
-    // Connection-aware video loading
-    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-    let shouldLoadVideo = true;
-
-    if (connection) {
-      // Don't load video on slow connections
-      if (connection.effectiveType === 'slow-2g' || connection.effectiveType === '2g') {
-        shouldLoadVideo = false;
-      }
-
-      // Don't load video if data saver is enabled
-      if (connection.saveData) {
-        shouldLoadVideo = false;
-      }
-    }
-
     // Mobile detection
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     const isSmallScreen = window.innerWidth <= 768;
 
     // Allow videos on mobile but with optimized sources
-    if (!shouldLoadVideo) {
+    const applyFallback = () => {
+      stopVideoPlayback(video1);
+      stopVideoPlayback(video2);
       video1.style.display = 'none';
       video2.style.display = 'none';
+    };
+
+    const connection = getConnectionInfo();
+    if (isSlowConnection(connection)) {
+      applyFallback();
       return;
     }
+
+    this._rhythmConnectionCleanup = setupConnectionFallback(connection, applyFallback);
 
     // Select appropriate video quality based on device and connection
     if (isMobile || isSmallScreen) {
@@ -438,5 +519,7 @@ export const RhythmVideo = {
       try { video2 && video2.pause && video2.pause(); } catch (e) {}
       this._rhythmVideoElements = null;
     }
+    try { this._rhythmConnectionCleanup && this._rhythmConnectionCleanup(); } catch (e) {}
+    this._rhythmConnectionCleanup = null;
   }
 };
