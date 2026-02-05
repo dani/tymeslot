@@ -13,6 +13,7 @@ defmodule TymeslotWeb.Session.LoginComponent do
   import TymeslotWeb.Shared.Auth.FormComponents
   import TymeslotWeb.Shared.Auth.ButtonComponents
   import TymeslotWeb.Components.CoreComponents
+  alias TymeslotWeb.Live.Shared.FormValidationHelpers
 
   @doc """
   Renders the login page with animated background and form.
@@ -52,7 +53,7 @@ defmodule TymeslotWeb.Session.LoginComponent do
               type="email"
               label="Email Address"
               value={Map.get(@form_data, :email, "")}
-              errors={Map.get(@errors, :email, [])}
+              errors={FormValidationHelpers.field_errors(@errors, :email)}
               phx-change="validate_login"
               icon="hero-envelope"
               required
@@ -66,7 +67,7 @@ defmodule TymeslotWeb.Session.LoginComponent do
                 placeholder="Enter your password"
                 required
                 value={Map.get(@form_data, :password, "")}
-                errors={Map.get(@errors, :password, [])}
+                errors={FormValidationHelpers.field_errors(@errors, :password)}
                 icon="hero-lock-closed"
               >
                 <:trailing_icon>
@@ -86,9 +87,11 @@ defmodule TymeslotWeb.Session.LoginComponent do
             </div>
           </div>
 
-          <%= if Map.get(@errors, :general) do %>
+          <%= if FormValidationHelpers.field_errors(@errors, :general) != [] do %>
             <div class="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-              <p class="text-sm text-red-600">{@errors.general}</p>
+              <%= for message <- FormValidationHelpers.field_errors(@errors, :general) do %>
+                <p class="text-sm text-red-600">{message}</p>
+              <% end %>
             </div>
           <% end %>
 

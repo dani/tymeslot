@@ -9,6 +9,7 @@ defmodule TymeslotWeb.Dashboard.ProfileSettings.UsernameFormComponent do
   alias Tymeslot.Profiles
   alias Tymeslot.Security.SettingsInputProcessor
   alias Tymeslot.Utils.ChangesetUtils
+  alias TymeslotWeb.Live.Shared.FormValidationHelpers
 
   @impl true
   def update(assigns, socket) do
@@ -85,7 +86,7 @@ defmodule TymeslotWeb.Dashboard.ProfileSettings.UsernameFormComponent do
      socket
      |> assign(profile: updated_profile)
      |> assign(saving: false)
-     |> assign(:form_errors, Map.delete(socket.assigns.form_errors, :username))}
+     |> assign(:form_errors, FormValidationHelpers.delete_field_error(socket.assigns.form_errors, :username))}
   end
 
   defp handle_username_update_error(socket, error) do
@@ -122,7 +123,7 @@ defmodule TymeslotWeb.Dashboard.ProfileSettings.UsernameFormComponent do
                 minlength="3"
                 maxlength="30"
                 phx-debounce="500"
-                errors={if @form_errors[:username], do: [@form_errors[:username]], else: []}
+                errors={FormValidationHelpers.field_errors(@form_errors, :username)}
                 style={input_padding}
               >
                 <:leading_icon>

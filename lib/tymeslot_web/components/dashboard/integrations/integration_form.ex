@@ -5,6 +5,8 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.IntegrationForm do
   """
   use TymeslotWeb, :live_component
 
+  alias TymeslotWeb.Live.Shared.FormValidationHelpers
+
   @spec render(map()) :: Phoenix.LiveView.Rendered.t()
   def render(assigns) do
     ~H"""
@@ -40,8 +42,10 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.IntegrationForm do
       <form phx-submit={@submit_event} phx-target={@target} class="space-y-4">
         {render_slot(@inner_block)}
 
-        <%= if @show_errors and Map.get(@form_errors, :base) do %>
-          <p class="text-sm text-red-400">{Enum.join(@form_errors[:base], ", ")}</p>
+        <%= if @show_errors and FormValidationHelpers.field_errors(@form_errors, :base) != [] do %>
+          <p class="text-sm text-red-400">
+            {Enum.join(FormValidationHelpers.field_errors(@form_errors, :base), ", ")}
+          </p>
         <% end %>
 
         <div class="flex justify-end space-x-3">

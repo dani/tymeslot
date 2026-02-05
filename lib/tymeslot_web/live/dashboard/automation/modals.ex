@@ -4,6 +4,7 @@ defmodule TymeslotWeb.Dashboard.Automation.Modals do
   """
   use TymeslotWeb, :html
   alias TymeslotWeb.Components.CoreComponents
+  alias TymeslotWeb.Live.Shared.FormValidationHelpers
 
   attr :show, :boolean, default: false
   attr :mode, :atom, required: true, values: [:create, :edit]
@@ -39,7 +40,7 @@ defmodule TymeslotWeb.Dashboard.Automation.Modals do
           phx-blur={@on_validate_field.("name", "")}
           placeholder="My n8n Automation"
           required
-          errors={if error = Map.get(@form_errors, :name), do: [error], else: []}
+          errors={FormValidationHelpers.field_errors(@form_errors, :name)}
           icon="hero-tag"
         />
 
@@ -52,7 +53,7 @@ defmodule TymeslotWeb.Dashboard.Automation.Modals do
           phx-blur={@on_validate_field.("url", "")}
           placeholder="https://your-n8n-instance.com/webhook/..."
           required
-          errors={if error = Map.get(@form_errors, :url), do: [error], else: []}
+          errors={FormValidationHelpers.field_errors(@form_errors, :url)}
           icon="hero-link"
         />
 
@@ -76,7 +77,7 @@ defmodule TymeslotWeb.Dashboard.Automation.Modals do
               </label>
             <% end %>
           </div>
-          <%= if error = Map.get(@form_errors, :events) do %>
+          <%= for error <- FormValidationHelpers.field_errors(@form_errors, :events) do %>
             <p class="text-token-sm text-red-600 font-medium mt-3"><%= error %></p>
           <% end %>
         </div>

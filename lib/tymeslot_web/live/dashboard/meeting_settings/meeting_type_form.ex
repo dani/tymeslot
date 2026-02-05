@@ -11,6 +11,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm do
   alias Tymeslot.Security.MeetingSettingsInputProcessor
   alias Tymeslot.Utils.ReminderUtils
   alias TymeslotWeb.Dashboard.MeetingSettings.Helpers
+  alias TymeslotWeb.Live.Shared.FormValidationHelpers
   import TymeslotWeb.Dashboard.MeetingSettings.Components
 
   # Public assigns passed from parent
@@ -63,7 +64,10 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm do
           placeholder="e.g., Quick Chat"
           phx-change="validate_meeting_type"
           phx-target={@myself}
-          errors={if errors = Map.get(@form_errors, :name), do: [Helpers.format_errors(errors)], else: []}
+          errors={
+            FormValidationHelpers.field_errors(@form_errors, :name)
+            |> Enum.map(&Helpers.format_errors/1)
+          }
           icon="hero-tag"
         />
 
@@ -80,7 +84,10 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm do
             placeholder="30"
             phx-change="validate_meeting_type"
             phx-target={@myself}
-            errors={if errors = Map.get(@form_errors, :duration), do: [Helpers.format_errors(errors)], else: []}
+            errors={
+              FormValidationHelpers.field_errors(@form_errors, :duration)
+              |> Enum.map(&Helpers.format_errors/1)
+            }
             icon="hero-clock"
           />
           <p class="mt-1 text-token-sm text-tymeslot-600">
@@ -97,7 +104,10 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm do
         placeholder="Brief description of this meeting type"
         phx-change="validate_meeting_type"
         phx-target={@myself}
-        errors={if errors = Map.get(@form_errors, :description), do: [Helpers.format_errors(errors)], else: []}
+        errors={
+          FormValidationHelpers.field_errors(@form_errors, :description)
+          |> Enum.map(&Helpers.format_errors/1)
+        }
         icon="hero-document-text"
       />
 
@@ -164,8 +174,8 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm do
       />
       <input type="hidden" name="meeting_type[icon]" value={@selected_icon} />
 
-      <%= if errors = Map.get(@form_errors, :base) do %>
-        <p class="form-error">{Helpers.format_errors(errors)}</p>
+      <%= for error <- FormValidationHelpers.field_errors(@form_errors, :base) do %>
+        <p class="form-error">{Helpers.format_errors(error)}</p>
       <% end %>
 
       <div class="flex justify-end space-x-3">
@@ -234,7 +244,10 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm do
     socket =
       socket
       |> assign(:meeting_mode, mode)
-      |> assign(:form_errors, Map.delete(socket.assigns.form_errors, :video_integration))
+      |> assign(
+        :form_errors,
+        FormValidationHelpers.delete_field_error(socket.assigns.form_errors, :video_integration)
+      )
 
     {:noreply, socket}
   end
@@ -255,7 +268,10 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm do
     socket =
       socket
       |> assign(:selected_video_integration_id, integration_id)
-      |> assign(:form_errors, Map.delete(socket.assigns.form_errors, :video_integration))
+      |> assign(
+        :form_errors,
+        FormValidationHelpers.delete_field_error(socket.assigns.form_errors, :video_integration)
+      )
 
     {:noreply, socket}
   end
@@ -277,7 +293,10 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm do
       |> assign(:refreshing_calendars, true)
       |> assign(:available_calendars, [])
       |> assign(:selected_target_calendar_id, nil)
-      |> assign(:form_errors, Map.delete(socket.assigns.form_errors, :calendar_integration))
+      |> assign(
+        :form_errors,
+        FormValidationHelpers.delete_field_error(socket.assigns.form_errors, :calendar_integration)
+      )
 
     {:noreply, socket}
   end
@@ -287,7 +306,10 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.MeetingTypeForm do
     socket =
       socket
       |> assign(:selected_target_calendar_id, id)
-      |> assign(:form_errors, Map.delete(socket.assigns.form_errors, :target_calendar))
+      |> assign(
+        :form_errors,
+        FormValidationHelpers.delete_field_error(socket.assigns.form_errors, :target_calendar)
+      )
 
     {:noreply, socket}
   end

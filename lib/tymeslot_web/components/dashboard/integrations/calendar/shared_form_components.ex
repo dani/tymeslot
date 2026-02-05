@@ -6,6 +6,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.SharedFormCompo
   use Phoenix.Component
 
   alias TymeslotWeb.Components.Dashboard.Integrations.Shared.UIComponents
+  alias TymeslotWeb.Live.Shared.FormValidationHelpers
   import TymeslotWeb.Components.CoreComponents
 
   attr :provider, :string, required: true
@@ -92,7 +93,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.SharedFormCompo
               label="Server URL"
               value={Map.get(@form_values, "url", "")}
               placeholder={@url_placeholder}
-              error={Map.get(@form_errors, :url)}
+              error={List.first(FormValidationHelpers.field_errors(@form_errors, :url))}
               target={@target}
               field="url"
               type="url"
@@ -104,7 +105,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.SharedFormCompo
               label="Username"
               value={Map.get(@form_values, "username", "")}
               placeholder={@username_placeholder}
-              error={Map.get(@form_errors, :username)}
+              error={List.first(FormValidationHelpers.field_errors(@form_errors, :username))}
               target={@target}
               field="username"
             />
@@ -115,7 +116,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.SharedFormCompo
               label="Password / App Password"
               value={Map.get(@form_values, "password", "")}
               placeholder={@password_placeholder}
-              error={Map.get(@form_errors, :password)}
+              error={List.first(FormValidationHelpers.field_errors(@form_errors, :password))}
               target={@target}
               field="password"
             />
@@ -160,7 +161,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.SharedFormCompo
       phx-value-field="name"
       phx-target={@target}
       placeholder={@placeholder}
-      errors={if error = Map.get(@form_errors, :name), do: [error], else: []}
+      errors={FormValidationHelpers.field_errors(@form_errors, :name)}
       icon="hero-tag"
     />
     """

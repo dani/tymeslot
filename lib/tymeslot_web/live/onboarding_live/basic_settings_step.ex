@@ -10,6 +10,7 @@ defmodule TymeslotWeb.OnboardingLive.BasicSettingsStep do
 
   alias TymeslotWeb.Components.TimezoneDropdown
   alias TymeslotWeb.OnboardingLive.StepConfig
+  alias TymeslotWeb.Live.Shared.FormValidationHelpers
 
   @doc """
   Renders the basic settings step component.
@@ -51,13 +52,13 @@ defmodule TymeslotWeb.OnboardingLive.BasicSettingsStep do
             value={Map.get(@form_data, "full_name", "")}
             class={[
               "input",
-              if(@form_errors[:full_name], do: "input-error", else: "")
+              if(FormValidationHelpers.field_errors(@form_errors, :full_name) != [], do: "input-error", else: "")
             ]}
             placeholder="e.g. John Doe"
             autocomplete="name"
           />
-          <%= if @form_errors[:full_name] do %>
-            <p class="mt-2 text-sm text-red-600 font-bold">{@form_errors[:full_name]}</p>
+          <%= for message <- FormValidationHelpers.field_errors(@form_errors, :full_name) do %>
+            <p class="mt-2 text-sm text-red-600 font-bold">{message}</p>
           <% end %>
         </div>
 
@@ -77,14 +78,14 @@ defmodule TymeslotWeb.OnboardingLive.BasicSettingsStep do
               value={Map.get(@form_data, "username", "")}
               class={[
                 "input pl-[120px]",
-                if(@form_errors[:username], do: "input-error", else: "")
+                if(FormValidationHelpers.field_errors(@form_errors, :username) != [], do: "input-error", else: "")
               ]}
               placeholder="yourname"
               autocomplete="username"
             />
           </div>
-          <%= if @form_errors[:username] do %>
-            <p class="mt-2 text-sm text-red-600 font-bold">{@form_errors[:username]}</p>
+          <%= for message <- FormValidationHelpers.field_errors(@form_errors, :username) do %>
+            <p class="mt-2 text-sm text-red-600 font-bold">{message}</p>
           <% end %>
           <p class="text-sm mt-3 font-bold text-slate-400 uppercase tracking-widest">
             This will be your unique scheduling link.
@@ -101,8 +102,8 @@ defmodule TymeslotWeb.OnboardingLive.BasicSettingsStep do
             timezone_search={@timezone_search}
             safe_flags={true}
           />
-          <%= if @form_errors[:timezone] do %>
-            <p class="mt-2 text-sm text-red-600 font-bold">{@form_errors[:timezone]}</p>
+          <%= for message <- FormValidationHelpers.field_errors(@form_errors, :timezone) do %>
+            <p class="mt-2 text-sm text-red-600 font-bold">{message}</p>
           <% end %>
         </div>
       </.form>

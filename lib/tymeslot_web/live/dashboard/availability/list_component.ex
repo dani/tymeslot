@@ -11,6 +11,7 @@ defmodule TymeslotWeb.Dashboard.Availability.ListComponent do
   alias TymeslotWeb.Components.Dashboard.Availability.{ClearDayModal, DeleteBreakModal}
   alias TymeslotWeb.Components.Shared.TimeOptions
   alias TymeslotWeb.Dashboard.Availability.Helpers
+  alias TymeslotWeb.Live.Shared.FormValidationHelpers
 
   # UI Helper Functions
 
@@ -609,7 +610,7 @@ defmodule TymeslotWeb.Dashboard.Availability.ListComponent do
                   name="label"
                   label="Label"
                   placeholder="e.g. Lunch"
-                  errors={@form_errors[:label] || []}
+                  errors={FormValidationHelpers.field_errors(@form_errors, :label)}
                 />
               </div>
               <div>
@@ -620,7 +621,7 @@ defmodule TymeslotWeb.Dashboard.Availability.ListComponent do
                   required
                   prompt="Start"
                   options={TimeOptions.time_options()}
-                  errors={@form_errors[:start_time] || []}
+                  errors={FormValidationHelpers.field_errors(@form_errors, :start_time)}
                 />
               </div>
               <div>
@@ -631,7 +632,7 @@ defmodule TymeslotWeb.Dashboard.Availability.ListComponent do
                   required
                   prompt="End"
                   options={TimeOptions.time_options()}
-                  errors={@form_errors[:end_time] || []}
+                  errors={FormValidationHelpers.field_errors(@form_errors, :end_time)}
                 />
               </div>
               <div class="flex gap-2">

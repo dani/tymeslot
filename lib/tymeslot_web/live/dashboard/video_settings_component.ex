@@ -15,6 +15,7 @@ defmodule TymeslotWeb.Dashboard.VideoSettingsComponent do
   alias TymeslotWeb.Components.Dashboard.Integrations.Video.VideoRow
   alias TymeslotWeb.Helpers.IntegrationProviders
   alias TymeslotWeb.Live.Dashboard.Shared.DashboardHelpers
+  alias TymeslotWeb.Live.Shared.FormValidationHelpers
 
   require Logger
 
@@ -93,7 +94,12 @@ defmodule TymeslotWeb.Dashboard.VideoSettingsComponent do
     case VideoInputProcessor.validate_video_integration_form(form_values, metadata: metadata) do
       {:ok, _sanitized_params} ->
         current_errors = socket.assigns.form_errors || %{}
-        {:noreply, assign(socket, :form_errors, Map.delete(current_errors, field_atom))}
+        {:noreply,
+         assign(
+           socket,
+           :form_errors,
+           FormValidationHelpers.delete_field_error(current_errors, field_atom)
+         )}
 
       {:error, errors} ->
         current_errors = socket.assigns.form_errors || %{}

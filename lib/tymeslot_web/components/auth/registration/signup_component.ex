@@ -15,6 +15,7 @@ defmodule TymeslotWeb.Registration.SignupComponent do
   import TymeslotWeb.Components.CoreComponents
 
   alias Tymeslot.Infrastructure.Security.RecaptchaHelpers
+  alias TymeslotWeb.Live.Shared.FormValidationHelpers
 
   @doc """
   Renders the signup page with animated background and form.
@@ -65,7 +66,7 @@ defmodule TymeslotWeb.Registration.SignupComponent do
               name="user[email]"
               type="email"
               label="Email Address"
-              errors={Map.get(@errors, :email, [])}
+              errors={FormValidationHelpers.field_errors(@errors, :email)}
               value={Map.get(@form_data, :email, "")}
               phx-change="validate_signup"
               icon="hero-envelope"
@@ -80,7 +81,7 @@ defmodule TymeslotWeb.Registration.SignupComponent do
                 placeholder="Create a password"
                 required
                 aria-describedby="password-requirements"
-                errors={Map.get(@errors, :password, [])}
+                errors={FormValidationHelpers.field_errors(@errors, :password)}
                 icon="hero-lock-closed"
               >
                 <:trailing_icon>

@@ -10,6 +10,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
   alias Tymeslot.Integrations.Calendar
   alias Tymeslot.Utils.ReminderUtils
   alias TymeslotWeb.Dashboard.MeetingSettings.Helpers
+  alias TymeslotWeb.Live.Shared.FormValidationHelpers
   import TymeslotWeb.Components.Icons.ProviderIcon
 
   @doc """
@@ -401,8 +402,8 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
       <%= if @reminder_error do %>
         <p class="form-error mt-2">{@reminder_error}</p>
       <% end %>
-      <%= if errors = Map.get(@form_errors, :reminder_config) do %>
-        <p class="form-error mt-2">{Helpers.format_errors(errors)}</p>
+      <%= for error <- FormValidationHelpers.field_errors(@form_errors, :reminder_config) do %>
+        <p class="form-error mt-2">{Helpers.format_errors(error)}</p>
       <% end %>
     </div>
     """
@@ -471,8 +472,8 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
       <p class="mt-2 text-token-sm text-tymeslot-600">
         Choose an icon to represent this meeting type, or select "No Icon" for no visual indicator.
       </p>
-      <%= if errors = Map.get(@form_errors, :icon) do %>
-        <p class="form-error">{Helpers.format_errors(errors)}</p>
+      <%= for error <- FormValidationHelpers.field_errors(@form_errors, :icon) do %>
+        <p class="form-error">{Helpers.format_errors(error)}</p>
       <% end %>
     </div>
     """
@@ -570,8 +571,8 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
                 </button>
               <% end %>
             </div>
-            <%= if errors = Map.get(@form_errors, :video_integration) do %>
-              <p class="form-error mt-2">{Helpers.format_errors(errors)}</p>
+            <%= for error <- FormValidationHelpers.field_errors(@form_errors, :video_integration) do %>
+              <p class="form-error mt-2">{Helpers.format_errors(error)}</p>
             <% end %>
           <% end %>
         </div>
@@ -644,8 +645,8 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
                 </button>
               <% end %>
             </div>
-            <%= if errors = Map.get(@form_errors, :calendar_integration) do %>
-              <p class="form-error mt-2">{Helpers.format_errors(errors)}</p>
+            <%= for error <- FormValidationHelpers.field_errors(@form_errors, :calendar_integration) do %>
+              <p class="form-error mt-2">{Helpers.format_errors(error)}</p>
             <% end %>
           <% end %>
         </div>
@@ -712,8 +713,8 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
                     </button>
                   <% end %>
                 </div>
-                <%= if errors = Map.get(@form_errors, :target_calendar) do %>
-                  <p class="form-error mt-2">{Helpers.format_errors(errors)}</p>
+                <%= for error <- FormValidationHelpers.field_errors(@form_errors, :target_calendar) do %>
+                  <p class="form-error mt-2">{Helpers.format_errors(error)}</p>
                 <% end %>
               <% end %>
             <% end %>

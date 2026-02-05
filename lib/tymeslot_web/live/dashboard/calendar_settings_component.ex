@@ -10,6 +10,7 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
   alias TymeslotWeb.Components.Dashboard.Integrations.Shared.DeleteIntegrationModal
   alias TymeslotWeb.Dashboard.CalendarSettings.Components
   alias TymeslotWeb.Live.Shared.Flash
+  alias TymeslotWeb.Live.Shared.FormValidationHelpers
 
   require Logger
 
@@ -80,11 +81,19 @@ defmodule TymeslotWeb.Dashboard.CalendarSettingsComponent do
            ) do
         {:ok, _} ->
           {:noreply,
-           assign(socket, :form_errors, Map.delete(socket.assigns.form_errors, field_atom))}
+           assign(
+             socket,
+             :form_errors,
+             FormValidationHelpers.delete_field_error(socket.assigns.form_errors, field_atom)
+           )}
 
         {:error, error} ->
           {:noreply,
-           assign(socket, :form_errors, Map.put(socket.assigns.form_errors, field_atom, error))}
+           assign(
+             socket,
+             :form_errors,
+             Map.put(socket.assigns.form_errors, field_atom, error)
+           )}
       end
     else
       {:noreply, socket}

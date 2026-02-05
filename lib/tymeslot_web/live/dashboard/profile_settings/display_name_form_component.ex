@@ -8,6 +8,7 @@ defmodule TymeslotWeb.Dashboard.ProfileSettings.DisplayNameFormComponent do
   alias Tymeslot.Profiles
   alias Tymeslot.Security.SettingsInputProcessor
   import TymeslotWeb.Components.CoreComponents
+  alias TymeslotWeb.Live.Shared.FormValidationHelpers
 
   @impl true
   def update(assigns, socket) do
@@ -23,7 +24,12 @@ defmodule TymeslotWeb.Dashboard.ProfileSettings.DisplayNameFormComponent do
 
     case SettingsInputProcessor.validate_full_name_update(full_name, metadata: metadata) do
       {:ok, sanitized_name} ->
-        socket = assign(socket, :form_errors, Map.delete(socket.assigns.form_errors, :full_name))
+        socket =
+          assign(
+            socket,
+            :form_errors,
+            FormValidationHelpers.delete_field_error(socket.assigns.form_errors, :full_name)
+          )
         maybe_update_full_name(socket, sanitized_name)
 
       {:error, error} ->
@@ -67,7 +73,7 @@ defmodule TymeslotWeb.Dashboard.ProfileSettings.DisplayNameFormComponent do
           value={if @profile, do: @profile.full_name || "", else: ""}
           label="Display Name"
           placeholder="Enter your full name"
-          errors={if @form_errors[:full_name], do: [@form_errors[:full_name]], else: []}
+          errors={FormValidationHelpers.field_errors(@form_errors, :full_name)}
           phx-debounce="500"
         />
         <p class="mt-2 text-sm text-slate-500 font-bold">

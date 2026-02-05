@@ -9,6 +9,7 @@ defmodule TymeslotWeb.Dashboard.ProfileSettings.TimezoneFormComponent do
   alias Tymeslot.Security.SettingsInputProcessor
   alias Tymeslot.Utils.TimezoneUtils
   alias TymeslotWeb.Components.TimezoneDropdown
+  alias TymeslotWeb.Live.Shared.FormValidationHelpers
 
   @impl true
   def update(assigns, socket) do
@@ -92,8 +93,8 @@ defmodule TymeslotWeb.Dashboard.ProfileSettings.TimezoneFormComponent do
         target={@myself}
         safe_flags={false}
       />
-      <%= if @form_errors[:timezone] do %>
-        <p class="text-token-sm text-red-400 mt-1">{@form_errors[:timezone]}</p>
+      <%= for message <- FormValidationHelpers.field_errors(@form_errors, :timezone) do %>
+        <p class="text-token-sm text-red-400 mt-1">{message}</p>
       <% end %>
     </div>
     """

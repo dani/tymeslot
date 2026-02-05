@@ -8,6 +8,7 @@ defmodule TymeslotWeb.Dashboard.Automation.WebhookFormComponent do
   alias Phoenix.LiveView.JS
   alias Tymeslot.Webhooks
   alias TymeslotWeb.Components.CoreComponents
+  alias TymeslotWeb.Live.Shared.FormValidationHelpers
 
   @impl true
   def mount(socket) do
@@ -111,7 +112,7 @@ defmodule TymeslotWeb.Dashboard.Automation.WebhookFormComponent do
               phx-blur={JS.push("validate_field", value: %{"field" => "name"}, target: @parent_component)}
               placeholder="My n8n Automation"
               required
-              errors={if error = Map.get(@form_errors, :name), do: [error], else: []}
+              errors={FormValidationHelpers.field_errors(@form_errors, :name)}
               icon="hero-tag"
             />
 
@@ -123,7 +124,7 @@ defmodule TymeslotWeb.Dashboard.Automation.WebhookFormComponent do
               phx-blur={JS.push("validate_field", value: %{"field" => "url"}, target: @parent_component)}
               placeholder="https://your-n8n-instance.com/webhook/..."
               required
-              errors={if error = Map.get(@form_errors, :url), do: [error], else: []}
+              errors={FormValidationHelpers.field_errors(@form_errors, :url)}
               icon="hero-link"
             />
 
@@ -209,7 +210,7 @@ defmodule TymeslotWeb.Dashboard.Automation.WebhookFormComponent do
               </label>
             <% end %>
           </div>
-          <%= if error = Map.get(@form_errors, :events) do %>
+          <%= for error <- FormValidationHelpers.field_errors(@form_errors, :events) do %>
             <p class="text-token-sm text-red-600 font-medium mt-3"><%= error %></p>
           <% end %>
         </div>

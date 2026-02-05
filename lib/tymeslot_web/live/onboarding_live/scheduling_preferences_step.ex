@@ -9,6 +9,7 @@ defmodule TymeslotWeb.OnboardingLive.SchedulingPreferencesStep do
   use Phoenix.Component
 
   alias TymeslotWeb.OnboardingLive.StepConfig
+  alias TymeslotWeb.Live.Shared.FormValidationHelpers
 
   @doc """
   Renders the scheduling preferences step component.
@@ -56,8 +57,8 @@ defmodule TymeslotWeb.OnboardingLive.SchedulingPreferencesStep do
             <% end %>
           </div>
 
-          <%= if @form_errors[:buffer_minutes] do %>
-            <p class="mt-2 text-sm text-red-600 font-bold">{@form_errors[:buffer_minutes]}</p>
+          <%= for message <- FormValidationHelpers.field_errors(@form_errors, :buffer_minutes) do %>
+            <p class="mt-2 text-sm text-red-600 font-bold">{message}</p>
           <% end %>
         </div>
 
@@ -89,8 +90,8 @@ defmodule TymeslotWeb.OnboardingLive.SchedulingPreferencesStep do
             <% end %>
           </div>
 
-          <%= if @form_errors[:advance_booking_days] do %>
-            <p class="mt-2 text-sm text-red-600 font-bold">{@form_errors[:advance_booking_days]}</p>
+          <%= for message <- FormValidationHelpers.field_errors(@form_errors, :advance_booking_days) do %>
+            <p class="mt-2 text-sm text-red-600 font-bold">{message}</p>
           <% end %>
         </div>
 
@@ -122,8 +123,8 @@ defmodule TymeslotWeb.OnboardingLive.SchedulingPreferencesStep do
             <% end %>
           </div>
 
-          <%= if @form_errors[:min_advance_hours] do %>
-            <p class="mt-2 text-sm text-red-600 font-bold">{@form_errors[:min_advance_hours]}</p>
+          <%= for message <- FormValidationHelpers.field_errors(@form_errors, :min_advance_hours) do %>
+            <p class="mt-2 text-sm text-red-600 font-bold">{message}</p>
           <% end %>
         </div>
       </div>

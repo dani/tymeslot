@@ -16,6 +16,7 @@ defmodule TymeslotWeb.Session.PasswordResetComponent do
   import TymeslotWeb.Shared.Auth.ButtonComponents
   import TymeslotWeb.Shared.PasswordToggleButtonComponent
   import TymeslotWeb.Components.CoreComponents
+  alias TymeslotWeb.Live.Shared.FormValidationHelpers
 
   @doc """
   Renders the forgot password form using shared auth components.
@@ -46,16 +47,18 @@ defmodule TymeslotWeb.Session.PasswordResetComponent do
             name="email"
             type="email"
             label="Email Address"
-            errors={Map.get(@errors, :email, [])}
+            errors={FormValidationHelpers.field_errors(@errors, :email)}
             value={Map.get(@form_data, :email, "")}
             phx-change="validate_reset_request"
             icon="hero-envelope"
             required
           />
 
-          <%= if Map.get(@errors, :general) do %>
+          <%= if FormValidationHelpers.field_errors(@errors, :general) != [] do %>
             <div class="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-              <p class="text-sm text-red-600">{@errors.general}</p>
+              <%= for message <- FormValidationHelpers.field_errors(@errors, :general) do %>
+                <p class="text-sm text-red-600">{message}</p>
+              <% end %>
             </div>
           <% end %>
 

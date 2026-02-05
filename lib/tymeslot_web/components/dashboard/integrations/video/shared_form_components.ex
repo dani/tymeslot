@@ -7,6 +7,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Video.SharedFormComponen
   use Phoenix.Component
 
   alias TymeslotWeb.Components.Dashboard.Integrations.Shared.UIComponents
+  alias TymeslotWeb.Live.Shared.FormValidationHelpers
 
   @doc """
   Renders a standard integration name field with icon.
@@ -45,12 +46,12 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Video.SharedFormComponen
           required
           class={[
             "input input-with-icon w-full",
-            if(Map.get(@form_errors, :name), do: "input-error", else: "")
+            if(FormValidationHelpers.field_errors(@form_errors, :name) != [], do: "input-error", else: "")
           ]}
           placeholder={@placeholder}
         />
       </div>
-      <%= if error = Map.get(@form_errors, :name) do %>
+      <%= for error <- FormValidationHelpers.field_errors(@form_errors, :name) do %>
         <p class="form-error">{error}</p>
       <% end %>
     </div>
@@ -99,13 +100,15 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Video.SharedFormComponen
           required
           class={[
             "input input-with-icon w-full",
-            if(Map.get(@form_errors, @error_key), do: "input-error", else: "")
+            if(FormValidationHelpers.field_errors(@form_errors, @error_key) != [], do: "input-error", else: "")
           ]}
           placeholder={@placeholder}
         />
       </div>
-      <%= if error = Map.get(@form_errors, @error_key) do %>
-        <p class="form-error">{error}</p>
+      <%= if FormValidationHelpers.field_errors(@form_errors, @error_key) != [] do %>
+        <%= for error <- FormValidationHelpers.field_errors(@form_errors, @error_key) do %>
+          <p class="form-error">{error}</p>
+        <% end %>
       <% else %>
         <%= if @helper_text do %>
           <p class="mt-2 text-xs text-neutral-500">{@helper_text}</p>
@@ -157,13 +160,15 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Video.SharedFormComponen
           required
           class={[
             "input input-with-icon w-full",
-            if(Map.get(@form_errors, @error_key), do: "input-error", else: "")
+            if(FormValidationHelpers.field_errors(@form_errors, @error_key) != [], do: "input-error", else: "")
           ]}
           placeholder={@placeholder}
         />
       </div>
-      <%= if error = Map.get(@form_errors, @error_key) do %>
-        <p class="form-error">{error}</p>
+      <%= if FormValidationHelpers.field_errors(@form_errors, @error_key) != [] do %>
+        <%= for error <- FormValidationHelpers.field_errors(@form_errors, @error_key) do %>
+          <p class="form-error">{error}</p>
+        <% end %>
       <% else %>
         <%= if @helper_text do %>
           <p class="mt-2 text-xs text-neutral-500">{@helper_text}</p>
