@@ -29,8 +29,11 @@ export const Flash = {
 // to avoid showing it while leaving the page, without masking real disconnects.
 export const ConnectionStatus = {
   mounted() {
+    this.showDelayMs = 5000;
     this.isDisconnected = false;
+    this.pendingShowOnVisible = false;
     this.suppressedShowTimer = null;
+    this.delayedShowTimer = null;
     this.hideTimer = null;
 
     // Ensure we start hidden (server renders with display: none)
@@ -45,6 +48,28 @@ export const ConnectionStatus = {
 
     this.isSuppressed = () => Date.now() < this.getSuppressUntil();
 
+    this.scheduleShow = (delayMs) => {
+      const delay = Math.max(0, delayMs);
+      this.delayedShowTimer = setTimeout(() => {
+        if (!this.isDisconnected) return;
+        if (this.isSuppressed()) return;
+        if (document.visibilityState === "hidden") {
+          this.pendingShowOnVisible = true;
+          return;
+        }
+        this.show();
+      }, delay);
+    };
+
+    this.onVisibilityChange = () => {
+      if (document.visibilityState !== "visible") return;
+      if (!this.pendingShowOnVisible) return;
+      this.pendingShowOnVisible = false;
+      if (!this.isDisconnected) return;
+      if (this.isSuppressed()) return;
+      this.show();
+    };
+
     this.onDisconnected = () => {
       this.isDisconnected = true;
 
@@ -52,37 +77,45 @@ export const ConnectionStatus = {
       // the toast briefly. If we're *still* disconnected after the suppression
       // window, show it (this preserves real issue visibility).
       clearTimeout(this.suppressedShowTimer);
+      clearTimeout(this.delayedShowTimer);
+      this.pendingShowOnVisible = false;
+
       if (this.isSuppressed()) {
         const delay = Math.max(0, this.getSuppressUntil() - Date.now()) + 10;
         this.suppressedShowTimer = setTimeout(() => {
           if (!this.isDisconnected) return;
           if (this.isSuppressed()) return;
-          if (document.visibilityState === "hidden") return;
-          this.show();
+          this.scheduleShow(this.showDelayMs);
         }, delay);
 
         return;
       }
 
       if (document.visibilityState === "hidden") return;
-      this.show();
+      this.scheduleShow(this.showDelayMs);
     };
 
     this.onConnected = () => {
       this.isDisconnected = false;
       clearTimeout(this.suppressedShowTimer);
+      clearTimeout(this.delayedShowTimer);
+      this.pendingShowOnVisible = false;
       this.hide();
     };
 
     this.el.addEventListener("tymeslot:lv-disconnected", this.onDisconnected);
     this.el.addEventListener("tymeslot:lv-connected", this.onConnected);
+    document.addEventListener("visibilitychange", this.onVisibilityChange);
   },
 
   destroyed() {
     clearTimeout(this.suppressedShowTimer);
+    clearTimeout(this.delayedShowTimer);
     clearTimeout(this.hideTimer);
+    this.pendingShowOnVisible = false;
     this.el.removeEventListener("tymeslot:lv-disconnected", this.onDisconnected);
     this.el.removeEventListener("tymeslot:lv-connected", this.onConnected);
+    document.removeEventListener("visibilitychange", this.onVisibilityChange);
   },
 
   show() {

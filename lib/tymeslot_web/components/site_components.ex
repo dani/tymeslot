@@ -65,6 +65,7 @@ defmodule TymeslotWeb.Components.SiteComponents do
           <%= if @current_user do %>
             <.link
               navigate={~p"/dashboard"}
+              data-tymeslot-suppress-lv-disconnect
               class="px-6 py-2 font-black text-slate-700 hover:text-turquoise-600 hover:bg-turquoise-50 transition-all rounded-2xl"
             >
               Dashboard
@@ -156,6 +157,7 @@ defmodule TymeslotWeb.Components.SiteComponents do
             <%= if @current_user do %>
               <.link
                 navigate={~p"/dashboard"}
+                data-tymeslot-suppress-lv-disconnect
                 class="mobile-nav-link block px-4 py-3 text-gray-800 hover:bg-turquoise-50 hover:text-turquoise-600 rounded-lg transition-colors"
               >
                 Dashboard
