@@ -7,6 +7,8 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.ConfigBase do
   instructions to remain customized per component.
   """
 
+  alias TymeslotWeb.Live.Shared.FormValidationHelpers
+
   defmacro __using__(opts) do
     opts
     |> extract_using_options()
@@ -125,15 +127,20 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.ConfigBase do
       end
 
       defp handle_valid_field(socket, field_atom) do
-        {:noreply, Component.update(socket, :form_errors, &Map.delete(&1 || %{}, field_atom))}
+        {:noreply,
+         socket
+         |> Component.assign(
+           :form_errors,
+           FormValidationHelpers.delete_field_error(socket.assigns.form_errors, field_atom)
+         )}
       end
 
       defp handle_invalid_field(socket, field_atom, error) do
         {:noreply,
-         Component.update(
+         Component.assign(
            socket,
            :form_errors,
-           &Map.put(&1 || %{}, field_atom, error)
+           Map.put(socket.assigns.form_errors || %{}, field_atom, error)
          )}
       end
     end

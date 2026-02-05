@@ -93,7 +93,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.SharedFormCompo
               label="Server URL"
               value={Map.get(@form_values, "url", "")}
               placeholder={@url_placeholder}
-              error={List.first(FormValidationHelpers.field_errors(@form_errors, :url))}
+              errors={FormValidationHelpers.field_errors(@form_errors, :url)}
               target={@target}
               field="url"
               type="url"
@@ -105,7 +105,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.SharedFormCompo
               label="Username"
               value={Map.get(@form_values, "username", "")}
               placeholder={@username_placeholder}
-              error={List.first(FormValidationHelpers.field_errors(@form_errors, :username))}
+              errors={FormValidationHelpers.field_errors(@form_errors, :username)}
               target={@target}
               field="username"
             />
@@ -116,7 +116,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.SharedFormCompo
               label="Password / App Password"
               value={Map.get(@form_values, "password", "")}
               placeholder={@password_placeholder}
-              error={List.first(FormValidationHelpers.field_errors(@form_errors, :password))}
+              errors={FormValidationHelpers.field_errors(@form_errors, :password)}
               target={@target}
               field="password"
             />
@@ -212,6 +212,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.SharedFormCompo
   attr :value, :string, default: ""
   attr :placeholder, :string, required: true
   attr :error, :string, default: nil
+  attr :errors, :list, default: []
   attr :target, :any, default: nil
   attr :field, :string, required: true
   attr :type, :string, default: "text"
@@ -229,7 +230,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.SharedFormCompo
       phx-value-field={@field}
       phx-target={@target}
       placeholder={@placeholder}
-      errors={if @error, do: [@error], else: []}
+      errors={if @error, do: [@error], else: @errors}
     />
     """
   end
@@ -240,6 +241,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.SharedFormCompo
   attr :value, :string, default: ""
   attr :placeholder, :string, required: true
   attr :error, :string, default: nil
+  attr :errors, :list, default: []
   attr :target, :any, default: nil
   attr :field, :string, default: "password"
 
@@ -256,7 +258,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.SharedFormCompo
       phx-value-field={@field}
       phx-target={@target}
       placeholder={@placeholder}
-      errors={if @error, do: [@error], else: []}
+      errors={if @error, do: [@error], else: @errors}
       icon="hero-lock-closed"
     />
     """

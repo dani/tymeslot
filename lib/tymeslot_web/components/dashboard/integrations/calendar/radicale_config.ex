@@ -4,18 +4,16 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.RadicaleConfig 
   """
   use TymeslotWeb, :live_component
 
+  use TymeslotWeb.Components.Dashboard.Integrations.Calendar.ConfigBase,
+    provider: :radicale,
+    default_name: "My Radicale"
+
   alias TymeslotWeb.Components.Dashboard.Integrations.Calendar.SharedFormComponents,
     as: SharedForm
 
   @impl true
   def mount(socket) do
-    {:ok,
-     socket
-     |> assign(:discovered_calendars, [])
-     |> assign(:discovery_credentials, %{})
-     |> assign(:form_values, %{})
-     |> assign(:form_errors, %{})
-     |> assign(:saving, false)}
+    {:ok, assign_config_defaults(socket)}
   end
 
   @impl true
@@ -23,11 +21,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.RadicaleConfig 
     {:ok,
      socket
      |> assign(assigns)
-     |> assign_new(:discovered_calendars, fn -> [] end)
-     |> assign_new(:discovery_credentials, fn -> %{} end)
-     |> assign_new(:form_values, fn -> %{} end)
-     |> assign_new(:form_errors, fn -> %{} end)
-     |> assign_new(:saving, fn -> false end)}
+     |> assign_config_defaults()}
   end
 
   @impl true

@@ -43,6 +43,58 @@ defmodule Tymeslot.Security.VideoInputProcessor do
     end
   end
 
+  @doc """
+  Validates a single field for video integration form.
+
+  ## Parameters
+  - `field` - The field name as atom (:name, :api_key, :base_url, :custom_meeting_url)
+  - `value` - The field value to validate
+  - `opts` - Options including metadata for logging
+
+  ## Returns
+  - `{:ok, sanitized_value}` | `{:error, error_message}`
+  """
+  @spec validate_single_field(atom(), any(), keyword()) :: {:ok, any()} | {:error, binary()}
+  def validate_single_field(field, value, opts \\ [])
+
+  def validate_single_field(:name, value, opts) do
+    metadata = Keyword.get(opts, :metadata, %{})
+
+    case SharedInputValidators.validate_integration_name(value, metadata) do
+      {:ok, sanitized} -> {:ok, sanitized}
+      {:error, %{name: error}} -> {:error, error}
+    end
+  end
+
+  def validate_single_field(:api_key, value, opts) do
+    metadata = Keyword.get(opts, :metadata, %{})
+
+    case validate_api_key(value, metadata) do
+      {:ok, sanitized} -> {:ok, sanitized}
+      {:error, %{api_key: error}} -> {:error, error}
+    end
+  end
+
+  def validate_single_field(:base_url, value, opts) do
+    metadata = Keyword.get(opts, :metadata, %{})
+
+    case validate_base_url(value, metadata) do
+      {:ok, sanitized} -> {:ok, sanitized}
+      {:error, %{base_url: error}} -> {:error, error}
+    end
+  end
+
+  def validate_single_field(:custom_meeting_url, value, opts) do
+    metadata = Keyword.get(opts, :metadata, %{})
+
+    case validate_meeting_url(value, metadata) do
+      {:ok, sanitized} -> {:ok, sanitized}
+      {:error, %{custom_meeting_url: error}} -> {:error, error}
+    end
+  end
+
+  def validate_single_field(_, _, _), do: {:ok, nil}
+
   # Private validation functions for each provider type
 
   defp validate_mirotalk_form(params, metadata) do
@@ -136,11 +188,28 @@ defmodule Tymeslot.Security.VideoInputProcessor do
   defp validate_base_url("", _metadata), do: {:error, %{base_url: "Base URL is required"}}
 
   defp validate_base_url(base_url, metadata) when is_binary(base_url) do
-    case UniversalSanitizer.sanitize_and_validate(base_url, allow_html: false, metadata: metadata) do
+    # Normalize URL by adding https:// if no protocol is present
+    normalized_url = normalize_url_protocol(base_url)
+
+    case UniversalSanitizer.sanitize_and_validate(normalized_url, allow_html: false, metadata: metadata) do
       {:ok, sanitized_url} ->
-        case validate_video_url(sanitized_url) do
-          :ok -> {:ok, sanitized_url}
-          {:error, error} -> {:error, %{base_url: error}}
+        # URI.parse("https://fjfj") returns %URI{scheme: "https", host: "fjfj"}
+        # We need to ensure the host actually looks like a valid server address.
+        uri = URI.parse(sanitized_url)
+
+        cond do
+          is_nil(uri.host) or uri.host == "" ->
+            {:error, %{base_url: "Please enter a valid server URL (e.g., https://mirotalk.example.com)"}}
+
+          # Require at least one dot for public domains, or allow 'localhost'
+          not String.contains?(uri.host, ".") and not String.contains?(uri.host, "localhost") ->
+            {:error, %{base_url: "Please enter a valid server URL (e.g., https://mirotalk.example.com)"}}
+
+          true ->
+            case validate_video_url(sanitized_url) do
+              :ok -> {:ok, sanitized_url}
+              {:error, error} -> {:error, %{base_url: error}}
+            end
         end
 
       {:error, error} ->
@@ -159,14 +228,31 @@ defmodule Tymeslot.Security.VideoInputProcessor do
     do: {:error, %{custom_meeting_url: "Meeting URL is required"}}
 
   defp validate_meeting_url(meeting_url, metadata) when is_binary(meeting_url) do
-    case UniversalSanitizer.sanitize_and_validate(meeting_url,
+    # Normalize URL by adding https:// if no protocol is present
+    normalized_url = normalize_url_protocol(meeting_url)
+
+    case UniversalSanitizer.sanitize_and_validate(normalized_url,
            allow_html: false,
            metadata: metadata
          ) do
       {:ok, sanitized_url} ->
-        case validate_video_url(sanitized_url) do
-          :ok -> {:ok, sanitized_url}
-          {:error, error} -> {:error, %{custom_meeting_url: error}}
+        # URI.parse("https://fjfj") returns %URI{scheme: "https", host: "fjfj"}
+        # We need to ensure the host actually looks like a valid server address.
+        uri = URI.parse(sanitized_url)
+
+        cond do
+          is_nil(uri.host) or uri.host == "" ->
+            {:error, %{custom_meeting_url: "Please enter a valid meeting URL (e.g., https://meet.google.com/abc-defg-hij)"}}
+
+          # Require at least one dot for public domains, or allow 'localhost'
+          not String.contains?(uri.host, ".") and not String.contains?(uri.host, "localhost") ->
+            {:error, %{custom_meeting_url: "Please enter a valid meeting URL (e.g., https://meet.google.com/abc-defg-hij)"}}
+
+          true ->
+            case validate_video_url(sanitized_url) do
+              :ok -> {:ok, sanitized_url}
+              {:error, error} -> {:error, %{custom_meeting_url: error}}
+            end
         end
 
       {:error, error} ->
@@ -176,6 +262,24 @@ defmodule Tymeslot.Security.VideoInputProcessor do
 
   defp validate_meeting_url(_, _metadata) do
     {:error, %{custom_meeting_url: "Meeting URL must be text"}}
+  end
+
+  defp normalize_url_protocol(url) do
+    trimmed_url = String.trim(url)
+
+    cond do
+      # Already has a protocol
+      String.starts_with?(trimmed_url, ["http://", "https://"]) ->
+        trimmed_url
+
+      # No protocol - add https://
+      trimmed_url != "" ->
+        "https://" <> trimmed_url
+
+      # Empty string
+      true ->
+        trimmed_url
+    end
   end
 
   defp validate_video_url(url) do

@@ -77,7 +77,10 @@ defmodule TymeslotWeb.Dashboard.VideoSettingsComponent do
   end
 
   def handle_event("provider_changed", %{"value" => provider}, socket) do
-    {:noreply, assign(socket, :config_provider, provider)}
+    {:noreply,
+     socket
+     |> assign(:config_provider, provider)
+     |> assign(:form_errors, %{})}
   end
 
   def handle_event("validate_field", %{"field" => field, "value" => value}, socket) do
@@ -91,8 +94,8 @@ defmodule TymeslotWeb.Dashboard.VideoSettingsComponent do
     metadata = DashboardHelpers.get_security_metadata(socket)
     field_atom = map_field_to_atom(field)
 
-    case VideoInputProcessor.validate_video_integration_form(form_values, metadata: metadata) do
-      {:ok, _sanitized_params} ->
+    case VideoInputProcessor.validate_single_field(field_atom, value, metadata: metadata) do
+      {:ok, _sanitized_value} ->
         current_errors = socket.assigns.form_errors || %{}
         {:noreply,
          assign(
@@ -101,17 +104,15 @@ defmodule TymeslotWeb.Dashboard.VideoSettingsComponent do
            FormValidationHelpers.delete_field_error(current_errors, field_atom)
          )}
 
-      {:error, errors} ->
+      {:error, error} ->
         current_errors = socket.assigns.form_errors || %{}
 
-        updated_errors =
-          if field_atom != :unknown and Map.has_key?(errors, field_atom) do
-            Map.put(current_errors, field_atom, Map.get(errors, field_atom))
-          else
-            Map.delete(current_errors, field_atom)
-          end
-
-        {:noreply, assign(socket, :form_errors, updated_errors)}
+        {:noreply,
+         assign(
+           socket,
+           :form_errors,
+           Map.put(current_errors, field_atom, error)
+         )}
     end
   end
 

@@ -232,9 +232,23 @@ defmodule Tymeslot.Security.CalendarInputProcessor do
            metadata: metadata
          ) do
       {:ok, sanitized_url} ->
-        case validate_calendar_url(sanitized_url) do
-          :ok -> {:ok, sanitized_url}
-          {:error, error} -> {:error, %{url: error}}
+        # URI.parse("https://fjfj") returns %URI{scheme: "https", host: "fjfj"}
+        # We need to ensure the host actually looks like a valid server address.
+        uri = URI.parse(sanitized_url)
+
+        cond do
+          is_nil(uri.host) or uri.host == "" ->
+            {:error, %{url: "Please enter a valid server URL (e.g., https://cloud.example.com)"}}
+
+          # Require at least one dot for public domains, or allow 'localhost'
+          not String.contains?(uri.host, ".") and uri.host != "localhost" ->
+            {:error, %{url: "Please enter a valid server URL (e.g., https://cloud.example.com)"}}
+
+          true ->
+            case validate_calendar_url(sanitized_url) do
+              :ok -> {:ok, sanitized_url}
+              {:error, error} -> {:error, %{url: error}}
+            end
         end
 
       {:error, error} ->
