@@ -80,10 +80,10 @@
    */
   function createBookingIframe(username, options = {}) {
     const iframe = document.createElement('iframe');
-    const url = `${BASE_URL}/${username}`;
+    const base = BASE_URL.replace(/\/$/, '');
+    const url = new URL(`${base}/${encodeURIComponent(username)}`);
     
     // Build URL with customization params - STRICT ALLOWLIST
-    const params = new URLSearchParams();
     const ALLOWED_PARAMS = ['theme', 'primaryColor', 'locale'];
     
     ALLOWED_PARAMS.forEach(key => {
@@ -91,17 +91,15 @@
       if (!val) return;
 
       if (key === 'theme' && /^\d+$/.test(val)) {
-        params.append('theme', val);
+        url.searchParams.append('theme', val);
       } else if (key === 'primaryColor' && /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(val)) {
-        params.append('primary-color', val);
+        url.searchParams.append('primary-color', val);
       } else if (key === 'locale' && /^[a-z]{2}(-[a-zA-Z0-9]+)?$/.test(val)) {
-        params.append('locale', val);
+        url.searchParams.append('locale', val);
       }
     });
     
-    const fullUrl = params.toString() ? `${url}?${params.toString()}` : url;
-    
-    iframe.src = fullUrl;
+    iframe.src = url.toString();
     iframe.style.cssText = `
       width: 100%;
       border: none;
@@ -418,6 +416,7 @@
       }
       
       document.body.appendChild(modal);
+      modal.previousBodyOverflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
       
       // Handle escape key
@@ -447,7 +446,7 @@
             document.removeEventListener('keydown', modal.escapeHandler);
           }
           modal.remove();
-          document.body.style.overflow = '';
+          document.body.style.overflow = modal.previousBodyOverflow || '';
         }, 300);
       }
     },
