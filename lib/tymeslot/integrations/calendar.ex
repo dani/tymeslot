@@ -11,6 +11,7 @@ defmodule Tymeslot.Integrations.Calendar do
   alias Tymeslot.DatabaseQueries.ProfileQueries
   alias Tymeslot.DatabaseSchemas.CalendarIntegrationSchema
   alias Tymeslot.DatabaseSchemas.MeetingSchema
+  alias Tymeslot.DatabaseSchemas.MeetingTypeSchema
   alias Tymeslot.Integrations.Calendar.Connection
   alias Tymeslot.Integrations.Calendar.Creation
   alias Tymeslot.Integrations.Calendar.Deletion
@@ -428,13 +429,29 @@ defmodule Tymeslot.Integrations.Calendar do
 
   @doc """
   Create an event using the user's booking calendar.
+  
+  Accepts a user_id, Meeting, or MeetingType to determine the target calendar.
+  If a Meeting or MeetingType is provided, uses their configured calendar integration.
+  Falls back to the user's primary calendar if not specified.
   """
-  @spec create_event(map(), user_id() | nil) :: {:ok, map()} | {:error, term()}
-  def create_event(event_data, user_id \\ nil) do
-    case user_id do
-      id when is_integer(id) and id > 0 -> behaviour_module().create_event(event_data, id)
-      nil -> behaviour_module().create_event(event_data, nil)
-      _ -> {:error, :invalid_user_id}
+  @spec create_event(map(), user_id() | MeetingSchema.t() | MeetingTypeSchema.t() | nil) ::
+          {:ok, map()} | {:error, term()}
+  def create_event(event_data, context \\ nil) do
+    case context do
+      id when is_integer(id) and id > 0 ->
+        behaviour_module().create_event(event_data, id)
+
+      %MeetingSchema{} = meeting ->
+        behaviour_module().create_event(event_data, meeting)
+
+      %MeetingTypeSchema{} = meeting_type ->
+        behaviour_module().create_event(event_data, meeting_type)
+
+      nil ->
+        behaviour_module().create_event(event_data, nil)
+
+      _ ->
+        {:error, :invalid_context}
     end
   end
 
