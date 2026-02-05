@@ -202,8 +202,8 @@ defmodule TymeslotWeb.Themes.Shared.Customization.Helpers do
       String.starts_with?(background_value, "preset:") ->
         preset = ThemeCustomizationSchema.video_presets()[background_value]
 
-        if preset && preset.thumbnail do
-          "/images/ui/posters/#{preset.thumbnail}"
+        if preset && preset.poster do
+          "/images/ui/posters/#{preset.poster}"
         end
 
       true ->
