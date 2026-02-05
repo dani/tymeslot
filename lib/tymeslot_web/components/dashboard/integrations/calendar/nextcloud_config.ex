@@ -2,8 +2,6 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.NextcloudConfig
   @moduledoc """
   Modern component for configuring Nextcloud calendar integration.
   """
-  use TymeslotWeb, :live_component
-
   use TymeslotWeb.Components.Dashboard.Integrations.Calendar.ConfigBase,
     provider: :nextcloud,
     default_name: "My Nextcloud"

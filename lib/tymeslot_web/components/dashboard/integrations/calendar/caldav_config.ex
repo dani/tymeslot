@@ -2,8 +2,6 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.CaldavConfig do
   @moduledoc """
   Modern component for configuring CalDAV calendar integration.
   """
-  use TymeslotWeb, :live_component
-
   use TymeslotWeb.Components.Dashboard.Integrations.Calendar.ConfigBase,
     provider: :caldav,
     default_name: "My CalDAV"

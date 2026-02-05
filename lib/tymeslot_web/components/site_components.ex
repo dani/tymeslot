@@ -25,23 +25,41 @@ defmodule TymeslotWeb.Components.SiteComponents do
     ~H"""
     <nav class="bg-white border-b-4 border-turquoise-500 shadow-xl relative z-50">
       <div class="container mx-auto flex justify-between items-center px-6 py-5">
-        <.link
-          navigate={logo_link(@current_user)}
-          class="flex items-center text-slate-900 hover:text-turquoise-600 transition-all transform hover:scale-105"
-        >
-          <.logo mode={:full} img_class="h-12 flex-shrink-0" />
-        </.link>
+        <%= if external_url?(logo_link(@current_user)) do %>
+          <.link
+            href={logo_link(@current_user)}
+            class="flex items-center text-slate-900 hover:text-turquoise-600 transition-all transform hover:scale-105"
+          >
+            <.logo mode={:full} img_class="h-12 flex-shrink-0" />
+          </.link>
+        <% else %>
+          <.link
+            navigate={logo_link(@current_user)}
+            class="flex items-center text-slate-900 hover:text-turquoise-600 transition-all transform hover:scale-105"
+          >
+            <.logo mode={:full} img_class="h-12 flex-shrink-0" />
+          </.link>
+        <% end %>
         
     <!-- Desktop Navigation -->
         <div class="hidden md:flex items-center gap-6">
           <%= if Config.show_marketing_links?() do %>
             <%= if docs_url = Application.get_env(:tymeslot, :docs_url) do %>
-              <.link
-                navigate={docs_url}
-                class="px-6 py-2 font-black text-slate-700 hover:text-turquoise-600 hover:bg-turquoise-50 transition-all rounded-2xl"
-              >
-                Docs
-              </.link>
+              <%= if external_url?(docs_url) do %>
+                <.link
+                  href={docs_url}
+                  class="px-6 py-2 font-black text-slate-700 hover:text-turquoise-600 hover:bg-turquoise-50 transition-all rounded-2xl"
+                >
+                  Docs
+                </.link>
+              <% else %>
+                <.link
+                  navigate={docs_url}
+                  class="px-6 py-2 font-black text-slate-700 hover:text-turquoise-600 hover:bg-turquoise-50 transition-all rounded-2xl"
+                >
+                  Docs
+                </.link>
+              <% end %>
             <% end %>
           <% end %>
           <%= if @current_user do %>
@@ -101,20 +119,38 @@ defmodule TymeslotWeb.Components.SiteComponents do
           <div class="container mx-auto px-4 py-4 space-y-3">
             <%= if Config.show_marketing_links?() do %>
               <%= if docs_url = Application.get_env(:tymeslot, :docs_url) do %>
-                <.link
-                  navigate={docs_url}
-                  class="mobile-nav-link block px-4 py-3 text-gray-800 hover:bg-turquoise-50 hover:text-turquoise-600 rounded-lg transition-colors"
-                >
-                  Docs
-                </.link>
+                <%= if external_url?(docs_url) do %>
+                  <.link
+                    href={docs_url}
+                    class="mobile-nav-link block px-4 py-3 text-gray-800 hover:bg-turquoise-50 hover:text-turquoise-600 rounded-lg transition-colors"
+                  >
+                    Docs
+                  </.link>
+                <% else %>
+                  <.link
+                    navigate={docs_url}
+                    class="mobile-nav-link block px-4 py-3 text-gray-800 hover:bg-turquoise-50 hover:text-turquoise-600 rounded-lg transition-colors"
+                  >
+                    Docs
+                  </.link>
+                <% end %>
               <% end %>
               <%= if contact_url = Application.get_env(:tymeslot, :contact_url) do %>
-                <.link
-                  navigate={contact_url}
-                  class="mobile-nav-link block px-4 py-3 text-gray-800 hover:bg-turquoise-50 hover:text-turquoise-600 rounded-lg transition-colors"
-                >
-                  Contact
-                </.link>
+                <%= if external_url?(contact_url) do %>
+                  <.link
+                    href={contact_url}
+                    class="mobile-nav-link block px-4 py-3 text-gray-800 hover:bg-turquoise-50 hover:text-turquoise-600 rounded-lg transition-colors"
+                  >
+                    Contact
+                  </.link>
+                <% else %>
+                  <.link
+                    navigate={contact_url}
+                    class="mobile-nav-link block px-4 py-3 text-gray-800 hover:bg-turquoise-50 hover:text-turquoise-600 rounded-lg transition-colors"
+                  >
+                    Contact
+                  </.link>
+                <% end %>
               <% end %>
             <% end %>
             <%= if @current_user do %>
@@ -167,36 +203,72 @@ defmodule TymeslotWeb.Components.SiteComponents do
           <div class="flex gap-6 justify-center">
             <%= if Config.show_marketing_links?() do %>
               <%= if contact_url = Application.get_env(:tymeslot, :contact_url) do %>
-                <.link
-                  navigate={contact_url}
-                  class="text-gray-400 hover:text-turquoise-400 transition-colors"
-                >
-                  Contact
-                </.link>
+                <%= if external_url?(contact_url) do %>
+                  <.link
+                    href={contact_url}
+                    class="text-gray-400 hover:text-turquoise-400 transition-colors"
+                  >
+                    Contact
+                  </.link>
+                <% else %>
+                  <.link
+                    navigate={contact_url}
+                    class="text-gray-400 hover:text-turquoise-400 transition-colors"
+                  >
+                    Contact
+                  </.link>
+                <% end %>
               <% end %>
               <%= if privacy_url = Application.get_env(:tymeslot, :privacy_policy_url) do %>
-                <.link
-                  navigate={privacy_url}
-                  class="text-gray-400 hover:text-turquoise-400 transition-colors"
-                >
-                  Privacy Policy
-                </.link>
+                <%= if external_url?(privacy_url) do %>
+                  <.link
+                    href={privacy_url}
+                    class="text-gray-400 hover:text-turquoise-400 transition-colors"
+                  >
+                    Privacy Policy
+                  </.link>
+                <% else %>
+                  <.link
+                    navigate={privacy_url}
+                    class="text-gray-400 hover:text-turquoise-400 transition-colors"
+                  >
+                    Privacy Policy
+                  </.link>
+                <% end %>
               <% end %>
               <%= if terms_url = Application.get_env(:tymeslot, :terms_and_conditions_url) do %>
-                <.link
-                  navigate={terms_url}
-                  class="text-gray-400 hover:text-turquoise-400 transition-colors"
-                >
-                  Terms of Service
-                </.link>
+                <%= if external_url?(terms_url) do %>
+                  <.link
+                    href={terms_url}
+                    class="text-gray-400 hover:text-turquoise-400 transition-colors"
+                  >
+                    Terms of Service
+                  </.link>
+                <% else %>
+                  <.link
+                    navigate={terms_url}
+                    class="text-gray-400 hover:text-turquoise-400 transition-colors"
+                  >
+                    Terms of Service
+                  </.link>
+                <% end %>
               <% end %>
               <%= if sitemap_url = Application.get_env(:tymeslot, :sitemap_url) do %>
-                <.link
-                  navigate={sitemap_url}
-                  class="text-gray-400 hover:text-turquoise-400 transition-colors"
-                >
-                  Sitemap
-                </.link>
+                <%= if external_url?(sitemap_url) do %>
+                  <.link
+                    href={sitemap_url}
+                    class="text-gray-400 hover:text-turquoise-400 transition-colors"
+                  >
+                    Sitemap
+                  </.link>
+                <% else %>
+                  <.link
+                    navigate={sitemap_url}
+                    class="text-gray-400 hover:text-turquoise-400 transition-colors"
+                  >
+                    Sitemap
+                  </.link>
+                <% end %>
               <% end %>
             <% end %>
           </div>
@@ -251,4 +323,8 @@ defmodule TymeslotWeb.Components.SiteComponents do
         ~p"/auth/login"
     end
   end
+
+  @spec external_url?(String.t() | nil) :: boolean()
+  defp external_url?(nil), do: false
+  defp external_url?(url), do: String.starts_with?(url, ["http://", "https://"])
 end

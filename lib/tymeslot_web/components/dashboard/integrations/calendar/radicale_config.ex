@@ -2,8 +2,6 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.RadicaleConfig 
   @moduledoc """
   Modern component for configuring Radicale calendar integration.
   """
-  use TymeslotWeb, :live_component
-
   use TymeslotWeb.Components.Dashboard.Integrations.Calendar.ConfigBase,
     provider: :radicale,
     default_name: "My Radicale"

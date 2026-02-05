@@ -228,8 +228,16 @@ defmodule Tymeslot.Security.VideoInputProcessor do
     do: {:error, %{custom_meeting_url: "Meeting URL is required"}}
 
   defp validate_meeting_url(meeting_url, metadata) when is_binary(meeting_url) do
+    trimmed_url = String.trim(meeting_url)
+    has_protocol = String.starts_with?(trimmed_url, ["http://", "https://"])
     # Normalize URL by adding https:// if no protocol is present
-    normalized_url = normalize_url_protocol(meeting_url)
+    normalized_url = normalize_url_protocol(trimmed_url)
+    invalid_meeting_url_error =
+      if has_protocol do
+        "Please enter a valid meeting URL (e.g., https://meet.google.com/abc-defg-hij)"
+      else
+        "Only HTTP and HTTPS URLs are allowed"
+      end
 
     case UniversalSanitizer.sanitize_and_validate(normalized_url,
            allow_html: false,
@@ -242,11 +250,11 @@ defmodule Tymeslot.Security.VideoInputProcessor do
 
         cond do
           is_nil(uri.host) or uri.host == "" ->
-            {:error, %{custom_meeting_url: "Please enter a valid meeting URL (e.g., https://meet.google.com/abc-defg-hij)"}}
+            {:error, %{custom_meeting_url: invalid_meeting_url_error}}
 
           # Require at least one dot for public domains, or allow 'localhost'
           not String.contains?(uri.host, ".") and not String.contains?(uri.host, "localhost") ->
-            {:error, %{custom_meeting_url: "Please enter a valid meeting URL (e.g., https://meet.google.com/abc-defg-hij)"}}
+            {:error, %{custom_meeting_url: invalid_meeting_url_error}}
 
           true ->
             case validate_video_url(sanitized_url) do

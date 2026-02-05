@@ -69,7 +69,11 @@ defmodule TymeslotWeb.Components.CoreComponents.Modal do
       phx-key="escape"
     >
       <div class="modal-container p-6">
-        <div id={"#{@id}-content"} class={["modal-content bg-white rounded-[2.5rem] shadow-2xl border-2 border-slate-50 relative overflow-hidden", modal_size_class(@size)]}>
+        <div
+          id={"#{@id}-content"}
+          class={["modal-content bg-white rounded-[2.5rem] shadow-2xl border-2 border-slate-50 relative overflow-hidden", modal_size_class(@size)]}
+          phx-click-away={if @show, do: @on_cancel}
+        >
           <!-- Header -->
           <%= if @header != [] do %>
             <div class="modal-header px-8 py-6 border-b-2 border-slate-50 flex items-center justify-between">
