@@ -10,6 +10,7 @@ defmodule TymeslotWeb.Components.CoreComponents do
 
   # Application modules (alphabetical)
   alias TymeslotWeb.Components.CoreComponents.{
+    Brand,
     Buttons,
     Containers,
     Feedback,
@@ -18,8 +19,7 @@ defmodule TymeslotWeb.Components.CoreComponents do
     Icons,
     Layout,
     Modal,
-    Navigation,
-    Brand
+    Navigation
   }
 
   # ========== BRAND ==========

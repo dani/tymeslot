@@ -161,42 +161,39 @@ defmodule TymeslotWeb.Components.MeetingComponents do
     """
   end
 
-  @doc """
-  Renders a time slot button.
-  """
-  attr :slot, :map, required: true
-  attr :selected, :boolean, default: false
-  attr :disabled, :boolean, default: false
-  attr :rest, :global
-
   @spec normalize_slot_time(term()) :: {:ok, String.t()} | :error
   def normalize_slot_time(slot) do
-    cond do
-      is_binary(slot) ->
-        {:ok, slot}
-
-      match?(%Time{}, slot) ->
-        {:ok, DateTimeUtils.format_time_for_display(slot)}
-
-      match?(%NaiveDateTime{}, slot) ->
-        {:ok, slot |> NaiveDateTime.to_time() |> DateTimeUtils.format_time_for_display()}
-
-      match?(%DateTime{}, slot) ->
-        {:ok, slot |> DateTime.to_time() |> DateTimeUtils.format_time_for_display()}
-
-      is_map(slot) ->
-        value =
-          Map.get(slot, :time) ||
-            Map.get(slot, "time") ||
-            Map.get(slot, :start_time) ||
-            Map.get(slot, "start_time")
-
-        normalize_slot_time(value)
-
-      true ->
-        :error
-    end
+    normalize_slot_value(slot)
   end
+
+  @spec normalize_slot_value(term()) :: {:ok, String.t()} | :error
+  defp normalize_slot_value(slot) when is_binary(slot) do
+    {:ok, slot}
+  end
+
+  defp normalize_slot_value(%Time{} = slot) do
+    {:ok, DateTimeUtils.format_time_for_display(slot)}
+  end
+
+  defp normalize_slot_value(%NaiveDateTime{} = slot) do
+    {:ok, slot |> NaiveDateTime.to_time() |> DateTimeUtils.format_time_for_display()}
+  end
+
+  defp normalize_slot_value(%DateTime{} = slot) do
+    {:ok, slot |> DateTime.to_time() |> DateTimeUtils.format_time_for_display()}
+  end
+
+  defp normalize_slot_value(%{} = slot) do
+    value =
+      Map.get(slot, :time) ||
+        Map.get(slot, "time") ||
+        Map.get(slot, :start_time) ||
+        Map.get(slot, "start_time")
+
+    normalize_slot_value(value)
+  end
+
+  defp normalize_slot_value(_), do: :error
 
   @spec normalize_slot_list(term()) :: [String.t()]
   def normalize_slot_list(slots) when is_list(slots) do
@@ -209,6 +206,14 @@ defmodule TymeslotWeb.Components.MeetingComponents do
   end
 
   def normalize_slot_list(_), do: []
+
+  @doc """
+  Renders a time slot button.
+  """
+  attr :slot, :map, required: true
+  attr :selected, :boolean, default: false
+  attr :disabled, :boolean, default: false
+  attr :rest, :global
 
   @spec time_slot_button(map()) :: Phoenix.LiveView.Rendered.t()
   def time_slot_button(assigns) do
