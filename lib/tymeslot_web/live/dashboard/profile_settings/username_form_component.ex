@@ -113,7 +113,7 @@ defmodule TymeslotWeb.Dashboard.ProfileSettings.UsernameFormComponent do
               <% base_url = Policy.app_url() %>
               <% display_url = String.replace(base_url, ~r/^https?:\/\//, "") %>
               <% prefix_length = String.length(display_url) + 1 %>
-              <% input_padding = "padding-left: calc(1rem + #{prefix_length}ch);" %>
+              <% input_padding = "--leading-icon-width: #{prefix_length}ch;" %>
               <.input
                 name="username"
                 label="Your Custom URL"

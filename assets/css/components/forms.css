@@ -4,16 +4,23 @@
 
 /* Input Fields - Modern Branding */
 .input {
-  @apply block w-full px-4 py-3 text-sm font-medium text-slate-900 bg-slate-50/50 border-2 border-slate-100 rounded-2xl transition-all duration-300;
+  @apply block w-full text-sm font-medium text-slate-900 bg-slate-50/50 border-2 border-slate-100 rounded-2xl transition-all duration-300;
   @apply focus:outline-none focus:border-turquoise-400 focus:bg-white focus:shadow-xl focus:shadow-turquoise-500/10;
   @apply hover:border-slate-200 hover:bg-slate-50;
+  padding: 0.75rem 1rem;
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
 }
 
-.input-with-icon {
-  @apply pl-14;
+/* Input with leading icon - accounts for icon space */
+.input.input-with-icon {
+  padding-left: 3.5rem; /* 1rem (icon left offset) + 1.25rem (icon width) + 1.25rem (gap) = 3.5rem */
+}
+
+/* Override for custom text prefixes (like username URL prefix) */
+.input.input-with-icon[style*="--leading-icon-width"] {
+  padding-left: calc(1rem + var(--leading-icon-width) + 1.25rem);
 }
 
 .input-with-trailing-icon {
