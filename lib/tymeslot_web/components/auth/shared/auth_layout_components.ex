@@ -7,7 +7,7 @@ defmodule TymeslotWeb.Shared.Auth.LayoutComponents do
 
   alias Tymeslot.Infrastructure.Config
   alias TymeslotWeb.Components.Auth.AuthVideoConfig
-  import TymeslotWeb.Components.CoreComponents, only: [flash_group: 1, logo: 1]
+  import TymeslotWeb.Components.CoreComponents, only: [flash_group: 1]
 
   @spec auth_logo_header(map()) :: Phoenix.LiveView.Rendered.t()
   def auth_logo_header(assigns) do

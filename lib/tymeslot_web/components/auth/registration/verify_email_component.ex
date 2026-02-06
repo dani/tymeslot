@@ -8,7 +8,6 @@ defmodule TymeslotWeb.Registration.VerifyEmailComponent do
 
   use TymeslotWeb, :html
   import TymeslotWeb.Shared.Auth.LayoutComponents
-  import TymeslotWeb.Shared.Auth.ButtonComponents
 
   @doc """
   Renders the verify email page using shared auth components.
