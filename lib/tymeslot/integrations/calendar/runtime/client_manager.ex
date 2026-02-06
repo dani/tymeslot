@@ -272,7 +272,7 @@ defmodule Tymeslot.Integrations.Calendar.Runtime.ClientManager do
 
   defp create_debug_client(integration) do
     # Debug provider for development testing
-    if Mix.env() in [:dev, :test] do
+    if Application.get_env(:tymeslot, :environment) in [:dev, :test] do
       # Skip validation for debug client
       case ProviderAdapter.new_client(:debug, %{user_id: integration.user_id},
              skip_validation: true

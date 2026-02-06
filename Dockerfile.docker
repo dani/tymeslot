@@ -27,10 +27,13 @@ RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selectio
 # Set the working directory
 WORKDIR /app
 
+# Set build ENV early (before any mix commands)
+ENV MIX_ENV=prod \
+    DEPLOYMENT_TYPE=docker
 
-# Copy mix.exs and mix.lock files
-COPY mix.exs mix.lock ./
-COPY apps/tymeslot/mix.exs apps/tymeslot/mix.exs
+# Copy mix.exs and config
+COPY mix.exs ./
+COPY config ./config
 
 # Install hex and rebar
 RUN mix local.hex --force && mix local.rebar --force
@@ -40,11 +43,6 @@ RUN mix deps.get --only prod
 
 # Copy the rest of the application code
 COPY . .
-
-
-# Set build ENV
-ENV MIX_ENV=prod \
-    DEPLOYMENT_TYPE=docker
 
 # Compile the project
 RUN mix do deps.compile + compile
@@ -58,12 +56,10 @@ RUN for i in 1 2 3 4 5; do \
 # Compile assets
 RUN mix assets.deploy
 
-# Create the release, then copy core runtime config into it.
-# mix release does not include per-app runtime.exs for umbrella projects;
-# root runtime.exs loads it at startup to configure the database, endpoint, etc.
+# Create the release, then copy runtime config into it
 RUN mix release tymeslot && \
     mkdir -p _build/prod/rel/tymeslot/apps/tymeslot/config && \
-    cp apps/tymeslot/config/runtime.exs _build/prod/rel/tymeslot/apps/tymeslot/config/
+    cp config/runtime.exs _build/prod/rel/tymeslot/apps/tymeslot/config/
 
 # Production stage — debian only, no Elixir SDK. The release bundles its own ERTS.
 FROM debian:bookworm-slim AS release
@@ -99,7 +95,7 @@ WORKDIR /app
 COPY --from=build --chown=app:app /app/_build/prod/rel/tymeslot ./
 
 # Copy start script
-COPY --chown=app:app apps/tymeslot/start-docker.sh /app/start-docker.sh
+COPY --chown=app:app start-docker.sh /app/start-docker.sh
 RUN chmod +x /app/start-docker.sh
 
 ENV LANG=C.UTF-8 \

@@ -77,7 +77,8 @@ defmodule Tymeslot.Security.AuthInputProcessor do
          ) do
       {:ok, sanitized_params} ->
         # Then validate terms acceptance (only if legal agreements are enforced or in test)
-        if Application.get_env(:tymeslot, :enforce_legal_agreements, false) || Mix.env() == :test do
+        if Application.get_env(:tymeslot, :enforce_legal_agreements, false) ||
+             Application.get_env(:tymeslot, :environment) == :test do
           case validate_terms_accepted(params) do
             :ok ->
               SecurityLogger.log_security_event("signup_validation_success", %{

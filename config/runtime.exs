@@ -304,22 +304,22 @@ config :tymeslot, :email,
   contact_recipient: System.get_env("EMAIL_CONTACT_RECIPIENT") || from_email,
   domain: phx_host
 
-# Stripe Payment Configuration
+# Stripe Payment Configuration (optional for core, can be configured later)
 if config_env() == :prod do
-  stripe_secret_key =
-    System.get_env("STRIPE_SECRET_KEY") ||
-      raise("STRIPE_SECRET_KEY environment variable is missing")
+  stripe_secret_key = System.get_env("STRIPE_SECRET_KEY")
 
-  config :stripity_stripe,
-    api_key: stripe_secret_key
+  if stripe_secret_key do
+    config :stripity_stripe,
+      api_key: stripe_secret_key
 
-  # Stripe webhook secret (optional for development, required for production)
-  stripe_webhook_secret = System.get_env("STRIPE_WEBHOOK_SECRET")
+    # Stripe webhook secret (optional)
+    stripe_webhook_secret = System.get_env("STRIPE_WEBHOOK_SECRET")
 
-  if stripe_webhook_secret do
-    config :tymeslot, :stripe_webhook_secret, stripe_webhook_secret
-  else
-    IO.warn("STRIPE_WEBHOOK_SECRET not set - webhook signature verification disabled")
+    if stripe_webhook_secret do
+      config :tymeslot, :stripe_webhook_secret, stripe_webhook_secret
+    else
+      IO.warn("STRIPE_WEBHOOK_SECRET not set - webhook signature verification disabled")
+    end
   end
 
   # Trial period configuration (default 7 days)

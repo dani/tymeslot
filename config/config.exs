@@ -147,7 +147,7 @@ config :esbuild,
     args:
       ~w(js/app.js --bundle --target=es2017 --outdir=../priv/static/assets --external:/fonts/* --external:/images/*),
     cd: Path.expand("../assets", __DIR__),
-    env: %{"NODE_PATH" => Path.expand("../../../deps", __DIR__)}
+    env: %{"NODE_PATH" => Path.expand("../deps", __DIR__)}
   ]
 
 # Configure tailwind
@@ -287,3 +287,6 @@ config :tymeslot, :reconciliation,
   alert_admins: true,
   # Number of days to look back when fetching subscriptions for reconciliation
   days_back: 7
+
+# Import environment specific config
+import_config "#{config_env()}.exs"

@@ -94,11 +94,10 @@ defmodule Tymeslot.Integrations.Shared.Lock do
   end
 
   # Test-only helpers
-  if Mix.env() == :test do
-    @spec put_lock(any(), integer(), pid()) :: :ok
-    def put_lock(key, timestamp, pid) do
-      GenServer.call(__MODULE__, {:test_put_lock, key, timestamp, pid})
-    end
+  @doc false
+  @spec put_lock(any(), integer(), pid()) :: :ok
+  def put_lock(key, timestamp, pid) do
+    GenServer.call(__MODULE__, {:test_put_lock, key, timestamp, pid})
   end
 
   defp get_lock_timeout(key) do

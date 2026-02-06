@@ -6,25 +6,15 @@ defmodule Tymeslot.MixProject do
       app: :tymeslot,
       version: "0.96.0",
       elixir: "~> 1.19",
-      build_path: "../../_build",
-      config_path: "../../config/config.exs",
-      deps_path: "../../deps",
-      lockfile: "../../mix.lock",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
       deps: deps(),
       listeners: [Phoenix.CodeReloader],
-      dialyzer: [
-        ignore_warnings: "../../.dialyzer_ignore.exs",
-        # Include Mix and Credo so Dialyzer knows about the Credo.Check behaviour and
-        # helper modules used by our custom checks in dev_support/credo_checks.
-        plt_add_apps: [:mix, :credo, :xmerl],
-        # Use app_tree instead of deprecated :transitive to include runtime deps.
-        plt_add_deps: :app_tree,
-        plt_core_path: "../../priv/plts",
-        plt_local_path: "../../priv/plts",
-        flags: [:error_handling]
+      releases: [
+        tymeslot: [
+          applications: [tymeslot: :permanent]
+        ]
       ],
       test_coverage: [tool: ExCoveralls],
       licenses: ["Elastic-2.0"],
