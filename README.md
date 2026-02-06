@@ -1,353 +1,415 @@
-# Tymeslot
+<div align="center">
 
-**Enterprise-grade meeting scheduling platform built with Elixir/Phoenix LiveView**
+<img src="./priv/static/images/brand/logo-with-text.svg" alt="Tymeslot" height="80" />
 
-> [!IMPORTANT]
-> # 📢 OFFICIAL RELEASES ONLY
-> **We publish official, stable releases on GitHub rather than treating every commit as a release. Always use the latest [GitHub Release](https://github.com/tymeslot/tymeslot/releases) for production environments.**
+**The Open-Source Alternative to Calendly**
 
-**The open-source alternative to Calendly.** Tymeslot gives you complete control over your scheduling workflow—whether you're running it on our cloud or your own server.
-
-**Why Tymeslot?**
-- ✅ **Truly Open Source**: Elastic License 2.0. Fork, audit, contribute—or just use it.
-- ✅ **Your Data, Your Rules**: Self-host on Docker/Cloudron or use our managed cloud.
-- ✅ **Privacy-First Analytics**: No tracking pixels, no data mining, no selling your data.
-- ✅ **Full-Featured Free Tier**: Everything you need to get started. Forever.
-- ✅ **White-Label Pro Tier**: Remove our branding for a fully professional experience (cloud only).
+Enterprise-grade meeting scheduling platform built with Elixir & Phoenix LiveView
 
 [![License: Elastic-2.0](https://img.shields.io/badge/License-Elastic--2.0-blue.svg)](https://www.elastic.co/licensing/elastic-license)
 [![Elixir](https://img.shields.io/badge/Elixir-1.19.3-purple.svg)](https://elixir-lang.org)
 [![Phoenix](https://img.shields.io/badge/Phoenix-1.8-orange.svg)](https://phoenixframework.org)
 [![Phoenix LiveView](https://img.shields.io/badge/Phoenix%20LiveView-1.1-red.svg)](https://github.com/phoenixframework/phoenix_live_view)
+[![GitHub stars](https://img.shields.io/github/stars/tymeslot/tymeslot?style=social)](https://github.com/tymeslot/tymeslot/stargazers)
 
-## ✨ Features
-
-### 🔐 Comprehensive User Management
-- **Multi-Provider Authentication**: OAuth (Google, GitHub), email/password with verification
-- **User Profiles**: Customizable settings, avatars, timezone configuration
-- **Onboarding Flow**: 4-step guided setup for new users
-- **Dashboard**: Complete management interface with integrations and settings
-
-### 🧠 Smart Scheduling Engine
-- **Timezone Intelligence**: 90+ supported cities with automatic detection
-- **Advanced Availability**: Custom business hours, breaks, overrides, and buffer times
-- **Real-time Conflict Detection**: Parallel calendar fetching across multiple providers
-- **Configurable Meeting Types**: Custom durations, video options, and branding
-
-### 📅 Multi-Provider Calendar Integration
-- **4 Calendar Providers**: Google Calendar, Outlook, CalDAV, Nextcloud
-- **Full CRUD Operations**: Create, read, update, delete events across all providers
-- **OAuth Management**: Automatic token refresh with secure credential storage
-- **Calendar Discovery**: Auto-detection of available calendars per provider
-
-### 🎥 Multi-Provider Video Conferencing
-- **4 Video Providers**: MiroTalk P2P, Google Meet, Teams, Custom Links
-- **Automatic Room Creation**: Provider-specific meeting generation
-- **Role-based Access**: Separate URLs and permissions for organizers vs attendees
-- **OAuth Integration**: Seamless setup with Google Meet and Teams
-
-### 📧 Professional Email System
-- **5 Email Types**: Confirmations, reminders, rescheduling, cancellations, error notifications
-- **MJML Templates**: Responsive design with calendar attachments
-- **Multi-Format Support**: Google Calendar, Outlook, and .ics downloads
-- **Delivery Tracking**: Email status monitoring and retry logic
-
-### 🔒 Advanced Security & Performance
-- **Comprehensive Rate Limiting**: IP-based protection with progressive delays
-- **Input Sanitization**: XSS protection and form validation across all inputs
-- **Security Headers**: CSP, HSTS, frame protection, and CSRF tokens
-- **Data Encryption**: AES encryption for API keys and sensitive credentials
-- **Circuit Breakers**: Resilient external service integration with graceful degradation
-- **reCAPTCHA v3 Bot Protection**: Optional bot detection for signup (configurable, auto-disables if keys missing)
-
-### 🌍 Internationalization & Localization
-- **3 Languages**: English, German, Ukrainian with automatic browser detection
-- **Timezone Intelligence**: 90+ cities with automatic DST handling
-- **Localized Booking Pages**: Seamless experience in your customer's language
-- **Smart Language Detection**: Auto-selects based on browser preferences
-
-### 🔗 Embedding & Integration
-- **Secure iframe Embedding**: White-label booking widgets for your website
-- **Domain Controls**: Restrict embedding to authorized domains only
-- **Webhook System**: Real-time event notifications for meeting lifecycle (booked, rescheduled, cancelled)
-- **Custom Branding**: Remove Tymeslot branding with Pro subscription (Cloud version only)
-
-### ⏰ Advanced Reminder System
-- **Multiple Reminders**: Configure unlimited reminders per appointment type
-- **Flexible Timing**: Minutes, hours, or days before meetings
-- **Email Notifications**: Professional MJML templates with calendar attachments
-- **Delivery Tracking**: Monitor email status and automatic retry logic
-
-## 🚀 Quick Start
-
-### Prerequisites
-- Elixir 1.19.3+ and Erlang 28.1.1+
-- PostgreSQL 14+
-- Node.js 18+ (for asset compilation)
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/tymeslot/tymeslot.git
-   cd tymeslot
-   ```
-
-2. **Install dependencies**
-   ```bash
-   mix deps.get
-   cd apps/tymeslot/assets && npm install && cd ../../..
-   ```
-
-3. **Set up environment variables**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
-   ```
-
-4. **Create and migrate database**
-   ```bash
-   mix ecto.create
-   mix ecto.migrate
-   ```
-
-5. **Start the development server**
-   ```bash
-   mix phx.server
-   ```
-
-Visit [`localhost:4000`](http://localhost:4000) to see the application.
-
-## 💰 Pricing
-
-**Free Forever Tier** (Self-Hosted or Cloud):
-- Unlimited bookings and meeting types
-- All calendar & video integrations (4 calendar providers, 4 video platforms)
-- Multi-language booking pages (English, German, Ukrainian)
-- Webhooks and embedding
-- Advanced reminder system
-- Community support
-
-**Pro Tier** (Cloud only):
-- Everything in Free
-- Remove Tymeslot branding from booking pages
-- Priority support
-- Support open-source development
-
-**Self-Hosting**: Always free. Deploy on Docker, Cloudron, or bare metal—no licensing fees, ever.
-
-## 🐳 Docker Deployment
-
-### Quick Start with Docker
-```bash
-# Build and run (from project root)
-docker build -f apps/tymeslot/Dockerfile.docker -t tymeslot .
-docker run -p 4000:4000 --env-file .env tymeslot
-```
-
-Or use the build script:
-```bash
-cd apps/tymeslot
-./build-docker.sh
-```
-
-### Docker Compose (Recommended)
-
-```yaml
-services:
-  tymeslot:
-    build:
-      context: .
-      dockerfile: apps/tymeslot/Dockerfile.docker
-    ports:
-      - "4000:4000"
-    environment:
-      - PHX_HOST=localhost
-      - SECRET_KEY_BASE=your_secret_key_here
-      - POSTGRES_DB=tymeslot
-      - POSTGRES_USER=tymeslot
-      - POSTGRES_PASSWORD=password
-      - DEPLOYMENT_TYPE=docker
-    volumes:
-      - tymeslot_data:/app/data
-      - postgres_data:/var/lib/postgresql/data
-
-volumes:
-  tymeslot_data:
-  postgres_data:
-```
-
-## ☁️ Cloudron Deployment
-
-Tymeslot includes native Cloudron support for easy self-hosted deployment:
-
-1. Install from the Cloudron App Store (coming soon)
-2. Or use the manifest: `CloudronManifest.json`
-
-See [README-Cloudron.md](README-Cloudron.md) for detailed instructions.
-
-## ⚙️ Configuration
-
-### Required Environment Variables
-
-```bash
-# Application
-SECRET_KEY_BASE=your_secret_key_here
-PHX_HOST=your.domain.com
-PORT=4000
-
-# Database
-POSTGRES_DB=tymeslot
-POSTGRES_USER=tymeslot
-POSTGRES_PASSWORD=password
-DATABASE_POOL_SIZE=100
-
-# OAuth Providers (Required for integrations)
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
-GITHUB_CLIENT_ID=your_github_client_id
-GITHUB_CLIENT_SECRET=your_github_client_secret
-
-# Email
-EMAIL_ADAPTER=test  # Use 'postmark' or 'smtp' for production
-EMAIL_FROM_NAME="Your App Name"
-EMAIL_FROM_ADDRESS=hello@yourdomain.com
-
-# reCAPTCHA (Optional, for signup bot protection)
-RECAPTCHA_SITE_KEY=your_recaptcha_v3_site_key
-RECAPTCHA_SECRET_KEY=your_recaptcha_v3_secret_key
-RECAPTCHA_SIGNUP_ENABLED=true  # Set to 'true' to enable signup verification
-RECAPTCHA_SIGNUP_MIN_SCORE=0.3  # Score threshold (0.0-1.0); default 0.3
-```
-
-See `.env.example` for the complete configuration template.
-
-## 💼 Who Uses Tymeslot?
-
-- **Freelancers & Consultants**: Replace endless email chains with a professional booking page
-- **Small Businesses**: Coordinate team availability without enterprise pricing
-- **Privacy-Conscious Organizations**: Keep scheduling data on your own infrastructure
-- **Open Source Projects**: Embed booking widgets in your documentation
-- **Developers & Technical Teams**: Extensible platform with webhook integrations and API access
-- **International Teams**: Multi-language support for global customer bases
-
-### reCAPTCHA Setup (Optional)
-
-Tymeslot includes optional **reCAPTCHA v3 bot protection** for user signups.
-
-1. **Create a reCAPTCHA v3 key** at [Google reCAPTCHA Admin](https://www.google.com/recaptcha/admin)
-2. **Set environment variables**:
-   ```bash
-   RECAPTCHA_SITE_KEY=your_site_key
-   RECAPTCHA_SECRET_KEY=your_secret_key
-   RECAPTCHA_SIGNUP_ENABLED=true
-   RECAPTCHA_SIGNUP_MIN_SCORE=0.3  # Default: 0.3 (permissive); adjust 0.0–1.0
-   ```
-3. **Restart the application**
-
-**Details**: See code comments for tuning strategy and monitoring.
-
-
-### OAuth Setup
-
-1. **Google OAuth**: Create credentials at [Google Cloud Console](https://console.cloud.google.com/)
-2. **GitHub OAuth**: Create an OAuth App at [GitHub Settings](https://github.com/settings/developers)
-3. **Microsoft OAuth**: Register at [Azure App Registration](https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationsListBlade)
-
-## 🏗️ Architecture
-
-Tymeslot follows **domain-driven design** with clear bounded contexts:
-
-### Core Domains
-- **Authentication Domain**: Multi-provider OAuth, email verification, session management
-- **User Profiles Domain**: Settings, preferences, avatar management, onboarding
-- **Availability Domain**: Business hours, breaks, overrides, timezone calculations
-- **Bookings Domain**: Meeting lifecycle with orchestrator pattern
-- **Integrations Domain**: Multi-provider calendar and video with registry pattern
-- **Notifications Domain**: Event-driven email system with scheduling
-- **Security Domain**: Rate limiting, encryption, validation, account protection
-
-### Key Patterns
-- **Repository Pattern**: Clean data access with dedicated query modules
-- **Circuit Breaker Pattern**: Resilient external service integration
-- **Provider Pattern**: Extensible integration system with registries
-- **Orchestrator Pattern**: Complex workflow coordination
-
-## 🧪 Testing
-
-```bash
-# Run all tests
-mix test
-
-# Run with coverage
-mix test --cover
-
-# Run integration tests (requires OAuth setup)
-mix test --include integration_test
-
-# Run specific test suites
-mix test test/tymeslot/auth/
-mix test test/tymeslot_web/live/
-```
-
-### Test Coverage
-- Current: 11.17% (improving)
-- Target: 75%
-- Excludes: Integration tests, OAuth flows, external APIs
-
-## 🎨 Themes
-
-Tymeslot includes a flexible theme system:
-
-- **Quill Theme**: Modern glassmorphism design
-- **Rhythm Theme**: Sliding interface with animations
-
-Themes are fully isolated with consistent functionality across all variations.
+[🚀 Try Cloud Version](https://tymeslot.app) · [📖 Documentation](https://github.com/tymeslot/tymeslot/wiki) · [🐛 Report Bug](https://github.com/tymeslot/tymeslot/issues)
+
+</div>
+
+---
+
+## 🎯 Why Choose Tymeslot?
+
+<table>
+<tr>
+<td width="33%" align="center">
+
+### 🔓 Truly Open Source
+Fork, audit, contribute—or just use it. No vendor lock-in, ever.
+
+</td>
+<td width="33%" align="center">
+
+### 🏠 Your Data, Your Rules
+Self-host on Docker/Cloudron or use our managed cloud.
+
+</td>
+<td width="33%" align="center">
+
+### 🆓 Full-Featured Free Tier
+Everything you need to get started. Forever. No credit card required.
+
+</td>
+</tr>
+<tr>
+<td width="33%" align="center">
+
+### 🔒 Privacy-First
+No tracking pixels, no data mining, no selling your data.
+
+</td>
+<td width="33%" align="center">
+
+### 🎨 Professional Templates
+Responsive email designs with calendar attachments.
+
+</td>
+<td width="33%" align="center">
+
+### ⚡ Built for Performance
+Real-time updates with Phoenix LiveView. Blazing fast.
+
+</td>
+</tr>
+</table>
+
+## 🔌 Integrations
+
+### Calendar Providers (5)
+<div align="center">
+  <img src="./priv/static/icons/providers/calendar/medium/google_calendar.png" alt="Google Calendar" height="48" title="Google Calendar" />
+  &nbsp;&nbsp;
+  <img src="./priv/static/icons/providers/calendar/medium/outlook_calendar.png" alt="Outlook Calendar" height="48" title="Outlook Calendar" />
+  &nbsp;&nbsp;
+  <img src="./priv/static/icons/providers/calendar/medium/caldav.png" alt="CalDAV" height="48" title="CalDAV" />
+  &nbsp;&nbsp;
+  <img src="./priv/static/icons/providers/calendar/medium/nextcloud_calendar.png" alt="Nextcloud" height="48" title="Nextcloud Calendar" />
+  &nbsp;&nbsp;
+  <img src="./priv/static/icons/providers/calendar/medium/radicale.png" alt="Radicale" height="48" title="Radicale" />
+</div>
+
+### Video Conferencing (5)
+<div align="center">
+  <img src="./priv/static/icons/providers/video/medium/google_meet.png" alt="Google Meet" height="48" title="Google Meet" />
+  &nbsp;&nbsp;
+  <img src="./priv/static/icons/providers/video/medium/teams.png" alt="Microsoft Teams" height="48" title="Microsoft Teams" />
+  &nbsp;&nbsp;
+  <img src="./priv/static/icons/providers/video/medium/mirotalk.png" alt="MiroTalk P2P" height="48" title="MiroTalk P2P" />
+  &nbsp;&nbsp;
+  <img src="./priv/static/icons/providers/video/medium/local.png" alt="Local Meeting" height="48" title="In-Person / Phone" />
+  &nbsp;&nbsp;
+  <img src="./priv/static/icons/providers/video/medium/custom.png" alt="Custom Links" height="48" title="Custom Video Links" />
+</div>
+
+## 💰 Simple, Transparent Pricing
+
+<table>
+<tr>
+<td width="50%">
+
+### 🆓 Free Forever
+**Self-Hosted or Cloud**
+
+- ✅ Unlimited bookings & meeting types
+- ✅ All 5 calendar providers
+- ✅ All 5 video platforms
+- ✅ Multi-language (EN, DE, UK)
+- ✅ Webhooks & embedding
+- ✅ Advanced reminders
+- ✅ Community support
+
+**Perfect for:** Individuals, small teams, self-hosters
+
+</td>
+<td width="50%">
+
+### ⭐ Pro Tier
+**€5/month · Cloud Only**
+
+- ✅ **Everything in Free**
+- ✅ **Priority support**
+- ✅ **Support open-source development**
+- ✅ **Early access to new features**
+
+**Perfect for:** Professional businesses, agencies
+
+[Get Started →](https://tymeslot.app)
+
+</td>
+</tr>
+</table>
+
+> **Self-Hosting**: Always free. Deploy on Docker, Cloudron, or bare metal—no licensing fees, ever.
+
+## ✨ Feature Highlights
+
+<table>
+<tr>
+<td>
+
+### 🔐 Authentication & Users
+- Multi-provider OAuth (Google, GitHub)
+- Email/password with verification
+- Customizable profiles & avatars
+- 4-step onboarding flow
+
+</td>
+<td>
+
+### 🧠 Smart Scheduling
+- 90+ timezone-aware cities
+- Custom business hours & breaks
+- Real-time conflict detection
+- Configurable meeting types
+
+</td>
+<td>
+
+### 📅 Calendar Sync
+- 5 calendar providers
+- Full CRUD operations
+- Auto token refresh
+- Calendar discovery
+
+</td>
+</tr>
+<tr>
+<td>
+
+### 🎥 Video Conferencing
+- 5 video providers
+- Auto room creation
+- Role-based access
+- OAuth integration
+
+</td>
+<td>
+
+### 📧 Email System
+- Professional templates (MJML)
+- 5 notification types
+- Calendar attachments
+- Delivery tracking
+
+</td>
+<td>
+
+### 🔒 Security
+- Rate limiting
+- AES encryption
+- XSS protection
+- Circuit breakers
+
+</td>
+</tr>
+<tr>
+<td>
+
+### 🌍 Internationalization
+- 3 languages (EN, DE, UK)
+- Auto browser detection
+- Localized booking pages
+- DST handling
+
+</td>
+<td>
+
+### 🔗 Embedding
+- Secure iframe widgets
+- Domain restrictions
+- Webhook notifications
+- Customizable pages
+
+</td>
+<td>
+
+### ⏰ Reminders
+- Unlimited per meeting
+- Flexible timing
+- Email notifications
+- Automatic retry
+
+</td>
+</tr>
+</table>
+
+## 📸 Screenshots
+
+| Dashboard & Management | Availability & Scheduling | Embedded Booking Widget |
+|:---:|:---:|:---:|
+| ![Dashboard](./priv/static/images/screenshots/dashboard.png) | ![Availability](./priv/static/images/screenshots/availability.png) | ![Embedding](./priv/static/images/screenshots/embedding.png) |
+
+## 🆚 Tymeslot vs Calendly
+
+| Feature | Tymeslot | Calendly |
+|---------|----------|----------|
+| **Open Source** | ✅ Yes | ❌ No |
+| **Self-Hosting** | ✅ Free Forever | ❌ Not Available |
+| **Data Privacy** | ✅ Your Infrastructure | ❌ Their Servers |
+| **Unlimited Bookings** | ✅ Free Tier | ❌ Paid Only |
+| **Calendar Providers** | 5 Providers | 3 Providers |
+| **Video Providers** | 5 Providers | 3 Providers |
+| **Multi-Language** | ✅ 3 Languages | ✅ Multiple |
+| **Webhooks** | ✅ Free Tier | ❌ Paid Only |
+| **Embedding** | ✅ Free Tier | ✅ Available |
+
+## 💼 Perfect For
+
+<table>
+<tr>
+<td width="33%">
+
+### 👨‍💼 Freelancers & Consultants
+Replace endless email chains with professional booking pages
+
+</td>
+<td width="33%">
+
+### 🏢 Small Businesses
+Coordinate team availability without enterprise pricing
+
+</td>
+<td width="33%">
+
+### 🔒 Privacy-Conscious Orgs
+Keep scheduling data on your own infrastructure
+
+</td>
+</tr>
+<tr>
+<td width="33%">
+
+### 🌍 International Teams
+Multi-language support for global customer bases
+
+</td>
+<td width="33%">
+
+### 💻 Developers & Tech Teams
+Extensible platform with webhook integrations
+
+</td>
+<td width="33%">
+
+### 📖 Open Source Projects
+Embed booking widgets in your documentation
+
+</td>
+</tr>
+</table>
+
+## 🛠️ Built With
+
+<div align="center">
+
+**Backend:** Elixir 1.19 · Phoenix 1.8 · Phoenix LiveView 1.1 · Oban
+**Database:** PostgreSQL 14+ · Ecto SQL
+**Frontend:** Tailwind CSS · ESBuild · Alpine.js
+**Email:** Swoosh · MJML Templates
+**Infrastructure:** Docker · Cloudron Ready
+
+</div>
+
+## 🚀 Getting Started
+
+<table>
+<tr>
+<td width="25%" align="center">
+
+### ☁️ Cloud
+[Try Now →](https://tymeslot.app)
+
+Zero setup
+Start in 60 seconds
+
+</td>
+<td width="25%" align="center">
+
+### 🐳 Docker
+[Guide →](README-Docker.md)
+
+Self-hosting
+Full control
+
+</td>
+<td width="25%" align="center">
+
+### 📦 Cloudron
+[Guide →](README-Cloudron.md)
+
+One-click install
+Managed platform
+
+</td>
+<td width="25%" align="center">
+
+### 💻 Development
+[Docs →](CONTRIBUTING.md)
+
+Local setup
+Contribute code
+
+</td>
+</tr>
+</table>
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+<table>
+<tr>
+<td width="25%" align="center">
 
-**One of the simplest and most impactful ways to contribute is to leave a star on GitHub.** It helps more people discover Tymeslot and supports the growth of our open-source community.
+### ⭐ Star
+[Star Repo →](https://github.com/tymeslot/tymeslot/stargazers)
 
-**Beyond code and stars, you can support Tymeslot's sustainability by subscribing to our managed cloud service.** These subscriptions directly fund the maintenance and development of the open-source core, ensuring the project remains alive and continues to evolve.
+Help others discover Tymeslot
 
-**How to contribute most effectively:** Your feedback is invaluable. Whether it's reporting a bug, suggesting a new feature, or simply sharing how you use the platform, your insights are what drive our growth.
+</td>
+<td width="25%" align="center">
 
-### Development Setup
+### 💰 Support
+[Subscribe →](https://tymeslot.app)
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Make your changes and add tests
-4. Run the test suite: `mix test`
-5. Run code quality checks: `mix credo` and `mix dialyzer`
-6. Commit your changes: `git commit -m 'Add amazing feature'`
-7. Push to your branch: `git push origin feature/amazing-feature`
-8. Open a Pull Request
+Fund open-source development
 
-### Code Style
-- Follow existing Elixir conventions
-- Use `mix format` for code formatting
-- Add tests for new functionality
-- Update documentation as needed
+</td>
+<td width="25%" align="center">
 
-## 📚 Documentation
+### 🐛 Report
+[Open Issue →](https://github.com/tymeslot/tymeslot/issues)
 
-- [Cloudron Deployment](README-Cloudron.md)
-- [Docker Deployment](README-Docker.md)
-- [Theme Development Guide](docs/THEME_DEVELOPMENT_GUIDE.md)
+Bugs & feature requests
+
+</td>
+<td width="25%" align="center">
+
+### 💻 Code
+[Guidelines →](CONTRIBUTING.md)
+
+Development setup & PR process
+
+</td>
+</tr>
+</table>
 
 ## 🛡️ Security
 
-Tymeslot takes security seriously:
+<table>
+<tr>
+<td width="50%">
 
-- All user inputs are sanitized and validated
-- OAuth credentials are encrypted at rest
-- Rate limiting prevents abuse
-- Security headers protect against common attacks
-- Regular dependency updates
+**Built-in Protection**
+- ✅ Input sanitization & XSS protection
+- ✅ AES encryption for credentials
+- ✅ Rate limiting & IP protection
+- ✅ Security headers (CSP, HSTS, CSRF)
+- ✅ Regular dependency updates
 
-To report security vulnerabilities, please use the [contact page](https://tymeslot.app/contact).
+</td>
+<td width="50%">
+
+**Report Vulnerabilities**
+
+Use our [contact page](https://tymeslot.app/contact) for security issues.
+
+**Documentation**
+- [Docker Deployment](README-Docker.md)
+- [Cloudron Deployment](README-Cloudron.md)
+- [Contributing Guide](CONTRIBUTING.md)
+
+</td>
+</tr>
+</table>
 
 ## 📄 License
 
@@ -360,13 +422,20 @@ Tymeslot is developed by:
 - **Diletta Luna OÜ**
 - Sepapaja 6, 15551 Tallinn, Estonia
 
-## 🌟 Support
+## 💬 Community & Support
 
-- ⭐ Star this repository if you find it helpful
-- 🐛 [Report bugs](https://github.com/tymeslot/tymeslot/issues)
-- 💡 [Request features](https://github.com/tymeslot/tymeslot/issues)
-- 📧 [Contact Us](https://tymeslot.app/contact)
+- 💬 [Join Discussions](https://github.com/tymeslot/tymeslot/discussions) - Get help from the community
+- 🐛 [Report Bugs](https://github.com/tymeslot/tymeslot/issues) - Help us improve
+- 💡 [Request Features](https://github.com/tymeslot/tymeslot/issues) - Share your ideas
+- 📧 [Contact Us](https://tymeslot.app/contact) - Business inquiries
+- ⭐ [Star on GitHub](https://github.com/tymeslot/tymeslot/stargazers) - Show your support
 
 ---
 
+<div align="center">
+
 **Built with ❤️ using Elixir, Phoenix, and LiveView**
+
+Made by [Luka Karsten Breitig](https://github.com/tymeslot) · [Diletta Luna OÜ](https://tymeslot.app) · Tallinn, Estonia
+
+</div>
