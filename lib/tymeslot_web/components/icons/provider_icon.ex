@@ -8,20 +8,22 @@ defmodule TymeslotWeb.Components.Icons.ProviderIcon do
   use Phoenix.Component
 
   @doc """
-  Renders a provider icon for both calendar and video providers.
+  Renders a provider icon for calendar, video, and OAuth providers.
 
   Supports different sizes (compact, medium, large) and all providers:
   - Video: mirotalk, google_meet, teams, custom, in_person, local, none
   - Calendar: google, google_calendar, outlook, outlook_calendar, nextcloud, nextcloud_calendar, caldav
+  - OAuth: google, github
 
   ## Examples
 
       <.provider_icon provider="google" type="calendar" size="large" />
       <.provider_icon provider="mirotalk" type="video" size="compact" />
       <.provider_icon provider="google_meet" size="large" />
+      <.provider_icon provider="google" type="oauth" size="medium" />
   """
   attr :provider, :string, required: true
-  attr :type, :string, default: nil, values: ["calendar", "video", nil]
+  attr :type, :string, default: nil, values: ["calendar", "video", "oauth", nil]
   attr :size, :string, default: "large", values: ["compact", "medium", "large", "mini"]
   attr :class, :string, default: ""
   attr :icon_class, :string, default: ""
@@ -59,9 +61,16 @@ defmodule TymeslotWeb.Components.Icons.ProviderIcon do
       p when p in ["mirotalk", "google_meet", "teams", "custom", "in_person", "local", "none"] ->
         "video"
 
+      "github" ->
+        "oauth"
+
+      "google" ->
+        # Note: OAuth providers share names with calendar providers
+        # Caller should explicitly specify type="oauth" when using OAuth context
+        "calendar"
+
       p
       when p in [
-             "google",
              "google_calendar",
              "outlook",
              "outlook_calendar",

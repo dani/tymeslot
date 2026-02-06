@@ -11,6 +11,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Video.VideoRow do
   attr :integration, :map, required: true
   attr :testing_connection, :any, default: nil
   attr :myself, :any, required: true
+  attr :icon_size, :string, default: "compact", values: ["compact", "medium", "large", "mini"]
 
   @spec video_row(map()) :: Phoenix.LiveView.Rendered.t()
   def video_row(assigns) do
@@ -27,7 +28,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Video.VideoRow do
       <div class="flex items-start justify-between gap-6">
         <!-- Left: Info -->
         <div class="flex items-start gap-4 flex-1 min-w-0">
-          <ProviderIcon.provider_icon provider={@integration.provider} size="compact" class="mt-1" />
+          <ProviderIcon.provider_icon provider={@integration.provider} size={@icon_size} class="mt-1" />
 
           <div class="flex-1 min-w-0">
             <!-- Title -->

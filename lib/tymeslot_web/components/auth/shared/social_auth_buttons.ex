@@ -7,6 +7,8 @@ defmodule TymeslotWeb.Shared.SocialAuthButtons do
   """
   use TymeslotWeb, :html
 
+  alias TymeslotWeb.Components.Icons.ProviderIcon
+
   @doc """
   Renders the social authentication buttons section with a divider.
   Only shows buttons for providers that are enabled in the configuration.
@@ -62,10 +64,10 @@ defmodule TymeslotWeb.Shared.SocialAuthButtons do
   attr :label, :string, required: true
   attr :href, :string, required: true
   attr :class, :string, default: ""
+  attr :icon_size, :string, default: "compact", values: ["compact", "medium", "large", "mini"]
+
   @spec social_auth_button(map()) :: Phoenix.LiveView.Rendered.t()
   def social_auth_button(assigns) do
-    assigns = assign(assigns, :icon_path, icon_path_for(assigns.provider))
-
     ~H"""
     <a
       href={@href}
@@ -73,13 +75,11 @@ defmodule TymeslotWeb.Shared.SocialAuthButtons do
       aria-label={@label}
       data-tymeslot-suppress-lv-disconnect="oauth"
     >
-      <img src={@icon_path} alt={"#{@provider} icon"} class="w-5 h-5" />
+      <div class="w-6 h-6">
+        <ProviderIcon.provider_icon provider={@provider} type="oauth" size={@icon_size} />
+      </div>
       <span>{@label}</span>
     </a>
     """
-  end
-
-  defp icon_path_for(provider) do
-    "/icons/providers/oauth/medium/#{provider}.png"
   end
 end

@@ -487,6 +487,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
   attr :selected_video_integration_id, :any, required: true
   attr :form_errors, :map, required: true
   attr :myself, :any, required: true
+  attr :icon_size, :string, default: "compact", values: ["compact", "medium", "large", "mini"]
 
   @spec meeting_mode_section(map()) :: Phoenix.LiveView.Rendered.t()
   def meeting_mode_section(assigns) do
@@ -563,7 +564,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
                   title={integration.name}
                 >
                   <div class="flex flex-col items-center justify-center space-y-1">
-                    <.provider_icon provider={integration.provider} size="compact" />
+                    <.provider_icon provider={integration.provider} size={@icon_size} />
                     <span class="text-token-sm font-medium truncate max-w-full">
                       {integration.name}
                     </span>
@@ -591,6 +592,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
   attr :selected_target_calendar_id, :any, required: true
   attr :form_errors, :map, required: true
   attr :myself, :any, required: true
+  attr :icon_size, :string, default: "compact", values: ["compact", "medium", "large", "mini"]
 
   @spec booking_destination_section(map()) :: Phoenix.LiveView.Rendered.t()
   def booking_destination_section(assigns) do
@@ -637,7 +639,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
                   title={integration.name}
                 >
                   <div class="flex flex-col items-center justify-center space-y-1">
-                    <.provider_icon provider={integration.provider} size="compact" />
+                    <.provider_icon provider={integration.provider} size={@icon_size} />
                     <span class="text-token-sm font-medium truncate max-w-full">
                       {integration.name}
                     </span>

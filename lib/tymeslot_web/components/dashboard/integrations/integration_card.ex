@@ -11,7 +11,10 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.IntegrationCard do
   @spec integration_card(map()) :: Phoenix.LiveView.Rendered.t()
   def integration_card(assigns) do
     # Ensure checking_connection is available with a default value
-    assigns = Map.put_new(assigns, :checking_connection, nil)
+    assigns =
+      assigns
+      |> Map.put_new(:checking_connection, nil)
+      |> Map.put_new(:icon_size, "compact")
 
     ~H"""
     <div class={[
@@ -28,7 +31,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.IntegrationCard do
     ]}>
       <div class="integration-header">
         <div class="integration-info">
-          <ProviderIcon.provider_icon provider={@integration.provider} size="compact" />
+          <ProviderIcon.provider_icon provider={@integration.provider} size={@icon_size} />
           <div class="integration-details">
             <div class="integration-title-row">
               <h3 class="integration-name">

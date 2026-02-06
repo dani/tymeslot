@@ -219,6 +219,7 @@ defmodule TymeslotWeb.Dashboard.CalendarSettings.Components do
   attr :integration, :map, required: true
   attr :validating_integration_id, :integer, required: true
   attr :myself, :any, required: true
+  attr :icon_size, :string, default: "compact", values: ["compact", "medium", "large", "mini"]
 
   @spec calendar_item(map()) :: Phoenix.LiveView.Rendered.t()
   def calendar_item(assigns) do
@@ -244,7 +245,7 @@ defmodule TymeslotWeb.Dashboard.CalendarSettings.Components do
         <!-- Info Column -->
         <div class="flex items-start gap-5 flex-1 min-w-0">
           <div class="p-3 bg-slate-50 rounded-2xl group-hover:bg-white group-hover:shadow-md transition-all border border-slate-100 group-hover:border-turquoise-100">
-            <ProviderIcon.provider_icon provider={@integration.provider} size="compact" />
+            <ProviderIcon.provider_icon provider={@integration.provider} size={@icon_size} />
           </div>
 
           <div class="flex-1 min-w-0 pt-1">

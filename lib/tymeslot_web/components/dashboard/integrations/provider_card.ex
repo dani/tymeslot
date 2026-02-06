@@ -13,6 +13,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.ProviderCard do
   attr :click_event, :string, required: true
   attr :target, :any, required: true
   attr :provider_value, :string, default: nil
+  attr :icon_size, :string, default: "medium", values: ["compact", "medium", "large", "mini"]
 
   @spec provider_card(map()) :: Phoenix.LiveView.Rendered.t()
   def provider_card(assigns) do
@@ -22,7 +23,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.ProviderCard do
       "p-6 border-2 hover:border-teal-400/50 flex flex-col h-full"
     ]}>
       <div class="flex items-start gap-4 mb-4 flex-1">
-        <ProviderIcon.provider_icon provider={@provider} size="medium" />
+        <ProviderIcon.provider_icon provider={@provider} size={@icon_size} />
         <div class="flex-1">
           <h3 class="text-lg font-semibold text-gray-800 mb-1">{@title}</h3>
           <p class="text-sm text-gray-600">{@description}</p>

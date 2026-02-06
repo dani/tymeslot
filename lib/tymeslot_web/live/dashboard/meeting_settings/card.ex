@@ -11,6 +11,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Card do
   """
   attr :type, :map, required: true
   attr :myself, :any, required: true
+  attr :icon_size, :string, default: "mini", values: ["compact", "medium", "large", "mini"]
 
   @spec meeting_type_card(map()) :: Phoenix.LiveView.Rendered.t()
   def meeting_type_card(assigns) do
@@ -59,7 +60,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Card do
                     <span class="mr-1.5 flex-shrink-0">
                       <ProviderIcon.provider_icon
                         provider={@type.video_integration.provider}
-                        size="mini"
+                        size={@icon_size}
                       />
                     </span>
                     <span class="flex-1 min-w-0 truncate">
@@ -84,7 +85,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Card do
                 </span>
               <% else %>
                 <span class="flex items-center w-full min-w-0">
-                  <ProviderIcon.provider_icon provider="in_person" size="mini" class="mr-1" />
+                  <ProviderIcon.provider_icon provider="in_person" size={@icon_size} class="mr-1" />
                   <span class="flex-1 min-w-0 truncate">In-person</span>
                 </span>
               <% end %>
@@ -93,7 +94,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Card do
                   <span class="mr-1.5 flex-shrink-0">
                     <ProviderIcon.provider_icon
                       provider={@type.calendar_integration.provider}
-                      size="mini"
+                      size={@icon_size}
                     />
                   </span>
                   <span class="flex-1 min-w-0 truncate">
