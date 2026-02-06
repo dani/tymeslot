@@ -25,11 +25,24 @@ defmodule TymeslotWeb.Registration.VerifyEmailComponent do
 
       <:form>
         <.email_verification_message />
-        <div class="mt-6 sm:mt-8 space-y-3">
+        <div class="mt-6 sm:mt-8 space-y-4">
           <.resend_verification_button loading={assigns[:loading] || false} />
-          <.simple_link_button href="/auth/login">
+          <div class="relative py-2">
+            <div class="absolute inset-0 flex items-center" aria-hidden="true">
+              <div class="w-full border-t border-slate-100"></div>
+            </div>
+            <div class="relative flex justify-center text-[10px] font-black uppercase tracking-[0.2em]">
+              <span class="bg-transparent px-4 text-slate-400">or</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            phx-click="navigate_to"
+            phx-value-state="login"
+            class="btn-secondary w-full py-3.5 text-base"
+          >
             Back to Login
-          </.simple_link_button>
+          </button>
         </div>
       </:form>
     </.auth_card_layout>
@@ -39,16 +52,11 @@ defmodule TymeslotWeb.Registration.VerifyEmailComponent do
   defp email_verification_message(assigns) do
     ~H"""
     <div class="text-center mb-8">
-      <div class="mx-auto w-20 h-20 flex items-center justify-center rounded-2xl bg-turquoise-50 border-2 border-turquoise-100 shadow-xl shadow-turquoise-500/10 mb-6 transform hover:scale-105 transition-all duration-300">
-        <svg class="w-10 h-10 text-turquoise-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-        </svg>
-      </div>
       <p class="text-base text-slate-600 font-medium max-w-md mx-auto leading-relaxed">
         We've just sent you a verification email! Please click the link in the email to confirm your address and finish setting up your account.
       </p>
       <%= if email = get_in(assigns, [:form_data, :email]) || get_in(assigns, [:unverified_user, :email]) do %>
-        <div class="mt-6 p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl inline-block">
+        <div class="mt-6 p-4 bg-slate-50/50 border-2 border-slate-100/50 rounded-2xl inline-block">
           <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Sent to</p>
           <p class="text-slate-900 font-bold text-base">{email}</p>
         </div>
@@ -63,7 +71,7 @@ defmodule TymeslotWeb.Registration.VerifyEmailComponent do
       type="button"
       phx-click="resend_verification"
       disabled={@loading}
-      class="btn-primary w-full py-4 text-base"
+      class="btn-primary w-full py-3.5 text-base"
     >
       <%= if @loading do %>
         <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline-block" fill="none" viewBox="0 0 24 24">

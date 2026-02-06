@@ -15,8 +15,8 @@ defmodule TymeslotWeb.Shared.Auth.LayoutComponents do
 
     ~H"""
     <div class="flex flex-col items-center mb-8">
-      <div class="w-16 h-16 bg-white rounded-2xl shadow-xl flex items-center justify-center mb-4 border-2 border-slate-50 transform hover:scale-105 transition-all duration-300">
-        <.logo mode={:icon} img_class="w-10 h-10" />
+      <div class="mb-4 transform hover:scale-105 transition-all duration-300">
+        <TymeslotWeb.Components.CoreComponents.Brand.logo mode={:full} img_class="h-10" />
       </div>
       <div class="text-center">
         <h1 class="text-2xl font-black text-slate-900 tracking-tight">
