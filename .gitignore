@@ -68,7 +68,6 @@ priv/plts/
 *.dump
 
 # Test artifacts
-screenshots/
 test/reports/
 
 # IDE and editor files
