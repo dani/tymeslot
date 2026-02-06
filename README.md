@@ -69,7 +69,7 @@ Real-time updates with Phoenix LiveView. Blazing fast.
 <div align="center">
   <img src="./priv/static/icons/providers/calendar/medium/google.png" alt="Google Calendar" height="48" title="Google Calendar" />
   &nbsp;&nbsp;
-  <img src="./priv/static/icons/providers/calendar/medium/outlook.svg" alt="Outlook Calendar" height="48" title="Outlook Calendar" />
+  <img src="./priv/static/icons/providers/calendar/medium/outlook.png" alt="Outlook Calendar" height="48" title="Outlook Calendar" />
   &nbsp;&nbsp;
   <img src="./priv/static/icons/providers/calendar/medium/caldav.png" alt="CalDAV" height="48" title="CalDAV" />
   &nbsp;&nbsp;
