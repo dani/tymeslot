@@ -24,6 +24,22 @@ Deploy Tymeslot using Docker with an embedded PostgreSQL database. This provides
 
 ## Quick Start
 
+### Pull and Run (Docker Hub Image)
+
+If you want the quickest setup, pull and run the published image directly:
+
+```bash
+docker run --name tymeslot \
+  -p 4000:4000 \
+  -e SECRET_KEY_BASE="$(openssl rand -base64 64 | tr -d '\n')" \
+  -e PHX_HOST=localhost \
+  -v tymeslot_data:/app/data \
+  -v tymeslot_pg:/var/lib/postgresql/data \
+  youruser/tymeslot:latest
+```
+
+This will pull the image automatically if it is not present locally. Replace `youruser` with your Docker Hub namespace. For a pinned version, use `youruser/tymeslot:1.2.3`.
+
 ### 1. Clone Repository
 
 ```bash

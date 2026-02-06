@@ -343,6 +343,22 @@ Contribute code
 </tr>
 </table>
 
+## 🐳 Quick Start (Docker Image)
+
+If you already have Docker installed, you can pull and run the image in one step:
+
+```bash
+docker run --name tymeslot \
+  -p 4000:4000 \
+  -e SECRET_KEY_BASE="$(openssl rand -base64 64 | tr -d '\n')" \
+  -e PHX_HOST=localhost \
+  -v tymeslot_data:/app/data \
+  -v tymeslot_pg:/var/lib/postgresql/data \
+  youruser/tymeslot:latest
+```
+
+This command pulls the image automatically if it is not present locally. For a full Docker guide, see [README-Docker.md](README-Docker.md).
+
 ## 🤝 Contributing
 
 <table>
