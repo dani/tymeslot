@@ -13,9 +13,7 @@ defmodule TymeslotWeb.Components.Dashboard.Profile.DeleteAvatarModal do
 
   @impl true
   def mount(socket) do
-    {:ok,
-     socket
-     |> assign(:show, false)}
+    {:ok, assign(socket, :show, false)}
   end
 
   @impl true
@@ -41,7 +39,7 @@ defmodule TymeslotWeb.Components.Dashboard.Profile.DeleteAvatarModal do
       {:ok, updated_profile} ->
         # Notify the parent LiveView to refresh the profile
         send(self(), {:profile_updated, updated_profile})
-        
+
         Flash.info("Avatar deleted successfully")
 
         {:noreply, assign(socket, :show, false)}

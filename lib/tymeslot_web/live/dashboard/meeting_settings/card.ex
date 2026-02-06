@@ -198,8 +198,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Card do
 
   defp calendar_display_name(%{calendar_integration: integration} = type) do
     calendar =
-      (integration.calendar_list || [])
-      |> Enum.find(fn cal ->
+      Enum.find(integration.calendar_list || [], fn cal ->
         (cal["id"] || cal[:id]) == type.target_calendar_id
       end)
 
