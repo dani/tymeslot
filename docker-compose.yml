@@ -1,13 +1,16 @@
 # Tymeslot Docker Compose Configuration
 #
-# IMPORTANT: Create a .env file from the root's .env.example before starting:
-#   cp ../../.env.example .env
+# IMPORTANT: Create a .env file in the project root before starting:
+#   cd /path/to/tymeslot  # Go to project root
+#   cp apps/tymeslot/.env.example .env
 #
 # Then generate required secrets:
-#   openssl rand -base64 64 | tr -d '\n'
+#   openssl rand -base64 64 | tr -d '\n'  # SECRET_KEY_BASE
+#   openssl rand -base64 32 | tr -d '\n'  # POSTGRES_PASSWORD
 #
-# Fill in the required values in .env, then run:
-#   docker-compose up -d
+# Fill in the required values in .env, then run from apps/tymeslot:
+#   cd apps/tymeslot
+#   docker compose up -d
 
 services:
   tymeslot:
@@ -24,8 +27,6 @@ services:
       DEPLOYMENT_TYPE: docker
       PHX_HOST: ${PHX_HOST}
       SECRET_KEY_BASE: ${SECRET_KEY_BASE}
-      LIVE_VIEW_SIGNING_SALT: ${LIVE_VIEW_SIGNING_SALT}
-      SESSION_SIGNING_SALT: ${SESSION_SIGNING_SALT}
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -52,12 +53,6 @@ services:
     volumes:
       - tymeslot_data:/app/data
       - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4000/healthcheck"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
 
 volumes:
   tymeslot_data:

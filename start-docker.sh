@@ -51,8 +51,6 @@ if [ -n "$MISSING_VARS" ]; then
     echo ""
     echo "Then add them to your .env file:"
     echo "  SECRET_KEY_BASE=<generated_secret>"
-    echo "  LIVE_VIEW_SIGNING_SALT=<generated_secret>"
-    echo "  SESSION_SIGNING_SALT=<generated_secret>"
     echo ""
     echo "Or pass them via docker-compose.yml environment section."
     echo "Make sure docker-compose is reading your .env file!"
