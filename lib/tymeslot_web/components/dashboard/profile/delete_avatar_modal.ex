@@ -81,18 +81,16 @@ defmodule TymeslotWeb.Components.Dashboard.Profile.DeleteAvatarModal do
           Are you sure you want to delete your profile picture? This action cannot be undone.
         </p>
         <:footer>
-          <div class="flex flex-col sm:flex-row gap-4">
+          <div class="flex justify-end gap-3">
             <CoreComponents.action_button
               variant={:secondary}
               phx-click={JS.push("hide", target: @myself)}
-              class="flex-1 py-4 whitespace-nowrap"
             >
               Cancel
             </CoreComponents.action_button>
             <CoreComponents.action_button
               variant={:danger}
               phx-click={JS.push("confirm", target: @myself)}
-              class="flex-1 py-4 whitespace-nowrap"
             >
               Delete Avatar
             </CoreComponents.action_button>

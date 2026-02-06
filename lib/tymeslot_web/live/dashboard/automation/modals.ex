@@ -140,18 +140,16 @@ defmodule TymeslotWeb.Dashboard.Automation.Modals do
       </div>
 
       <:footer>
-        <div class="flex gap-3">
+        <div class="flex justify-end gap-3">
           <CoreComponents.action_button
             variant={:secondary}
             phx-click={@on_cancel}
-            class="flex-1"
           >
             Cancel
           </CoreComponents.action_button>
           <CoreComponents.action_button
             variant={:danger}
             phx-click={@on_confirm}
-            class="flex-1"
           >
             Delete Webhook
           </CoreComponents.action_button>
@@ -195,18 +193,16 @@ defmodule TymeslotWeb.Dashboard.Automation.Modals do
       </div>
 
       <:footer>
-        <div class="flex gap-3">
+        <div class="flex justify-end gap-3">
           <CoreComponents.action_button
             variant={:secondary}
             phx-click={@on_cancel}
-            class="flex-1"
           >
             Cancel
           </CoreComponents.action_button>
           <CoreComponents.action_button
             variant={:danger}
             phx-click={@on_confirm}
-            class="flex-1"
           >
             Regenerate
           </CoreComponents.action_button>
