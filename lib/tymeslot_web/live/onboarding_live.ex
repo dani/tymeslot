@@ -149,7 +149,7 @@ defmodule TymeslotWeb.OnboardingLive do
                 <div class="flex items-center justify-center mb-6">
                   <TymeslotWeb.Components.CoreComponents.logo
                     mode={:full}
-                    img_class="h-8 sm:h-10"
+                    img_class="h-14 sm:h-16"
                   />
                 </div>
 

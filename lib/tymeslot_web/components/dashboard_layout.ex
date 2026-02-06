@@ -95,20 +95,16 @@ defmodule TymeslotWeb.Components.DashboardLayout do
                   </path>
                 </svg>
               </button>
-              
+
     <!-- Logo with Icon and Text -->
               <div class="flex items-center space-x-3 flex-shrink-0">
-                <img
-                  src="/images/brand/logo.svg"
-                  alt="Tymeslot"
-                  class="h-10 sm:h-12 flex-shrink-0"
+                <TymeslotWeb.Components.CoreComponents.logo
+                  mode={:full}
+                  img_class="h-14 sm:h-16 flex-shrink-0"
                 />
-                <span class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tighter hidden sm:inline">
-                  Tymeslot
-                </span>
               </div>
             </div>
-            
+
     <!-- Right side: User dropdown -->
             <div class="relative flex-shrink-0">
               <.live_component
