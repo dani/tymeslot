@@ -67,13 +67,13 @@ Real-time updates with Phoenix LiveView. Blazing fast.
 
 ### Calendar Providers (5)
 <div align="center">
-  <img src="./priv/static/icons/providers/calendar/medium/google_calendar.png" alt="Google Calendar" height="48" title="Google Calendar" />
+  <img src="./priv/static/icons/providers/calendar/medium/google.png" alt="Google Calendar" height="48" title="Google Calendar" />
   &nbsp;&nbsp;
-  <img src="./priv/static/icons/providers/calendar/medium/outlook_calendar.png" alt="Outlook Calendar" height="48" title="Outlook Calendar" />
+  <img src="./priv/static/icons/providers/calendar/medium/outlook.svg" alt="Outlook Calendar" height="48" title="Outlook Calendar" />
   &nbsp;&nbsp;
   <img src="./priv/static/icons/providers/calendar/medium/caldav.png" alt="CalDAV" height="48" title="CalDAV" />
   &nbsp;&nbsp;
-  <img src="./priv/static/icons/providers/calendar/medium/nextcloud_calendar.png" alt="Nextcloud" height="48" title="Nextcloud Calendar" />
+  <img src="./priv/static/icons/providers/calendar/medium/nextcloud.png" alt="Nextcloud" height="48" title="Nextcloud Calendar" />
   &nbsp;&nbsp;
   <img src="./priv/static/icons/providers/calendar/medium/radicale.png" alt="Radicale" height="48" title="Radicale" />
 </div>
