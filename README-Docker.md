@@ -159,11 +159,35 @@ POSTGRES_USER=tymeslot
 POSTGRES_PASSWORD=<secure-password>
 ```
 
+### Using an External Database
+
+By default, Tymeslot uses an embedded PostgreSQL database in the Docker container. To use an external database (e.g., from a cloud provider like AWS RDS, Azure Database, or DigitalOcean), set these variables:
+
+```bash
+DATABASE_HOST=your-db-host.example.com
+DATABASE_PORT=5432
+POSTGRES_DB=tymeslot
+POSTGRES_USER=your_db_user
+POSTGRES_PASSWORD=your_db_password
+```
+
+**Important**: When using an external database:
+- The database and user must already exist
+- Tymeslot will NOT create them automatically
+- Ensure the database accepts connections from your Docker container's IP/network
+- Network/firewall rules must allow the connection
+
+The database detection is automatic:
+- If `DATABASE_HOST` is `localhost` or `127.0.0.1`, uses embedded PostgreSQL
+- If `DATABASE_HOST` is any other value, uses external database
+
 ### Optional Environment Variables
 
 ```bash
 # Application
 PORT=4000                    # HTTP port (default: 4000)
+DATABASE_HOST=localhost      # Database host (default: localhost)
+DATABASE_PORT=5432          # Database port (default: 5432)
 DATABASE_POOL_SIZE=10        # DB pool size (default: 10)
 
 # Email (defaults to test adapter - no external service needed)

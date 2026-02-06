@@ -26,6 +26,8 @@ POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-tymeslot}
 POSTGRES_DB=${POSTGRES_DB:-tymeslot}
 PHX_HOST=${PHX_HOST:-localhost}
 PORT=${PORT:-4000}
+DATABASE_HOST=${DATABASE_HOST:-localhost}
+DATABASE_PORT=${DATABASE_PORT:-5432}
 
 # ==================== SECTION 2: Validate Critical Configuration ====================
 # Validate all required environment variables are set
@@ -66,10 +68,26 @@ echo "Starting Tymeslot (Docker deployment)"
 echo "========================================"
 echo ""
 
+# ==================== SECTION 2B: Detect Database Configuration ====================
+# Check if using external database or embedded PostgreSQL
+USING_EXTERNAL_DB=false
+if [ "$DATABASE_HOST" != "localhost" ] && [ "$DATABASE_HOST" != "127.0.0.1" ]; then
+    USING_EXTERNAL_DB=true
+    echo "✓ External database detected: $DATABASE_HOST:$DATABASE_PORT"
+    echo "  Skipping embedded PostgreSQL initialization"
+elif [ -n "${DATABASE_URL:-}" ]; then
+    USING_EXTERNAL_DB=true
+    echo "✓ DATABASE_URL detected"
+    echo "  Skipping embedded PostgreSQL initialization"
+fi
+
+echo ""
+
 # ==================== SECTION 3: PostgreSQL Database Initialization ====================
 # Check if PostgreSQL has already been initialized
 # If not, perform first-time initialization and configuration
-if [ ! -f /var/lib/postgresql/data/postgresql.conf ]; then
+# SKIP this section if using an external database
+if [ "$USING_EXTERNAL_DB" = false ] && [ ! -f /var/lib/postgresql/data/postgresql.conf ]; then
     echo "PostgreSQL not initialized. Running first-time setup..."
     # Run initdb to create the initial database cluster
     if su - postgres -c "/usr/lib/postgresql/*/bin/initdb -D /var/lib/postgresql/data"; then
@@ -92,55 +110,78 @@ else
 fi
 
 # ==================== SECTION 4: Start PostgreSQL Service ====================
-echo "Starting PostgreSQL service..."
-# Start PostgreSQL daemon and log output to a file
-if su - postgres -c "/usr/lib/postgresql/*/bin/pg_ctl -D /var/lib/postgresql/data -l /var/lib/postgresql/data/logfile start"; then
-    echo "✓ PostgreSQL service started"
-else
-    echo "✗ ERROR: Failed to start PostgreSQL service!"
-    exit 1
-fi
-
-# ==================== SECTION 5: Wait for PostgreSQL Readiness ====================
-# PostgreSQL needs time to start up; poll until it's ready to accept connections
-echo "Waiting for PostgreSQL to be ready..."
-RETRY_COUNT=0
-MAX_RETRIES=30
-until su - postgres -c "pg_isready -h localhost -p 5432" > /dev/null 2>&1; do
-    RETRY_COUNT=$((RETRY_COUNT + 1))
-    if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
-        echo "✗ ERROR: PostgreSQL failed to become ready after ${MAX_RETRIES} seconds!"
-        echo "Check /var/lib/postgresql/data/logfile for details"
+# Only start embedded PostgreSQL if not using external database
+if [ "$USING_EXTERNAL_DB" = false ]; then
+    echo "Starting PostgreSQL service..."
+    # Start PostgreSQL daemon and log output to a file
+    if su - postgres -c "/usr/lib/postgresql/*/bin/pg_ctl -D /var/lib/postgresql/data -l /var/lib/postgresql/data/logfile start"; then
+        echo "✓ PostgreSQL service started"
+    else
+        echo "✗ ERROR: Failed to start PostgreSQL service!"
         exit 1
     fi
-    echo "  Waiting... ($RETRY_COUNT/$MAX_RETRIES)"
-    sleep 1
-done
 
-echo "✓ PostgreSQL is ready and accepting connections!"
+    # ==================== SECTION 5: Wait for PostgreSQL Readiness ====================
+    # PostgreSQL needs time to start up; poll until it's ready to accept connections
+    echo "Waiting for PostgreSQL to be ready..."
+    RETRY_COUNT=0
+    MAX_RETRIES=30
+    until su - postgres -c "pg_isready -h localhost -p 5432" > /dev/null 2>&1; do
+        RETRY_COUNT=$((RETRY_COUNT + 1))
+        if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
+            echo "✗ ERROR: PostgreSQL failed to become ready after ${MAX_RETRIES} seconds!"
+            echo "Check /var/lib/postgresql/data/logfile for details"
+            exit 1
+        fi
+        echo "  Waiting... ($RETRY_COUNT/$MAX_RETRIES)"
+        sleep 1
+    done
+
+    echo "✓ PostgreSQL is ready and accepting connections!"
+else
+    echo "Waiting for external database to be ready..."
+    RETRY_COUNT=0
+    MAX_RETRIES=30
+    until pg_isready -h "$DATABASE_HOST" -p "$DATABASE_PORT" > /dev/null 2>&1; do
+        RETRY_COUNT=$((RETRY_COUNT + 1))
+        if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
+            echo "✗ ERROR: External database failed to respond after ${MAX_RETRIES} seconds!"
+            echo "Check your DATABASE_HOST ($DATABASE_HOST) and DATABASE_PORT ($DATABASE_PORT) configuration"
+            exit 1
+        fi
+        echo "  Waiting... ($RETRY_COUNT/$MAX_RETRIES)"
+        sleep 1
+    done
+
+    echo "✓ External database is ready and accepting connections!"
+fi
 
 # ==================== SECTION 6: Database and User Setup ====================
 # Create database user and database if they don't already exist
-# Using '|| true' to suppress errors if they already exist (idempotent)
-echo "Setting up database user and database..."
+# Only needed for embedded PostgreSQL; external databases should be pre-configured
+if [ "$USING_EXTERNAL_DB" = false ]; then
+    echo "Setting up database user and database..."
 
-# Create user (suppress error if already exists)
-if su - postgres -c "psql -c \"CREATE USER ${POSTGRES_USER} WITH PASSWORD '$POSTGRES_PASSWORD';\"" 2>/dev/null; then
-    echo "✓ Created database user: ${POSTGRES_USER}"
+    # Create user (suppress error if already exists)
+    if su - postgres -c "psql -c \"CREATE USER ${POSTGRES_USER} WITH PASSWORD '$POSTGRES_PASSWORD';\"" 2>/dev/null; then
+        echo "✓ Created database user: ${POSTGRES_USER}"
+    else
+        echo "  User '${POSTGRES_USER}' already exists (OK)"
+    fi
+
+    # Create database (suppress error if already exists)
+    if su - postgres -c "psql -c \"CREATE DATABASE ${POSTGRES_DB} OWNER ${POSTGRES_USER};\"" 2>/dev/null; then
+        echo "✓ Created database: ${POSTGRES_DB}"
+    else
+        echo "  Database '${POSTGRES_DB}' already exists (OK)"
+    fi
+
+    # Grant privileges
+    su - postgres -c "psql -c \"GRANT ALL PRIVILEGES ON DATABASE ${POSTGRES_DB} TO ${POSTGRES_USER};\"" >/dev/null 2>&1 || true
+    echo "✓ Database setup completed"
 else
-    echo "  User '${POSTGRES_USER}' already exists (OK)"
+    echo "✓ Using external database (ensure it's pre-configured)"
 fi
-
-# Create database (suppress error if already exists)
-if su - postgres -c "psql -c \"CREATE DATABASE ${POSTGRES_DB} OWNER ${POSTGRES_USER};\"" 2>/dev/null; then
-    echo "✓ Created database: ${POSTGRES_DB}"
-else
-    echo "  Database '${POSTGRES_DB}' already exists (OK)"
-fi
-
-# Grant privileges
-su - postgres -c "psql -c \"GRANT ALL PRIVILEGES ON DATABASE ${POSTGRES_DB} TO ${POSTGRES_USER};\"" >/dev/null 2>&1 || true
-echo "✓ Database setup completed"
 
 # ==================== SECTION 7: Application Data Directory Setup ====================
 # Create required directories for timezone data and user uploads
@@ -161,7 +202,13 @@ echo "  MIX_ENV: ${MIX_ENV:-not set (will default to prod in release)}"
 echo "  DEPLOYMENT_TYPE: ${DEPLOYMENT_TYPE:-docker}"
 echo "  PHX_HOST: ${PHX_HOST}"
 echo "  PORT: ${PORT}"
-echo "  DATABASE: ${POSTGRES_DB}"
+if [ "$USING_EXTERNAL_DB" = true ]; then
+    echo "  Database: EXTERNAL ($DATABASE_HOST:$DATABASE_PORT)"
+else
+    echo "  Database: EMBEDDED (localhost:5432)"
+    echo "  Database Name: ${POSTGRES_DB}"
+    echo "  Database User: ${POSTGRES_USER}"
+fi
 echo "  EMAIL_ADAPTER: ${EMAIL_ADAPTER:-test}"
 echo ""
 echo "Security Configuration:"
