@@ -137,7 +137,7 @@ defmodule Tymeslot.Integrations.Calendar.Creation do
 
   defp ensure_calendar_list(attrs, calendar_paths_list) do
     case {Map.get(attrs, :calendar_list), calendar_paths_list} do
-      {[_ | _] = list, _} ->
+      {[_ | _], _} ->
         attrs
 
       {_, [_ | _] = paths} ->
