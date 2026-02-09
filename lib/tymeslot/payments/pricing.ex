@@ -41,7 +41,10 @@ defmodule Tymeslot.Payments.Pricing do
   """
   @spec pro_monthly_cents() :: integer()
   def pro_monthly_cents do
-    Application.get_env(:tymeslot, :pricing)[:pro_monthly_cents]
+    case Application.get_env(:tymeslot, :pricing) do
+      nil -> 0
+      pricing -> pricing[:pro_monthly_cents] || 0
+    end
   end
 
   @doc """
@@ -49,7 +52,10 @@ defmodule Tymeslot.Payments.Pricing do
   """
   @spec pro_annual_cents() :: integer()
   def pro_annual_cents do
-    Application.get_env(:tymeslot, :pricing)[:pro_annual_cents]
+    case Application.get_env(:tymeslot, :pricing) do
+      nil -> 0
+      pricing -> pricing[:pro_annual_cents] || 0
+    end
   end
 
   @doc """

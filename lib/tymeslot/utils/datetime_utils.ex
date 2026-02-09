@@ -428,9 +428,12 @@ defmodule Tymeslot.Utils.DateTimeUtils do
       [_ | captures] ->
         weeks = parse_duration_component(Enum.at(captures, 0), 86_400 * 7)
         days = parse_duration_component(Enum.at(captures, 1), 86_400)
+        total = weeks + days
 
-        if weeks + days > 0 or duration_str == "P0D" do
-          {:ok, weeks + days}
+        # Accept zero durations if the format is valid (regex matched)
+        # and at least one component is present (not just "P")
+        if total > 0 or duration_str != "P" do
+          {:ok, total}
         else
           {:error, "Unsupported or invalid duration format"}
         end
