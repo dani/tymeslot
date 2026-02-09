@@ -317,7 +317,7 @@ defmodule Tymeslot.Emails.Shared.UiComponents do
   Both label and value are sanitized for safe HTML output.
   """
   @spec quick_info_grid(list(map())) :: String.t()
-  def quick_info_grid(items) when is_list(items) and length(items) > 0 do
+  def quick_info_grid([_ | _] = items) do
     columns =
       Enum.map_join(items, "\n", fn item ->
         safe_label = SharedHelpers.sanitize_for_email(item.label)
@@ -370,7 +370,7 @@ defmodule Tymeslot.Emails.Shared.UiComponents do
   @spec preparation_checklist(list(String.t()), keyword()) :: String.t()
   def preparation_checklist(items, opts \\ [])
 
-  def preparation_checklist(items, opts) when is_list(items) and length(items) > 0 do
+  def preparation_checklist([_ | _] = items, opts) do
     title = Keyword.get(opts, :title, "Checklist")
     type = Keyword.get(opts, :type, :default)
 
@@ -420,7 +420,7 @@ defmodule Tymeslot.Emails.Shared.UiComponents do
   Generates footer actions section with action links.
   """
   @spec footer_actions(list(map())) :: String.t()
-  def footer_actions(actions) when is_list(actions) and length(actions) > 0 do
+  def footer_actions([_ | _] = actions) do
     action_links =
       Enum.map_join(actions, " | ", fn action ->
         color = Map.get(action, :color, :primary)

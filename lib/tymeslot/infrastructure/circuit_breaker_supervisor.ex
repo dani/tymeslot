@@ -5,6 +5,9 @@ defmodule Tymeslot.Infrastructure.CircuitBreakerSupervisor do
 
   use Supervisor
 
+  alias Tymeslot.Infrastructure.CalendarCircuitBreaker
+  alias Tymeslot.Infrastructure.VideoCircuitBreaker
+
   @calendar_providers [:caldav, :radicale, :nextcloud, :google, :outlook]
   @calendar_breaker_names Enum.into(@calendar_providers, %{}, fn p ->
                             {p, :"calendar_breaker_#{p}"}
@@ -84,7 +87,7 @@ defmodule Tymeslot.Infrastructure.CircuitBreakerSupervisor do
     Enum.map(@calendar_providers, fn provider ->
       name = Map.fetch!(@calendar_breaker_names, provider)
       # Use configuration from CalendarCircuitBreaker to avoid duplication
-      config = Tymeslot.Infrastructure.CalendarCircuitBreaker.get_config(provider)
+      config = CalendarCircuitBreaker.get_config(provider)
 
       Supervisor.child_spec(
         {Tymeslot.Infrastructure.CircuitBreaker, name: name, config: config},
@@ -97,7 +100,7 @@ defmodule Tymeslot.Infrastructure.CircuitBreakerSupervisor do
     Enum.map(@video_providers, fn provider ->
       name = Map.fetch!(@video_breaker_names, provider)
       # Use configuration from VideoCircuitBreaker to avoid duplication
-      config = Tymeslot.Infrastructure.VideoCircuitBreaker.get_config(provider)
+      config = VideoCircuitBreaker.get_config(provider)
 
       Supervisor.child_spec(
         {Tymeslot.Infrastructure.CircuitBreaker, name: name, config: config},

@@ -36,9 +36,9 @@ defmodule Tymeslot.Dashboard.DashboardContext do
              meeting_types = MeetingTypeQueries.list_active_meeting_types(user_id)
 
              %{
-               has_calendar: length(calendar_integrations) > 0,
-               has_video: length(video_integrations) > 0,
-               has_meeting_types: length(meeting_types) > 0,
+               has_calendar: calendar_integrations != [],
+               has_video: video_integrations != [],
+               has_meeting_types: meeting_types != [],
                calendar_count: length(calendar_integrations),
                video_count: length(video_integrations),
                meeting_types_count: length(meeting_types)

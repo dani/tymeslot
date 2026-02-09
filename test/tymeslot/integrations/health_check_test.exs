@@ -6,6 +6,7 @@ defmodule Tymeslot.Integrations.HealthCheckTest do
   import Ecto.Query
   import Mox
 
+  alias Ecto.Changeset
   alias Oban.Job
   alias Tymeslot.DatabaseQueries.CalendarIntegrationQueries
   alias Tymeslot.Integrations.HealthCheck
@@ -277,7 +278,7 @@ defmodule Tymeslot.Integrations.HealthCheckTest do
 
       # Manually insert a pending job
       %Job{}
-      |> Ecto.Changeset.change(%{
+      |> Changeset.change(%{
         worker: "Tymeslot.Workers.IntegrationHealthWorker",
         queue: "calendar_integrations",
         state: "available",

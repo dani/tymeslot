@@ -269,7 +269,7 @@ defmodule Tymeslot.Application do
     additional_queue_keys = Keyword.keys(additional_queues)
     conflict_keys = Enum.filter(additional_queue_keys, &(&1 in base_queue_keys))
 
-    if length(conflict_keys) > 0 do
+    if conflict_keys != [] do
       Logger.info("Additional queues overriding Core queue concurrency", queues: conflict_keys)
     end
 

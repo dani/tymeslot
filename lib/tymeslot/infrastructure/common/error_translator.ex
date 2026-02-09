@@ -296,7 +296,7 @@ defmodule Tymeslot.Infrastructure.Common.ErrorTranslator do
   @spec format_user_message(translated_error()) :: String.t()
   def format_user_message(error) do
     steps =
-      if length(error.resolution_steps) > 0 do
+      if error.resolution_steps != [] do
         "\n\nWhat to do:\n" <>
           Enum.map_join(error.resolution_steps, "\n", fn step -> "• #{step}" end)
       else
@@ -375,7 +375,7 @@ defmodule Tymeslot.Infrastructure.Common.ErrorTranslator do
     missing_scopes = Map.get(context, :missing_scopes, [])
 
     scope_list =
-      if length(missing_scopes) > 0,
+      if missing_scopes != [],
         do: Enum.join(missing_scopes, ", "),
         else: "required permissions"
 

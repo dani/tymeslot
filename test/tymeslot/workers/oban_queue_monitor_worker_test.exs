@@ -2,6 +2,7 @@ defmodule Tymeslot.Workers.ObanQueueMonitorWorkerTest do
   use Tymeslot.DataCase, async: false
   use Oban.Testing, repo: Tymeslot.Repo
 
+  alias Ecto.Changeset
   alias Tymeslot.Workers.ObanQueueMonitorWorker
 
   import ExUnit.CaptureLog
@@ -201,7 +202,7 @@ defmodule Tymeslot.Workers.ObanQueueMonitorWorkerTest do
     attrs = Map.merge(default_attrs, Map.new(attrs))
 
     %Oban.Job{}
-    |> Ecto.Changeset.change(attrs)
+    |> Changeset.change(attrs)
     |> Repo.insert!()
   end
 end

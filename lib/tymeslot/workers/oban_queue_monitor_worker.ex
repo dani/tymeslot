@@ -80,7 +80,7 @@ defmodule Tymeslot.Workers.ObanQueueMonitorWorker do
       |> Repo.all()
       |> Enum.filter(fn {_queue, count} -> count > threshold end)
 
-    if length(unhealthy_queues) > 0 do
+    if unhealthy_queues != [] do
       Logger.warning("Oban queues accumulating jobs",
         affected_queues: unhealthy_queues,
         threshold: threshold
@@ -120,7 +120,7 @@ defmodule Tymeslot.Workers.ObanQueueMonitorWorker do
       |> Repo.all()
       |> Enum.filter(fn {_queue, count} -> count > threshold end)
 
-    if length(unhealthy_queues) > 0 do
+    if unhealthy_queues != [] do
       Logger.warning("Oban queues have stuck available jobs",
         affected_queues: unhealthy_queues,
         age_hours: age_hours
@@ -164,7 +164,7 @@ defmodule Tymeslot.Workers.ObanQueueMonitorWorker do
       |> Repo.all()
       |> Enum.filter(fn {_queue, count} -> count > threshold end)
 
-    if length(unhealthy_queues) > 0 do
+    if unhealthy_queues != [] do
       Logger.warning("Oban queues have stuck retryable jobs",
         affected_queues: unhealthy_queues,
         age_hours: age_hours

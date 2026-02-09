@@ -213,7 +213,7 @@ defmodule Tymeslot.Mailer.HealthCheck do
       {"X-Postmark-Server-Token", api_key}
     ]
 
-    case Finch.build(:get, url, headers) |> Finch.request(Tymeslot.Finch, receive_timeout: 5_000) do
+    case Finch.request(Finch.build(:get, url, headers), Tymeslot.Finch, receive_timeout: 5_000) do
       {:ok, %{status: 200}} ->
         Logger.info("✓ Postmark API key validation passed")
         :ok
@@ -263,7 +263,7 @@ defmodule Tymeslot.Mailer.HealthCheck do
       not is_integer(config[:port]) ->
         {:error, "SMTP port must be an integer"}
 
-      config[:port] not in 1..65535 ->
+      config[:port] not in 1..65_535 ->
         {:error, "SMTP port must be between 1-65535, got: #{config[:port]}"}
 
       true ->
@@ -444,77 +444,60 @@ defmodule Tymeslot.Mailer.HealthCheck do
 
   # Formats connection error with helpful context and human-readable messages
   defp format_connection_error(reason, host, port) do
-    # Translate Erlang error atoms to human-readable messages
-    readable_reason =
-      case reason do
-        :econnrefused ->
-          "Connection refused"
-
-        {:dns_failed, :nxdomain} ->
-          "Hostname not found (DNS resolution failed)"
-
-        {:dns_failed, reason} ->
-          "DNS resolution failed: #{inspect(reason)}"
-
-        :timeout ->
-          "Connection timed out"
-
-        :etimedout ->
-          "Connection timed out"
-
-        {:tls_alert, {:handshake_failure, _}} ->
-          "SSL/TLS handshake failed"
-
-        {:tls_alert, alert} ->
-          "SSL/TLS alert: #{inspect(alert)}"
-
-        :closed ->
-          "Connection closed by server"
-
-        _ ->
-          inspect(reason)
-      end
-
+    readable_reason = format_readable_reason(reason)
     base_error = "Cannot connect to #{host}:#{port}: #{readable_reason}"
-
-    suggestion =
-      case {reason, port} do
-        {:econnrefused, 587} ->
-          "\n\nPort 587 (STARTTLS) connection refused. Common causes:\n" <>
-            "  - SMTP server is not running\n" <>
-            "  - Firewall blocking port 587\n" <>
-            "  - Wrong SMTP_HOST value\n" <>
-            "  - Try port 465 (SSL) instead: SMTP_PORT=465"
-
-        {:econnrefused, 465} ->
-          "\n\nPort 465 (SSL) connection refused. Common causes:\n" <>
-            "  - SMTP server is not running\n" <>
-            "  - Firewall blocking port 465\n" <>
-            "  - Wrong SMTP_HOST value\n" <>
-            "  - Try port 587 (STARTTLS) instead: SMTP_PORT=587"
-
-        {reason, _} when reason in [:timeout, :etimedout] ->
-          "\n\nConnection timed out. Common causes:\n" <>
-            "  - Firewall blocking outbound SMTP\n" <>
-            "  - Network connectivity issues\n" <>
-            "  - SMTP server is slow to respond"
-
-        {{:dns_failed, :nxdomain}, _} ->
-          "\n\nHostname not found (DNS resolution failed).\n" <>
-            "  - Verify SMTP_HOST is correct (no spaces, correct domain)\n" <>
-            "  - Check DNS configuration"
-
-        {{:tls_alert, {:handshake_failure, _}}, 465} ->
-          "\n\nSSL/TLS handshake failed. Common causes:\n" <>
-            "  - Certificate verification failed\n" <>
-            "  - Server requires different TLS version\n" <>
-            "  - Server doesn't support port 465 SSL\n" <>
-            "  - Try port 587 (STARTTLS) instead: SMTP_PORT=587"
-
-        _ ->
-          ""
-      end
-
+    suggestion = get_error_suggestion(reason, port)
     "#{base_error}#{suggestion}"
   end
+
+  # Translates Erlang error atoms to human-readable messages
+  defp format_readable_reason(:econnrefused), do: "Connection refused"
+  defp format_readable_reason({:dns_failed, :nxdomain}), do: "Hostname not found (DNS resolution failed)"
+  defp format_readable_reason({:dns_failed, reason}), do: "DNS resolution failed: #{inspect(reason)}"
+  defp format_readable_reason(:timeout), do: "Connection timed out"
+  defp format_readable_reason(:etimedout), do: "Connection timed out"
+  defp format_readable_reason({:tls_alert, {:handshake_failure, _}}), do: "SSL/TLS handshake failed"
+  defp format_readable_reason({:tls_alert, alert}), do: "SSL/TLS alert: #{inspect(alert)}"
+  defp format_readable_reason(:closed), do: "Connection closed by server"
+  defp format_readable_reason(reason), do: inspect(reason)
+
+  # Provides helpful suggestions based on error type and port
+  defp get_error_suggestion(:econnrefused, 587) do
+    "\n\nPort 587 (STARTTLS) connection refused. Common causes:\n" <>
+      "  - SMTP server is not running\n" <>
+      "  - Firewall blocking port 587\n" <>
+      "  - Wrong SMTP_HOST value\n" <>
+      "  - Try port 465 (SSL) instead: SMTP_PORT=465"
+  end
+
+  defp get_error_suggestion(:econnrefused, 465) do
+    "\n\nPort 465 (SSL) connection refused. Common causes:\n" <>
+      "  - SMTP server is not running\n" <>
+      "  - Firewall blocking port 465\n" <>
+      "  - Wrong SMTP_HOST value\n" <>
+      "  - Try port 587 (STARTTLS) instead: SMTP_PORT=587"
+  end
+
+  defp get_error_suggestion(reason, _) when reason in [:timeout, :etimedout] do
+    "\n\nConnection timed out. Common causes:\n" <>
+      "  - Firewall blocking outbound SMTP\n" <>
+      "  - Network connectivity issues\n" <>
+      "  - SMTP server is slow to respond"
+  end
+
+  defp get_error_suggestion({:dns_failed, :nxdomain}, _) do
+    "\n\nHostname not found (DNS resolution failed).\n" <>
+      "  - Verify SMTP_HOST is correct (no spaces, correct domain)\n" <>
+      "  - Check DNS configuration"
+  end
+
+  defp get_error_suggestion({:tls_alert, {:handshake_failure, _}}, 465) do
+    "\n\nSSL/TLS handshake failed. Common causes:\n" <>
+      "  - Certificate verification failed\n" <>
+      "  - Server requires different TLS version\n" <>
+      "  - Server doesn't support port 465 SSL\n" <>
+      "  - Try port 587 (STARTTLS) instead: SMTP_PORT=587"
+  end
+
+  defp get_error_suggestion(_, _), do: ""
 end

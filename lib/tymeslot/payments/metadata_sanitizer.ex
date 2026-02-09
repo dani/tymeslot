@@ -114,7 +114,7 @@ defmodule Tymeslot.Payments.MetadataSanitizer do
         # Log if any keys were filtered out (helps detect issues)
         filtered_out = Map.keys(metadata) -- Map.keys(filtered)
 
-        if length(filtered_out) > 0 do
+        if filtered_out != [] do
           Logger.debug("Filtered out non-whitelisted metadata keys: #{inspect(filtered_out)}")
         end
 

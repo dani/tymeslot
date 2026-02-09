@@ -143,7 +143,7 @@ defmodule Tymeslot.Mailer.SMTPConfigTest do
 
       cacerts = config[:tls_options][:cacerts]
       assert is_list(cacerts)
-      assert length(cacerts) > 0
+      assert cacerts != []
     end
   end
 
@@ -265,7 +265,7 @@ defmodule Tymeslot.Mailer.SMTPConfigTest do
       assert_raise ArgumentError, ~r/SMTP port must be between 1-65535/, fn ->
         SMTPConfig.build(
           host: "smtp.example.com",
-          port: 99999,
+          port: 99_999,
           username: "user",
           password: "pass"
         )

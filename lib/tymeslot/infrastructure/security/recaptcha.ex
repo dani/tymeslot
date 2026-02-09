@@ -249,8 +249,7 @@ defmodule Tymeslot.Infrastructure.Security.Recaptcha do
 
   @spec validate_expected_hostname(nil, list()) :: {:error, atom()}
   # NEW: Log when hostname field is missing but was expected
-  def validate_expected_hostname(nil, expected_hostnames)
-      when is_list(expected_hostnames) and length(expected_hostnames) > 0 do
+  def validate_expected_hostname(nil, [_ | _] = expected_hostnames) do
     Logger.warning("reCAPTCHA response missing hostname field",
       expected_hostnames: expected_hostnames,
       hint: "Google may have omitted this field; verify your reCAPTCHA configuration"

@@ -210,8 +210,10 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.ConfigBase do
       end
 
       defp has_discovered_calendars?(assigns) do
-        is_list(Map.get(assigns, :discovered_calendars)) and
-          length(Map.get(assigns, :discovered_calendars)) > 0
+        case Map.get(assigns, :discovered_calendars) do
+          [_ | _] -> true
+          _ -> false
+        end
       end
     end
   end

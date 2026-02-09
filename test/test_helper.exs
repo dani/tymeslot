@@ -79,10 +79,10 @@ Mox.defmock(Tymeslot.Auth.SessionMock,
 # Stripe internal mocks for testing the wrapper
 # We use the behaviours defined in Tymeslot.TestMocks
 alias Tymeslot.TestMocks.{
+  StripeChargeBehaviour,
   StripeCustomerBehaviour,
   StripeSessionBehaviour,
   StripeSubscriptionBehaviour,
-  StripeChargeBehaviour,
   StripeWebhookBehaviour
 }
 

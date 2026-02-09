@@ -193,7 +193,7 @@ defmodule Tymeslot.Mailer.HealthCheckTest do
       config = [
         adapter: Swoosh.Adapters.SMTP,
         relay: "smtp.example.com",
-        port: 99999,
+        port: 99_999,
         username: "user",
         password: "pass"
       ]

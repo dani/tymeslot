@@ -91,7 +91,7 @@ defmodule Tymeslot.Scheduling.LinkAccessPolicy do
 
       true ->
         integrations = CalendarManagement.list_active_calendar_integrations(profile.user_id)
-        if length(integrations) > 0, do: {:ok, :ready}, else: {:error, :no_calendar}
+        if integrations != [], do: {:ok, :ready}, else: {:error, :no_calendar}
     end
   end
 

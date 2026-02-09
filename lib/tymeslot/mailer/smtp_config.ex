@@ -114,7 +114,7 @@ defmodule Tymeslot.Mailer.SMTPConfig do
   end
 
   # Validates SMTP port is a valid integer in range 1-65535
-  defp validate_port!(port) when is_integer(port) and port >= 1 and port <= 65535 do
+  defp validate_port!(port) when is_integer(port) and port >= 1 and port <= 65_535 do
     port
   end
 
@@ -180,7 +180,7 @@ defmodule Tymeslot.Mailer.SMTPConfig do
           Logger.debug("Using castore bundled CA certificates (OS cert store empty)")
           load_castore_certs()
 
-        certs when is_list(certs) and length(certs) > 0 ->
+        [_ | _] = certs ->
           Logger.debug("Using OS certificate store (#{length(certs)} certificates)")
           certs
 

@@ -346,7 +346,7 @@ defmodule Tymeslot.Security.FormValidation do
   Checks if form has any validation errors.
   """
   @spec has_errors?(list()) :: boolean()
-  def has_errors?(errors), do: length(errors) > 0
+  def has_errors?(errors), do: errors != []
 
   @doc """
   Checks if a specific field has validation errors.
