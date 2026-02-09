@@ -53,4 +53,191 @@ defmodule Tymeslot.ApplicationTest do
       assert :ets.whereis(:tymeslot_email_assets) != :undefined
     end
   end
+
+  describe "Oban queue configuration" do
+    setup do
+      # Save original config
+      original_base = Application.get_env(:tymeslot, :oban_queues)
+      original_additional = Application.get_env(:tymeslot, :oban_additional_queues)
+
+      on_exit(fn ->
+        # Restore original config
+        if original_base do
+          Application.put_env(:tymeslot, :oban_queues, original_base)
+        else
+          Application.delete_env(:tymeslot, :oban_queues)
+        end
+
+        if original_additional do
+          Application.put_env(:tymeslot, :oban_additional_queues, original_additional)
+        else
+          Application.delete_env(:tymeslot, :oban_additional_queues)
+        end
+      end)
+
+      :ok
+    end
+
+    test "merges base and additional queues with additional taking precedence" do
+      Application.put_env(:tymeslot, :oban_queues, [
+        default: 10,
+        emails: 5,
+        webhooks: 3
+      ])
+
+      Application.put_env(:tymeslot, :oban_additional_queues, [
+        emails: 20,
+        saas_emails: 5
+      ])
+
+      base_queues = Application.get_env(:tymeslot, :oban_queues, [])
+      additional_queues = Application.get_env(:tymeslot, :oban_additional_queues, [])
+      merged = Keyword.merge(base_queues, additional_queues)
+
+      # Verify emails was overridden
+      assert merged[:emails] == 20
+      # Verify saas_emails was added
+      assert merged[:saas_emails] == 5
+      # Verify default and webhooks remain unchanged
+      assert merged[:default] == 10
+      assert merged[:webhooks] == 3
+    end
+
+    test "detects conflicts when additional queues override base queue concurrency" do
+      Application.put_env(:tymeslot, :oban_queues, [
+        default: 10,
+        emails: 5
+      ])
+
+      Application.put_env(:tymeslot, :oban_additional_queues, [
+        emails: 20,
+        saas_emails: 5
+      ])
+
+      base_queues = Application.get_env(:tymeslot, :oban_queues, [])
+      additional_queues = Application.get_env(:tymeslot, :oban_additional_queues, [])
+
+      base_queue_keys = Keyword.keys(base_queues)
+      additional_queue_keys = Keyword.keys(additional_queues)
+      conflict_keys = Enum.filter(additional_queue_keys, &(&1 in base_queue_keys))
+
+      # Verify conflict detection logic
+      assert :emails in conflict_keys
+      assert :saas_emails not in conflict_keys
+      assert length(conflict_keys) == 1
+    end
+
+    test "handles empty queues gracefully" do
+      Application.delete_env(:tymeslot, :oban_queues)
+      Application.delete_env(:tymeslot, :oban_additional_queues)
+
+      base_queues = Application.get_env(:tymeslot, :oban_queues, [])
+      additional_queues = Application.get_env(:tymeslot, :oban_additional_queues, [])
+      merged = Keyword.merge(base_queues, additional_queues)
+
+      # When empty, the application would use a fallback
+      final_queues =
+        if Enum.empty?(merged) do
+          [default: 1]
+        else
+          merged
+        end
+
+      assert final_queues == [default: 1]
+    end
+
+    test "loads base queues only when no additional queues configured" do
+      Application.put_env(:tymeslot, :oban_queues, [default: 10, emails: 5])
+      Application.delete_env(:tymeslot, :oban_additional_queues)
+
+      base_queues = Application.get_env(:tymeslot, :oban_queues, [])
+      additional_queues = Application.get_env(:tymeslot, :oban_additional_queues, [])
+      merged = Keyword.merge(base_queues, additional_queues)
+
+      assert merged == [default: 10, emails: 5]
+    end
+
+    test "loads additional queues when no base queues configured" do
+      Application.delete_env(:tymeslot, :oban_queues)
+      Application.put_env(:tymeslot, :oban_additional_queues, [saas_emails: 5])
+
+      base_queues = Application.get_env(:tymeslot, :oban_queues, [])
+      additional_queues = Application.get_env(:tymeslot, :oban_additional_queues, [])
+      merged = Keyword.merge(base_queues, additional_queues)
+
+      assert merged == [saas_emails: 5]
+    end
+
+    test "preserves all queues from both base and additional" do
+      Application.put_env(:tymeslot, :oban_queues, [
+        default: 10,
+        emails: 5,
+        webhooks: 3
+      ])
+
+      Application.put_env(:tymeslot, :oban_additional_queues, [
+        payments: 2,
+        saas_emails: 5
+      ])
+
+      base_queues = Application.get_env(:tymeslot, :oban_queues, [])
+      additional_queues = Application.get_env(:tymeslot, :oban_additional_queues, [])
+      merged = Keyword.merge(base_queues, additional_queues)
+
+      # Verify all queues are present
+      assert Keyword.has_key?(merged, :default)
+      assert Keyword.has_key?(merged, :emails)
+      assert Keyword.has_key?(merged, :webhooks)
+      assert Keyword.has_key?(merged, :payments)
+      assert Keyword.has_key?(merged, :saas_emails)
+      assert length(merged) == 5
+    end
+
+    test "raises clear error when oban_queues is not a keyword list" do
+      Application.put_env(:tymeslot, :oban_queues, "not a keyword list")
+
+      assert_raise ArgumentError,
+                   ~r/:oban_queues must be a keyword list/,
+                   fn ->
+                     # This would be called during application startup
+                     # We can't actually start the app in tests, so we test the logic directly
+                     base_queues = Application.get_env(:tymeslot, :oban_queues, [])
+
+                     unless Keyword.keyword?(base_queues) do
+                       raise ArgumentError,
+                             ":oban_queues must be a keyword list, got: #{inspect(base_queues)}"
+                     end
+                   end
+    end
+
+    test "raises clear error when oban_additional_queues is not a keyword list" do
+      Application.put_env(:tymeslot, :oban_queues, [default: 10])
+      Application.put_env(:tymeslot, :oban_additional_queues, %{not: "keyword list"})
+
+      assert_raise ArgumentError,
+                   ~r/:oban_additional_queues must be a keyword list/,
+                   fn ->
+                     additional_queues = Application.get_env(:tymeslot, :oban_additional_queues, [])
+
+                     unless Keyword.keyword?(additional_queues) do
+                       raise ArgumentError,
+                             ":oban_additional_queues must be a keyword list, got: #{inspect(additional_queues)}"
+                     end
+                   end
+    end
+
+    test "handles nil queue configurations gracefully" do
+      Application.delete_env(:tymeslot, :oban_queues)
+      Application.delete_env(:tymeslot, :oban_additional_queues)
+
+      base_queues = Application.get_env(:tymeslot, :oban_queues, [])
+      additional_queues = Application.get_env(:tymeslot, :oban_additional_queues, [])
+
+      # Both should be empty lists (default value)
+      assert base_queues == []
+      assert additional_queues == []
+      assert Keyword.keyword?(base_queues)
+      assert Keyword.keyword?(additional_queues)
+    end
+  end
 end

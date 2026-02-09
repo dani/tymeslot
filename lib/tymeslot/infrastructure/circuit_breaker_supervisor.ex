@@ -10,6 +10,11 @@ defmodule Tymeslot.Infrastructure.CircuitBreakerSupervisor do
                             {p, :"calendar_breaker_#{p}"}
                           end)
 
+  @video_providers [:zoom, :teams, :jitsi, :whereby, :mirotalk]
+  @video_breaker_names Enum.into(@video_providers, %{}, fn p ->
+                         {p, :"video_breaker_#{p}"}
+                       end)
+
   @spec start_link(any()) :: Supervisor.on_start()
   def start_link(init_arg) do
     Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
@@ -19,6 +24,9 @@ defmodule Tymeslot.Infrastructure.CircuitBreakerSupervisor do
   def init(_init_arg) do
     # Build children for all calendar providers
     calendar_breakers = build_calendar_breakers()
+
+    # Build children for all video providers
+    video_breakers = build_video_breakers()
 
     # Dynamic supervisor for per-host circuit breakers
     dynamic_breakers = [
@@ -67,7 +75,7 @@ defmodule Tymeslot.Infrastructure.CircuitBreakerSupervisor do
       )
     ]
 
-    children = calendar_breakers ++ dynamic_breakers ++ other_breakers
+    children = calendar_breakers ++ video_breakers ++ dynamic_breakers ++ other_breakers
 
     Supervisor.init(children, strategy: :one_for_one)
   end
@@ -75,7 +83,8 @@ defmodule Tymeslot.Infrastructure.CircuitBreakerSupervisor do
   defp build_calendar_breakers do
     Enum.map(@calendar_providers, fn provider ->
       name = Map.fetch!(@calendar_breaker_names, provider)
-      config = get_calendar_breaker_config(provider)
+      # Use configuration from CalendarCircuitBreaker to avoid duplication
+      config = Tymeslot.Infrastructure.CalendarCircuitBreaker.get_config(provider)
 
       Supervisor.child_spec(
         {Tymeslot.Infrastructure.CircuitBreaker, name: name, config: config},
@@ -84,48 +93,16 @@ defmodule Tymeslot.Infrastructure.CircuitBreakerSupervisor do
     end)
   end
 
-  defp get_calendar_breaker_config(:google) do
-    %{
-      failure_threshold: 5,
-      time_window: :timer.minutes(1),
-      recovery_timeout: :timer.minutes(5),
-      half_open_requests: 2
-    }
-  end
+  defp build_video_breakers do
+    Enum.map(@video_providers, fn provider ->
+      name = Map.fetch!(@video_breaker_names, provider)
+      # Use configuration from VideoCircuitBreaker to avoid duplication
+      config = Tymeslot.Infrastructure.VideoCircuitBreaker.get_config(provider)
 
-  defp get_calendar_breaker_config(:outlook) do
-    %{
-      failure_threshold: 5,
-      time_window: :timer.minutes(1),
-      recovery_timeout: :timer.minutes(5),
-      half_open_requests: 2
-    }
-  end
-
-  defp get_calendar_breaker_config(:caldav) do
-    %{
-      failure_threshold: 3,
-      time_window: :timer.minutes(1),
-      recovery_timeout: :timer.minutes(2),
-      half_open_requests: 2
-    }
-  end
-
-  defp get_calendar_breaker_config(:radicale) do
-    %{
-      failure_threshold: 3,
-      time_window: :timer.minutes(1),
-      recovery_timeout: :timer.minutes(2),
-      half_open_requests: 2
-    }
-  end
-
-  defp get_calendar_breaker_config(:nextcloud) do
-    %{
-      failure_threshold: 4,
-      time_window: :timer.minutes(1),
-      recovery_timeout: :timer.minutes(3),
-      half_open_requests: 2
-    }
+      Supervisor.child_spec(
+        {Tymeslot.Infrastructure.CircuitBreaker, name: name, config: config},
+        id: name
+      )
+    end)
   end
 end

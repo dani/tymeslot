@@ -133,15 +133,17 @@ if config_env() == :prod do
             hostname: System.get_env("CLOUDRON_POSTGRESQL_HOST"),
             port: System.get_env("CLOUDRON_POSTGRESQL_PORT"),
             database: System.get_env("CLOUDRON_POSTGRESQL_DATABASE"),
-            pool_size: parse_int.("DATABASE_POOL_SIZE", 20),
+            pool_size: parse_int.("DATABASE_POOL_SIZE", 60),
             idle_interval: 60_000,
             queue_target: 5000,
             queue_interval: 10000
           ]
 
         "docker" ->
-          # The embedded Postgres in Docker uses the default max_connections=100.
-          # Keep the default pool size low to avoid exhausting connections during boot.
+          # Docker deployment with embedded or external PostgreSQL
+          # Default pool_size=60 supports high Oban concurrency (~47 max concurrent workers)
+          # Note: Ensure PostgreSQL max_connections >= 100 (Docker embedded Postgres default)
+          # To increase: Add `-c max_connections=150` to postgres command in docker-compose.yml
           [
             hostname: System.get_env("DATABASE_HOST", "localhost"),
             port: parse_int.("DATABASE_PORT", 5432),
@@ -150,7 +152,7 @@ if config_env() == :prod do
             password:
               System.get_env("POSTGRES_PASSWORD") ||
                 raise("POSTGRES_PASSWORD environment variable is missing"),
-            pool_size: parse_int.("DATABASE_POOL_SIZE", 10),
+            pool_size: parse_int.("DATABASE_POOL_SIZE", 60),
             idle_interval: 60_000,
             queue_target: 5000,
             queue_interval: 10000
@@ -177,12 +179,18 @@ if config_env() == :prod do
     ]
 
   # Configure Oban for production
+  # Queue definitions in config.exs are loaded at runtime by application.ex
+  # This allows SaaS to extend Core queues via :oban_additional_queues config
   config :tymeslot, Oban,
     repo: Tymeslot.Repo,
     plugins: [
       Oban.Plugins.Pruner,
       {Oban.Plugins.Cron,
        crontab: [
+         # Run every 30 minutes for Oban maintenance
+         {"*/30 * * * *", Tymeslot.Workers.ObanMaintenanceWorker},
+         # Run every hour for queue health monitoring
+         {"0 * * * *", Tymeslot.Workers.ObanQueueMonitorWorker},
          # Run daily at 02:45 UTC for video room recovery scan
          {"45 2 * * *", Tymeslot.Workers.VideoRoomRecoveryScanWorker},
          # Run daily at 03:15 UTC

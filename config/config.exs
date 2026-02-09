@@ -75,14 +75,30 @@ config :tymeslot, :feature_assigns, automations_allowed: true
 config :tymeslot, :feature_access_checker, Tymeslot.Features.DefaultAccessChecker
 
 # Oban queues shared across environments
+# Queue definitions are specified here but loaded at runtime by application.ex
+# This allows SaaS to extend Core queues via :oban_additional_queues config
+# Each queue has a concurrency limit that determines how many jobs can run simultaneously.
 config :tymeslot, :oban_queues,
   default: 10,
-  emails: 5,
+  # Email sending (confirmations, reminders, auth emails)
+  # Concurrency increased from 5 to 10 to handle higher email volume
+  # Note: Monitor SMTP provider rate limits. Most providers (Gmail, Postmark, etc.)
+  # handle this concurrency well, but adjust if you encounter rate limiting.
+  emails: 10,
+  # Webhook delivery to external services
   webhooks: 5,
+  # Payment processing (used by SaaS)
   payments: 5,
+  # Video room creation and management
   video_rooms: 3,
-  calendar_events: 3,
-  calendar_integrations: 2
+  # Calendar event sync (create, update, delete)
+  calendar_events: 5,
+  # Integration health checks
+  calendar_integrations: 2,
+  # Oban maintenance tasks (cleanup, stuck jobs)
+  maintenance: 1,
+  # Oban queue monitoring (separate queue to detect maintenance queue issues)
+  monitoring: 1
 
 # Webhook configuration
 config :tymeslot, :webhook_paths, ["/webhooks/stripe"]

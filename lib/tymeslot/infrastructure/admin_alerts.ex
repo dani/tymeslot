@@ -13,6 +13,10 @@ defmodule Tymeslot.Infrastructure.AdminAlerts do
           | :refund_processed
           | :unhandled_webhook
           | :calendar_sync_error
+          | :integration_health_failure
+          | :integration_health_recovery
+          | :oban_queue_stuck
+          | :oban_jobs_accumulating
           | atom()
 
   @callback send_alert(alert_type(), map(), keyword()) :: :ok | {:error, any()}

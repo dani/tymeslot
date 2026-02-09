@@ -91,8 +91,8 @@ defmodule Tymeslot.Infrastructure.CalendarCircuitBreaker do
         breaker_name: breaker_name
       )
 
-      # Fall back to direct execution without circuit breaker
-      fun.()
+      # Return error instead of bypassing circuit protection
+      {:error, :breaker_not_found}
     end
   rescue
     error ->
@@ -178,15 +178,15 @@ defmodule Tymeslot.Infrastructure.CalendarCircuitBreaker do
 
   Returns :closed, :open, or :half_open.
   """
-  @spec status(atom()) :: atom() | {:error, atom()}
+  @spec status(atom()) :: map() | {:error, atom()}
   def status(provider) when provider in @calendar_providers do
     breaker_name = breaker_name(provider)
 
     if breaker_exists?(breaker_name) do
       CircuitBreaker.status(breaker_name)
     else
-      # Default to closed if not started
-      :closed
+      # Return error instead of hiding the fact that breaker doesn't exist
+      {:error, :breaker_not_found}
     end
   end
 

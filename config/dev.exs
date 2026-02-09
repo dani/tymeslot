@@ -62,20 +62,27 @@ config :tymeslot, Tymeslot.Repo,
   database: "tymeslot_dev",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
-  pool_size: 10
+  pool_size: 60
 
 # Configure Oban for development
+# Queue definitions in config.exs are loaded at runtime by application.ex
+# This allows SaaS to extend Core queues via :oban_additional_queues config
 config :tymeslot, Oban,
   repo: Tymeslot.Repo,
   plugins: [
     Oban.Plugins.Pruner,
     {Oban.Plugins.Cron,
      crontab: [
+       # Run every 30 minutes
+       {"*/30 * * * *", Tymeslot.Workers.ObanMaintenanceWorker},
+       # Run every hour at the top of the hour
+       {"0 * * * *", Tymeslot.Workers.ObanQueueMonitorWorker},
+       # Run daily at 02:45 UTC
        {"45 2 * * *", Tymeslot.Workers.VideoRoomRecoveryScanWorker},
+       # Run daily at 04:00 UTC
        {"0 4 * * *", Tymeslot.Workers.WebhookCleanupWorker, args: %{retention_days: 60}}
      ]}
-  ],
-  queues: Application.get_env(:tymeslot, :oban_queues, [])
+  ]
 
 # Enable swoosh api client
 config :swoosh, :api_client, Swoosh.ApiClient.Hackney

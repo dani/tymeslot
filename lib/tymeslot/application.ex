@@ -11,7 +11,6 @@ defmodule Tymeslot.Application do
   alias Tymeslot.Integrations.Calendar.TokenRefreshJob
   alias Tymeslot.Integrations.{HealthCheck, Telemetry}
   alias Tymeslot.Integrations.Shared.Lock
-  alias Tymeslot.Workers.ObanMaintenanceWorker
   alias TymeslotWeb.Endpoint
 
   @impl true
@@ -136,6 +135,98 @@ defmodule Tymeslot.Application do
         """)
       end
     end
+
+    # Validate Oban Cron plugin configuration for critical workers
+    validate_oban_cron_config!()
+
+    # Validate connection pool configuration
+    validate_connection_pool_config!()
+  end
+
+  # Validates that Oban Cron plugin is configured with critical maintenance workers
+  defp validate_oban_cron_config! do
+    oban_config = Application.get_env(:tymeslot, Oban, [])
+    plugins = Keyword.get(oban_config, :plugins, [])
+
+    # Find the Cron plugin configuration
+    cron_plugin =
+      Enum.find(plugins, fn
+        {Oban.Plugins.Cron, _} -> true
+        _ -> false
+      end)
+
+    case cron_plugin do
+      nil ->
+        Logger.warning("""
+        OBAN CRON PLUGIN NOT CONFIGURED:
+        Oban.Plugins.Cron is not configured in Oban plugins.
+        Critical maintenance workers (ObanMaintenanceWorker, ObanQueueMonitorWorker) will not run.
+        This can lead to job accumulation and system degradation.
+        Add Oban.Plugins.Cron to your Oban config with required cron jobs.
+        """)
+
+      {Oban.Plugins.Cron, opts} ->
+        crontab = Keyword.get(opts, :crontab, [])
+
+        # Check for critical workers in crontab
+        critical_workers = [
+          Tymeslot.Workers.ObanMaintenanceWorker,
+          Tymeslot.Workers.ObanQueueMonitorWorker
+        ]
+
+        Enum.each(critical_workers, fn worker ->
+          worker_configured? =
+            Enum.any?(crontab, fn
+              {_schedule, ^worker} -> true
+              {_schedule, ^worker, _opts} -> true
+              _ -> false
+            end)
+
+          unless worker_configured? do
+            Logger.warning(
+              "Critical Oban worker not scheduled in Cron plugin: #{inspect(worker)}. " <>
+                "This worker should run periodically for system health."
+            )
+          end
+        end)
+    end
+
+    :ok
+  end
+
+  # Validates connection pool size against database max_connections
+  defp validate_connection_pool_config! do
+    repo_config = Application.get_env(:tymeslot, Tymeslot.Repo, [])
+    pool_size = Keyword.get(repo_config, :pool_size, 10)
+
+    # Calculate theoretical max connections from Oban queues
+    base_queues = Application.get_env(:tymeslot, :oban_queues, [])
+    additional_queues = Application.get_env(:tymeslot, :oban_additional_queues, [])
+    merged_queues = Keyword.merge(base_queues, additional_queues)
+
+    max_oban_concurrency =
+      merged_queues
+      |> Keyword.values()
+      |> Enum.sum()
+
+    # Warn if pool_size is high relative to typical Postgres max_connections
+    # Default Postgres max_connections is often 100
+    # Docker embedded Postgres typically uses max_connections=100
+    if pool_size >= 60 do
+      Logger.info("""
+      HIGH DATABASE CONNECTION POOL SIZE: #{pool_size}
+      With Oban max concurrency of #{max_oban_concurrency}, you may use up to #{pool_size} connections.
+      Ensure your PostgreSQL max_connections is configured appropriately (recommend >= #{pool_size + 40}).
+
+      For Docker deployments, the embedded Postgres uses max_connections=100 by default.
+      For production, consider increasing max_connections in postgresql.conf if needed.
+
+      To check your database's max_connections:
+        SELECT current_setting('max_connections');
+      """)
+    end
+
+    :ok
   end
 
   # Tell Phoenix to update the endpoint configuration
@@ -154,7 +245,98 @@ defmodule Tymeslot.Application do
   # Configuration function for Oban
   @spec oban_config() :: keyword()
   defp oban_config do
-    Application.get_env(:tymeslot, Oban) || [repo: Tymeslot.Repo]
+    base_config = Application.get_env(:tymeslot, Oban) || [repo: Tymeslot.Repo]
+
+    # Read queues at runtime (they can't be read at config time)
+    # Base queue configuration from Core
+    base_queues = Application.get_env(:tymeslot, :oban_queues, [])
+    # Additional queues can be provided via this extension point (e.g., by wrapper applications)
+    additional_queues = Application.get_env(:tymeslot, :oban_additional_queues, [])
+
+    # Validate types before processing
+    unless Keyword.keyword?(base_queues) do
+      raise ArgumentError,
+            ":oban_queues must be a keyword list, got: #{inspect(base_queues)}"
+    end
+
+    unless Keyword.keyword?(additional_queues) do
+      raise ArgumentError,
+            ":oban_additional_queues must be a keyword list, got: #{inspect(additional_queues)}"
+    end
+
+    # Log if additional queues override base queue concurrency
+    base_queue_keys = Keyword.keys(base_queues)
+    additional_queue_keys = Keyword.keys(additional_queues)
+    conflict_keys = Enum.filter(additional_queue_keys, &(&1 in base_queue_keys))
+
+    if length(conflict_keys) > 0 do
+      Logger.info("Additional queues overriding Core queue concurrency", queues: conflict_keys)
+    end
+
+    # Validate queue configurations before merging
+    validate_queue_config!(base_queues, "base")
+    validate_queue_config!(additional_queues, "additional")
+
+    # Merge queue configurations (additional takes precedence for conflicts)
+    merged_queues = Keyword.merge(base_queues, additional_queues)
+
+    # Validate that we have at least one queue configured
+    final_queues =
+      if Enum.empty?(merged_queues) do
+        Logger.error("No Oban queues configured, using minimal default")
+        [default: 1]
+      else
+        merged_queues
+      end
+
+    # Merge queues into the base config
+    Keyword.put(base_config, :queues, final_queues)
+  end
+
+  # Validates Oban queue configuration
+  @spec validate_queue_config!(keyword(), String.t()) :: :ok
+  defp validate_queue_config!(queues, source) do
+    # Get pool size for validation
+    repo_config = Application.get_env(:tymeslot, Tymeslot.Repo, [])
+    pool_size = Keyword.get(repo_config, :pool_size, 10)
+
+    Enum.each(queues, fn {queue, concurrency} ->
+      cond do
+        not is_atom(queue) ->
+          raise ArgumentError,
+                "Invalid queue name in #{source} queues: #{inspect(queue)} (must be an atom)"
+
+        not is_integer(concurrency) ->
+          raise ArgumentError,
+                "Invalid concurrency for queue #{queue} in #{source} queues: " <>
+                  "#{inspect(concurrency)} (must be an integer)"
+
+        concurrency <= 0 ->
+          raise ArgumentError,
+                "Invalid concurrency for queue #{queue} in #{source} queues: " <>
+                  "#{concurrency} (must be positive)"
+
+        concurrency > pool_size ->
+          raise ArgumentError,
+                "Queue #{queue} concurrency (#{concurrency}) exceeds pool_size (#{pool_size}). " <>
+                  "Queue concurrency cannot be higher than the database connection pool size."
+
+        concurrency >= 100 ->
+          Logger.warning(
+            "Very high concurrency for queue #{queue} in #{source} queues: #{concurrency}. " <>
+              "Ensure this is intentional and pool_size can support it.",
+            queue: queue,
+            concurrency: concurrency,
+            pool_size: pool_size,
+            source: source
+          )
+
+        true ->
+          :ok
+      end
+    end)
+
+    :ok
   end
 
   # Schedule periodic jobs
@@ -167,12 +349,8 @@ defmodule Tymeslot.Application do
 
     Logger.info("Scheduled periodic Google Calendar token refresh job")
 
-    # Schedule Oban maintenance worker
-    Task.start(fn ->
-      ObanMaintenanceWorker.start_if_not_scheduled()
-    end)
-
-    Logger.info("Scheduled Oban maintenance worker")
+    # Note: Oban maintenance and queue monitoring workers are now scheduled via
+    # Oban.Plugins.Cron (see config files). Manual scheduling is no longer needed.
     :ok
   end
 end

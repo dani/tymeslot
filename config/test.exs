@@ -54,10 +54,10 @@ config :tymeslot, Tymeslot.Repo,
   queue_interval: 10_000
 
 # Configure Oban for testing
+# Queues are loaded at runtime in application.ex from :oban_queues config
 config :tymeslot, Oban,
   repo: Tymeslot.Repo,
-  testing: :manual,
-  queues: Application.get_env(:tymeslot, :oban_queues, [])
+  testing: :manual
 
 # In test we don't send emails
 config :tymeslot, Tymeslot.Mailer, adapter: Swoosh.Adapters.Test

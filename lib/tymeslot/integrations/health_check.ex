@@ -8,6 +8,18 @@ defmodule Tymeslot.Integrations.HealthCheck do
   - Automatic deactivation of failing integrations
   - User notifications for integration issues
   - Health status tracking and reporting
+  - Circuit breaker integration for backpressure
+  - Duplicate job detection to prevent queue buildup
+
+  ## Required Database Indexes
+
+  For optimal duplicate job detection performance on large installations:
+
+      CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_oban_jobs_args_gin
+        ON oban_jobs USING gin (args);
+
+  This GIN index supports JSONB field queries used for duplicate detection.
+  Without it, queries may be slow on systems with thousands of pending jobs.
   """
 
   use GenServer
@@ -15,6 +27,7 @@ defmodule Tymeslot.Integrations.HealthCheck do
 
   alias Tymeslot.DatabaseQueries.{CalendarIntegrationQueries, VideoIntegrationQueries}
   alias Tymeslot.DatabaseSchemas.VideoIntegrationSchema
+  alias Tymeslot.Infrastructure.{AdminAlerts, CalendarCircuitBreaker, VideoCircuitBreaker}
   alias Tymeslot.Integrations.Calendar
   alias Tymeslot.Integrations.Video.Providers.ProviderAdapter
   alias Tymeslot.Workers.IntegrationHealthWorker
@@ -198,33 +211,161 @@ defmodule Tymeslot.Integrations.HealthCheck do
     state
   end
 
-  defp enqueue_health_check(type, integration_id) do
-    job =
-      IntegrationHealthWorker.new(%{
-        "type" => Atom.to_string(type),
-        "integration_id" => integration_id
-      }, scheduled_at: scheduled_at_with_jitter())
+  # Check if we should skip enqueueing due to circuit breaker being open
+  # This provides backpressure: when a provider is failing, stop sending new jobs
+  defp should_skip_due_to_circuit?(type, integration_id) do
+    # Get the integration to find the provider
+    integration_result =
+      case type do
+        :calendar -> CalendarIntegrationQueries.get(integration_id)
+        :video -> VideoIntegrationQueries.get(integration_id)
+      end
 
-    result = Oban.insert(job)
+    case integration_result do
+      {:ok, integration} ->
+        provider_atom = safe_to_existing_atom(integration.provider)
 
-    case result do
-      {:ok, _job} ->
-        :ok
+        if provider_atom do
+          circuit_status =
+            try do
+              case type do
+                :calendar -> CalendarCircuitBreaker.status(provider_atom)
+                :video -> VideoCircuitBreaker.status(provider_atom)
+              end
+            rescue
+              e ->
+                Logger.error("Circuit breaker status check failed",
+                  type: type,
+                  provider: integration.provider,
+                  error: inspect(e)
+                )
 
-      {:error, %Ecto.Changeset{errors: [unique: _]}} ->
-        Logger.debug("Integration health check already scheduled",
+                {:error, :status_check_failed}
+            end
+
+          case circuit_status do
+            %{status: :open} ->
+              Logger.info("Circuit breaker open, skipping health check enqueue",
+                type: type,
+                provider: integration.provider,
+                integration_id: integration_id
+              )
+
+              true
+
+            %{status: :half_open} ->
+              # During half-open, allow a few test requests through
+              # Don't skip - let the circuit breaker decide
+              false
+
+            %{status: :closed} ->
+              # Circuit closed, proceed normally
+              false
+
+            {:error, :breaker_not_found} ->
+              # Circuit breaker not initialized - this indicates a system issue
+              Logger.error("Circuit breaker not initialized, proceeding with health check",
+                type: type,
+                provider: integration.provider,
+                integration_id: integration_id
+              )
+
+              # Proceed with enqueue but log the issue for investigation
+              false
+
+            {:error, :status_check_failed} ->
+              # Circuit breaker status check failed (exception) - proceed conservatively
+              Logger.error("Circuit breaker status check failed, proceeding with health check",
+                type: type,
+                provider: integration.provider,
+                integration_id: integration_id
+              )
+
+              false
+
+            unknown ->
+              # Unexpected status - log and proceed conservatively
+              Logger.warning("Unknown circuit breaker status, proceeding with health check",
+                type: type,
+                provider: integration.provider,
+                integration_id: integration_id,
+                status: inspect(unknown)
+              )
+
+              false
+          end
+        else
+          # Invalid provider, proceed with enqueue (will fail gracefully)
+          false
+        end
+
+      {:error, :not_found} ->
+        # Integration not found, skip enqueue
+        Logger.debug("Integration not found, skipping enqueue",
           type: type,
           integration_id: integration_id
         )
 
-        :ok
+        true
+    end
+  end
 
-      {:error, changeset} ->
-        Logger.error("Failed to enqueue integration health check",
-          type: type,
-          integration_id: integration_id,
-          errors: changeset.errors
+  defp enqueue_health_check(type, integration_id) do
+    # BACKPRESSURE: Check circuit breaker state before enqueueing
+    # If the provider's circuit is open, skip enqueueing to prevent churn
+    # The circuit will auto-recover and normal scheduling will resume
+    if should_skip_due_to_circuit?(type, integration_id) do
+      :ok
+    else
+      # Use Oban's built-in unique job constraints to prevent duplicates
+      # This is race-condition safe (unlike check-then-insert pattern)
+      job =
+        IntegrationHealthWorker.new(
+          %{
+            "type" => Atom.to_string(type),
+            "integration_id" => integration_id
+          },
+          scheduled_at: scheduled_at_with_jitter(),
+          unique: [
+            # Prevent duplicate jobs for 5 minutes
+            period: 300,
+            # Uniqueness based on type and integration_id
+            keys: [:type, :integration_id],
+            # Check across these states
+            states: [:available, :scheduled, :retryable, :executing]
+          ]
         )
+
+      result = Oban.insert(job)
+
+      case result do
+        {:ok, _job} ->
+          :ok
+
+        {:error, %Ecto.Changeset{errors: errors} = changeset} ->
+          # Check if this is a unique constraint violation (job already exists)
+          # Oban unique errors have the :unique key in the errors keyword list
+          case Keyword.get(errors, :unique) do
+            nil ->
+              # Real error - log it
+              Logger.error("Failed to enqueue integration health check",
+                type: type,
+                integration_id: integration_id,
+                errors: errors
+              )
+
+              {:error, changeset}
+
+            _unique_error ->
+              # Job already exists - this is expected and not an error
+              Logger.debug("Health check job already pending (unique constraint)",
+                type: type,
+                integration_id: integration_id
+              )
+
+              :ok
+          end
+      end
     end
   end
 
@@ -285,6 +426,9 @@ defmodule Tymeslot.Integrations.HealthCheck do
   end
 
   defp do_check_integration_health(:calendar, integration) do
+    # Circuit breaker is used for backpressure (job enqueueing decisions)
+    # but not for wrapping the actual test connection, to preserve the
+    # existing error classification logic (transient vs hard failures)
     Calendar.test_connection(integration)
   rescue
     _e in [UndefinedFunctionError] -> {:error, :module_unavailable}
@@ -300,8 +444,11 @@ defmodule Tymeslot.Integrations.HealthCheck do
       nil ->
         {:error, :unsupported_provider}
 
-      _ ->
-        do_test_connection(provider_atom, config)
+      provider ->
+        # Circuit breaker is used for backpressure (job enqueueing decisions)
+        # but not for wrapping the actual test connection, to preserve the
+        # existing error classification logic (transient vs hard failures)
+        do_test_connection(provider, config)
     end
   end
 
@@ -312,10 +459,23 @@ defmodule Tymeslot.Integrations.HealthCheck do
     e -> {:error, {:exception, Exception.message(e)}}
   end
 
+  defp safe_to_existing_atom(nil), do: nil
+
+  defp safe_to_existing_atom("" = value) do
+    Logger.warning("Empty provider name encountered", value: value)
+    nil
+  end
+
   defp safe_to_existing_atom(value) when is_binary(value) do
     String.to_existing_atom(value)
   rescue
-    _ -> nil
+    ArgumentError ->
+      Logger.warning("Provider name not recognized, check for typos",
+        value: value,
+        hint: "Valid providers: google, outlook, caldav, nextcloud, radicale, zoom, teams, etc."
+      )
+
+      nil
   end
 
   defp video_provider_config(:mirotalk, integration, decrypted),
@@ -484,6 +644,24 @@ defmodule Tymeslot.Integrations.HealthCheck do
       provider: integration.provider
     )
 
+    case AdminAlerts.send_alert(:integration_health_failure, %{
+      type: type,
+      integration_id: integration.id,
+      provider: integration.provider,
+      user_id: integration.user_id,
+      reason: "Initial health check failure"
+    }, level: :error) do
+      :ok ->
+        :ok
+
+      {:error, reason} ->
+        Logger.error("Failed to send integration failure alert",
+          type: type,
+          integration_id: integration.id,
+          alert_error: reason
+        )
+    end
+
     deactivate_integration(type, integration)
   end
 
@@ -521,6 +699,24 @@ defmodule Tymeslot.Integrations.HealthCheck do
       provider: integration.provider
     )
 
+    case AdminAlerts.send_alert(:integration_health_failure, %{
+      type: type,
+      integration_id: integration.id,
+      provider: integration.provider,
+      user_id: integration.user_id,
+      reason: "Health check failures exceeded threshold"
+    }, level: :error) do
+      :ok ->
+        :ok
+
+      {:error, reason} ->
+        Logger.error("Failed to send integration failure alert",
+          type: type,
+          integration_id: integration.id,
+          alert_error: reason
+        )
+    end
+
     deactivate_integration(type, integration)
   end
 
@@ -531,6 +727,23 @@ defmodule Tymeslot.Integrations.HealthCheck do
       integration_id: integration.id,
       provider: integration.provider
     )
+
+    case AdminAlerts.send_alert(:integration_health_recovery, %{
+      type: type,
+      integration_id: integration.id,
+      provider: integration.provider,
+      user_id: integration.user_id
+    }, level: :info) do
+      :ok ->
+        :ok
+
+      {:error, reason} ->
+        Logger.warning("Failed to send integration recovery alert",
+          type: type,
+          integration_id: integration.id,
+          alert_error: reason
+        )
+    end
 
     :ok
   end
