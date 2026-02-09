@@ -1,0 +1,127 @@
+defmodule Tymeslot.Integrations.HealthCheck.Assessor do
+  @moduledoc """
+  Domain: Integration Health Testing
+
+  Executes health checks for different integration types and providers.
+  Knows how to test calendar and video integrations, build provider-specific
+  configurations, and record telemetry.
+  """
+
+  require Logger
+
+  alias Tymeslot.DatabaseSchemas.VideoIntegrationSchema
+  alias Tymeslot.Integrations.Calendar
+  alias Tymeslot.Integrations.Video.Providers.ProviderAdapter
+
+  @type integration_type :: :calendar | :video
+  @type check_result :: {:ok, any()} | {:error, any()}
+
+  @doc """
+  Performs a health check for an integration and records telemetry.
+  Returns the result and duration.
+  """
+  @spec assess(integration_type(), map()) :: {check_result(), non_neg_integer()}
+  def assess(type, integration) do
+    start_time = System.monotonic_time(:millisecond)
+    result = test_integration(type, integration)
+    duration = System.monotonic_time(:millisecond) - start_time
+
+    record_telemetry(type, integration, result, duration)
+
+    {result, duration}
+  end
+
+  @doc """
+  Tests the health of an integration by attempting a connection.
+  """
+  @spec test_integration(integration_type(), map()) :: check_result()
+  def test_integration(:calendar, integration) do
+    Calendar.test_connection(integration)
+  rescue
+    _e in [UndefinedFunctionError] -> {:error, :module_unavailable}
+    e -> {:error, {:exception, Exception.message(e)}}
+  end
+
+  def test_integration(:video, integration) do
+    provider_atom = safe_to_existing_atom(integration.provider)
+    decrypted = VideoIntegrationSchema.decrypt_credentials(integration)
+    config = build_video_config(provider_atom, integration, decrypted)
+
+    case provider_atom do
+      nil ->
+        {:error, :unsupported_provider}
+
+      provider ->
+        test_video_provider(provider, config)
+    end
+  end
+
+  # Private Functions
+
+  defp test_video_provider(provider_atom, config) do
+    ProviderAdapter.test_connection(provider_atom, config)
+  rescue
+    _e in [UndefinedFunctionError] -> {:error, :module_unavailable}
+    e -> {:error, {:exception, Exception.message(e)}}
+  end
+
+  defp build_video_config(:mirotalk, integration, decrypted) do
+    %{api_key: decrypted.api_key, base_url: integration.base_url}
+  end
+
+  defp build_video_config(:google_meet, integration, decrypted) do
+    %{
+      access_token: decrypted.access_token,
+      refresh_token: decrypted.refresh_token,
+      token_expires_at: integration.token_expires_at,
+      oauth_scope: integration.oauth_scope,
+      integration_id: integration.id,
+      user_id: integration.user_id
+    }
+  end
+
+  defp build_video_config(:teams, integration, decrypted) do
+    %{
+      access_token: decrypted.access_token,
+      refresh_token: decrypted.refresh_token,
+      token_expires_at: integration.token_expires_at,
+      integration_id: integration.id,
+      user_id: integration.user_id
+    }
+  end
+
+  defp build_video_config(_other, _integration, _decrypted), do: %{}
+
+  defp record_telemetry(type, integration, result, duration) do
+    :telemetry.execute(
+      [:tymeslot, :integration, :health_check],
+      %{duration: duration},
+      %{
+        type: type,
+        provider: integration.provider,
+        integration_id: integration.id,
+        user_id: integration.user_id,
+        success: match?({:ok, _}, result)
+      }
+    )
+  end
+
+  defp safe_to_existing_atom(nil), do: nil
+
+  defp safe_to_existing_atom("" = value) do
+    Logger.warning("Empty provider name encountered", value: value)
+    nil
+  end
+
+  defp safe_to_existing_atom(value) when is_binary(value) do
+    String.to_existing_atom(value)
+  rescue
+    ArgumentError ->
+      Logger.warning("Provider name not recognized, check for typos",
+        value: value,
+        hint: "Valid providers: google, outlook, caldav, nextcloud, radicale, zoom, teams, etc."
+      )
+
+      nil
+  end
+end

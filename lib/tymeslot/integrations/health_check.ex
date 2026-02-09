@@ -3,13 +3,25 @@ defmodule Tymeslot.Integrations.HealthCheck do
   Health check system for monitoring integration status and automatically
   handling failures.
 
+  ## Architecture
+
+  This module serves as the orchestrator for the health check system, coordinating
+  between specialized domain modules:
+
+  - `Monitor`: Tracks health state over time and detects status transitions
+  - `Scheduler`: Determines when checks should run (backoff, jitter, circuit breakers)
+  - `Assessor`: Executes health checks for different integration types
+  - `ErrorAnalysis`: Classifies errors and determines recovery strategies
+  - `ResponseHandler`: Takes action on health status changes (deactivate, alert)
+
+  ## Orchestration Value
+
   This module provides:
-  - Periodic health checks for all active integrations
-  - Automatic deactivation of failing integrations
-  - User notifications for integration issues
-  - Health status tracking and reporting
-  - Circuit breaker integration for backpressure
-  - Duplicate job detection to prevent queue buildup
+  - GenServer lifecycle management and state coordination
+  - Public API surface for the health check system
+  - Integration with Oban worker for async execution
+  - Periodic scheduling of health checks
+  - Coordination of the check flow: Schedule → Assess → Analyze → Monitor → Respond
 
   ## Required Database Indexes
 
@@ -26,39 +38,14 @@ defmodule Tymeslot.Integrations.HealthCheck do
   require Logger
 
   alias Tymeslot.DatabaseQueries.{CalendarIntegrationQueries, VideoIntegrationQueries}
-  alias Tymeslot.DatabaseSchemas.VideoIntegrationSchema
-  alias Tymeslot.Infrastructure.{AdminAlerts, CalendarCircuitBreaker, VideoCircuitBreaker}
-  alias Tymeslot.Integrations.Calendar
-  alias Tymeslot.Integrations.Video.Providers.ProviderAdapter
-  alias Tymeslot.Workers.IntegrationHealthWorker
+  alias Tymeslot.Integrations.HealthCheck.{Assessor, ErrorAnalysis, Monitor, ResponseHandler, Scheduler}
 
   @check_interval :timer.minutes(5)
-  @max_backoff :timer.hours(1)
-  @max_jitter_ms 30_000
-  @failure_threshold 3
-  @recovery_threshold 2
-
-  @doc """
-  Performs a single health check for an integration.
-  Called by Oban worker.
-  """
-  @spec perform_single_check(integration_type(), integer()) :: :ok | {:error, any()}
-  def perform_single_check(type, integration_id) do
-    Logger.debug("Performing single health check", type: type, id: integration_id)
-    GenServer.call(__MODULE__, {:perform_single_check, type, integration_id}, 60_000)
-  end
 
   # Type definitions
-  @type health_status :: :healthy | :degraded | :unhealthy
-  @type integration_type :: :calendar | :video
-  @type health_state :: %{
-          failures: non_neg_integer(),
-          successes: non_neg_integer(),
-          last_check: DateTime.t() | nil,
-          status: health_status(),
-          backoff_ms: pos_integer(),
-          last_error_class: :transient | :hard | nil
-        }
+  @type health_status :: Monitor.health_status()
+  @type integration_type :: Monitor.integration_type()
+  @type health_state :: Monitor.health_state()
 
   defmodule State do
     @moduledoc false
@@ -73,6 +60,26 @@ defmodule Tymeslot.Integrations.HealthCheck do
   # Client API
 
   @doc """
+  Performs a single health check for an integration.
+  Called by Oban worker.
+
+  ## Orchestration Flow
+
+  1. Fetch integration from database
+  2. Get current health state from Monitor
+  3. Use Assessor to test the integration
+  4. Use ErrorAnalysis to classify results
+  5. Update health state via Monitor
+  6. Detect transitions via Monitor
+  7. Handle transitions via ResponseHandler
+  """
+  @spec perform_single_check(integration_type(), integer()) :: :ok | {:error, any()}
+  def perform_single_check(type, integration_id) do
+    Logger.debug("Performing single health check", type: type, id: integration_id)
+    GenServer.call(__MODULE__, {:perform_single_check, type, integration_id}, 60_000)
+  end
+
+  @doc """
   Starts the health check process.
   """
   @spec start_link(keyword()) :: GenServer.on_start()
@@ -82,6 +89,7 @@ defmodule Tymeslot.Integrations.HealthCheck do
 
   @doc """
   Manually triggers a health check for all integrations.
+  Uses Scheduler to enqueue jobs for all active integrations.
   """
   @spec check_all_integrations() :: :ok
   def check_all_integrations do
@@ -90,6 +98,7 @@ defmodule Tymeslot.Integrations.HealthCheck do
 
   @doc """
   Gets the current health status for a specific integration.
+  Retrieves the state tracked by Monitor.
   """
   @spec get_health_status(integration_type(), integer()) :: health_state() | nil
   def get_health_status(type, integration_id) do
@@ -98,6 +107,7 @@ defmodule Tymeslot.Integrations.HealthCheck do
 
   @doc """
   Gets health report for all integrations of a user.
+  Delegates to Monitor to build the report.
   """
   @spec get_user_health_report(integer()) :: map()
   def get_user_health_report(user_id) do
@@ -128,27 +138,22 @@ defmodule Tymeslot.Integrations.HealthCheck do
   @impl true
   def handle_call(:check_all, _from, state) do
     Logger.info("Manual health check triggered for all integrations")
-    {new_state, _scheduled} = schedule_integration_jobs(state, force: true)
+    {new_state, _scheduled} = Scheduler.schedule_all(state, force: true)
     {:reply, :ok, new_state}
   end
 
   def handle_call({:perform_single_check, type, id}, _from, state) do
-    {result, new_state} = do_perform_single_check(type, id, state)
+    {result, new_state} = orchestrate_health_check(type, id, state)
     {:reply, result, new_state}
   end
 
-  def handle_call({:get_health_status, :calendar, id}, _from, state) do
-    status = Map.get(state.calendar_health, id)
-    {:reply, status, state}
-  end
-
-  def handle_call({:get_health_status, :video, id}, _from, state) do
-    status = Map.get(state.video_health, id)
+  def handle_call({:get_health_status, type, id}, _from, state) do
+    status = Monitor.get_state(state, type, id)
     {:reply, status, state}
   end
 
   def handle_call({:get_user_health_report, user_id}, _from, state) do
-    report = build_user_health_report(user_id, state)
+    report = Monitor.build_user_report(user_id, state)
     {:reply, report, state}
   end
 
@@ -156,7 +161,7 @@ defmodule Tymeslot.Integrations.HealthCheck do
   def handle_info(:scheduled_check, state) do
     Logger.debug("Scheduling health check jobs for all integrations")
 
-    {new_state, _scheduled} = schedule_integration_jobs(state)
+    {new_state, _scheduled} = Scheduler.schedule_all(state)
 
     # Schedule next check
     timer = schedule_next_check(@check_interval)
@@ -164,688 +169,46 @@ defmodule Tymeslot.Integrations.HealthCheck do
     {:noreply, %{new_state | check_timer: timer}}
   end
 
-  # Private Functions
+  # Private Functions - Orchestration Logic
 
-  defp schedule_integration_jobs(state, opts \\ []) do
-    now = DateTime.utc_now()
-    force = Keyword.get(opts, :force, false)
-
-    state =
-      Enum.reduce(CalendarIntegrationQueries.list_all_active(), state, fn int, acc ->
-        schedule_health_check(:calendar, int, acc, now, force)
-      end)
-
-    state =
-      Enum.reduce(VideoIntegrationQueries.list_all_active(), state, fn int, acc ->
-        schedule_health_check(:video, int, acc, now, force)
-      end)
-
-    {state, :ok}
-  end
-
-  defp schedule_health_check(type, integration, state, now, force) do
-    health_map_key = if type == :calendar, do: :calendar_health, else: :video_health
-    current_health_map = Map.get(state, health_map_key)
-    health_state = Map.get(current_health_map, integration.id, initial_health_state())
-
-    if force || due_for_check?(health_state, now) do
-      Logger.debug("Scheduling integration health check",
-        type: type,
-        integration_id: integration.id,
-        provider: integration.provider,
-        backoff_ms: health_state.backoff_ms,
-        last_error_class: health_state.last_error_class
-      )
-
-      enqueue_health_check(type, integration.id)
-    else
-      Logger.debug("Skipping integration health check (backoff)",
-        type: type,
-        integration_id: integration.id,
-        provider: integration.provider,
-        backoff_ms: health_state.backoff_ms,
-        last_error_class: health_state.last_error_class
-      )
-    end
-
-    state
-  end
-
-  # Check if we should skip enqueueing due to circuit breaker being open
-  # This provides backpressure: when a provider is failing, stop sending new jobs
-  defp should_skip_due_to_circuit?(type, integration_id) do
-    # Get the integration to find the provider
+  @doc false
+  @spec orchestrate_health_check(integration_type(), integer(), State.t()) ::
+          {:ok | {:error, any()}, State.t()}
+  defp orchestrate_health_check(type, id, state) do
     integration_result =
       case type do
-        :calendar -> CalendarIntegrationQueries.get(integration_id)
-        :video -> VideoIntegrationQueries.get(integration_id)
+        :calendar -> CalendarIntegrationQueries.get(id)
+        :video -> VideoIntegrationQueries.get(id)
       end
 
     case integration_result do
       {:ok, integration} ->
-        provider_atom = safe_to_existing_atom(integration.provider)
+        # Step 1: Get current health state from Monitor
+        old_health_state = Monitor.get_state(state, type, id)
 
-        if provider_atom do
-          circuit_status =
-            try do
-              case type do
-                :calendar -> CalendarCircuitBreaker.status(provider_atom)
-                :video -> VideoCircuitBreaker.status(provider_atom)
-              end
-            rescue
-              e ->
-                Logger.error("Circuit breaker status check failed",
-                  type: type,
-                  provider: integration.provider,
-                  error: inspect(e)
-                )
+        # Step 2: Use Assessor to test the integration
+        {check_result, _duration} = Assessor.assess(type, integration)
 
-                {:error, :status_check_failed}
-            end
+        # Step 3: Use ErrorAnalysis to classify the result
+        analyzed_result = ErrorAnalysis.analyze(check_result, old_health_state)
 
-          case circuit_status do
-            %{status: :open} ->
-              Logger.info("Circuit breaker open, skipping health check enqueue",
-                type: type,
-                provider: integration.provider,
-                integration_id: integration_id
-              )
+        # Step 4: Update health state via Monitor
+        new_health_state = Monitor.update_health(old_health_state, analyzed_result)
 
-              true
+        # Step 5: Detect status transition via Monitor
+        transition = Monitor.detect_transition(old_health_state, new_health_state)
 
-            %{status: :half_open} ->
-              # During half-open, allow a few test requests through
-              # Don't skip - let the circuit breaker decide
-              false
+        # Step 6: Handle transition via ResponseHandler
+        ResponseHandler.handle_transition(type, integration, transition)
 
-            %{status: :closed} ->
-              # Circuit closed, proceed normally
-              false
+        # Step 7: Update GenServer state
+        new_state = Monitor.put_state(state, type, id, new_health_state)
 
-            {:error, :breaker_not_found} ->
-              # Circuit breaker not initialized - this indicates a system issue
-              Logger.error("Circuit breaker not initialized, proceeding with health check",
-                type: type,
-                provider: integration.provider,
-                integration_id: integration_id
-              )
-
-              # Proceed with enqueue but log the issue for investigation
-              false
-
-            {:error, :status_check_failed} ->
-              # Circuit breaker status check failed (exception) - proceed conservatively
-              Logger.error("Circuit breaker status check failed, proceeding with health check",
-                type: type,
-                provider: integration.provider,
-                integration_id: integration_id
-              )
-
-              false
-
-            unknown ->
-              # Unexpected status - log and proceed conservatively
-              Logger.warning("Unknown circuit breaker status, proceeding with health check",
-                type: type,
-                provider: integration.provider,
-                integration_id: integration_id,
-                status: inspect(unknown)
-              )
-
-              false
-          end
-        else
-          # Invalid provider, proceed with enqueue (will fail gracefully)
-          false
-        end
-
-      {:error, :not_found} ->
-        # Integration not found, skip enqueue
-        Logger.debug("Integration not found, skipping enqueue",
-          type: type,
-          integration_id: integration_id
-        )
-
-        true
-    end
-  end
-
-  defp enqueue_health_check(type, integration_id) do
-    # BACKPRESSURE: Check circuit breaker state before enqueueing
-    # If the provider's circuit is open, skip enqueueing to prevent churn
-    # The circuit will auto-recover and normal scheduling will resume
-    if should_skip_due_to_circuit?(type, integration_id) do
-      :ok
-    else
-      # Use Oban's built-in unique job constraints to prevent duplicates
-      # This is race-condition safe (unlike check-then-insert pattern)
-      job =
-        IntegrationHealthWorker.new(
-          %{
-            "type" => Atom.to_string(type),
-            "integration_id" => integration_id
-          },
-          scheduled_at: scheduled_at_with_jitter(),
-          unique: [
-            # Prevent duplicate jobs for 5 minutes
-            period: 300,
-            # Uniqueness based on type and integration_id
-            keys: [:type, :integration_id],
-            # Check across these states
-            states: [:available, :scheduled, :retryable, :executing]
-          ]
-        )
-
-      result = Oban.insert(job)
-
-      case result do
-        {:ok, _job} ->
-          :ok
-
-        {:error, %Ecto.Changeset{errors: errors} = changeset} ->
-          # Check if this is a unique constraint violation (job already exists)
-          # Oban unique errors have the :unique key in the errors keyword list
-          case Keyword.get(errors, :unique) do
-            nil ->
-              # Real error - log it
-              Logger.error("Failed to enqueue integration health check",
-                type: type,
-                integration_id: integration_id,
-                errors: errors
-              )
-
-              {:error, changeset}
-
-            _unique_error ->
-              # Job already exists - this is expected and not an error
-              Logger.debug("Health check job already pending (unique constraint)",
-                type: type,
-                integration_id: integration_id
-              )
-
-              :ok
-          end
-      end
-    end
-  end
-
-  defp do_perform_single_check(type, id, state) do
-    {integration_result, _queries_mod} =
-      case type do
-        :calendar -> {CalendarIntegrationQueries.get(id), CalendarIntegrationQueries}
-        :video -> {VideoIntegrationQueries.get(id), VideoIntegrationQueries}
-      end
-
-    case integration_result do
-      {:ok, integration} ->
-        health_map_key = if type == :calendar, do: :calendar_health, else: :video_health
-        current_health_map = Map.get(state, health_map_key)
-        old_health_state = Map.get(current_health_map, id, initial_health_state())
-
-        {result, new_health_state} = perform_check_logic(type, integration, old_health_state)
-
-        handle_health_transition(type, integration, old_health_state, new_health_state)
-
-        new_health_map = Map.put(current_health_map, id, new_health_state)
-
-        new_state =
-          if type == :calendar do
-            %{state | calendar_health: new_health_map}
-          else
-            %{state | video_health: new_health_map}
-          end
-
-        {result, new_state}
+        {check_result, new_state}
 
       {:error, :not_found} ->
         {:ok, state}
     end
-  end
-
-  defp perform_check_logic(type, integration, health_state) do
-    start_time = System.monotonic_time(:millisecond)
-    result = do_check_integration_health(type, integration)
-    duration = System.monotonic_time(:millisecond) - start_time
-
-    # Record telemetry
-    :telemetry.execute(
-      [:tymeslot, :integration, :health_check],
-      %{duration: duration},
-      %{
-        type: type,
-        provider: integration.provider,
-        integration_id: integration.id,
-        user_id: integration.user_id,
-        success: match?({:ok, _}, result)
-      }
-    )
-
-    # Update health state
-    new_health_state = update_health_state(health_state, result)
-    {result, new_health_state}
-  end
-
-  defp do_check_integration_health(:calendar, integration) do
-    # Circuit breaker is used for backpressure (job enqueueing decisions)
-    # but not for wrapping the actual test connection, to preserve the
-    # existing error classification logic (transient vs hard failures)
-    Calendar.test_connection(integration)
-  rescue
-    _e in [UndefinedFunctionError] -> {:error, :module_unavailable}
-    e -> {:error, {:exception, Exception.message(e)}}
-  end
-
-  defp do_check_integration_health(:video, integration) do
-    provider_atom = safe_to_existing_atom(integration.provider)
-    decrypted = VideoIntegrationSchema.decrypt_credentials(integration)
-    config = video_provider_config(provider_atom, integration, decrypted)
-
-    case provider_atom do
-      nil ->
-        {:error, :unsupported_provider}
-
-      provider ->
-        # Circuit breaker is used for backpressure (job enqueueing decisions)
-        # but not for wrapping the actual test connection, to preserve the
-        # existing error classification logic (transient vs hard failures)
-        do_test_connection(provider, config)
-    end
-  end
-
-  defp do_test_connection(provider_atom, config) do
-    ProviderAdapter.test_connection(provider_atom, config)
-  rescue
-    _e in [UndefinedFunctionError] -> {:error, :module_unavailable}
-    e -> {:error, {:exception, Exception.message(e)}}
-  end
-
-  defp safe_to_existing_atom(nil), do: nil
-
-  defp safe_to_existing_atom("" = value) do
-    Logger.warning("Empty provider name encountered", value: value)
-    nil
-  end
-
-  defp safe_to_existing_atom(value) when is_binary(value) do
-    String.to_existing_atom(value)
-  rescue
-    ArgumentError ->
-      Logger.warning("Provider name not recognized, check for typos",
-        value: value,
-        hint: "Valid providers: google, outlook, caldav, nextcloud, radicale, zoom, teams, etc."
-      )
-
-      nil
-  end
-
-  defp video_provider_config(:mirotalk, integration, decrypted),
-    do: %{api_key: decrypted.api_key, base_url: integration.base_url}
-
-  defp video_provider_config(:google_meet, integration, decrypted),
-    do: %{
-      access_token: decrypted.access_token,
-      refresh_token: decrypted.refresh_token,
-      token_expires_at: integration.token_expires_at,
-      oauth_scope: integration.oauth_scope,
-      integration_id: integration.id,
-      user_id: integration.user_id
-    }
-
-  defp video_provider_config(:teams, integration, decrypted),
-    do: %{
-      access_token: decrypted.access_token,
-      refresh_token: decrypted.refresh_token,
-      token_expires_at: integration.token_expires_at,
-      integration_id: integration.id,
-      user_id: integration.user_id
-    }
-
-  defp video_provider_config(_other, _integration, _decrypted), do: %{}
-
-  @spec update_health_state(health_state(), {:ok, any()} | {:error, any()}) :: health_state()
-  defp update_health_state(health_state, {:ok, _}) do
-    %{
-      failures: 0,
-      successes: health_state.successes + 1,
-      last_check: DateTime.utc_now(),
-      status: determine_status(0, health_state.successes + 1),
-      backoff_ms: @check_interval,
-      last_error_class: nil
-    }
-  end
-
-  defp update_health_state(health_state, {:error, reason}) do
-    case classify_error(reason) do
-      :transient ->
-        Logger.warning("Integration health check transient failure",
-          reason: reason,
-          backoff_ms: next_backoff_ms(health_state.backoff_ms, :transient),
-          error_class: :transient
-        )
-
-        %{
-          failures: health_state.failures,
-          successes: health_state.successes,
-          last_check: DateTime.utc_now(),
-          status: health_state.status,
-          backoff_ms: next_backoff_ms(health_state.backoff_ms, :transient),
-          last_error_class: :transient
-        }
-
-      :hard ->
-        failures = health_state.failures + 1
-
-        Logger.warning("Integration health check failed",
-          reason: reason,
-          failures: failures,
-          threshold: @failure_threshold,
-          error_class: :hard
-        )
-
-        %{
-          failures: failures,
-          successes: 0,
-          last_check: DateTime.utc_now(),
-          status: determine_status(failures, 0),
-          backoff_ms: @check_interval,
-          last_error_class: :hard
-        }
-    end
-  end
-
-  @spec determine_status(non_neg_integer(), non_neg_integer()) :: health_status()
-  defp determine_status(failures, _) when failures >= @failure_threshold, do: :unhealthy
-  defp determine_status(failures, _) when failures > 0, do: :degraded
-  defp determine_status(_, successes) when successes >= @recovery_threshold, do: :healthy
-  defp determine_status(_, _), do: :degraded
-
-  defp due_for_check?(%{last_check: nil}, _now), do: true
-
-  defp due_for_check?(%{last_check: last_check, backoff_ms: backoff_ms}, now) do
-    next_time = DateTime.add(last_check, backoff_ms, :millisecond)
-    DateTime.compare(next_time, now) != :gt
-  end
-
-  defp scheduled_at_with_jitter do
-    jitter_ms = :rand.uniform(@max_jitter_ms + 1) - 1
-    DateTime.add(DateTime.utc_now(), jitter_ms, :millisecond)
-  end
-
-  defp next_backoff_ms(current, :transient) do
-    current
-    |> max(@check_interval)
-    |> Kernel.*(2)
-    |> min(@max_backoff)
-  end
-
-  defp classify_error({:error, :rate_limited}), do: :transient
-  defp classify_error({:error, :rate_limited, _message}), do: :transient
-  defp classify_error({:http_error, status, _message}) when status in [408, 425, 429], do: :transient
-  defp classify_error({:http_error, status, _message}) when status >= 500, do: :transient
-
-  defp classify_error(reason) when reason in [:timeout, :nxdomain, :econnrefused, :network_error],
-    do: :transient
-
-  defp classify_error(reason) when reason in [:unauthorized, :invalid_credentials, :token_expired],
-    do: :hard
-
-  defp classify_error({:exception, message}) when is_binary(message),
-    do: classify_error(message)
-
-  defp classify_error(reason) when is_binary(reason) do
-    if String.valid?(reason) do
-      reason_downcased = String.downcase(reason)
-
-      cond do
-        String.contains?(reason_downcased, "rate limit") ->
-          :transient
-
-        String.contains?(reason_downcased, "rate limited") ->
-          :transient
-
-        String.contains?(reason_downcased, "too many") ->
-          :transient
-
-        String.contains?(reason_downcased, "timeout") ->
-          :transient
-
-        true ->
-          :hard
-      end
-    else
-      :hard
-    end
-  end
-
-  defp classify_error(_reason), do: :hard
-
-  @spec handle_health_transition(integration_type(), map(), health_state(), health_state()) :: :ok
-  defp handle_health_transition(type, integration, old_state, new_state) do
-    case {old_state.last_check, old_state.status, new_state.status} do
-      # Skip logging for initial checks that aren't failures
-      {nil, _, status} when status != :unhealthy ->
-        :ok
-
-      # Log and deactivate for initial failures
-      {nil, _, :unhealthy} ->
-        handle_initial_failure(type, integration)
-
-      # Handle status transitions
-      {_, old_status, new_status} ->
-        handle_status_transition(type, integration, old_status, new_status, new_state)
-    end
-  end
-
-  @spec handle_initial_failure(integration_type(), map()) :: :ok
-  defp handle_initial_failure(type, integration) do
-    Logger.error("Integration health check failed on first attempt",
-      type: type,
-      integration_id: integration.id,
-      provider: integration.provider
-    )
-
-    case AdminAlerts.send_alert(:integration_health_failure, %{
-      type: type,
-      integration_id: integration.id,
-      provider: integration.provider,
-      user_id: integration.user_id,
-      reason: "Initial health check failure"
-    }, level: :error) do
-      :ok ->
-        :ok
-
-      {:error, reason} ->
-        Logger.error("Failed to send integration failure alert",
-          type: type,
-          integration_id: integration.id,
-          alert_error: reason
-        )
-    end
-
-    deactivate_integration(type, integration)
-  end
-
-  @spec handle_status_transition(
-          integration_type(),
-          map(),
-          health_status(),
-          health_status(),
-          health_state()
-        ) :: :ok
-  defp handle_status_transition(type, integration, old_status, new_status, new_state) do
-    case {old_status, new_status} do
-      # Transition to unhealthy - deactivate and notify
-      {old, :unhealthy} when old != :unhealthy ->
-        handle_unhealthy_transition(type, integration)
-
-      # Transition to healthy - notify recovery
-      {:unhealthy, :healthy} ->
-        handle_recovery_transition(type, integration)
-
-      # Transition to degraded - log warning
-      {:healthy, :degraded} ->
-        handle_degraded_transition(type, integration, new_state)
-
-      _ ->
-        :ok
-    end
-  end
-
-  @spec handle_unhealthy_transition(integration_type(), map()) :: :ok
-  defp handle_unhealthy_transition(type, integration) do
-    Logger.error("Integration health critical - deactivating",
-      type: type,
-      integration_id: integration.id,
-      provider: integration.provider
-    )
-
-    case AdminAlerts.send_alert(:integration_health_failure, %{
-      type: type,
-      integration_id: integration.id,
-      provider: integration.provider,
-      user_id: integration.user_id,
-      reason: "Health check failures exceeded threshold"
-    }, level: :error) do
-      :ok ->
-        :ok
-
-      {:error, reason} ->
-        Logger.error("Failed to send integration failure alert",
-          type: type,
-          integration_id: integration.id,
-          alert_error: reason
-        )
-    end
-
-    deactivate_integration(type, integration)
-  end
-
-  @spec handle_recovery_transition(integration_type(), map()) :: :ok
-  defp handle_recovery_transition(type, integration) do
-    Logger.info("Integration health recovered",
-      type: type,
-      integration_id: integration.id,
-      provider: integration.provider
-    )
-
-    case AdminAlerts.send_alert(:integration_health_recovery, %{
-      type: type,
-      integration_id: integration.id,
-      provider: integration.provider,
-      user_id: integration.user_id
-    }, level: :info) do
-      :ok ->
-        :ok
-
-      {:error, reason} ->
-        Logger.warning("Failed to send integration recovery alert",
-          type: type,
-          integration_id: integration.id,
-          alert_error: reason
-        )
-    end
-
-    :ok
-  end
-
-  @spec handle_degraded_transition(integration_type(), map(), health_state()) :: :ok
-  defp handle_degraded_transition(type, integration, new_state) do
-    Logger.warning("Integration health degraded",
-      type: type,
-      integration_id: integration.id,
-      provider: integration.provider,
-      failures: new_state.failures
-    )
-
-    :ok
-  end
-
-  @spec deactivate_integration(integration_type(), map()) :: :ok
-  defp deactivate_integration(:calendar, integration) do
-    case CalendarIntegrationQueries.update(integration, %{is_active: false}) do
-      {:ok, _} ->
-        :ok
-
-      {:error, reason} ->
-        Logger.error("Failed to deactivate calendar integration",
-          integration_id: integration.id,
-          reason: reason
-        )
-    end
-  end
-
-  defp deactivate_integration(:video, integration) do
-    case VideoIntegrationQueries.update(integration, %{is_active: false}) do
-      {:ok, _} ->
-        :ok
-
-      {:error, reason} ->
-        Logger.error("Failed to deactivate video integration",
-          integration_id: integration.id,
-          reason: reason
-        )
-    end
-  end
-
-  @spec build_user_health_report(integer(), State.t()) :: map()
-  defp build_user_health_report(user_id, state) do
-    calendar_integrations = CalendarIntegrationQueries.list_all_for_user(user_id)
-    video_integrations = VideoIntegrationQueries.list_all_for_user(user_id)
-
-    calendar_health =
-      Enum.map(calendar_integrations, fn integration ->
-        health = Map.get(state.calendar_health, integration.id, initial_health_state())
-
-        %{
-          id: integration.id,
-          provider: integration.provider,
-          is_active: integration.is_active,
-          health: health
-        }
-      end)
-
-    video_health =
-      Enum.map(video_integrations, fn integration ->
-        health = Map.get(state.video_health, integration.id, initial_health_state())
-
-        %{
-          id: integration.id,
-          provider: integration.provider,
-          is_active: integration.is_active,
-          health: health
-        }
-      end)
-
-    %{
-      calendar_integrations: calendar_health,
-      video_integrations: video_health,
-      summary: %{
-        healthy_count: count_by_status([calendar_health, video_health], :healthy),
-        degraded_count: count_by_status([calendar_health, video_health], :degraded),
-        unhealthy_count: count_by_status([calendar_health, video_health], :unhealthy)
-      }
-    }
-  end
-
-  @spec count_by_status(list(list(map())), health_status()) :: non_neg_integer()
-  defp count_by_status(integration_lists, status) do
-    integration_lists
-    |> List.flatten()
-    |> Enum.count(fn integration ->
-      integration.health.status == status
-    end)
-  end
-
-  @spec initial_health_state() :: health_state()
-  defp initial_health_state do
-    %{
-      failures: 0,
-      successes: 0,
-      last_check: nil,
-      status: :healthy,
-      backoff_ms: @check_interval,
-      last_error_class: nil
-    }
   end
 
   @spec schedule_next_check(pos_integer()) :: reference()
