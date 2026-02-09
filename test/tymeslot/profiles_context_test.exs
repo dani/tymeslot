@@ -257,7 +257,7 @@ defmodule Tymeslot.ProfilesContextTest do
       assert {:ok, context} = Profiles.resolve_organizer_context("org")
       assert context.username == "org"
       assert context.profile.full_name == "Org Name"
-      assert length(context.meeting_types) > 0
+      assert context.meeting_types != []
       assert context.page_title =~ "Org Name"
     end
   end

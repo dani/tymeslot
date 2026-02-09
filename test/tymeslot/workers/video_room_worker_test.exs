@@ -171,7 +171,7 @@ defmodule Tymeslot.Workers.VideoRoomWorkerTest do
       assert_in_delta(snooze_first, expected_snooze_first, 2)
 
       email_jobs_after_first = all_enqueued(worker: EmailWorker)
-      assert length(email_jobs_after_first) > 0
+      assert email_jobs_after_first != []
 
       # Now test a meeting where the reminder deadline is very close (e.g., in 4 hours)
       # 24h reminder + 4h from now = 28h from now

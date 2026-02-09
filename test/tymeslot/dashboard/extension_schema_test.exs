@@ -180,7 +180,7 @@ defmodule Tymeslot.Dashboard.ExtensionSchemaTest do
       extensions = [%{}]
 
       assert {:error, errors} = ExtensionSchema.validate_all(extensions)
-      assert length(errors) > 0
+      assert errors != []
     end
 
     test "accepts empty list" do

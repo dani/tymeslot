@@ -168,7 +168,7 @@ defmodule Tymeslot.Integrations.Calendar.Nextcloud.ProviderTest do
       client = Provider.new(config)
 
       assert is_list(client.calendar_paths)
-      assert length(client.calendar_paths) > 0
+      assert client.calendar_paths != []
     end
 
     test "extracts username from calendar URL when not provided" do

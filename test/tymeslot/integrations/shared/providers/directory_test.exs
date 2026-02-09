@@ -8,14 +8,14 @@ defmodule Tymeslot.Integrations.Providers.DirectoryTest do
     test "lists calendar providers" do
       list = Directory.list(:calendar)
       assert is_list(list)
-      assert length(list) > 0
+      assert list != []
       assert Enum.all?(list, fn d -> match?(%Descriptor{domain: :calendar}, d) end)
     end
 
     test "lists video providers" do
       list = Directory.list(:video)
       assert is_list(list)
-      assert length(list) > 0
+      assert list != []
       assert Enum.all?(list, fn d -> match?(%Descriptor{domain: :video}, d) end)
     end
   end

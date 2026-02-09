@@ -31,7 +31,7 @@ defmodule Tymeslot.MeetingTypesContextTest do
       result = MeetingTypes.get_active_meeting_types(user.id)
 
       # Should have created defaults
-      assert length(result) > 0
+      assert result != []
     end
 
     test "defaults do not set calendar integration without booking target" do
@@ -41,7 +41,7 @@ defmodule Tymeslot.MeetingTypesContextTest do
 
       result = MeetingTypes.get_active_meeting_types(user.id)
 
-      assert length(result) > 0
+      assert result != []
       assert Enum.all?(result, &is_nil(&1.calendar_integration_id))
       assert Enum.all?(result, &is_nil(&1.target_calendar_id))
     end
@@ -597,7 +597,7 @@ defmodule Tymeslot.MeetingTypesContextTest do
 
       result = MeetingTypes.list_meeting_types(user.id)
 
-      assert length(result) > 0
+      assert result != []
     end
   end
 

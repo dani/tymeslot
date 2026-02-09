@@ -174,7 +174,7 @@ defmodule Tymeslot.Integrations.Calendar.Providers.ProviderRegistryTest do
       providers = ProviderRegistry.list_providers_with_metadata()
 
       assert is_list(providers)
-      assert length(providers) > 0
+      assert providers != []
 
       # Check metadata structure
       provider = Enum.find(providers, fn p -> p.type == :caldav end)

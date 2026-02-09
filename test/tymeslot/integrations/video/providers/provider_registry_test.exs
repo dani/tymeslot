@@ -144,7 +144,7 @@ defmodule Tymeslot.Integrations.Video.Providers.ProviderRegistryTest do
       providers = ProviderRegistry.list_providers_with_metadata()
 
       assert is_list(providers)
-      assert length(providers) > 0
+      assert providers != []
 
       # Check metadata structure
       mirotalk = Enum.find(providers, fn p -> p.type == :mirotalk end)

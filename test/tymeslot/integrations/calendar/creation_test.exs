@@ -86,7 +86,7 @@ defmodule Tymeslot.Integrations.Calendar.CreationTest do
 
       assert {:ok, attrs} = Creation.prepare_attrs(params, 1)
       assert is_list(attrs.calendar_list)
-      assert length(attrs.calendar_list) > 0
+      assert attrs.calendar_list != []
 
       calendar = List.first(attrs.calendar_list)
       assert calendar["path"] == "/calendars/user/personal"

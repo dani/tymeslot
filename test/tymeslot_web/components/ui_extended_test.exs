@@ -21,7 +21,7 @@ defmodule TymeslotWeb.Components.UIExtendedTest do
     test "get_video_config/1 returns config for themes" do
       rhythm = Assets.get_video_config(:rhythm)
       assert rhythm.crossfade_enabled == true
-      assert length(rhythm.background_videos) > 0
+      assert rhythm.background_videos != []
 
       quill = Assets.get_video_config(:quill)
       assert quill.background_videos == []

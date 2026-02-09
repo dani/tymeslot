@@ -8,7 +8,7 @@ defmodule Tymeslot.Integrations.Video.DiscoveryTest do
       providers = Discovery.list_available_providers()
 
       assert is_list(providers)
-      assert length(providers) > 0
+      assert providers != []
     end
 
     test "includes provider metadata for each provider" do

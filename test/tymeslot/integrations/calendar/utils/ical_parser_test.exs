@@ -365,7 +365,7 @@ defmodule Tymeslot.Integrations.Calendar.ICalParserTest do
       """
 
       assert {:ok, events} = ICalParser.parse_multistatus(xml_body)
-      assert length(events) >= 0
+      assert is_list(events)
     end
 
     test "handles XML entities in calendar data" do
