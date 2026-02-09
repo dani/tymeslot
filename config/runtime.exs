@@ -1,6 +1,6 @@
 import Config
 
-# Helper to safely parse integers from environment variables
+# Helper to safely parse integers from environment variables with validation
 parse_int = fn var, default ->
   case System.get_env(var) do
     nil ->
@@ -8,8 +8,20 @@ parse_int = fn var, default ->
 
     value ->
       case Integer.parse(value) do
-        {int, _} -> int
-        :error -> default
+        {int, _} when int >= 1 and int <= 65535 ->
+          int
+
+        {int, _} ->
+          raise """
+          Invalid #{var}: #{int}
+          Port must be between 1-65535
+          """
+
+        :error ->
+          raise """
+          Invalid #{var}: #{inspect(value)}
+          Must be a valid integer
+          """
       end
   end
 end
@@ -178,8 +190,7 @@ if config_env() == :prod do
          # Run daily at 04:00 UTC for webhook cleanup
          {"0 4 * * *", Tymeslot.Workers.WebhookCleanupWorker, args: %{retention_days: 60}}
        ]}
-    ],
-    queues: Application.get_env(:tymeslot, :oban_queues, [])
+    ]
 
   # Configure tzdata to use writable directory in production
   tzdata_dir = "/app/data/tzdata"
@@ -195,15 +206,33 @@ if config_env() == :prod do
   mailer_config =
     case email_adapter do
       "smtp" ->
-        [
-          adapter: Swoosh.Adapters.SMTP,
-          relay: System.get_env("SMTP_HOST"),
+        # Validate SMTP environment variables before passing to config builder
+        smtp_host = System.get_env("SMTP_HOST")
+        smtp_username = System.get_env("SMTP_USERNAME")
+        smtp_password = System.get_env("SMTP_PASSWORD")
+
+        # Check for empty strings (System.get_env returns nil if unset, but user might set to "")
+        if smtp_host != nil and String.trim(smtp_host) == "" do
+          raise "SMTP_HOST cannot be empty or whitespace-only"
+        end
+
+        if smtp_username != nil and String.trim(smtp_username) == "" do
+          raise "SMTP_USERNAME cannot be empty or whitespace-only"
+        end
+
+        if smtp_password != nil and String.trim(smtp_password) == "" do
+          raise "SMTP_PASSWORD cannot be empty or whitespace-only"
+        end
+
+        # Use shared SMTP configuration module
+        # This validates all required fields and handles SSL/TLS/STARTTLS setup
+        # It also trims whitespace from host and validates all input types
+        Tymeslot.Mailer.SMTPConfig.build(
+          host: smtp_host,
           port: parse_int.("SMTP_PORT", 587),
-          username: System.get_env("SMTP_USERNAME"),
-          password: System.get_env("SMTP_PASSWORD"),
-          tls: :if_available,
-          auth: :if_available
-        ]
+          username: smtp_username,
+          password: smtp_password
+        )
 
       "postmark" ->
         [
@@ -240,16 +269,32 @@ if config_env() != :prod do
   mailer_config =
     case email_adapter do
       "smtp" ->
-        if System.get_env("SMTP_HOST") do
-          [
-            adapter: Swoosh.Adapters.SMTP,
-            relay: System.get_env("SMTP_HOST"),
+        # In non-production, only configure SMTP if SMTP_HOST is set and non-empty
+        # Otherwise fall back to Local adapter for development
+        smtp_host = System.get_env("SMTP_HOST")
+
+        if smtp_host != nil and String.trim(smtp_host) != "" do
+          smtp_username = System.get_env("SMTP_USERNAME")
+          smtp_password = System.get_env("SMTP_PASSWORD")
+
+          # Check for empty strings
+          if smtp_username != nil and String.trim(smtp_username) == "" do
+            raise "SMTP_USERNAME cannot be empty or whitespace-only"
+          end
+
+          if smtp_password != nil and String.trim(smtp_password) == "" do
+            raise "SMTP_PASSWORD cannot be empty or whitespace-only"
+          end
+
+          # Use shared SMTP configuration module
+          # This validates all required fields and handles SSL/TLS/STARTTLS setup
+          # It also trims whitespace from host and validates all input types
+          Tymeslot.Mailer.SMTPConfig.build(
+            host: smtp_host,
             port: parse_int.("SMTP_PORT", 587),
-            username: System.get_env("SMTP_USERNAME"),
-            password: System.get_env("SMTP_PASSWORD"),
-            tls: :if_available,
-            auth: :if_available
-          ]
+            username: smtp_username,
+            password: smtp_password
+          )
         else
           [adapter: Swoosh.Adapters.Local]
         end

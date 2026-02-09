@@ -117,6 +117,13 @@ defmodule Tymeslot.Application do
   end
 
   defp validate_config! do
+    # Validate mailer configuration at startup
+    # This catches SMTP misconfigurations before first email send
+    # Note: Always returns :ok but logs prominent errors if misconfigured
+    mailer_config = Application.get_env(:tymeslot, Tymeslot.Mailer)
+    Tymeslot.Mailer.HealthCheck.validate_startup_config(mailer_config)
+
+    # Validate legal agreements configuration
     if Application.get_env(:tymeslot, :enforce_legal_agreements, false) do
       terms = Application.get_env(:tymeslot, :legal_terms_url)
       privacy = Application.get_env(:tymeslot, :legal_privacy_url)

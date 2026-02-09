@@ -98,6 +98,7 @@ defmodule Tymeslot.MixProject do
       {:hammer, "~> 7.1"},
       {:html_sanitize_ex, "~> 1.4"},
       {:gen_smtp, "~> 1.2"},
+      {:castore, "~> 1.0"},
       {:mjml, "~> 5.2"},
       {:nodejs, "~> 3.0"},
       {:oban, "~> 2.20"},
