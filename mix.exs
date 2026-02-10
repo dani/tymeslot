@@ -103,7 +103,7 @@ defmodule Tymeslot.MixProject do
       {:nodejs, "~> 3.0"},
       {:oban, "~> 2.20"},
       {:ecto_sql, "~> 3.13"},
-      {:postgrex, "~> 0.21.1"},
+      {:postgrex, "~> 0.22"},
       {:magical, "~> 1.0"},
       {:ex_image_info, "~> 1.0"},
       {:sweet_xml, "~> 0.7"},

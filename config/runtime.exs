@@ -93,19 +93,22 @@ if config_env() == :prod do
 
   config :tymeslot, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
-  # Determine the URL scheme based on deployment type
+  # URL scheme: Cloudron always uses https, Docker defaults to https but can override
+  # Production deployments should use https via reverse proxy (nginx, Caddy, Traefik, etc.)
   url_scheme =
     case deployment_type do
       "cloudron" -> "https"
-      "docker" -> "http"
+      "docker" -> System.get_env("URL_SCHEME", "https")
     end
 
-  # For Cloudron, use port 443 for URL generation (reverse proxy is on 443)
-  # For Docker, use standard HTTP port
+  # URL port for generation (what appears in generated URLs)
+  # Production: Always use standard ports (80/443) - assumes reverse proxy on standard ports
+  # Dev: Uses PORT variable directly (e.g., 4000) via dev.exs
+  # This ensures production URLs never include port suffix (https://example.com not https://example.com:443)
   url_port =
     case deployment_type do
       "cloudron" -> 443
-      "docker" -> parse_int.("PORT", 4000)
+      "docker" -> if url_scheme == "https", do: 443, else: 80
     end
 
   config :tymeslot, TymeslotWeb.Endpoint,
