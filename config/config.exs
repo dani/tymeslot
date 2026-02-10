@@ -218,10 +218,7 @@ config :tymeslot, :field_validation,
   password_max_length: 80,
   full_name_max_length: 100
 
-# Social Authentication Configuration
-config :tymeslot, :social_auth,
-  google_enabled: System.get_env("ENABLE_GOOGLE_AUTH", "false") == "true",
-  github_enabled: System.get_env("ENABLE_GITHUB_AUTH", "false") == "true"
+# Social Authentication Configuration moved to runtime.exs (needs runtime env vars)
 
 # Provider enable/disable switches
 config :tymeslot, :video_providers, %{
