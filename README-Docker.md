@@ -29,16 +29,26 @@ Deploy Tymeslot using Docker with an embedded PostgreSQL database. This provides
 If you want the quickest setup, pull and run the published image directly:
 
 ```bash
-docker run --name tymeslot \
+docker run -d \
+  --name tymeslot \
   -p 4000:4000 \
   -e SECRET_KEY_BASE="$(openssl rand -base64 64 | tr -d '\n')" \
   -e PHX_HOST=localhost \
+  -e EMAIL_ADAPTER=smtp \
+  -e EMAIL_FROM_NAME="Tymeslot" \
+  -e EMAIL_FROM_ADDRESS="noreply@yourdomain.com" \
+  -e SMTP_HOST="smtp.example.com" \
+  -e SMTP_PORT=587 \
+  -e SMTP_USERNAME="your-smtp-username" \
+  -e SMTP_PASSWORD="your-smtp-password" \
   -v tymeslot_data:/app/data \
   -v tymeslot_pg:/var/lib/postgresql/data \
-  youruser/tymeslot:latest
+  luka1thb/tymeslot:latest
 ```
 
-This will pull the image automatically if it is not present locally. Replace `youruser` with your Docker Hub namespace. For a pinned version, use `youruser/tymeslot:1.2.3`.
+This will pull the image automatically if it is not present locally. For a pinned version, use `luka1thb/tymeslot:0.96.1`.
+
+**Note**: Email configuration is essential for production use (password resets, booking notifications, etc.). For development/testing only, you can omit email variables and the system will use a test adapter that logs emails to console instead of sending them.
 
 ### 1. Clone Repository
 
@@ -168,12 +178,41 @@ Runs automatically inside the container when it starts.
 ### Required Environment Variables
 
 ```bash
-SECRET_KEY_BASE=<64+ characters>
+SECRET_KEY_BASE=<64+ characters>    # Generate with: openssl rand -base64 64 | tr -d '\n'
 PHX_HOST=<your-domain-or-localhost>
 POSTGRES_DB=tymeslot
 POSTGRES_USER=tymeslot
-POSTGRES_PASSWORD=<secure-password>
+POSTGRES_PASSWORD=<secure-password> # Generate with: openssl rand -base64 32 | tr -d '\n'
 ```
+
+### Essential for Production
+
+Email configuration is **required for production deployments** to enable:
+- Password reset emails
+- Booking confirmations and reminders
+- Calendar event notifications
+- User invitations
+
+**Option 1: SMTP (recommended for most users)**
+```bash
+EMAIL_ADAPTER=smtp
+EMAIL_FROM_NAME="Your Company"
+EMAIL_FROM_ADDRESS=noreply@yourdomain.com
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USERNAME=your-smtp-username
+SMTP_PASSWORD=your-smtp-password
+```
+
+**Option 2: Postmark (recommended for high reliability)**
+```bash
+EMAIL_ADAPTER=postmark
+EMAIL_FROM_NAME="Your Company"
+EMAIL_FROM_ADDRESS=noreply@yourdomain.com
+POSTMARK_API_KEY=your-postmark-api-key
+```
+
+**Development/Testing Only**: You can use `EMAIL_ADAPTER=test` to skip email configuration during development. Emails will be logged to console instead of being sent.
 
 ### Using an External Database
 
@@ -206,21 +245,7 @@ DATABASE_HOST=localhost      # Database host (default: localhost)
 DATABASE_PORT=5432          # Database port (default: 5432)
 DATABASE_POOL_SIZE=10        # DB pool size (default: 10)
 
-# Email (defaults to test adapter - no external service needed)
-EMAIL_ADAPTER=test           # Options: test, smtp, postmark
-EMAIL_FROM_NAME="Tymeslot"
-EMAIL_FROM_ADDRESS=hello@localhost
-
-# SMTP (if EMAIL_ADAPTER=smtp)
-SMTP_HOST=
-SMTP_PORT=587
-SMTP_USERNAME=
-SMTP_PASSWORD=
-
-# Postmark (if EMAIL_ADAPTER=postmark)
-POSTMARK_API_KEY=
-
-# OAuth Providers (configure through dashboard after setup)
+# OAuth Providers (optional - configure through dashboard after setup)
 GITHUB_CLIENT_ID=
 GITHUB_CLIENT_SECRET=
 GOOGLE_CLIENT_ID=
@@ -369,7 +394,9 @@ PORT=8080  # Use a different port
 - [ ] **Domain name** pointing to your server
 - [ ] **Strong secrets** generated for all passwords and keys
 - [ ] **Environment variables** validated and set correctly
-- [ ] **Email service** configured (Postmark or SMTP)
+- [ ] **Email service** configured (REQUIRED - Postmark or SMTP)
+  - [ ] Test password reset functionality
+  - [ ] Verify booking confirmation emails work
 - [ ] **OAuth providers** configured (if needed)
 - [ ] **Firewall** configured appropriately
 - [ ] **Backups** scheduled for Docker volumes
@@ -405,11 +432,11 @@ curl http://localhost:4000/healthcheck
 
 ## Next Steps
 
-1. Create your first user account
-2. Configure your profile and availability
-3. Connect calendar integrations (Google Calendar, Outlook)
-4. Share your booking link: `http://your-domain.com/your-username`
-5. Set up email notifications (optional)
+1. **Create your first user account**
+2. **Test email functionality** (use "Forgot Password" to verify emails are working)
+3. Configure your profile and availability
+4. Connect calendar integrations (Google Calendar, Outlook)
+5. Share your booking link: `http://your-domain.com/your-username`
 6. Configure OAuth providers (optional)
 
 ---
