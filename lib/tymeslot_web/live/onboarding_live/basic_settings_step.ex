@@ -8,6 +8,7 @@ defmodule TymeslotWeb.OnboardingLive.BasicSettingsStep do
 
   use Phoenix.Component
 
+  alias Tymeslot.Bookings.Policy
   alias TymeslotWeb.Components.TimezoneDropdown
   alias TymeslotWeb.Live.Shared.FormValidationHelpers
   alias TymeslotWeb.OnboardingLive.StepConfig
@@ -67,9 +68,12 @@ defmodule TymeslotWeb.OnboardingLive.BasicSettingsStep do
             Booking URL
           </label>
           <div class="relative group">
-            <% domain = Application.get_env(:tymeslot, :email)[:domain] || "tymeslot.app" %>
+            <% base_url = Policy.app_url() %>
+            <% display_url = String.replace(base_url, ~r/^https?:\/\//, "") %>
+            <% # Calculate dynamic padding based on URL length (approximate: 0.6rem per character) %>
+            <% padding_rem = (String.length(display_url) + 1) * 0.55 %>
             <div class="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-              <span class="text-slate-400 font-bold text-sm tracking-tight">{domain}/</span>
+              <span class="text-slate-400 font-bold text-sm tracking-tight">{display_url}/</span>
             </div>
             <input
               type="text"
@@ -77,9 +81,10 @@ defmodule TymeslotWeb.OnboardingLive.BasicSettingsStep do
               name="username"
               value={Map.get(@form_data, "username", "")}
               class={[
-                "input pl-[120px]",
+                "input",
                 if(FormValidationHelpers.field_errors(@form_errors, :username) != [], do: "input-error", else: "")
               ]}
+              style={"padding-left: #{padding_rem}rem;"}
               placeholder="yourname"
               autocomplete="username"
             />
