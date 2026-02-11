@@ -1,0 +1,40 @@
+## French error translations
+msgid ""
+msgstr ""
+"Language: fr\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: Error Messages
+msgid "something_went_wrong"
+msgstr "Quelque chose s'est mal passé"
+
+msgid "try_again_later"
+msgstr "Veuillez réessayer plus tard"
+
+msgid "invalid_meeting_link"
+msgstr "Lien de réunion invalide"
+
+msgid "slot_no_longer_available"
+msgstr "Ce créneau n'est plus disponible"
+
+msgid "name_required"
+msgstr "Le nom est requis"
+
+msgid "email_required"
+msgstr "L'Email est requis"
+
+msgid "email_invalid"
+msgstr "Veuillez saisir une adresse email valide"
+
+msgid "calendar_setup_required"
+msgstr "Nous ne pouvons pas encore afficher cette page de planification"
+
+msgid "connect_calendar_first"
+msgstr "Si vous êtes l'organisateur, veuillez connecter un calendrier dans votre tableau de bord."
+
+#: Status
+msgid "loading"
+msgstr "Chargement..."
+
+msgid "submitting"
+msgstr "Soumission..."

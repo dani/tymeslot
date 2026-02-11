@@ -1,0 +1,378 @@
+## French translations
+msgid ""
+msgstr ""
+"Language: fr\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: Navigation
+msgid "overview"
+msgstr "Aperçu"
+
+msgid "schedule"
+msgstr "Planning"
+
+msgid "booking"
+msgstr "Réservation"
+
+msgid "confirmation"
+msgstr "Confirmation"
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/overview_component.ex:139
+#, elixir-autogen
+msgid "next"
+msgstr "Suivant"
+
+msgid "next_step"
+msgstr "Étape suivante"
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:140
+#, elixir-autogen
+msgid "back"
+msgstr "Retour"
+
+msgid "continue"
+msgstr "Continuer"
+
+msgid "submit"
+msgstr "Valider"
+
+msgid "schedule_another"
+msgstr "Programmer une autre"
+
+msgid "close"
+msgstr "Fermer"
+
+#: Overview Step
+msgid "select_meeting_duration"
+msgstr "Choisir une durée de réunion"
+
+msgid "choose_meeting_type"
+msgstr "Choisir un type de réunion"
+
+msgid "select_duration"
+msgstr "Choisir la durée"
+
+#: Schedule Step
+msgid "select_date"
+msgstr "Sélectionner une date"
+
+msgid "select_time"
+msgstr "Choisir un horaire"
+
+msgid "no_available_slots"
+msgstr "Aucun créneau n'est disponible ce jour là"
+
+msgid "timezone"
+msgstr "Fuseau horaire"
+
+msgid "search_timezone"
+msgstr "Recherche du fuseau horaire..."
+
+msgid "choose_date_time"
+msgstr "Choisir la date et l'heure"
+
+msgid "select_date_time"
+msgstr "Sélection de la date et de l'heure"
+
+msgid "available"
+msgstr "Disponible"
+
+msgid "unavailable"
+msgstr "Indisponible"
+
+#: Booking Step
+msgid "name"
+msgstr "Nom"
+
+msgid "email"
+msgstr "Email"
+
+msgid "message_optional"
+msgstr "Message (facultatif)"
+
+msgid "enter_full_name"
+msgstr "Saisir votre nom"
+
+msgid "enter_email"
+msgstr "votre.email@exemple.com"
+
+msgid "add_details"
+msgstr "Ajouter des détails..."
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:153
+#, elixir-autogen
+msgid "book_meeting"
+msgstr "Réserver la réunion"
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:153
+#, elixir-autogen
+msgid "reschedule_meeting"
+msgstr "Reprogrammer la réunion"
+
+msgid "enter_details"
+msgstr "Saisir Vos Coordonnées"
+
+msgid "your_information"
+msgstr "Vos Informations"
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/confirmation_component.ex:79
+#, elixir-autogen
+msgid "meeting_confirmed"
+msgstr "Réunion Confirmée!"
+
+msgid "confirmation_email_sent"
+msgstr "Un email de confirmation a été envoyé à %{email}"
+
+msgid "add_to_calendar"
+msgstr "Ajouter au Calendrier"
+
+msgid "meeting_details"
+msgstr "Détails de la Réunion"
+
+msgid "date_and_time"
+msgstr "Date & Heure"
+
+msgid "duration"
+msgstr "Durée"
+
+msgid "location"
+msgstr "Emplacement"
+
+msgid "thank_you"
+msgstr "Merci!"
+
+msgid "see_you_soon"
+msgstr "À bientôt"
+
+#: Time formats
+msgid "minutes"
+msgstr "minutes"
+
+msgid "hour"
+msgstr "heure"
+
+msgid "hours"
+msgstr "heures"
+
+msgid "minute"
+msgstr "minute"
+
+#: Calendar
+msgid "january"
+msgstr "Janvier"
+
+msgid "february"
+msgstr "Février"
+
+msgid "march"
+msgstr "Mars"
+
+msgid "april"
+msgstr "Avril"
+
+msgid "may"
+msgstr "Mai"
+
+msgid "june"
+msgstr "Juin"
+
+msgid "july"
+msgstr "Juillet"
+
+msgid "august"
+msgstr "Août"
+
+msgid "september"
+msgstr "Septembre"
+
+msgid "october"
+msgstr "Octobre"
+
+msgid "november"
+msgstr "Novembre"
+
+msgid "december"
+msgstr "Décembre"
+
+msgid "sunday"
+msgstr "Dimanche"
+
+msgid "monday"
+msgstr "Lundi"
+
+msgid "tuesday"
+msgstr "Mardi"
+
+msgid "wednesday"
+msgstr "Mercredi"
+
+msgid "thursday"
+msgstr "Jeudi"
+
+msgid "friday"
+msgstr "Vendredi"
+
+msgid "saturday"
+msgstr "Samedi"
+
+msgid "sun"
+msgstr "Dim"
+
+msgid "mon"
+msgstr "Lun"
+
+msgid "tue"
+msgstr "Mar"
+
+msgid "wed"
+msgstr "Mer"
+
+msgid "thu"
+msgstr "Jeu"
+
+msgid "fri"
+msgstr "Ven"
+
+msgid "sat"
+msgstr "Sam"
+
+#: Language UI
+msgid "change_language"
+msgstr "Changer la langue"
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/confirmation_component.ex:89
+#, elixir-autogen, elixir-format
+msgid "%{name}, your meeting%{organizer} has been rescheduled."
+msgstr "%{name}, votre réunion%{organizer} a été reprogrammée."
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/confirmation_component.ex:91
+#, elixir-autogen, elixir-format
+msgid "%{name}, your meeting%{organizer} is all set."
+msgstr "%{name}, votre réunion%{organizer} est fin prête."
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:121
+#, elixir-autogen, elixir-format
+msgid "Additional Message (Optional)"
+msgstr "Message Supplémentaire (Facultatif)"
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:176
+#, elixir-autogen, elixir-format
+msgid "Click to schedule your meeting"
+msgstr "Cliquez pour programmer votre réunion"
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:107
+#, elixir-autogen, elixir-format
+msgid "Email Address"
+msgstr "Adresse Email"
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:62
+#, elixir-autogen, elixir-format
+msgid "Enter Your Details"
+msgstr "Entrez Vos Coordonnées"
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/overview_component.ex:76
+#, elixir-autogen, elixir-format
+msgid "Hi, I'm %{name}. Select how much time you need for our conversation."
+msgstr "Bonjour, je suis %{name}. Choisissez la durée de notre conversation."
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:95
+#, elixir-autogen, elixir-format
+msgid "John Doe"
+msgstr "Jean Durand"
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:122
+#, elixir-autogen, elixir-format
+msgid "Let me know what you'd like to discuss..."
+msgstr "Dites-moi de quoi vous souhaiteriez parler..."
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/overview_component.ex:69
+#, elixir-autogen, elixir-format
+msgid "Let's Connect!"
+msgstr "Connectons-nous!"
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/confirmation_component.ex:77
+#, elixir-autogen, elixir-format
+msgid "Meeting Rescheduled!"
+msgstr "Réunion Reprogrammée!"
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/overview_component.ex:87
+#, elixir-autogen, elixir-format
+msgid "No meeting types available"
+msgstr "Aucun type de réunion disponible"
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/overview_component.ex:88
+#, elixir-autogen, elixir-format
+msgid "Please contact the organizer"
+msgstr "Veuillez contacter l'organisateur"
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:175
+#, elixir-autogen, elixir-format
+msgid "Please fill in all required fields"
+msgstr "Veuillez remplir tous les champs obligatoires"
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/overview_component.ex:135
+#, elixir-autogen, elixir-format
+msgid "Please select a meeting duration first"
+msgstr "Veuillez d'abord choisir une durée de réunion"
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/overview_component.ex:78
+#, elixir-autogen, elixir-format
+msgid "Select how much time you need for our conversation."
+msgstr "Choisir la durée de notre conversation."
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:174
+#, elixir-autogen, elixir-format
+msgid "Verifying slot availability and creating your meeting..."
+msgstr "Vérification de la disponibilité des créneaux et création de votre réunion..."
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:147
+#, elixir-autogen, elixir-format
+msgid "Verifying..."
+msgstr "Vérification..."
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:74
+#, elixir-autogen, elixir-format
+msgid "You're booking a %{duration} meeting"
+msgstr "Vous réservez une réunion de %{duration}"
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:70
+#, elixir-autogen, elixir-format
+msgid "You're booking a %{duration} meeting with %{name}"
+msgstr "Vous réservez une réunion de %{duration} avec %{name}"
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:94
+#, elixir-autogen, elixir-format
+msgid "Your Name"
+msgstr "Votre Nom"
+
+#: lib/tymeslot_web/themes/quill/scheduling/components/booking_component.ex:109
+#, elixir-autogen, elixir-format
+msgid "john@example.com"
+msgstr "jean@exemple.com"
+
+#: lib/tymeslot_web/themes/rhythm/scheduling/components/booking_component.ex:75
+#: lib/tymeslot_web/themes/rhythm/scheduling/components/schedule_component.ex:148
+#, elixir-autogen, elixir-format, fuzzy
+msgid "%{duration} minutes"
+msgstr "%{duration} minutes"
+
+#: lib/tymeslot_web/themes/rhythm/scheduling/components/overview_component.ex:72
+#, elixir-autogen, elixir-format
+msgid "Hi! I'm %{name}."
+msgstr "Bonjour! Je suis %{name}."
+
+#: lib/tymeslot_web/themes/rhythm/scheduling/components/overview_component.ex:75
+#, elixir-autogen, elixir-format
+msgid "Pick a meeting duration below."
+msgstr "Choisir une durée de réunion ci-dessous."
+
+#: lib/tymeslot_web/themes/rhythm/scheduling/components/booking_component.ex:71
+#: lib/tymeslot_web/themes/rhythm/scheduling/components/schedule_component.ex:144
+#, elixir-autogen, elixir-format, fuzzy
+msgid "Schedule with"
+msgstr "Programmer avec"
+
+#: lib/tymeslot_web/themes/rhythm/scheduling/components/overview_component.ex:57
+#, elixir-autogen, elixir-format
+msgid "Schedule with %{name}"
+msgstr "Programmer avec %{name}"
