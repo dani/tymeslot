@@ -46,7 +46,7 @@ docker run -d \
   luka1thb/tymeslot:latest
 ```
 
-This will pull the image automatically if it is not present locally. For a pinned version, use `luka1thb/tymeslot:0.96.1`.
+This will pull the image automatically if it is not present locally. For a pinned version, use `luka1thb/tymeslot:0.96.2`.
 
 **Note**: Email configuration is essential for production use (password resets, booking notifications, etc.). For development/testing only, you can omit email variables and the system will use a test adapter that logs emails to console instead of sending them.
 
