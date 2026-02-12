@@ -70,7 +70,7 @@ config :tymeslot, Tymeslot.Repo,
 config :tymeslot, Oban,
   repo: Tymeslot.Repo,
   plugins: [
-    Oban.Plugins.Pruner,
+    {Oban.Plugins.Pruner, max_age: 604_800},
     {Oban.Plugins.Cron,
      crontab: [
        # Run every 30 minutes
