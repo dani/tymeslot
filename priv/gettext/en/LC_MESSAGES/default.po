@@ -376,3 +376,300 @@ msgstr "Schedule with"
 #, elixir-autogen, elixir-format
 msgid "Schedule with %{name}"
 msgstr "Schedule with %{name}"
+msgid "1 day in advance"
+msgstr "1 day in advance"
+
+msgid "1 hour"
+msgstr "1 hour"
+
+msgid "1 minute"
+msgstr "1 minute"
+
+msgid "1 month in advance"
+msgstr "1 month in advance"
+
+msgid "1 week in advance"
+msgstr "1 week in advance"
+
+msgid "1 year in advance"
+msgstr "1 year in advance"
+
+msgid "90 days in advance"
+msgstr "90 days in advance"
+
+msgid "Afternoon"
+msgstr "Afternoon"
+
+msgid "April"
+msgstr "April"
+
+msgid "August"
+msgstr "August"
+
+msgid "Available Times"
+msgstr "Available Times"
+
+msgid "Bookings available up to %{advance}"
+msgstr "Bookings available up to %{advance}"
+
+msgid "Cancel"
+msgstr "Cancel"
+
+msgid "Confirmation sent to"
+msgstr "Confirmation sent to"
+
+msgid "%{count} hours"
+msgstr "%{count} hours"
+
+msgid "Date"
+msgstr "Date"
+
+msgid "%{date} at %{time}"
+msgstr "%{date} at %{time}"
+
+msgid "%{days} days in advance"
+msgstr "%{days} days in advance"
+
+msgid "December"
+msgstr "December"
+
+msgid "Duration: %{duration}"
+msgstr "Duration: %{duration}"
+
+msgid "Evening"
+msgstr "Evening"
+
+msgid "February"
+msgstr "February"
+
+msgid "Fri"
+msgstr "Fri"
+
+msgid "FRI"
+msgstr "FRI"
+
+msgid "Friday"
+msgstr "Friday"
+
+msgid "%{hour_text} %{minute_text}"
+msgstr "%{hour_text} %{minute_text}"
+
+msgid "Invalid date"
+msgstr "Invalid date"
+
+msgid "Invalid date/time"
+msgstr "Invalid date/time"
+
+msgid "January"
+msgstr "January"
+
+msgid "July"
+msgstr "July"
+
+msgid "June"
+msgstr "June"
+
+msgid "Loading available times..."
+msgstr "Loading available times..."
+
+msgid "local time"
+msgstr "local time"
+
+msgid "March"
+msgstr "March"
+
+msgid "May"
+msgstr "May"
+
+msgid "Meeting Details"
+msgstr "Meeting Details"
+
+msgid "Meeting with"
+msgstr "Meeting with"
+
+msgid "%{minutes} minutes"
+msgstr "%{minutes} minutes"
+
+msgid "Mon"
+msgstr "Mon"
+
+msgid "MON"
+msgstr "MON"
+
+msgid "Monday"
+msgstr "Monday"
+
+msgid "%{month} %{day}, %{year}"
+msgstr "%{month} %{day}, %{year}"
+
+msgid "%{months} months in advance"
+msgstr "%{months} months in advance"
+
+msgid "%{month} %{year}"
+msgstr "%{month} %{year}"
+
+msgid "Morning"
+msgstr "Morning"
+
+msgid "%{name}, your meeting %{organizer} has been rescheduled."
+msgstr "%{name}, your meeting %{organizer} has been rescheduled."
+
+msgid "%{name}, your meeting %{organizer} is all set."
+msgstr "%{name}, your meeting %{organizer} is all set."
+
+msgid "%{name}, your meeting %{organizer} is confirmed"
+msgstr "%{name}, your meeting %{organizer} is confirmed"
+
+msgid "Need to make changes? Check your email for reschedule options"
+msgstr "Need to make changes? Check your email for reschedule options"
+
+msgid "Need to reschedule? Check your confirmation email."
+msgstr "Need to reschedule? Check your confirmation email."
+
+msgid "Night"
+msgstr "Night"
+
+msgid "November"
+msgstr "November"
+
+msgid "October"
+msgstr "October"
+
+msgid "Page not found. Redirected to homepage."
+msgstr "Page not found. Redirected to homepage."
+
+msgid "Please select a date to see available times"
+msgstr "Please select a date to see available times"
+
+msgid "Please select another date"
+msgstr "Please select another date"
+
+msgid "Reschedule"
+msgstr "Reschedule"
+
+msgid "Retry"
+msgstr "Retry"
+
+msgid "same day only"
+msgstr "same day only"
+
+msgid "Sat"
+msgstr "Sat"
+
+msgid "SAT"
+msgstr "SAT"
+
+msgid "Saturday"
+msgstr "Saturday"
+
+msgid "Schedule Another Meeting"
+msgstr "Schedule Another Meeting"
+
+msgid "Search cities, countries, or timezones..."
+msgstr "Search cities, countries, or timezones..."
+
+msgid "Select a Date"
+msgstr "Select a Date"
+
+msgid "Select a Date & Time"
+msgstr "Select a Date & Time"
+
+msgid "Sent to"
+msgstr "Sent to"
+
+msgid "September"
+msgstr "September"
+
+msgid "%{start_month} - %{end_month} %{year}"
+msgstr "%{start_month} - %{end_month} %{year}"
+
+msgid "Successfully Rescheduled!"
+msgstr "Successfully Rescheduled!"
+
+msgid "Sun"
+msgstr "Sun"
+
+msgid "SUN"
+msgstr "SUN"
+
+msgid "Sunday"
+msgstr "Sunday"
+
+msgid "Theme Error"
+msgstr "Theme Error"
+
+msgid "This date is fully booked"
+msgstr "This date is fully booked"
+
+msgid "Thu"
+msgstr "Thu"
+
+msgid "THU"
+msgstr "THU"
+
+msgid "Thursday"
+msgstr "Thursday"
+
+msgid "Time"
+msgstr "Time"
+
+msgid "time_format_type"
+msgstr "time_format_type"
+
+msgid "%{time} local time"
+msgstr "%{time} local time"
+
+msgid "%{time} %{timezone}"
+msgstr "%{time} %{timezone}"
+
+msgid "%{time} UTC"
+msgstr "%{time} UTC"
+
+msgid "Timezone"
+msgstr "Timezone"
+
+msgid "Tue"
+msgstr "Tue"
+
+msgid "TUE"
+msgstr "TUE"
+
+msgid "Tuesday"
+msgstr "Tuesday"
+
+msgid "Unknown duration"
+msgstr "Unknown duration"
+
+msgid "User Not Found"
+msgstr "User Not Found"
+
+msgid "Wed"
+msgstr "Wed"
+
+msgid "WED"
+msgstr "WED"
+
+msgid "Wednesday"
+msgstr "Wednesday"
+
+msgid "%{weekday}, %{day} %{month} %{year} at %{time} %{timezone}"
+msgstr "%{weekday}, %{day} %{month} %{year} at %{time} %{timezone}"
+
+msgid "%{weeks} weeks in advance"
+msgstr "%{weeks} weeks in advance"
+
+msgid "With"
+msgstr "With"
+
+msgid "with %{name}"
+msgstr "with %{name}"
+
+msgid "%{years} years in advance"
+msgstr "%{years} years in advance"
+
+msgid "You're All Set!"
+msgstr "You're All Set!"
+
+msgid "Your timezone"
+msgstr "Your timezone"
+
