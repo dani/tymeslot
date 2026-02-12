@@ -97,12 +97,20 @@ defmodule TymeslotWeb.Themes.Shared.LocalizationHelpers do
   """
   @spec format_duration(String.t()) :: String.t()
   def format_duration(duration_string) when is_binary(duration_string) do
-    case Regex.run(~r/^(\d+)min$/, duration_string) do
-      [_, minutes_str] ->
+    cond do
+      # Handle "30min" format
+      match = Regex.run(~r/^(\d+)min$/, duration_string) ->
+        [_, minutes_str] = match
         minutes = String.to_integer(minutes_str)
         format_minutes(minutes)
 
-      _ ->
+      # Handle "30-minutes" slug format
+      match = Regex.run(~r/^(\d+)-minutes?$/, duration_string) ->
+        [_, minutes_str] = match
+        minutes = String.to_integer(minutes_str)
+        format_minutes(minutes)
+
+      true ->
         gettext("Unknown duration")
     end
   end
