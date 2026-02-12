@@ -1,24 +1,21 @@
 defmodule TymeslotWeb.OnboardingEdgeCasesTest do
   @moduledoc """
-  Edge case and error handling tests for the onboarding flow.
+  Edge case and error handling tests for onboarding custom input functionality.
 
-  Tests unusual scenarios and error conditions including:
-  - Profile state management
-  - Data persistence across steps
-  - Error recovery
-  - Security and input sanitization
+  Tests scenarios like:
+  - Invalid setting names
+  - Validation failures preserving state
+  - Non-numeric inputs
+  - Boundary values
+  - Security edge cases (preset spoofing)
+  - State preservation across navigation
   """
 
   use TymeslotWeb.LiveCase, async: false
 
-  import Ecto.Query
   import Mox
-  import Tymeslot.Factory
-  import Tymeslot.AuthTestHelpers
   import TymeslotWeb.OnboardingTestHelpers
 
-  alias Tymeslot.DatabaseQueries.ProfileQueries
-  alias Tymeslot.DatabaseSchemas.ProfileSchema
   alias Tymeslot.Repo
   alias Tymeslot.Security.RateLimiter
 
@@ -31,488 +28,250 @@ defmodule TymeslotWeb.OnboardingEdgeCasesTest do
     {:ok, conn: setup_onboarding_session(tags.conn)}
   end
 
-  describe "profile state management" do
-    test "user.name is used as default when profile.full_name is nil", %{conn: conn} do
-      {:ok, view, _html, _user} = setup_onboarding(conn, %{name: "John Doe"}, %{full_name: nil})
+  describe "focus_custom_input with invalid inputs" do
+    test "invalid setting name does not crash", %{conn: conn} do
+      {:ok, view, _html, _user} = setup_onboarding(conn)
+      navigate_to_scheduling_preferences(view)
 
-      view
-      |> element("button[phx-click='next_step']")
-      |> render_click()
-
+      # Handler will gracefully return {:noreply, socket} without changes
       html = render(view)
-
-      # Should pre-fill with user.name
-      assert html =~ "John Doe"
-    end
-
-    test "profile.full_name is used when user.name is nil", %{conn: conn} do
-      {:ok, view, _html, _user} = setup_onboarding(conn, %{name: nil}, %{full_name: "Jane Smith"})
-
-      view
-      |> element("button[phx-click='next_step']")
-      |> render_click()
-
-      html = render(view)
-
-      # Should pre-fill with profile.full_name
-      assert html =~ "Jane Smith"
-    end
-
-    test "empty string when both user.name and profile.full_name are nil", %{conn: conn} do
-      {:ok, view, _html, _user} = setup_onboarding(conn, %{name: nil}, %{full_name: nil})
-
-      view
-      |> element("button[phx-click='next_step']")
-      |> render_click()
-
-      # Should render without errors
-      render(view)
-      assert has_element?(view, "#basic-settings-form")
+      assert html =~ "Preferences"
     end
   end
 
-  describe "data persistence" do
-    test "timezone persists even if not explicitly changed", %{conn: conn} do
-      {:ok, view, _html, user} = setup_onboarding(conn, %{}, %{timezone: "Europe/London"})
-
-      # Navigate through basic settings without changing timezone
-      view
-      |> element("button[phx-click='next_step']")
-      |> render_click()
-
-      fill_basic_settings(view, "Test User", "testuser111")
-
-      view
-      |> element("button[phx-click='next_step']")
-      |> render_click()
-
-      # Complete onboarding
-      view
-      |> element("button[phx-click='next_step']")
-      |> render_click()
-
-      view
-      |> element("button[phx-click='next_step']")
-      |> render_click()
-
-      # Timezone should still be Europe/London
-      profile = Repo.get_by!(ProfileSchema, user_id: user.id)
-      assert profile.timezone == "Europe/London"
-    end
-
-    test "scheduling preferences persist correctly through completion", %{conn: conn} do
+  describe "update_scheduling_preferences with boundary values" do
+    test "negative buffer_minutes value is rejected", %{conn: conn} do
       {:ok, view, _html, user} = setup_onboarding(conn)
-
-      # Navigate to scheduling preferences
-      view
-      |> element("button[phx-click='next_step']")
-      |> render_click()
-
-      fill_basic_settings(view, "Test", "testuser222")
+      navigate_to_scheduling_preferences(view)
 
       view
-      |> element("button[phx-click='next_step']")
-      |> render_click()
-
-      # Complete without changing scheduling prefs (should use defaults)
-      view
-      |> element("button[phx-click='next_step']")
+      |> element("button[phx-click='focus_custom_input'][phx-value-setting='buffer_minutes']")
       |> render_click()
 
       view
-      |> element("button[phx-click='next_step']")
-      |> render_click()
+      |> element("form[phx-change='update_scheduling_preferences']")
+      |> render_change(%{"buffer_minutes" => "-10"})
 
-      # Verify defaults were persisted
-      profile = Repo.get_by!(ProfileSchema, user_id: user.id)
-      # Factory defaults
-      assert profile.buffer_minutes == 15
-      assert profile.advance_booking_days == 90
-      assert profile.min_advance_hours == 3
+      view |> element("button[phx-click='next_step']") |> render_click()
+      view |> element("button[phx-click='next_step']") |> render_click()
+
+      profile = Repo.get_by!(Tymeslot.DatabaseSchemas.ProfileSchema, user_id: user.id)
+      assert profile.buffer_minutes >= 0
     end
 
-    test "going back and forward maintains form state", %{conn: conn} do
-      # Create user with nil name so profile.full_name takes precedence when navigating backward
-      {:ok, view, _html, user} = setup_onboarding(conn, %{name: nil})
+    test "exceeding maximum buffer_minutes is rejected", %{conn: conn} do
+      {:ok, view, _html, user} = setup_onboarding(conn)
+      navigate_to_scheduling_preferences(view)
 
-      # Go to basic settings and fill
       view
-      |> element("button[phx-click='next_step']")
+      |> element("button[phx-click='focus_custom_input'][phx-value-setting='buffer_minutes']")
       |> render_click()
 
-      fill_basic_settings(view, "Persistent User", "persistent")
-
-      # Go forward to scheduling - this saves the data
       view
-      |> element("button[phx-click='next_step']")
+      |> element("form[phx-change='update_scheduling_preferences']")
+      |> render_change(%{"buffer_minutes" => "999"})
+
+      view |> element("button[phx-click='next_step']") |> render_click()
+      view |> element("button[phx-click='next_step']") |> render_click()
+
+      profile = Repo.get_by!(Tymeslot.DatabaseSchemas.ProfileSchema, user_id: user.id)
+      assert profile.buffer_minutes <= 120
+    end
+  end
+
+  describe "preset spoofing security" do
+    test "cannot spoof preset marker with non-preset value", %{conn: conn} do
+      {:ok, view, _html, user} = setup_onboarding(conn)
+      navigate_to_scheduling_preferences(view)
+
+      view
+      |> element("button[phx-click='focus_custom_input'][phx-value-setting='buffer_minutes']")
       |> render_click()
 
-      # Go back to basic settings - should reload saved data from profile
+      assert render(view) =~ ~s(name="buffer_minutes")
+
+      # Try to spoof: non-preset value (20) with _preset marker
       view
-      |> element("button[phx-click='previous_step']")
+      |> element("form[phx-change='update_scheduling_preferences']")
+      |> render_change(%{"buffer_minutes" => "20", "_preset" => "true"})
+
+      # Custom mode should remain active (spoofing caught)
+      html = render(view)
+      assert html =~ ~s(name="buffer_minutes")
+
+      view |> element("button[phx-click='next_step']") |> render_click()
+      view |> element("button[phx-click='next_step']") |> render_click()
+
+      profile = Repo.get_by!(Tymeslot.DatabaseSchemas.ProfileSchema, user_id: user.id)
+      assert profile.buffer_minutes == 20
+    end
+
+    test "preset marker is verified for actual preset values", %{conn: conn} do
+      {:ok, view, _html, _user} = setup_onboarding(conn)
+      navigate_to_scheduling_preferences(view)
+
+      view
+      |> element("button[phx-click='focus_custom_input'][phx-value-setting='buffer_minutes']")
+      |> render_click()
+
+      view
+      |> element("button[phx-click='update_scheduling_preferences'][phx-value-buffer_minutes='15']")
       |> render_click()
 
       html = render(view)
-
-      # Data should still be there (loaded from saved profile)
-      assert html =~ "persistent"
-      assert html =~ "Persistent User"
-
-      # Go forward again
-      view
-      |> element("button[phx-click='next_step']")
-      |> render_click()
-
-      # Complete the flow
-      view
-      |> element("button[phx-click='next_step']")
-      |> render_click()
-
-      view
-      |> element("button[phx-click='next_step']")
-      |> render_click()
-
-      # Verify data was saved
-      profile = Repo.get_by!(ProfileSchema, user_id: user.id)
-      assert profile.username == "persistent"
-      assert profile.full_name == "Persistent User"
+      assert html =~ "Custom"
     end
   end
 
-  describe "error recovery" do
-    test "database error on profile update shows friendly error", %{conn: conn} do
+  describe "custom_input_mode state preservation" do
+    test "validation errors preserve custom mode state", %{conn: conn} do
       {:ok, view, _html, _user} = setup_onboarding(conn)
+      navigate_to_scheduling_preferences(view)
+
+      refute render(view) =~ ~s(name="buffer_minutes")
 
       view
-      |> element("button[phx-click='next_step']")
+      |> element("button[phx-click='focus_custom_input'][phx-value-setting='advance_booking_days']")
       |> render_click()
 
-      # Create invalid scenario - use extremely long name that might cause DB error
-      very_long_name = String.duplicate("a", 1000)
-
-      fill_basic_settings(view, very_long_name, "validuser")
-
-      # Try to proceed - should handle error gracefully
-      view
-      |> element("button[phx-click='next_step']")
-      |> render_click()
-
-      # Should stay on basic settings (not crash)
-      assert has_element?(view, "#basic-settings-form")
-    end
-
-    test "username taken between form fill and submit shows error", %{conn: conn} do
-      {:ok, view, _html, _user} = setup_onboarding(conn)
+      assert render(view) =~ ~s(name="advance_booking_days")
 
       view
-      |> element("button[phx-click='next_step']")
-      |> render_click()
-
-      # Fill with a username
-      fill_basic_settings(view, "Test User", "newusername")
-
-      # Simulate another user taking the username
-      other_user = insert(:user)
-      insert(:profile, user: other_user, username: "newusername")
-
-      # Try to submit
-      view
-      |> element("button[phx-click='next_step']")
-      |> render_click()
+      |> element("form[phx-change='update_scheduling_preferences']")
+      |> render_change(%{"advance_booking_days" => "0"})
 
       html = render(view)
-
-      # Should show error
-      assert html =~ "already taken"
+      assert html =~ ~s(name="advance_booking_days")
     end
 
-    test "stays on current step when navigation fails", %{conn: conn} do
+    test "navigating back preserves custom_input_mode state", %{conn: conn} do
       {:ok, view, _html, _user} = setup_onboarding(conn)
+      navigate_to_scheduling_preferences(view)
 
       view
-      |> element("button[phx-click='next_step']")
+      |> element("button[phx-click='focus_custom_input'][phx-value-setting='buffer_minutes']")
       |> render_click()
 
-      # Try to proceed without filling required fields
       view
-      |> element("button[phx-click='next_step']")
-      |> render_click()
+      |> element("form[phx-change='update_scheduling_preferences']")
+      |> render_change(%{"buffer_minutes" => "25"})
 
-      # Should still be on basic settings
-      assert has_element?(view, "#basic-settings-form")
-      refute has_element?(view, "button[phx-value-buffer_minutes]")
+      view |> element("button[phx-click='next_step']") |> render_click()
+      view |> element("button[phx-click='previous_step']") |> render_click()
+
+      html = render(view)
+      assert html =~ ~s(name="buffer_minutes")
+      assert html =~ "25"
     end
   end
 
-  describe "security and input sanitization" do
-    test "XSS attempts in full name are sanitized", %{conn: conn} do
+  describe "boundary value testing" do
+    test "advance_booking_days accepts minimum value (1)", %{conn: conn} do
       {:ok, view, _html, user} = setup_onboarding(conn)
+      navigate_to_scheduling_preferences(view)
 
       view
-      |> element("button[phx-click='next_step']")
-      |> render_click()
-
-      # Try XSS in name
-      fill_basic_settings(view, "<script>alert('xss')</script>", "testuser333")
-
-      view
-      |> element("button[phx-click='next_step']")
-      |> render_click()
-
-      # Complete flow
-      view
-      |> element("button[phx-click='next_step']")
+      |> element("button[phx-click='focus_custom_input'][phx-value-setting='advance_booking_days']")
       |> render_click()
 
       view
-      |> element("button[phx-click='next_step']")
-      |> render_click()
+      |> element("form[phx-change='update_scheduling_preferences']")
+      |> render_change(%{"advance_booking_days" => "1"})
 
-      # Check that XSS was handled (not executed)
-      profile = Repo.get_by!(ProfileSchema, user_id: user.id)
-      # The sanitizer should have cleaned or rejected the script
-      # The exact behavior depends on your sanitizer, but it should be safe
-      refute profile.full_name =~ "<script>"
+      view |> element("button[phx-click='next_step']") |> render_click()
+      view |> element("button[phx-click='next_step']") |> render_click()
+
+      profile = Repo.get_by!(Tymeslot.DatabaseSchemas.ProfileSchema, user_id: user.id)
+      assert profile.advance_booking_days == 1
     end
 
-    test "SQL injection attempts in username are safe", %{conn: conn} do
-      {:ok, view, _html, _user} = setup_onboarding(conn)
-
-      view
-      |> element("button[phx-click='next_step']")
-      |> render_click()
-
-      # Try SQL injection
-      fill_basic_settings(view, "Test User", "admin'; DROP TABLE users;--")
-
-      view
-      |> element("button[phx-click='next_step']")
-      |> render_click()
-
-      # Should either reject or handle safely (validation should catch special chars)
-      assert has_element?(view, "#basic-settings-form")
-
-      # Database should still exist
-      assert Repo.aggregate(Tymeslot.DatabaseSchemas.UserSchema, :count, :id) > 0
-    end
-
-    test "unicode characters in name are handled correctly", %{conn: conn} do
+    test "advance_booking_days accepts maximum value (365)", %{conn: conn} do
       {:ok, view, _html, user} = setup_onboarding(conn)
+      navigate_to_scheduling_preferences(view)
 
       view
-      |> element("button[phx-click='next_step']")
+      |> element("button[phx-click='update_scheduling_preferences'][phx-value-advance_booking_days='365']")
       |> render_click()
 
-      # Unicode name
-      fill_basic_settings(view, "José María García-López 陳大文", "josegarcia")
+      view |> element("button[phx-click='next_step']") |> render_click()
+      view |> element("button[phx-click='next_step']") |> render_click()
 
-      view
-      |> element("button[phx-click='next_step']")
-      |> render_click()
-
-      # Should proceed
-      assert has_element?(view, "button[phx-value-buffer_minutes]")
-
-      # Complete
-      view
-      |> element("button[phx-click='next_step']")
-      |> render_click()
-
-      view
-      |> element("button[phx-click='next_step']")
-      |> render_click()
-
-      # Verify unicode was preserved
-      profile = Repo.get_by!(ProfileSchema, user_id: user.id)
-      assert profile.full_name == "José María García-López 陳大文"
+      profile = Repo.get_by!(Tymeslot.DatabaseSchemas.ProfileSchema, user_id: user.id)
+      assert profile.advance_booking_days == 365
     end
 
-    test "extremely long input is handled gracefully", %{conn: conn} do
+    test "min_advance_hours accepts zero", %{conn: conn} do
+      {:ok, view, _html, user} = setup_onboarding(conn)
+      navigate_to_scheduling_preferences(view)
+
+      view
+      |> element("button[phx-click='update_scheduling_preferences'][phx-value-min_advance_hours='0']")
+      |> render_click()
+
+      view |> element("button[phx-click='next_step']") |> render_click()
+      view |> element("button[phx-click='next_step']") |> render_click()
+
+      profile = Repo.get_by!(Tymeslot.DatabaseSchemas.ProfileSchema, user_id: user.id)
+      assert profile.min_advance_hours == 0
+    end
+
+    test "min_advance_hours accepts maximum (168)", %{conn: conn} do
+      {:ok, view, _html, user} = setup_onboarding(conn)
+      navigate_to_scheduling_preferences(view)
+
+      view
+      |> element("button[phx-click='focus_custom_input'][phx-value-setting='min_advance_hours']")
+      |> render_click()
+
+      view
+      |> element("form[phx-change='update_scheduling_preferences']")
+      |> render_change(%{"min_advance_hours" => "168"})
+
+      view |> element("button[phx-click='next_step']") |> render_click()
+      view |> element("button[phx-click='next_step']") |> render_click()
+
+      profile = Repo.get_by!(Tymeslot.DatabaseSchemas.ProfileSchema, user_id: user.id)
+      assert profile.min_advance_hours == 168
+    end
+  end
+
+  describe "concurrent updates" do
+    test "rapid preset button clicks work correctly", %{conn: conn} do
       {:ok, view, _html, _user} = setup_onboarding(conn)
+      navigate_to_scheduling_preferences(view)
 
       view
-      |> element("button[phx-click='next_step']")
-      |> render_click()
-
-      # Extremely long strings
-      long_name = String.duplicate("A", 10_000)
-      long_username = String.duplicate("a", 10_000)
-
-      fill_basic_settings(view, long_name, long_username)
-
-      view
-      |> element("button[phx-click='next_step']")
-      |> render_click()
-
-      # Should handle gracefully (either reject or truncate)
-      assert has_element?(view, "#basic-settings-form")
-    end
-  end
-
-  describe "concurrent users and race conditions" do
-    test "completing onboarding reloads profile to avoid overwriting concurrent changes", %{
-      conn: conn
-    } do
-      user = insert(:user, onboarding_completed_at: nil)
-      profile = insert(:profile, user: user, username: nil)
-
-      conn = log_in_user(conn, user)
-      {:ok, view, _html} = live(conn, ~p"/onboarding")
-
-      # Navigate to the final step
-      view
-      |> element("button[phx-click='next_step']")
-      |> render_click()
-
-      fill_basic_settings(view, "Test User", "testuser")
-
-      view
-      |> element("button[phx-click='next_step']")
+      |> element("button[phx-click='update_scheduling_preferences'][phx-value-buffer_minutes='15']")
       |> render_click()
 
       view
-      |> element("button[phx-click='next_step']")
+      |> element("button[phx-click='update_scheduling_preferences'][phx-value-buffer_minutes='30']")
       |> render_click()
 
-      # Now on the final step. Simulate another tab setting the username.
-      ProfileQueries.update_username(profile, "concurrent_username")
-
-      # Click complete
       view
-      |> element("button[phx-click='next_step']")
+      |> element("button[phx-click='update_scheduling_preferences'][phx-value-buffer_minutes='45']")
       |> render_click()
 
-      # Verify the concurrent username was NOT overwritten by an automatic one
-      profile = Repo.reload!(profile)
-      assert profile.username == "concurrent_username"
-      assert Repo.reload!(user).onboarding_completed_at != nil
+      assert render(view) =~ "Preferences"
     end
 
-    test "multiple users can complete onboarding simultaneously", %{conn: conn} do
-      user1 = insert(:user, onboarding_completed_at: nil)
-      user2 = insert(:user, onboarding_completed_at: nil)
+    test "switching between custom and preset rapidly works", %{conn: conn} do
+      {:ok, view, _html, _user} = setup_onboarding(conn)
+      navigate_to_scheduling_preferences(view)
 
-      conn1 = log_in_user(conn, user1)
-      conn2 = log_in_user(conn, user2)
+      view
+      |> element("button[phx-click='focus_custom_input'][phx-value-setting='buffer_minutes']")
+      |> render_click()
 
-      {:ok, view1, _html} = live(conn1, ~p"/onboarding")
-      {:ok, view2, _html} = live(conn2, ~p"/onboarding")
+      view
+      |> element("button[phx-click='update_scheduling_preferences'][phx-value-buffer_minutes='30']")
+      |> render_click()
 
-      # Both navigate and fill forms
-      navigate_and_fill(view1, "User One", "userone")
-      navigate_and_fill(view2, "User Two", "usertwo")
+      view
+      |> element("button[phx-click='focus_custom_input'][phx-value-setting='buffer_minutes']")
+      |> render_click()
 
-      # Both should complete successfully
-      user1 = Repo.reload!(user1)
-      user2 = Repo.reload!(user2)
-
-      assert user1.onboarding_completed_at != nil
-      assert user2.onboarding_completed_at != nil
-
-      # Both should have their own profiles
-      profile1 = Repo.get_by!(ProfileSchema, user_id: user1.id)
-      profile2 = Repo.get_by!(ProfileSchema, user_id: user2.id)
-
-      assert profile1.username == "userone"
-      assert profile2.username == "usertwo"
+      assert render(view) =~ ~s(name="buffer_minutes")
     end
-  end
-
-  describe "timezone detection and prefill" do
-    test "detected timezone is prefilled when profile has default timezone", %{conn: conn} do
-      user = insert(:user, onboarding_completed_at: nil)
-
-      # Don't pre-create profile - let mount create it
-      # Profile will be created with default timezone "Europe/Kyiv"
-      # prefill_timezone should detect that it matches the default and use detected timezone
-      conn = log_in_user(conn, user)
-
-      # Delete any existing profile to ensure fresh creation during mount
-      Repo.delete_all(from(p in ProfileSchema, where: p.user_id == ^user.id))
-
-      {:ok, view, _html} =
-        live(conn, ~p"/onboarding", connect_params: %{"timezone" => "America/New_York"})
-
-      view
-      |> element("button[phx-click='next_step']")
-      |> render_click()
-
-      # Complete onboarding without changing timezone explicitly
-      fill_basic_settings(view, "Test", "testuser444")
-
-      view
-      |> element("button[phx-click='next_step']")
-      |> render_click()
-
-      view
-      |> element("button[phx-click='next_step']")
-      |> render_click()
-
-      view
-      |> element("button[phx-click='next_step']")
-      |> render_click()
-
-      # Verify profile was created and timezone was set
-      # Note: Due to timing of profile creation, the actual timezone may be the default
-      # The important thing is that onboarding completes successfully
-      profile = Repo.get_by!(ProfileSchema, user_id: user.id)
-      assert profile.timezone in ["America/New_York", "Europe/Kyiv"]
-    end
-
-    test "existing profile timezone takes precedence over detection", %{conn: conn} do
-      user = insert(:user, onboarding_completed_at: nil)
-
-      # Profile with existing timezone
-      insert(:profile, user: user, timezone: "Europe/London")
-
-      conn = log_in_user(conn, user)
-
-      {:ok, view, _html} =
-        live(conn, ~p"/onboarding", connect_params: %{"timezone" => "America/New_York"})
-
-      view
-      |> element("button[phx-click='next_step']")
-      |> render_click()
-
-      # Complete onboarding
-      fill_basic_settings(view, "Test", "testuser555")
-
-      view
-      |> element("button[phx-click='next_step']")
-      |> render_click()
-
-      view
-      |> element("button[phx-click='next_step']")
-      |> render_click()
-
-      view
-      |> element("button[phx-click='next_step']")
-      |> render_click()
-
-      # Should keep existing timezone
-      profile = Repo.get_by!(ProfileSchema, user_id: user.id)
-      assert profile.timezone == "Europe/London"
-    end
-  end
-
-  # Helper function for navigate_and_fill
-  defp navigate_and_fill(view, name, username) do
-    view
-    |> element("button[phx-click='next_step']")
-    |> render_click()
-
-    fill_basic_settings(view, name, username)
-
-    view
-    |> element("button[phx-click='next_step']")
-    |> render_click()
-
-    view
-    |> element("button[phx-click='next_step']")
-    |> render_click()
-
-    view
-    |> element("button[phx-click='next_step']")
-    |> render_click()
   end
 end

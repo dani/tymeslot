@@ -54,6 +54,28 @@ defmodule TymeslotWeb.OnboardingLive.StepConfig do
   end
 
   @doc """
+  Returns preset values for buffer time (without labels).
+  Used to check if current value matches a preset.
+  """
+  @spec buffer_time_values() :: [integer()]
+  def buffer_time_values, do: [0, 15, 30, 45, 60]
+
+  @doc """
+  Returns constraints and configuration for buffer_minutes custom input.
+  """
+  @spec buffer_minutes_constraints() :: map()
+  def buffer_minutes_constraints do
+    %{
+      min: 0,
+      max: 120,
+      step: 5,
+      default_custom: 20,
+      unit: "min",
+      color: "turquoise"
+    }
+  end
+
+  @doc """
   Returns configuration for advance booking window options.
   """
   @spec advance_booking_options() :: [option()]
@@ -66,6 +88,28 @@ defmodule TymeslotWeb.OnboardingLive.StepConfig do
       {"6 months", 180},
       {"1 year", 365}
     ]
+  end
+
+  @doc """
+  Returns preset values for advance booking (without labels).
+  Used to check if current value matches a preset.
+  """
+  @spec advance_booking_values() :: [integer()]
+  def advance_booking_values, do: [7, 14, 30, 90, 180, 365]
+
+  @doc """
+  Returns constraints and configuration for advance_booking_days custom input.
+  """
+  @spec advance_booking_constraints() :: map()
+  def advance_booking_constraints do
+    %{
+      min: 1,
+      max: 365,
+      step: 1,
+      default_custom: 120,
+      unit: "days",
+      color: "cyan"
+    }
   end
 
   @doc """
@@ -82,6 +126,57 @@ defmodule TymeslotWeb.OnboardingLive.StepConfig do
       {"24 hours", 24},
       {"48 hours", 48}
     ]
+  end
+
+  @doc """
+  Returns preset values for minimum advance notice (without labels).
+  Used to check if current value matches a preset.
+  """
+  @spec min_advance_values() :: [integer()]
+  def min_advance_values, do: [0, 1, 3, 6, 12, 24, 48]
+
+  @doc """
+  Returns constraints and configuration for min_advance_hours custom input.
+  """
+  @spec min_advance_constraints() :: map()
+  def min_advance_constraints do
+    %{
+      min: 0,
+      max: 168,
+      step: 1,
+      default_custom: 8,
+      unit: "hours",
+      color: "blue"
+    }
+  end
+
+  @doc """
+  Returns custom input configuration for all scheduling preference fields.
+
+  Maps setting names to their field configuration including:
+  - field: The profile schema field atom
+  - presets: List of preset values
+  - constraints: Min/max/step/default values
+  """
+  @spec custom_input_config() :: map()
+  def custom_input_config do
+    %{
+      "buffer_minutes" => %{
+        field: :buffer_minutes,
+        presets: buffer_time_values(),
+        constraints: buffer_minutes_constraints()
+      },
+      "advance_booking_days" => %{
+        field: :advance_booking_days,
+        presets: advance_booking_values(),
+        constraints: advance_booking_constraints()
+      },
+      "min_advance_hours" => %{
+        field: :min_advance_hours,
+        presets: min_advance_values(),
+        constraints: min_advance_constraints()
+      }
+    }
   end
 
   @doc """

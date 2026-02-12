@@ -61,4 +61,31 @@ defmodule TymeslotWeb.OnboardingTestHelpers do
     {:ok, view, html} = live(conn, "/onboarding")
     {:ok, view, html, user}
   end
+
+  @doc """
+  Navigates from the current step to the scheduling preferences step.
+  Assumes the view is at the welcome step and navigates through basic settings.
+  """
+  @spec navigate_to_scheduling_preferences(any()) :: any()
+  def navigate_to_scheduling_preferences(view) do
+    # From welcome to basic settings
+    view
+    |> element("button[phx-click='next_step']")
+    |> render_click()
+
+    # Fill basic settings with unique username
+    view
+    |> form("form#basic-settings-form", %{
+      "full_name" => "Test User",
+      "username" => "testuser#{System.unique_integer([:positive])}"
+    })
+    |> render_change()
+
+    # To scheduling preferences
+    view
+    |> element("button[phx-click='next_step']")
+    |> render_click()
+
+    view
+  end
 end

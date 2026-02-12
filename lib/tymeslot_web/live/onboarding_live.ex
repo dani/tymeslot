@@ -4,6 +4,7 @@ defmodule TymeslotWeb.OnboardingLive do
   alias Tymeslot.Onboarding
   alias Tymeslot.Profiles.Timezone
   alias Tymeslot.Utils.TimezoneUtils
+  alias TymeslotWeb.CustomInputModeHelper
   alias TymeslotWeb.OnboardingLive.BasicSettingsHandlers
   alias TymeslotWeb.OnboardingLive.BasicSettingsStep
   alias TymeslotWeb.OnboardingLive.CompleteStep
@@ -59,6 +60,7 @@ defmodule TymeslotWeb.OnboardingLive do
         |> assign(:timezone_search, "")
         |> assign(:page_title, "Welcome to Tymeslot")
         |> assign(:form_errors, %{})
+        |> assign(:custom_input_mode, CustomInputModeHelper.default_custom_mode())
 
       {:ok, socket}
     end
@@ -99,7 +101,7 @@ defmodule TymeslotWeb.OnboardingLive do
       <div class="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.15),transparent_50%)]"></div>
       <div class="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(6,182,212,0.3),transparent_50%)]"></div>
 
-      <div class="w-full max-w-3xl relative z-10 animate-in fade-in zoom-in-95 duration-700">
+      <div class="w-full max-w-5xl relative z-10 animate-in fade-in zoom-in-95 duration-700">
         <div class="flex-1 flex flex-col items-center">
           <div class="w-full">
             <!-- Progress indicator with enhancements -->
@@ -170,6 +172,7 @@ defmodule TymeslotWeb.OnboardingLive do
                     <SchedulingPreferencesStep.scheduling_preferences_step
                       profile={@profile}
                       form_errors={@form_errors}
+                      custom_input_mode={@custom_input_mode}
                     />
                   <% :complete -> %>
                     <CompleteStep.complete_step />
@@ -243,7 +246,135 @@ defmodule TymeslotWeb.OnboardingLive do
   end
 
   def handle_event("update_scheduling_preferences", params, socket) do
-    SchedulingHandlers.handle_update_scheduling_preferences(params, socket)
+    # Call handler to update profile - only update custom_input_mode on success
+    case SchedulingHandlers.handle_update_scheduling_preferences(params, socket) do
+      {:noreply, updated_socket} ->
+        # Check if the update was successful by checking if profile was updated
+        # (form_errors would be empty on success)
+        if Map.get(updated_socket.assigns, :form_errors, %{}) == %{} do
+          # Success - update custom_input_mode with security verification
+          socket_with_mode =
+            Enum.reduce(params, updated_socket, fn {key, value}, acc ->
+              case key do
+                "buffer_minutes" ->
+                  if value_str = value do
+                    case Integer.parse(value_str) do
+                      {int_value, _} ->
+                        CustomInputModeHelper.toggle_custom_mode(
+                          acc,
+                          :buffer_minutes,
+                          params,
+                          int_value
+                        )
+
+                      _ ->
+                        acc
+                    end
+                  else
+                    acc
+                  end
+
+                "advance_booking_days" ->
+                  if value_str = value do
+                    case Integer.parse(value_str) do
+                      {int_value, _} ->
+                        CustomInputModeHelper.toggle_custom_mode(
+                          acc,
+                          :advance_booking_days,
+                          params,
+                          int_value
+                        )
+
+                      _ ->
+                        acc
+                    end
+                  else
+                    acc
+                  end
+
+                "min_advance_hours" ->
+                  if value_str = value do
+                    case Integer.parse(value_str) do
+                      {int_value, _} ->
+                        CustomInputModeHelper.toggle_custom_mode(
+                          acc,
+                          :min_advance_hours,
+                          params,
+                          int_value
+                        )
+
+                      _ ->
+                        acc
+                    end
+                  else
+                    acc
+                  end
+
+                _ ->
+                  acc
+              end
+            end)
+
+          {:noreply, socket_with_mode}
+        else
+          # Validation or update failed - don't update custom_input_mode
+          {:noreply, updated_socket}
+        end
+
+      result ->
+        # Pass through any other result unchanged
+        result
+    end
+  end
+
+  @doc """
+  Handles clicking the "Custom" button for a scheduling preference field.
+
+  When a preset value is currently selected, switches to a custom input with a
+  sensible default value that is not in the preset list. When a custom value is
+  already set, preserves that value.
+
+  ## Parameters
+  - setting: The field name (e.g., "buffer_minutes", "advance_booking_days")
+  - socket: The LiveView socket
+  """
+  def handle_event("focus_custom_input", %{"setting" => setting}, socket) do
+    # Defensive nil checks to prevent crashes with invalid settings or missing profile
+    with config when not is_nil(config) <- StepConfig.custom_input_config()[setting],
+         profile when not is_nil(profile) <- socket.assigns[:profile] do
+      current = Map.get(profile, config.field) || config.constraints.default_custom
+
+      # If current is a preset, use custom default; otherwise keep current custom value
+      custom_value =
+        if current in config.presets do
+          config.constraints.default_custom
+        else
+          current
+        end
+
+      # Update profile first via handler, then enable custom mode only on success
+      params = %{setting => to_string(custom_value)}
+
+      case SchedulingHandlers.handle_update_scheduling_preferences(params, socket) do
+        {:noreply, updated_socket} ->
+          # Check if update was successful
+          if Map.get(updated_socket.assigns, :form_errors, %{}) == %{} do
+            # Success - enable custom mode for this field
+            socket_with_mode = CustomInputModeHelper.enable_custom_mode(updated_socket, config.field)
+            {:noreply, socket_with_mode}
+          else
+            # Validation or update failed - don't enable custom mode
+            {:noreply, updated_socket}
+          end
+
+        result ->
+          # Pass through any other result unchanged
+          result
+      end
+    else
+      # Invalid setting name or missing profile - return unchanged socket
+      _ -> {:noreply, socket}
+    end
   end
 
   # Event handlers - Timezone

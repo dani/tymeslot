@@ -66,8 +66,9 @@ defmodule TymeslotWeb.OnboardingLiveTest do
       |> render_click()
 
       # Should now be at complete step
-      assert has_element?(view, ".onboarding-welcome-icon")
-      assert render(view) =~ "Next Steps"
+      html = render(view)
+      assert html =~ "All Set"
+      assert html =~ "Recommended Next Steps"
 
       # Step 4: Complete -> Get Started (complete onboarding)
       view
@@ -121,6 +122,61 @@ defmodule TymeslotWeb.OnboardingLiveTest do
       profile = Repo.get_by!(Tymeslot.DatabaseSchemas.ProfileSchema, user_id: user.id)
       assert profile.full_name == "Jane Doe Updated"
       assert profile.username == "janedoe2024"
+    end
+
+    test "onboarding with custom scheduling preference values", %{conn: conn} do
+      {:ok, view, _html, user} = setup_onboarding(conn, %{name: "Custom User"})
+
+      # Navigate to basic settings
+      view
+      |> element("button[phx-click='next_step']")
+      |> render_click()
+
+      # Fill in basic settings
+      view
+      |> form("form#basic-settings-form", %{
+        "full_name" => "Custom User",
+        "username" => "customuser#{System.unique_integer([:positive])}"
+      })
+      |> render_change()
+
+      # Navigate to scheduling preferences
+      view
+      |> element("button[phx-click='next_step']")
+      |> render_click()
+
+      # Click custom for all three settings (uses default custom values)
+      view
+      |> element("button[phx-click='focus_custom_input'][phx-value-setting='buffer_minutes']")
+      |> render_click()
+
+      view
+      |> element("button[phx-click='focus_custom_input'][phx-value-setting='advance_booking_days']")
+      |> render_click()
+
+      view
+      |> element("button[phx-click='focus_custom_input'][phx-value-setting='min_advance_hours']")
+      |> render_click()
+
+      # Continue to complete
+      view
+      |> element("button[phx-click='next_step']")
+      |> render_click()
+
+      # Complete onboarding
+      view
+      |> element("button[phx-click='next_step']")
+      |> render_click()
+
+      # Verify custom values were persisted (defaults from step_config.ex: 20, 120, 8)
+      profile = Repo.get_by!(Tymeslot.DatabaseSchemas.ProfileSchema, user_id: user.id)
+      assert profile.buffer_minutes == 20
+      assert profile.advance_booking_days == 120
+      assert profile.min_advance_hours == 8
+
+      # Verify user completed onboarding
+      user = Repo.reload!(user)
+      assert user.onboarding_completed_at != nil
     end
 
     test "user name is pre-filled in basic settings", %{conn: conn} do

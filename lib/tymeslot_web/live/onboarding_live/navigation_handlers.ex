@@ -13,6 +13,7 @@ defmodule TymeslotWeb.OnboardingLive.NavigationHandlers do
   alias Tymeslot.DatabaseQueries.ProfileQueries
   alias Tymeslot.Onboarding
   alias Tymeslot.Profiles
+  alias TymeslotWeb.CustomInputModeHelper
   alias TymeslotWeb.OnboardingLive.BasicSettingsShared
 
   @doc """
@@ -77,6 +78,9 @@ defmodule TymeslotWeb.OnboardingLive.NavigationHandlers do
         {:noreply,
          socket
          |> Component.assign(:current_step, :scheduling_preferences)
+         |> Component.assign_new(:custom_input_mode, fn ->
+           CustomInputModeHelper.default_custom_mode()
+         end)
          |> LiveView.clear_flash()}
 
       _ ->
@@ -178,6 +182,13 @@ defmodule TymeslotWeb.OnboardingLive.NavigationHandlers do
           socket
           |> Component.assign(:profile, profile)
           |> Component.assign(:current_step, :scheduling_preferences)
+          |> Component.assign_new(:custom_input_mode, fn ->
+            %{
+              buffer_minutes: false,
+              advance_booking_days: false,
+              min_advance_hours: false
+            }
+          end)
           |> LiveView.clear_flash()
 
         {:noreply, socket}

@@ -18,6 +18,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
   """
   attr :profile, :map, required: true
   attr :myself, :any, required: true
+  attr :custom_mode, :boolean, required: true
 
   @spec buffer_minutes_setting(map()) :: Phoenix.LiveView.Rendered.t()
   def buffer_minutes_setting(assigns) do
@@ -33,8 +34,9 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
       <label class="label">
         Buffer Between Appointments
       </label>
-      
+
     <!-- Tag-based Selection -->
+      <form phx-change="update_buffer_minutes" phx-debounce="300" phx-target={@myself}>
       <div class="flex flex-wrap items-center gap-3">
         <!-- Quick preset tags -->
         <%= for minutes <- [0, 5, 10, 15, 30, 60] do %>
@@ -42,10 +44,11 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
             type="button"
             phx-click="update_buffer_minutes"
             phx-value-buffer_minutes={minutes}
+            phx-value-_preset="true"
             phx-target={@myself}
             class={[
               "btn-tag-selector btn-tag-selector-primary",
-              if(@buffer_value == minutes, do: "btn-tag-selector-primary--active")
+              if(@buffer_value == minutes and not @custom_mode, do: "btn-tag-selector-primary--active")
             ]}
           >
             <%= if minutes == 0 do %>
@@ -55,9 +58,9 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
             <% end %>
           </button>
         <% end %>
-        
+
     <!-- Custom input tag -->
-        <%= if @buffer_value not in [0, 5, 10, 15, 30, 60] do %>
+        <%= if @custom_mode or @buffer_value not in [0, 5, 10, 15, 30, 60] do %>
           <div class="btn-tag-selector btn-tag-selector-primary--active !p-0 overflow-hidden">
             <input
               type="number"
@@ -65,8 +68,6 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
               max="120"
               step="5"
               value={@buffer_value}
-              phx-blur="update_buffer_minutes"
-              phx-target={@myself}
               name="buffer_minutes"
               class="w-20 px-3 py-2 text-token-sm font-black bg-transparent border-0 focus:ring-0 focus:outline-none rounded-l-xl"
               placeholder="0"
@@ -87,6 +88,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
           </button>
         <% end %>
       </div>
+      </form>
 
       <p class="mt-4 text-token-sm text-tymeslot-500 font-bold">
         Time to block after each appointment for preparation, travel, or breaks.
@@ -100,6 +102,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
   """
   attr :profile, :map, required: true
   attr :myself, :any, required: true
+  attr :custom_mode, :boolean, required: true
 
   @spec advance_booking_days_setting(map()) :: Phoenix.LiveView.Rendered.t()
   def advance_booking_days_setting(assigns) do
@@ -115,8 +118,9 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
       <label class="label">
         How Far in Advance Can People Book
       </label>
-      
+
     <!-- Tag-based Selection -->
+      <form phx-change="update_advance_booking_days" phx-debounce="300" phx-target={@myself}>
       <div class="flex flex-wrap items-center gap-3">
         <!-- Quick preset tags -->
         <%= for {days, label} <- [
@@ -131,10 +135,11 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
             type="button"
             phx-click="update_advance_booking_days"
             phx-value-advance_booking_days={days}
+            phx-value-_preset="true"
             phx-target={@myself}
             class={[
               "btn-tag-selector btn-tag-selector-secondary",
-              if(@booking_days == days, do: "btn-tag-selector-secondary--active")
+              if(@booking_days == days and not @custom_mode, do: "btn-tag-selector-secondary--active")
             ]}
           >
             {label}
@@ -142,7 +147,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
         <% end %>
         
     <!-- Custom input tag -->
-        <%= if @booking_days not in [7, 14, 30, 60, 90, 180] do %>
+        <%= if @custom_mode or @booking_days not in [7, 14, 30, 60, 90, 180] do %>
           <div class="btn-tag-selector btn-tag-selector-secondary--active !p-0 overflow-hidden">
             <input
               type="number"
@@ -150,8 +155,6 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
               max="365"
               step="1"
               value={@booking_days}
-              phx-blur="update_advance_booking_days"
-              phx-target={@myself}
               name="advance_booking_days"
               class="w-20 px-3 py-2 text-token-sm font-black bg-transparent border-0 focus:ring-0 focus:outline-none rounded-l-xl"
               placeholder="90"
@@ -172,6 +175,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
           </button>
         <% end %>
       </div>
+      </form>
 
       <p class="mt-4 text-token-sm text-tymeslot-500 font-bold">
         Maximum number of days into the future that appointments can be booked.
@@ -185,6 +189,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
   """
   attr :profile, :map, required: true
   attr :myself, :any, required: true
+  attr :custom_mode, :boolean, required: true
 
   @spec min_advance_hours_setting(map()) :: Phoenix.LiveView.Rendered.t()
   def min_advance_hours_setting(assigns) do
@@ -200,8 +205,9 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
       <label class="label">
         Minimum Booking Notice
       </label>
-      
+
     <!-- Tag-based Selection -->
+      <form phx-change="update_min_advance_hours" phx-debounce="300" phx-target={@myself}>
       <div class="flex flex-wrap items-center gap-3">
         <!-- Quick preset tags -->
         <%= for {hours, label} <- [
@@ -216,10 +222,11 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
             type="button"
             phx-click="update_min_advance_hours"
             phx-value-min_advance_hours={hours}
+            phx-value-_preset="true"
             phx-target={@myself}
             class={[
               "btn-tag-selector btn-tag-selector-tertiary",
-              if(@notice_hours == hours, do: "btn-tag-selector-tertiary--active")
+              if(@notice_hours == hours and not @custom_mode, do: "btn-tag-selector-tertiary--active")
             ]}
           >
             {label}
@@ -227,7 +234,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
         <% end %>
         
     <!-- Custom input tag -->
-        <%= if @notice_hours not in [0, 1, 4, 24, 48, 168] do %>
+        <%= if @custom_mode or @notice_hours not in [0, 1, 4, 24, 48, 168] do %>
           <div class="btn-tag-selector btn-tag-selector-tertiary--active !p-0 overflow-hidden">
             <input
               type="number"
@@ -235,8 +242,6 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
               max="168"
               step="1"
               value={@notice_hours}
-              phx-blur="update_min_advance_hours"
-              phx-target={@myself}
               name="min_advance_hours"
               class="w-20 px-3 py-2 text-token-sm font-black bg-transparent border-0 focus:ring-0 focus:outline-none rounded-l-xl"
               placeholder="24"
@@ -257,6 +262,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.Components do
           </button>
         <% end %>
       </div>
+      </form>
 
       <p class="mt-4 text-token-sm text-tymeslot-500 font-bold">
         Minimum hours of notice required before an appointment can be booked.

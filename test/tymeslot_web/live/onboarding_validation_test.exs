@@ -302,6 +302,92 @@ defmodule TymeslotWeb.OnboardingValidationTest do
       assert profile.advance_booking_days == 90
       assert profile.min_advance_hours == 3
     end
+
+    test "buffer_minutes with valid boundary values (0 and 120) are accepted", %{conn: conn} do
+      {:ok, view, _html, user} = setup_onboarding(conn)
+      navigate_to_scheduling_preferences(view)
+
+      # Test minimum value (0)
+      view
+      |> element("button[phx-click='update_scheduling_preferences'][phx-value-buffer_minutes='0']")
+      |> render_click()
+
+      # Complete onboarding
+      view
+      |> element("button[phx-click='next_step']")
+      |> render_click()
+
+      view
+      |> element("button[phx-click='next_step']")
+      |> render_click()
+
+      # Verify value was saved
+      profile = Repo.get_by!(Tymeslot.DatabaseSchemas.ProfileSchema, user_id: user.id)
+      assert profile.buffer_minutes == 0
+    end
+
+    test "advance_booking_days with valid minimum boundary (1) is accepted", %{conn: conn} do
+      {:ok, view, _html, user} = setup_onboarding(conn)
+      navigate_to_scheduling_preferences(view)
+
+      # Set minimum valid custom value (1 day)
+      view
+      |> element("button[phx-click='focus_custom_input'][phx-value-setting='advance_booking_days']")
+      |> render_click()
+
+      view
+      |> element("form[phx-change='update_scheduling_preferences']")
+      |> render_change(%{"advance_booking_days" => "1"})
+
+      # Custom input should still be visible (1 is not in presets)
+      html = render(view)
+      assert html =~ ~s(name="advance_booking_days")
+
+      # Complete onboarding
+      view
+      |> element("button[phx-click='next_step']")
+      |> render_click()
+
+      view
+      |> element("button[phx-click='next_step']")
+      |> render_click()
+
+      # Verify minimum boundary value was saved
+      profile = Repo.get_by!(Tymeslot.DatabaseSchemas.ProfileSchema, user_id: user.id)
+      assert profile.advance_booking_days == 1
+    end
+
+    test "min_advance_hours with valid boundary value (168) is accepted", %{conn: conn} do
+      {:ok, view, _html, user} = setup_onboarding(conn)
+      navigate_to_scheduling_preferences(view)
+
+      # Set max valid custom value (168 hours = 1 week)
+      view
+      |> element("button[phx-click='focus_custom_input'][phx-value-setting='min_advance_hours']")
+      |> render_click()
+
+      view
+      |> element("form[phx-change='update_scheduling_preferences']")
+      |> render_change(%{"min_advance_hours" => "168"})
+
+      # Value should revert to Custom button since 168 is not in onboarding presets
+      # (onboarding presets: [0, 1, 3, 6, 12, 24, 48])
+      html = render(view)
+      assert html =~ ~s(name="min_advance_hours") or html =~ "Custom"
+
+      # Complete onboarding
+      view
+      |> element("button[phx-click='next_step']")
+      |> render_click()
+
+      view
+      |> element("button[phx-click='next_step']")
+      |> render_click()
+
+      # Verify max boundary value was saved
+      profile = Repo.get_by!(Tymeslot.DatabaseSchemas.ProfileSchema, user_id: user.id)
+      assert profile.min_advance_hours == 168
+    end
   end
 
   describe "real-time validation" do
@@ -336,21 +422,5 @@ defmodule TymeslotWeb.OnboardingValidationTest do
       # Should have cleared errors
       refute render(view) =~ "error"
     end
-  end
-
-  # Helper function
-  defp navigate_to_scheduling_preferences(view) do
-    # From welcome to basic settings
-    view
-    |> element("button[phx-click='next_step']")
-    |> render_click()
-
-    # Fill basic settings
-    fill_basic_settings(view, "Test User", "testuser#{System.unique_integer([:positive])}")
-
-    # To scheduling preferences
-    view
-    |> element("button[phx-click='next_step']")
-    |> render_click()
   end
 end
