@@ -37,7 +37,7 @@ defmodule TymeslotWeb.GettextCompletenessTest do
 
       # Get English as reference (should be complete)
       reference_msgids = msgids_by_locale["en"]
-      assert length(reference_msgids) > 0, "English default.po has no msgids"
+      assert reference_msgids != [], "English default.po has no msgids"
 
       # Check all other locales have the same msgids
       for {locale, msgids} <- msgids_by_locale do
@@ -65,7 +65,7 @@ defmodule TymeslotWeb.GettextCompletenessTest do
       msgids_by_locale = get_msgids_by_locale("errors.po")
 
       reference_msgids = msgids_by_locale["en"]
-      assert length(reference_msgids) > 0, "English errors.po has no msgids"
+      assert reference_msgids != [], "English errors.po has no msgids"
 
       for {locale, msgids} <- msgids_by_locale do
         missing_in_locale = reference_msgids -- msgids

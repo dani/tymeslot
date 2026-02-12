@@ -32,11 +32,10 @@ defmodule Tymeslot.Integrations.HealthCheck.ResponseHandler do
   end
 
   def handle_transition(type, integration, {:became_unhealthy, old_status, :unhealthy}) do
-    Logger.error("Integration health critical - deactivating",
+    Logger.error("Integration health critical - deactivating (was #{inspect(old_status)})",
       type: type,
       integration_id: integration.id,
-      provider: integration.provider,
-      previous_status: old_status
+      provider: integration.provider
     )
 
     send_failure_alert(type, integration, "Health check failures exceeded threshold")

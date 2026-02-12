@@ -246,83 +246,16 @@ defmodule TymeslotWeb.OnboardingLive do
   end
 
   def handle_event("update_scheduling_preferences", params, socket) do
-    # Call handler to update profile - only update custom_input_mode on success
     case SchedulingHandlers.handle_update_scheduling_preferences(params, socket) do
       {:noreply, updated_socket} ->
-        # Check if the update was successful by checking if profile was updated
-        # (form_errors would be empty on success)
         if Map.get(updated_socket.assigns, :form_errors, %{}) == %{} do
-          # Success - update custom_input_mode with security verification
-          socket_with_mode =
-            Enum.reduce(params, updated_socket, fn {key, value}, acc ->
-              case key do
-                "buffer_minutes" ->
-                  if value_str = value do
-                    case Integer.parse(value_str) do
-                      {int_value, _} ->
-                        CustomInputModeHelper.toggle_custom_mode(
-                          acc,
-                          :buffer_minutes,
-                          params,
-                          int_value
-                        )
-
-                      _ ->
-                        acc
-                    end
-                  else
-                    acc
-                  end
-
-                "advance_booking_days" ->
-                  if value_str = value do
-                    case Integer.parse(value_str) do
-                      {int_value, _} ->
-                        CustomInputModeHelper.toggle_custom_mode(
-                          acc,
-                          :advance_booking_days,
-                          params,
-                          int_value
-                        )
-
-                      _ ->
-                        acc
-                    end
-                  else
-                    acc
-                  end
-
-                "min_advance_hours" ->
-                  if value_str = value do
-                    case Integer.parse(value_str) do
-                      {int_value, _} ->
-                        CustomInputModeHelper.toggle_custom_mode(
-                          acc,
-                          :min_advance_hours,
-                          params,
-                          int_value
-                        )
-
-                      _ ->
-                        acc
-                    end
-                  else
-                    acc
-                  end
-
-                _ ->
-                  acc
-              end
-            end)
-
+          socket_with_mode = update_custom_input_modes(updated_socket, params)
           {:noreply, socket_with_mode}
         else
-          # Validation or update failed - don't update custom_input_mode
           {:noreply, updated_socket}
         end
 
       result ->
-        # Pass through any other result unchanged
         result
     end
   end
@@ -402,5 +335,29 @@ defmodule TymeslotWeb.OnboardingLive do
   @impl true
   def handle_info({:flash, {type, message}}, socket) do
     {:noreply, put_flash(socket, type, message)}
+  end
+
+  # Private helper functions
+  defp update_custom_input_modes(socket, params) do
+    Enum.reduce(params, socket, fn {key, value}, acc ->
+      field = field_key_to_atom(key)
+      if field, do: try_update_mode(acc, field, value, params), else: acc
+    end)
+  end
+
+  defp field_key_to_atom("buffer_minutes"), do: :buffer_minutes
+  defp field_key_to_atom("advance_booking_days"), do: :advance_booking_days
+  defp field_key_to_atom("min_advance_hours"), do: :min_advance_hours
+  defp field_key_to_atom(_), do: nil
+
+  defp try_update_mode(socket, field, value_str, params) when is_binary(value_str) do
+    case Integer.parse(value_str) do
+      {int_value, _} -> CustomInputModeHelper.toggle_custom_mode(socket, field, params, int_value)
+      _ -> socket
+    end
+  end
+
+  defp try_update_mode(socket, _field, _value, _params) do
+    socket
   end
 end

@@ -18,6 +18,7 @@ defmodule TymeslotWeb.CustomInputModeHelper do
   to prevent client-side manipulation of the custom input mode state.
   """
 
+  alias Phoenix.Component
   alias TymeslotWeb.OnboardingLive.StepConfig
 
   @default_custom_mode %{
@@ -76,7 +77,7 @@ defmodule TymeslotWeb.CustomInputModeHelper do
     custom_input_mode =
       if Map.has_key?(params, "_preset") do
         # This claims to be a preset click - verify it's actually a preset value
-        if is_preset_value?(field, value) do
+        if preset_value?(field, value) do
           # Valid preset - disable custom mode for this field
           Map.put(current_custom_mode, field, false)
         else
@@ -88,7 +89,7 @@ defmodule TymeslotWeb.CustomInputModeHelper do
         current_custom_mode
       end
 
-    Phoenix.Component.assign(socket, :custom_input_mode, custom_input_mode)
+    Component.assign(socket, :custom_input_mode, custom_input_mode)
   end
 
   @doc """
@@ -113,7 +114,7 @@ defmodule TymeslotWeb.CustomInputModeHelper do
   def enable_custom_mode(socket, field) do
     current_custom_mode = Map.get(socket.assigns, :custom_input_mode, @default_custom_mode)
     custom_input_mode = Map.put(current_custom_mode, field, true)
-    Phoenix.Component.assign(socket, :custom_input_mode, custom_input_mode)
+    Component.assign(socket, :custom_input_mode, custom_input_mode)
   end
 
   @doc """
@@ -130,14 +131,14 @@ defmodule TymeslotWeb.CustomInputModeHelper do
 
   ## Examples
 
-      iex> is_preset_value?(:buffer_minutes, 15)
+      iex> preset_value?(:buffer_minutes, 15)
       true
 
-      iex> is_preset_value?(:buffer_minutes, 20)
+      iex> preset_value?(:buffer_minutes, 20)
       false
   """
-  @spec is_preset_value?(atom(), integer() | nil) :: boolean()
-  def is_preset_value?(field, value) when is_integer(value) do
+  @spec preset_value?(atom(), integer() | nil) :: boolean()
+  def preset_value?(field, value) when is_integer(value) do
     preset_values =
       case field do
         :buffer_minutes -> StepConfig.buffer_time_values()
@@ -149,7 +150,7 @@ defmodule TymeslotWeb.CustomInputModeHelper do
     value in preset_values
   end
 
-  def is_preset_value?(_field, _value), do: false
+  def preset_value?(_field, _value), do: false
 
   @doc """
   Gets the custom input mode state for a specific field, with fallback to default.

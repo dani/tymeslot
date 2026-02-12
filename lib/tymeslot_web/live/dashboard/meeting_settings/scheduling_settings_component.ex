@@ -8,6 +8,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.SchedulingSettingsComponent do
 
   alias Tymeslot.Profiles
   alias Tymeslot.Security.MeetingSettingsInputProcessor
+  alias Tymeslot.Utils.ChangesetUtils
   alias TymeslotWeb.CustomInputModeHelper
   alias TymeslotWeb.Dashboard.MeetingSettings.Components
   alias TymeslotWeb.Dashboard.MeetingSettings.Helpers
@@ -82,7 +83,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.SchedulingSettingsComponent do
 
           {:error, changeset} ->
             # Failure - don't update custom_input_mode
-            error_message = Tymeslot.Utils.ChangesetUtils.get_first_error(changeset)
+            error_message = ChangesetUtils.get_first_error(changeset)
             Flash.error(error_message)
             {:noreply, socket}
         end
@@ -122,7 +123,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.SchedulingSettingsComponent do
 
           {:error, changeset} ->
             # Failure - don't update custom_input_mode
-            error_message = Tymeslot.Utils.ChangesetUtils.get_first_error(changeset)
+            error_message = ChangesetUtils.get_first_error(changeset)
             Flash.error(error_message)
             {:noreply, socket}
         end
@@ -160,7 +161,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.SchedulingSettingsComponent do
 
           {:error, changeset} ->
             # Failure - don't update custom_input_mode
-            error_message = Tymeslot.Utils.ChangesetUtils.get_first_error(changeset)
+            error_message = ChangesetUtils.get_first_error(changeset)
             Flash.error(error_message)
             {:noreply, socket}
         end
@@ -190,7 +191,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.SchedulingSettingsComponent do
         {:noreply, socket}
 
       {:error, changeset} ->
-        error_message = Tymeslot.Utils.ChangesetUtils.get_first_error(changeset)
+        error_message = ChangesetUtils.get_first_error(changeset)
         Flash.error(error_message)
         {:noreply, socket}
     end
@@ -215,7 +216,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.SchedulingSettingsComponent do
         {:noreply, socket}
 
       {:error, changeset} ->
-        error_message = Tymeslot.Utils.ChangesetUtils.get_first_error(changeset)
+        error_message = ChangesetUtils.get_first_error(changeset)
         Flash.error(error_message)
         {:noreply, socket}
     end
@@ -240,7 +241,7 @@ defmodule TymeslotWeb.Dashboard.MeetingSettings.SchedulingSettingsComponent do
         {:noreply, socket}
 
       {:error, changeset} ->
-        error_message = Tymeslot.Utils.ChangesetUtils.get_first_error(changeset)
+        error_message = ChangesetUtils.get_first_error(changeset)
         Flash.error(error_message)
         {:noreply, socket}
     end
