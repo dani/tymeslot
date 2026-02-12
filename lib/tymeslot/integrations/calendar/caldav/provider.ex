@@ -4,6 +4,10 @@ defmodule Tymeslot.Integrations.Calendar.CalDAV.Provider do
 
   This is a cleaner implementation that delegates common CalDAV operations
   to the base module and focuses only on provider-specific configuration.
+
+  The provider automatically detects known CalDAV server types (Radicale,
+  Nextcloud, ownCloud, Baikal, SabreDAV) and adjusts path structures
+  accordingly for proper authentication and discovery.
   """
 
   @behaviour Tymeslot.Integrations.Calendar.Providers.ProviderBehaviour
@@ -62,10 +66,21 @@ defmodule Tymeslot.Integrations.Calendar.CalDAV.Provider do
   def new(config) do
     base_url = config[:base_url] || config["base_url"]
 
-    # Auto-detect server type for hints; provider remains :caldav at API level
-    if is_binary(base_url) do
-      _server_type = ServerDetector.detect_from_url(base_url)
-    end
+    # Auto-detect server type and use detected type for proper path construction
+    detected_provider =
+      if is_binary(base_url) do
+        case ServerDetector.detect_from_url(base_url) do
+          # Use detected server types for proper path handling
+          server_type when server_type in [:radicale, :nextcloud, :owncloud, :baikal, :sabredav] ->
+            server_type
+
+          # Fall back to generic caldav for unknown servers
+          _ ->
+            :caldav
+        end
+      else
+        :caldav
+      end
 
     common_config = %{
       base_url: if(is_binary(base_url), do: CaldavCommon.normalize_url(base_url), else: nil),
@@ -75,7 +90,7 @@ defmodule Tymeslot.Integrations.Calendar.CalDAV.Provider do
       verify_ssl: true
     }
 
-    CaldavCommon.build_client(common_config, provider: :caldav)
+    CaldavCommon.build_client(common_config, provider: detected_provider)
   end
 
   @doc """

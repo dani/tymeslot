@@ -90,7 +90,7 @@ defmodule Tymeslot.Integrations.Calendar.CalDAV.ProviderTest do
   end
 
   describe "new/1" do
-    test "creates client with CalDAV configuration" do
+    test "creates client with generic CalDAV configuration" do
       config = %{
         base_url: "https://caldav.example.com/dav",
         username: "testuser",
@@ -103,7 +103,104 @@ defmodule Tymeslot.Integrations.Calendar.CalDAV.ProviderTest do
       assert client.username == "testuser"
       assert client.password == "testpass"
       assert client.verify_ssl == true
+      # Generic CalDAV URL should remain :caldav
       assert client.provider == :caldav
+    end
+
+    test "auto-detects Radicale from URL with 'radicale' in hostname" do
+      config = %{
+        base_url: "https://radicale.example.com",
+        username: "testuser",
+        password: "testpass"
+      }
+
+      client = Provider.new(config)
+
+      assert client.provider == :radicale
+    end
+
+    test "auto-detects Radicale from port 5232" do
+      config = %{
+        base_url: "https://cal.example.com:5232",
+        username: "testuser",
+        password: "testpass"
+      }
+
+      client = Provider.new(config)
+
+      assert client.provider == :radicale
+    end
+
+    test "auto-detects Nextcloud from URL with 'nextcloud' in hostname" do
+      config = %{
+        base_url: "https://nextcloud.example.com",
+        username: "testuser",
+        password: "testpass"
+      }
+
+      client = Provider.new(config)
+
+      assert client.provider == :nextcloud
+    end
+
+    test "auto-detects Nextcloud from remote.php/dav path" do
+      config = %{
+        base_url: "https://cloud.example.com/remote.php/dav",
+        username: "testuser",
+        password: "testpass"
+      }
+
+      client = Provider.new(config)
+
+      assert client.provider == :nextcloud
+    end
+
+    test "auto-detects ownCloud from URL" do
+      config = %{
+        base_url: "https://owncloud.example.com",
+        username: "testuser",
+        password: "testpass"
+      }
+
+      client = Provider.new(config)
+
+      assert client.provider == :owncloud
+    end
+
+    test "auto-detects Baikal from URL with 'baikal' in hostname" do
+      config = %{
+        base_url: "https://baikal.example.com",
+        username: "testuser",
+        password: "testpass"
+      }
+
+      client = Provider.new(config)
+
+      assert client.provider == :baikal
+    end
+
+    test "auto-detects Baikal from cal.php path" do
+      config = %{
+        base_url: "https://example.com/cal.php",
+        username: "testuser",
+        password: "testpass"
+      }
+
+      client = Provider.new(config)
+
+      assert client.provider == :baikal
+    end
+
+    test "auto-detects SabreDAV from URL" do
+      config = %{
+        base_url: "https://sabredav.example.com",
+        username: "testuser",
+        password: "testpass"
+      }
+
+      client = Provider.new(config)
+
+      assert client.provider == :sabredav
     end
 
     test "normalizes base URL" do
