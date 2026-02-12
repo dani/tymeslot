@@ -549,16 +549,6 @@ defmodule Tymeslot.Integrations.Video.Providers.CustomProviderTest do
       # We expect 0 collisions in this sample size
       assert collision_rate < 0.01,
              "Unexpected collision rate: #{collision_rate * 100}% in #{sample_size} samples"
-
-      # Log collision statistics for documentation
-      IO.puts("\n=== Hash Collision Characteristics (16-char hex) ===")
-      IO.puts("Sample size: #{sample_size}")
-      IO.puts("Unique hashes: #{length(unique_hashes)}")
-      IO.puts("Collisions: #{sample_size - length(unique_hashes)}")
-      IO.puts("Observed collision rate: #{Float.round(collision_rate * 100, 4)}%")
-      IO.puts("Theoretical 50% collision point: ~4.3 billion meetings")
-      IO.puts("Theoretical 1% collision point: ~430 million meetings")
-      IO.puts("====================================================\n")
     end
 
     test "verifies deterministic hashing (idempotency)" do
