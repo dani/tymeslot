@@ -8,6 +8,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.NextcloudConfig
 
   alias TymeslotWeb.Components.Dashboard.Integrations.Calendar.SharedFormComponents,
     as: SharedForm
+  alias TymeslotWeb.Components.Icons.ProviderIcon
 
   @impl true
   def mount(socket) do
@@ -27,16 +28,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Calendar.NextcloudConfig
     ~H"""
     <div id={"nextcloud-config-#{@id}"} class="space-y-6">
       <div class="flex items-center gap-4 mb-2">
-        <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center shadow-lg">
-          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M3 15a4 4 0 014-4h1a5 5 0 0110 0h1a4 4 0 110 8H7a4 4 0 01-4-4z"
-            />
-          </svg>
-        </div>
+        <ProviderIcon.provider_icon provider="nextcloud" type="calendar" size="large" />
         <div>
           <h3 class="text-xl font-black text-slate-900 tracking-tight">Nextcloud</h3>
           <p class="text-sm text-slate-500 font-medium">Sync calendars from your Nextcloud server</p>

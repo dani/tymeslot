@@ -6,6 +6,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Video.MirotalkConfig do
 
   alias TymeslotWeb.Components.Dashboard.Integrations.Video.SharedFormComponents,
     as: SharedForm
+  alias TymeslotWeb.Components.Icons.ProviderIcon
 
   @impl true
   def mount(socket) do
@@ -31,16 +32,7 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Video.MirotalkConfig do
     ~H"""
     <div id="mirotalk-config-modal" class="space-y-6">
       <div class="flex items-center gap-4 mb-2">
-        <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg">
-          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-            />
-          </svg>
-        </div>
+        <ProviderIcon.provider_icon provider="mirotalk" type="video" size="large" />
         <div>
           <h3 class="text-xl font-black text-slate-900 tracking-tight">MiroTalk P2P</h3>
           <p class="text-sm text-slate-500 font-medium">Self-hosted video conferencing</p>
