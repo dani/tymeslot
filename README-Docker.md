@@ -87,6 +87,9 @@ POSTGRES_PASSWORD=<paste_generated_password>
 
 # OPTIONAL: Port (defaults to 4000)
 PORT=4000
+
+# OPTIONAL: Listen IP (defaults to 0:0:0:0:0:0:0:0 which corresponds to all available IP)
+LISTEN_IP=127.0.0.1
 ```
 
 ### 3. Build and Run

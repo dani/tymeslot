@@ -26,6 +26,22 @@ parse_int = fn var, default ->
   end
 end
 
+# Helper to parse IP address
+parse_ip = fn ip ->
+  case String.split(ip, ".") do
+    [a, b, c, d] ->
+      # Convert IPv4 to tuple
+      {String.to_integer(a), String.to_integer(b), String.to_integer(c), String.to_integer(d)}
+
+    _ ->
+      # Not an IPv4, try a v6
+      ip
+      |> String.split(":")
+      |> Enum.map(&String.to_integer(&1, 16))
+      |> List.to_tuple()
+  end
+end
+
 # config/runtime.exs is executed for all environments, including
 # during releases. It is executed after compilation and before the
 # system starts, so it is typically used to load production configuration
@@ -111,14 +127,13 @@ if config_env() == :prod do
       "docker" -> if url_scheme == "https", do: 443, else: 80
     end
 
+  # Listen IP
+  listen_ip = System.get_env("LISTEN_IP") || "0:0:0:0:0:0:0:0"
+
   config :tymeslot, TymeslotWeb.Endpoint,
     url: [host: host, port: url_port, scheme: url_scheme],
     http: [
-      # Enable IPv6 and bind on all interfaces.
-      # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.
-      # See the documentation on https://hexdocs.pm/bandit/Bandit.html#t:options/0
-      # for details about using IPv6 vs IPv4 and loopback vs public addresses.
-      ip: {0, 0, 0, 0, 0, 0, 0, 0},
+      ip: parse_ip.(listen_ip),
       port: port
     ],
     secret_key_base: secret_key_base,
