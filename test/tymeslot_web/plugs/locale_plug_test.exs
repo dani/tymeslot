@@ -128,12 +128,12 @@ defmodule TymeslotWeb.Plugs.LocalePlugTest do
     end
 
     test "picks first supported language from list", %{conn: conn} do
-      # fr is not supported, so should fall to de
+      # es is not supported, so should fall to de
       conn =
         conn
         |> Map.put(:params, %{})
         |> fetch_session()
-        |> put_req_header("accept-language", "fr,de,en")
+        |> put_req_header("accept-language", "es,de,en")
         |> LocalePlug.call([])
 
       assert conn.assigns.locale == "de"
@@ -257,7 +257,7 @@ defmodule TymeslotWeb.Plugs.LocalePlugTest do
       conn =
         build_conn()
         |> init_test_session(%{})
-        |> Map.put(:params, %{"locale" => "fr"})
+        |> Map.put(:params, %{"locale" => "es"})
         |> fetch_session()
         |> LocalePlug.call([])
 
