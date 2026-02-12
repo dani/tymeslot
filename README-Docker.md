@@ -250,6 +250,7 @@ GITHUB_CLIENT_ID=
 GITHUB_CLIENT_SECRET=
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
+GOOGLE_STATE_SECRET=         # Self-generated random string (required with Google OAuth)
 ENABLE_GOOGLE_AUTH=false     # Enable Google login/signup
 ENABLE_GITHUB_AUTH=false     # Enable GitHub login/signup
 ```
@@ -263,7 +264,8 @@ openssl rand -base64 64 | tr -d '\n'
 # Generate database password
 openssl rand -base64 32 | tr -d '\n'
 
-# Generate OAuth state secrets (if needed)
+# Generate OAuth state secrets (for GOOGLE_STATE_SECRET, OUTLOOK_STATE_SECRET, etc.)
+# Note: These are self-generated for security, NOT provided by Google/Microsoft
 openssl rand -base64 32 | tr -d '\n'
 ```
 

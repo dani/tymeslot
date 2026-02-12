@@ -86,14 +86,14 @@ GITHUB_CLIENT_SECRET=your_github_client_secret
 ```bash
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
-GOOGLE_STATE_SECRET=random_secret_string
+GOOGLE_STATE_SECRET=random_secret_string  # Self-generated (openssl rand -base64 32)
 ```
 
 **Microsoft OAuth:**
 ```bash
 OUTLOOK_CLIENT_ID=your_outlook_client_id
 OUTLOOK_CLIENT_SECRET=your_outlook_client_secret
-OUTLOOK_STATE_SECRET=random_secret_string
+OUTLOOK_STATE_SECRET=random_secret_string  # Self-generated (openssl rand -base64 32)
 ```
 
 #### 3. Email Configuration
