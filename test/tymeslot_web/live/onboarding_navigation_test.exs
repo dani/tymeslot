@@ -60,9 +60,9 @@ defmodule TymeslotWeb.OnboardingNavigationTest do
       |> element("button[phx-click='next_step']")
       |> render_click()
 
-      # Verify completion step
-      assert has_element?(view, ".onboarding-welcome-icon")
-      assert render(view) =~ "Next Steps"
+      # Verify completion step - check for elements unique to complete step
+      assert has_element?(view, ".onboarding-title")
+      assert has_element?(view, "button[phx-click='next_step']", "Get Started")
     end
 
     test "next button shows correct text on each step", %{conn: conn} do
