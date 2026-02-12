@@ -1,0 +1,604 @@
+## French translations
+msgid ""
+msgstr ""
+"Language: fr\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: Navigation and UI strings
+msgid "overview"
+msgstr "Aperçu"
+
+msgid "schedule"
+msgstr "Planifier"
+
+msgid "booking"
+msgstr "Réservation"
+
+msgid "confirmation"
+msgstr "Confirmation"
+
+msgid "next"
+msgstr "Suivant"
+
+msgid "next_step"
+msgstr "Étape suivante"
+
+msgid "back"
+msgstr "Retour"
+
+msgid "continue"
+msgstr "Continuer"
+
+msgid "submit"
+msgstr "Valider"
+
+msgid "schedule_another"
+msgstr "Planifier un autre rendez-vous"
+
+msgid "close"
+msgstr "Fermer"
+
+msgid "select_meeting_duration"
+msgstr "Choisir la durée du rendez-vous"
+
+msgid "choose_meeting_type"
+msgstr "Choisir le type de rendez-vous"
+
+msgid "select_duration"
+msgstr "Sélectionner la durée"
+
+msgid "select_date"
+msgstr "Sélectionner une date"
+
+msgid "select_time"
+msgstr "Sélectionner une heure"
+
+msgid "no_available_slots"
+msgstr "Aucun créneau disponible"
+
+msgid "timezone"
+msgstr "Fuseau horaire"
+
+msgid "search_timezone"
+msgstr "Rechercher un fuseau horaire"
+
+msgid "choose_date_time"
+msgstr "Choisir la date et l'heure"
+
+msgid "select_date_time"
+msgstr "Sélectionner la date et l'heure"
+
+msgid "available"
+msgstr "Disponible"
+
+msgid "unavailable"
+msgstr "Indisponible"
+
+msgid "name"
+msgstr "Nom"
+
+msgid "email"
+msgstr "E-mail"
+
+msgid "message_optional"
+msgstr "Message (facultatif)"
+
+msgid "enter_full_name"
+msgstr "Saisissez votre nom complet"
+
+msgid "enter_email"
+msgstr "Saisissez votre e-mail"
+
+msgid "add_details"
+msgstr "Ajouter des détails"
+
+msgid "book_meeting"
+msgstr "Réserver la réunion"
+
+msgid "reschedule_meeting"
+msgstr "Reporter la réunion"
+
+msgid "enter_details"
+msgstr "Saisir vos coordonnées"
+
+msgid "your_information"
+msgstr "Vos informations"
+
+msgid "meeting_confirmed"
+msgstr "Réunion confirmée"
+
+msgid "confirmation_email_sent"
+msgstr "E-mail de confirmation envoyé"
+
+msgid "add_to_calendar"
+msgstr "Ajouter à l'agenda"
+
+msgid "meeting_details"
+msgstr "Détails de la réunion"
+
+msgid "date_and_time"
+msgstr "Date et heure"
+
+msgid "duration"
+msgstr "Durée"
+
+msgid "location"
+msgstr "Lieu"
+
+msgid "thank_you"
+msgstr "Merci"
+
+msgid "see_you_soon"
+msgstr "À bientôt"
+
+msgid "minutes"
+msgstr "minutes"
+
+msgid "hour"
+msgstr "heure"
+
+msgid "hours"
+msgstr "heures"
+
+msgid "minute"
+msgstr "minute"
+
+msgid "january"
+msgstr "Janvier"
+
+msgid "february"
+msgstr "Février"
+
+msgid "march"
+msgstr "Mars"
+
+msgid "april"
+msgstr "Avril"
+
+msgid "may"
+msgstr "Mai"
+
+msgid "june"
+msgstr "Juin"
+
+msgid "july"
+msgstr "Juillet"
+
+msgid "august"
+msgstr "Août"
+
+msgid "september"
+msgstr "Septembre"
+
+msgid "october"
+msgstr "Octobre"
+
+msgid "november"
+msgstr "Novembre"
+
+msgid "december"
+msgstr "Décembre"
+
+msgid "sunday"
+msgstr "Dimanche"
+
+msgid "monday"
+msgstr "Lundi"
+
+msgid "tuesday"
+msgstr "Mardi"
+
+msgid "wednesday"
+msgstr "Mercredi"
+
+msgid "thursday"
+msgstr "Jeudi"
+
+msgid "friday"
+msgstr "Vendredi"
+
+msgid "saturday"
+msgstr "Samedi"
+
+msgid "sun"
+msgstr "Dim."
+
+msgid "mon"
+msgstr "Lun."
+
+msgid "tue"
+msgstr "Mar."
+
+msgid "wed"
+msgstr "Mer."
+
+msgid "thu"
+msgstr "Jeu."
+
+msgid "fri"
+msgstr "Ven."
+
+msgid "sat"
+msgstr "Sam."
+
+msgid "change_language"
+msgstr "Changer de langue"
+
+msgid "%{name}, your meeting%{organizer} has been rescheduled."
+msgstr "%{name}, votre réunion%{organizer} a été reportée."
+
+msgid "%{name}, your meeting%{organizer} is all set."
+msgstr "%{name}, votre réunion%{organizer} est confirmée."
+
+msgid "Additional Message (Optional)"
+msgstr "Message supplémentaire (facultatif)"
+
+msgid "Click to schedule your meeting"
+msgstr "Cliquez pour planifier votre réunion"
+
+msgid "Email Address"
+msgstr "Adresse e-mail"
+
+msgid "Enter Your Details"
+msgstr "Saisissez vos coordonnées"
+
+msgid "Hi, I'm %{name}. Select how much time you need for our conversation."
+msgstr "Bonjour, je suis %{name}. Choisissez la durée de notre échange."
+
+msgid "John Doe"
+msgstr "Jean Dupont"
+
+msgid "Let me know what you'd like to discuss..."
+msgstr "Dites-moi de quoi vous souhaitez discuter..."
+
+msgid "Let's Connect!"
+msgstr "Prenons rendez-vous !"
+
+msgid "Meeting Rescheduled!"
+msgstr "Réunion reportée !"
+
+msgid "No meeting types available"
+msgstr "Aucun type de réunion disponible"
+
+msgid "Please contact the organizer"
+msgstr "Veuillez contacter l'organisateur"
+
+msgid "Please fill in all required fields"
+msgstr "Veuillez remplir tous les champs obligatoires"
+
+msgid "Please select a meeting duration first"
+msgstr "Veuillez d'abord choisir une durée"
+
+msgid "Select how much time you need for our conversation."
+msgstr "Choisissez la durée souhaitée pour notre échange."
+
+msgid "Verifying slot availability and creating your meeting..."
+msgstr "Vérification des disponibilités et création de la réunion..."
+
+msgid "Verifying..."
+msgstr "Vérification..."
+
+msgid "You're booking a %{duration} meeting"
+msgstr "Vous réservez une réunion de %{duration}"
+
+msgid "You're booking a %{duration} meeting with %{name}"
+msgstr "Vous réservez une réunion de %{duration} avec %{name}"
+
+msgid "Your Name"
+msgstr "Votre nom"
+
+msgid "john@example.com"
+msgstr "jean.dupont@exemple.fr"
+
+msgid "%{duration} minutes"
+msgstr "%{duration} minutes"
+
+msgid "Hi! I'm %{name}."
+msgstr "Bonjour ! Je suis %{name}."
+
+msgid "Pick a meeting duration below."
+msgstr "Choisissez une durée ci-dessous."
+
+msgid "Schedule with"
+msgstr "Planifier avec"
+
+msgid "Schedule with %{name}"
+msgstr "Prendre rendez-vous avec %{name}"
+
+msgid "1 day in advance"
+msgstr "1 jour à l'avance"
+
+msgid "1 hour"
+msgstr "1 heure"
+
+msgid "1 minute"
+msgstr "1 minute"
+
+msgid "1 month in advance"
+msgstr "1 mois à l'avance"
+
+msgid "1 week in advance"
+msgstr "1 semaine à l'avance"
+
+msgid "1 year in advance"
+msgstr "1 an à l'avance"
+
+msgid "90 days in advance"
+msgstr "90 jours à l'avance"
+
+msgid "Afternoon"
+msgstr "Après-midi"
+
+msgid "April"
+msgstr "Avril"
+
+msgid "August"
+msgstr "Août"
+
+msgid "Available Times"
+msgstr "Horaires disponibles"
+
+msgid "Bookings available up to %{advance}"
+msgstr "Réservations ouvertes jusqu'à %{advance}"
+
+msgid "Cancel"
+msgstr "Annuler"
+
+msgid "Confirmation sent to"
+msgstr "Confirmation envoyée à"
+
+msgid "%{count} hours"
+msgstr "%{count} heures"
+
+msgid "Date"
+msgstr "Date"
+
+msgid "%{date} at %{time}"
+msgstr "%{date} à %{time}"
+
+msgid "%{days} days in advance"
+msgstr "%{days} jours à l'avance"
+
+msgid "December"
+msgstr "Décembre"
+
+msgid "Duration: %{duration}"
+msgstr "Durée : %{duration}"
+
+msgid "Evening"
+msgstr "Soirée"
+
+msgid "February"
+msgstr "Février"
+
+msgid "Fri"
+msgstr "Ven."
+
+msgid "FRI"
+msgstr "VEN"
+
+msgid "Friday"
+msgstr "Vendredi"
+
+msgid "%{hour_text} %{minute_text}"
+msgstr "%{hour_text} %{minute_text}"
+
+msgid "Invalid date"
+msgstr "Date invalide"
+
+msgid "Invalid date/time"
+msgstr "Date/heure invalide"
+
+msgid "January"
+msgstr "Janvier"
+
+msgid "July"
+msgstr "Juillet"
+
+msgid "June"
+msgstr "Juin"
+
+msgid "Loading available times..."
+msgstr "Chargement des horaires..."
+
+msgid "local time"
+msgstr "heure locale"
+
+msgid "March"
+msgstr "Mars"
+
+msgid "May"
+msgstr "Mai"
+
+msgid "Meeting Details"
+msgstr "Détails de la réunion"
+
+msgid "Meeting with"
+msgstr "Réunion avec"
+
+msgid "%{minutes} minutes"
+msgstr "%{minutes} minutes"
+
+msgid "Mon"
+msgstr "Lun."
+
+msgid "MON"
+msgstr "LUN"
+
+msgid "Monday"
+msgstr "Lundi"
+
+msgid "%{month} %{day}, %{year}"
+msgstr "%{day} %{month} %{year}"
+
+msgid "%{months} months in advance"
+msgstr "%{months} mois à l'avance"
+
+msgid "%{month} %{year}"
+msgstr "%{month} %{year}"
+
+msgid "Morning"
+msgstr "Matin"
+
+msgid "%{name}, your meeting %{organizer} has been rescheduled."
+msgstr "%{name}, votre réunion avec %{organizer} a été reportée."
+
+msgid "%{name}, your meeting %{organizer} is all set."
+msgstr "%{name}, tout est prêt pour votre réunion avec %{organizer}."
+
+msgid "%{name}, your meeting %{organizer} is confirmed"
+msgstr "%{name}, votre réunion avec %{organizer} est confirmée"
+
+msgid "Need to make changes? Check your email for reschedule options"
+msgstr "Vous souhaitez faire des modifications ? Vérifiez vos e-mails pour les options de report"
+
+msgid "Need to reschedule? Check your confirmation email."
+msgstr "Besoin de reporter ? Vérifiez votre e-mail de confirmation."
+
+msgid "Night"
+msgstr "Nuit"
+
+msgid "November"
+msgstr "Novembre"
+
+msgid "October"
+msgstr "Octobre"
+
+msgid "Page not found. Redirected to homepage."
+msgstr "Page introuvable. Redirection vers l'accueil."
+
+msgid "Please select a date to see available times"
+msgstr "Veuillez sélectionner une date pour voir les horaires"
+
+msgid "Please select another date"
+msgstr "Veuillez choisir une autre date"
+
+msgid "Reschedule"
+msgstr "Reporter"
+
+msgid "Retry"
+msgstr "Réessayer"
+
+msgid "same day only"
+msgstr "le jour même uniquement"
+
+msgid "Sat"
+msgstr "Sam."
+
+msgid "SAT"
+msgstr "SAM"
+
+msgid "Saturday"
+msgstr "Samedi"
+
+msgid "Schedule Another Meeting"
+msgstr "Planifier une autre réunion"
+
+msgid "Search cities, countries, or timezones..."
+msgstr "Rechercher des villes, pays ou fuseaux horaires..."
+
+msgid "Select a Date"
+msgstr "Sélectionner une date"
+
+msgid "Select a Date & Time"
+msgstr "Sélectionner une date et une heure"
+
+msgid "Sent to"
+msgstr "Envoyé à"
+
+msgid "September"
+msgstr "Septembre"
+
+msgid "%{start_month} - %{end_month} %{year}"
+msgstr "%{start_month} – %{end_month} %{year}"
+
+msgid "Successfully Rescheduled!"
+msgstr "Report effectué avec succès !"
+
+msgid "Sun"
+msgstr "Dim."
+
+msgid "SUN"
+msgstr "DIM"
+
+msgid "Sunday"
+msgstr "Dimanche"
+
+msgid "Theme Error"
+msgstr "Erreur de thème"
+
+msgid "This date is fully booked"
+msgstr "Cette date est complète"
+
+msgid "Thu"
+msgstr "Jeu."
+
+msgid "THU"
+msgstr "JEU"
+
+msgid "Thursday"
+msgstr "Jeudi"
+
+msgid "Time"
+msgstr "Heure"
+
+msgid "time_format_type"
+msgstr "format_heure"
+
+msgid "%{time} local time"
+msgstr "%{time} heure locale"
+
+msgid "%{time} %{timezone}"
+msgstr "%{time} %{timezone}"
+
+msgid "%{time} UTC"
+msgstr "%{time} UTC"
+
+msgid "Timezone"
+msgstr "Fuseau horaire"
+
+msgid "Tue"
+msgstr "Mar."
+
+msgid "TUE"
+msgstr "MAR"
+
+msgid "Tuesday"
+msgstr "Mardi"
+
+msgid "Unknown duration"
+msgstr "Durée inconnue"
+
+msgid "User Not Found"
+msgstr "Utilisateur introuvable"
+
+msgid "Wed"
+msgstr "Mer."
+
+msgid "WED"
+msgstr "MER"
+
+msgid "Wednesday"
+msgstr "Mercredi"
+
+msgid "%{weekday}, %{day} %{month} %{year} at %{time} %{timezone}"
+msgstr "%{weekday} %{day} %{month} %{year} à %{time} %{timezone}"
+
+msgid "%{weeks} weeks in advance"
+msgstr "%{weeks} semaines à l'avance"
+
+msgid "With"
+msgstr "Avec"
+
+msgid "with %{name}"
+msgstr "avec %{name}"
+
+msgid "%{years} years in advance"
+msgstr "%{years} ans à l'avance"
+
+msgid "You're All Set!"
+msgstr "Tout est prêt !"
+
+msgid "Your timezone"
+msgstr "Votre fuseau horaire"
+

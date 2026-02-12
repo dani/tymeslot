@@ -117,14 +117,15 @@ config :tymeslot, :webhook_idempotency,
 # Configure Gettext locales
 config :tymeslot, TymeslotWeb.Gettext,
   default_locale: "en",
-  locales: ~w(en de uk)
+  locales: ~w(en de uk fr)
 
 # Locale metadata for UI rendering
 config :tymeslot, :locales,
   supported: [
     %{code: "en", name: "English", country_code: :gbr},
     %{code: "de", name: "Deutsch", country_code: :deu},
-    %{code: "uk", name: "Українська", country_code: :ukr}
+    %{code: "uk", name: "Українська", country_code: :ukr},
+    %{code: "fr", name: "Français", country_code: :fra}
   ],
   default: "en"
 

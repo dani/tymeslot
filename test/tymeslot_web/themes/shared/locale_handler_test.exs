@@ -84,7 +84,7 @@ defmodule TymeslotWeb.Themes.Shared.LocaleHandlerTest do
     end
 
     test "rejects unsupported locale", %{socket: socket} do
-      updated_socket = LocaleHandler.handle_locale_change(socket, "fr")
+      updated_socket = LocaleHandler.handle_locale_change(socket, "es")
 
       # Should remain unchanged
       assert updated_socket.assigns.locale == "en"
@@ -113,7 +113,11 @@ defmodule TymeslotWeb.Themes.Shared.LocaleHandlerTest do
       socket = LocaleHandler.handle_locale_change(socket, "uk")
       assert socket.assigns.locale == "uk"
 
-      # uk -> en
+      # uk -> fr
+      socket = LocaleHandler.handle_locale_change(socket, "fr")
+      assert socket.assigns.locale == "fr"
+
+      # fr -> en
       socket = LocaleHandler.handle_locale_change(socket, "en")
       assert socket.assigns.locale == "en"
     end
@@ -137,6 +141,7 @@ defmodule TymeslotWeb.Themes.Shared.LocaleHandlerTest do
       assert "en" in locales
       assert "de" in locales
       assert "uk" in locales
+      assert "fr" in locales
     end
 
     test "supported locales match configuration" do
@@ -152,7 +157,7 @@ defmodule TymeslotWeb.Themes.Shared.LocaleHandlerTest do
       locales = LocaleHandler.get_locales_with_metadata()
 
       assert is_list(locales)
-      assert length(locales) == 3
+      assert length(locales) == 4
 
       Enum.each(locales, fn locale ->
         assert Map.has_key?(locale, :code)
@@ -183,6 +188,14 @@ defmodule TymeslotWeb.Themes.Shared.LocaleHandlerTest do
 
       assert ukrainian.name == "Українська"
       assert ukrainian.country_code == :ukr
+    end
+
+    test "includes French metadata" do
+      locales = LocaleHandler.get_locales_with_metadata()
+      french = Enum.find(locales, &(&1.code == "fr"))
+
+      assert french.name == "Français"
+      assert french.country_code == :fra
     end
   end
 
