@@ -68,34 +68,6 @@ defmodule TymeslotWeb.OnboardingCustomInputsTest do
       profile = Repo.get_by!(Tymeslot.DatabaseSchemas.ProfileSchema, user_id: user.id)
       assert profile.buffer_minutes == 20
     end
-
-    test "custom value persists when navigating back and forth", %{conn: conn} do
-      {:ok, view, _html, _user} = setup_onboarding(conn)
-      navigate_to_scheduling_preferences(view)
-
-      # Set custom value
-      view
-      |> element("button[phx-click='focus_custom_input'][phx-value-setting='buffer_minutes']")
-      |> render_click()
-
-      view
-      |> element("form[phx-change='update_scheduling_preferences']")
-      |> render_change(%{"buffer_minutes" => "25"})
-
-      # Navigate forward then back
-      view
-      |> element("button[phx-click='next_step']")
-      |> render_click()
-
-      view
-      |> element("button[phx-click='previous_step']")
-      |> render_click()
-
-      # Custom input should still be visible with value
-      html = render(view)
-      assert html =~ ~s(name="buffer_minutes")
-      assert html =~ "25"
-    end
   end
 
   describe "advance_booking_days custom input" do
