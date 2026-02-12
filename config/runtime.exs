@@ -26,6 +26,29 @@ parse_int = fn var, default ->
   end
 end
 
+# Helper to parse IP addresses using Erlang's built-in parser
+# Supports both IPv4 and IPv6 addresses in all standard notations
+parse_ip = fn ip_string ->
+  case :inet.parse_address(String.to_charlist(ip_string)) do
+    {:ok, ip_tuple} ->
+      ip_tuple
+
+    {:error, :einval} ->
+      raise """
+      Invalid LISTEN_IP: #{inspect(ip_string)}
+
+      Must be a valid IPv4 or IPv6 address. Examples:
+        IPv4: 0.0.0.0 (all interfaces), 127.0.0.1 (localhost only)
+        IPv6: :: (all interfaces), ::1 (localhost only)
+
+      Common use cases:
+        - All interfaces (default): :: or 0.0.0.0
+        - Localhost only (service mesh): ::1 or 127.0.0.1
+        - Specific interface: fe80::1 or 192.168.1.100
+      """
+  end
+end
+
 # config/runtime.exs is executed for all environments, including
 # during releases. It is executed after compilation and before the
 # system starts, so it is typically used to load production configuration
@@ -111,14 +134,18 @@ if config_env() == :prod do
       "docker" -> if url_scheme == "https", do: 443, else: 80
     end
 
+  # Listen IP configuration
+  # Default to :: (IPv6 any address, which also accepts IPv4 on dual-stack systems)
+  # Override with LISTEN_IP environment variable for specific use cases:
+  #   - IPv4-only environments: LISTEN_IP=0.0.0.0
+  #   - Service mesh (localhost only): LISTEN_IP=127.0.0.1 or LISTEN_IP=::1
+  #   - Specific interface: LISTEN_IP=192.168.1.100 or LISTEN_IP=fe80::1
+  listen_ip = System.get_env("LISTEN_IP") || "::"
+
   config :tymeslot, TymeslotWeb.Endpoint,
     url: [host: host, port: url_port, scheme: url_scheme],
     http: [
-      # Enable IPv6 and bind on all interfaces.
-      # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.
-      # See the documentation on https://hexdocs.pm/bandit/Bandit.html#t:options/0
-      # for details about using IPv6 vs IPv4 and loopback vs public addresses.
-      ip: {0, 0, 0, 0, 0, 0, 0, 0},
+      ip: parse_ip.(listen_ip),
       port: port
     ],
     secret_key_base: secret_key_base,
