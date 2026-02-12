@@ -1,22 +1,21 @@
 # Tymeslot Docker Compose Configuration
 #
-# IMPORTANT: Create a .env file in the project root before starting:
-#   cd /path/to/tymeslot  # Go to project root
-#   cp apps/tymeslot/.env.example .env
+# IMPORTANT: Create a .env file before starting:
+#   cd apps/tymeslot  # Go to tymeslot core directory
+#   cp .env.example .env
 #
 # Then generate required secrets:
 #   openssl rand -base64 64 | tr -d '\n'  # SECRET_KEY_BASE
 #   openssl rand -base64 32 | tr -d '\n'  # POSTGRES_PASSWORD
 #
-# Fill in the required values in .env, then run from apps/tymeslot:
-#   cd apps/tymeslot
+# Fill in the required values in .env, then run:
 #   docker compose up -d
 
 services:
   tymeslot:
     build:
-      context: ../../
-      dockerfile: apps/tymeslot/Dockerfile.docker
+      context: .
+      dockerfile: Dockerfile.docker
     image: tymeslot:latest
     container_name: tymeslot
     restart: unless-stopped

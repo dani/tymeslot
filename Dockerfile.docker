@@ -31,14 +31,14 @@ WORKDIR /app
 ENV MIX_ENV=prod \
     DEPLOYMENT_TYPE=docker
 
-# Copy mix.exs and config
-COPY mix.exs ./
+# Copy mix files and config from tymeslot app (build context is apps/tymeslot/)
+COPY mix.exs mix.lock ./
 COPY config ./config
 
 # Install hex and rebar
 RUN mix local.hex --force && mix local.rebar --force
 
-# Get dependencies
+# Get dependencies using committed lock file
 RUN mix deps.get --only prod
 
 # Copy the rest of the application code

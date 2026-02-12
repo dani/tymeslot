@@ -141,8 +141,8 @@ echo "========================================"
 echo ""
 
 # Build the Docker image from Dockerfile.docker and tag it as 'tymeslot'
-# Build context is the project root (umbrella level) for access to mix.exs, apps/, config/, etc.
-docker build -f "$DOCKERFILE_PATH" -t tymeslot .
+# Build context is apps/tymeslot (standalone core) for self-hosted deployment
+docker build -f Dockerfile.docker -t tymeslot apps/tymeslot
 
 echo ""
 echo "========================================"
