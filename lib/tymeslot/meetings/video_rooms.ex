@@ -306,14 +306,17 @@ defmodule Tymeslot.Meetings.VideoRooms do
           "mirotalk" ->
             {:ok, :mirotalk}
 
-          "google_calendar" ->
-            {:ok, :google_calendar}
+          "google_meet" ->
+            {:ok, :google_meet}
 
           "teams" ->
             {:ok, :teams}
 
           "zoom" ->
             {:ok, :zoom}
+
+          "custom" ->
+            {:ok, :custom}
 
           "none" ->
             {:ok, :none}
