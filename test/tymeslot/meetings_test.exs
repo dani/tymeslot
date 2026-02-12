@@ -9,6 +9,7 @@ defmodule Tymeslot.MeetingsTest do
 
   alias Ecto.UUID
   alias Tymeslot.DatabaseSchemas.MeetingSchema
+  alias Tymeslot.DatabaseSchemas.VideoIntegrationSchema
   alias Tymeslot.Meetings
   alias Tymeslot.Repo
   alias Tymeslot.TestMocks
@@ -252,6 +253,79 @@ defmodule Tymeslot.MeetingsTest do
 
     test "returns :meeting_not_found for non-existent meeting" do
       assert {:error, :meeting_not_found} = Meetings.add_video_room_to_meeting(UUID.generate())
+    end
+
+    test "successfully adds custom video room" do
+      user = insert(:user)
+      _profile = insert(:profile, user: user)
+
+      video_integration =
+        insert(:video_integration,
+          user: user,
+          provider: "custom",
+          is_active: true,
+          custom_meeting_url: "https://zoom.us/j/123456789"
+        )
+
+      meeting =
+        insert(:meeting,
+          organizer_user_id: user.id,
+          organizer_email: user.email,
+          video_integration_id: video_integration.id
+        )
+
+      TestMocks.setup_all_mocks()
+
+      assert {:ok, %MeetingSchema{} = updated_meeting} =
+               Meetings.add_video_room_to_meeting(meeting.id)
+
+      assert updated_meeting.video_room_id != nil
+      assert updated_meeting.video_room_enabled == true
+    end
+
+    test "returns error for unknown video provider" do
+      user = insert(:user)
+      _profile = insert(:profile, user: user)
+
+      # Insert a video integration with an invalid provider directly into the DB
+      # (bypassing changeset validation)
+      {:ok, video_integration} =
+        Repo.insert(%VideoIntegrationSchema{
+          user_id: user.id,
+          name: "Invalid Provider",
+          provider: "invalid_provider",
+          is_active: true
+        })
+
+      meeting =
+        insert(:meeting,
+          organizer_user_id: user.id,
+          organizer_email: user.email,
+          video_integration_id: video_integration.id
+        )
+
+      TestMocks.setup_all_mocks()
+
+      assert {:error, :unknown_provider} = Meetings.add_video_room_to_meeting(meeting.id)
+    end
+
+    test "returns error when video integration is inactive" do
+      user = insert(:user)
+      _profile = insert(:profile, user: user)
+
+      video_integration =
+        insert(:video_integration, user: user, provider: "mirotalk", is_active: false)
+
+      meeting =
+        insert(:meeting,
+          organizer_user_id: user.id,
+          organizer_email: user.email,
+          video_integration_id: video_integration.id
+        )
+
+      TestMocks.setup_all_mocks()
+
+      assert {:error, :video_integration_inactive} = Meetings.add_video_room_to_meeting(meeting.id)
     end
   end
 

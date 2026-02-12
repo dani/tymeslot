@@ -91,7 +91,12 @@ defmodule Tymeslot.Bookings.Policy do
           {"General Meeting", nil, resolve_video_integration_id(params, organizer_user_id)}
 
         type ->
-          {type.name, type.id, type.video_integration_id}
+          # Prefer params video_integration_id over meeting type's (allows per-booking override)
+          # Fall back to meeting type's video_integration_id if not specified in params
+          resolved_video_id =
+            resolve_video_integration_id(params, organizer_user_id) || type.video_integration_id
+
+          {type.name, type.id, resolved_video_id}
       end
 
     reminders =

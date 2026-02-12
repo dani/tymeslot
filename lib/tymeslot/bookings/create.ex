@@ -328,11 +328,11 @@ defmodule Tymeslot.Bookings.Create do
       # API-based room creation, create the video room before sending emails so the email
       # includes the join link.
       case video_provider_for(meeting) do
-        {:ok, provider} when provider in [:mirotalk, :google_meet, :teams] ->
+        {:ok, provider} when provider in [:mirotalk, :google_meet, :teams, :custom] ->
           schedule_video_room_with_emails(meeting)
 
         _ ->
-          # No supported auto-create provider (none/unknown/custom/etc.)
+          # No supported auto-create provider (none/unknown/etc.)
           schedule_email_notifications(meeting)
       end
     end
