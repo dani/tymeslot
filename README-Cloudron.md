@@ -173,6 +173,60 @@ SMTP_PASSWORD=your_smtp_password
    Authorization callback URL: https://tymeslot.yourdomain.com/auth/github/callback
    ```
 
+### Microsoft OAuth Setup (Outlook Calendar & Teams)
+
+**Important**: Both Outlook Calendar and Microsoft Teams use the **same** OAuth app. Configure this once to enable both integrations.
+
+1. **Create Azure AD App Registration**
+   - Go to [Azure Portal](https://portal.azure.com/)
+   - Navigate to **Microsoft Entra ID** (formerly Azure Active Directory)
+   - Go to **App registrations** → **New registration**
+
+2. **Configure Application**
+   ```
+   Name: Tymeslot
+   Supported account types: Accounts in any organizational directory and personal Microsoft accounts
+   ```
+
+3. **Configure Redirect URIs**
+   - Under **Authentication** → **Platform configurations** → **Add a platform** → **Web**
+   - Add BOTH redirect URIs:
+     ```
+     https://tymeslot.yourdomain.com/auth/outlook/calendar/callback
+     https://tymeslot.yourdomain.com/auth/teams/video/callback
+     ```
+   - Save the configuration
+
+4. **Configure API Permissions**
+   - Go to **API permissions** → **Add a permission** → **Microsoft Graph**
+   - Select **Delegated permissions** and add:
+     ```
+     Calendars.ReadWrite
+     User.Read
+     offline_access
+     openid
+     profile
+     ```
+   - Click **Add permissions**
+   - (Optional) Click **Grant admin consent** if deploying for an organization
+
+5. **Create Client Secret**
+   - Go to **Certificates & secrets** → **Client secrets** → **New client secret**
+   - Add a description (e.g., "Tymeslot Production")
+   - Choose an expiration period
+   - Copy the **Value** (this is your `OUTLOOK_CLIENT_SECRET`) - you won't be able to see it again!
+
+6. **Get Application (client) ID**
+   - Go to **Overview**
+   - Copy the **Application (client) ID** (this is your `OUTLOOK_CLIENT_ID`)
+
+7. **Set Environment Variables in Cloudron**
+   ```bash
+   OUTLOOK_CLIENT_ID=<your_application_client_id>
+   OUTLOOK_CLIENT_SECRET=<your_client_secret_value>
+   OUTLOOK_STATE_SECRET=$(openssl rand -base64 32 | tr -d '\n')  # Self-generated
+   ```
+
 ---
 
 ## Database Management

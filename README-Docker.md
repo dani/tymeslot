@@ -251,6 +251,9 @@ GITHUB_CLIENT_SECRET=
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 GOOGLE_STATE_SECRET=         # Self-generated random string (required with Google OAuth)
+OUTLOOK_CLIENT_ID=           # From Azure AD App Registration (used for both Outlook & Teams)
+OUTLOOK_CLIENT_SECRET=       # From Azure AD App Registration (used for both Outlook & Teams)
+OUTLOOK_STATE_SECRET=        # Self-generated random string (required with Microsoft OAuth)
 ENABLE_GOOGLE_AUTH=false     # Enable Google login/signup
 ENABLE_GITHUB_AUTH=false     # Enable GitHub login/signup
 ```
@@ -383,10 +386,135 @@ PORT=8080  # Use a different port
 
 ### OAuth Not Working
 
-- Verify redirect URLs exactly match: `https://your-domain.com/auth/provider/callback`
+- Verify redirect URLs exactly match the ones specified in the OAuth Setup section below
 - Check PHX_HOST matches your domain
 - Ensure credentials are correctly set in `.env`
-- Configure OAuth apps through the Tymeslot dashboard after deployment
+- For Microsoft OAuth, ensure both redirect URIs are configured in Azure AD
+
+---
+
+## OAuth Provider Setup
+
+Tymeslot supports multiple OAuth providers for authentication and calendar/video integrations. Configure the providers you need by following the setup guides below.
+
+### Google OAuth Setup
+
+**Used for**: Google Calendar integration, Google Meet video integration, Google login/signup
+
+1. **Create Google Cloud Project**
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Create a new project or select existing one
+
+2. **Enable Required APIs**
+   - Go to **APIs & Services** → **Library**
+   - Enable the following APIs:
+     - Google Calendar API (required for calendar sync)
+     - Google Meet API (required for Meet integration)
+
+3. **Create OAuth Credentials**
+   - Go to **APIs & Services** → **Credentials**
+   - Click **Create Credentials** → **OAuth 2.0 Client IDs**
+   - Configure OAuth consent screen if prompted
+   - Application type: **Web application**
+   - Add authorized redirect URI:
+     ```
+     https://your-domain.com/auth/google/callback
+     ```
+   - Click **Create** and copy the **Client ID** and **Client Secret**
+
+4. **Configure Environment Variables**
+   ```bash
+   GOOGLE_CLIENT_ID=<your_google_client_id>
+   GOOGLE_CLIENT_SECRET=<your_google_client_secret>
+   GOOGLE_STATE_SECRET=$(openssl rand -base64 32 | tr -d '\n')  # Self-generated
+   ENABLE_GOOGLE_AUTH=true  # Optional: Enable Google login/signup
+   ```
+
+### GitHub OAuth Setup
+
+**Used for**: GitHub login/signup
+
+1. **Create GitHub OAuth App**
+   - Go to **Settings** → **Developer settings** → **OAuth Apps**
+   - Click **New OAuth App**
+
+2. **Configure Application**
+   ```
+   Application name: Tymeslot
+   Homepage URL: https://your-domain.com
+   Authorization callback URL: https://your-domain.com/auth/github/callback
+   ```
+
+3. **Configure Environment Variables**
+   ```bash
+   GITHUB_CLIENT_ID=<your_github_client_id>
+   GITHUB_CLIENT_SECRET=<your_github_client_secret>
+   ENABLE_GITHUB_AUTH=true  # Optional: Enable GitHub login/signup
+   ```
+
+### Microsoft OAuth Setup (Outlook Calendar & Teams)
+
+**Important**: Both Outlook Calendar and Microsoft Teams use the **same** OAuth app. Configure this once to enable both integrations.
+
+**Used for**: Outlook Calendar integration, Microsoft Teams video integration
+
+1. **Create Azure AD App Registration**
+   - Go to [Azure Portal](https://portal.azure.com/)
+   - Navigate to **Microsoft Entra ID** (formerly Azure Active Directory)
+   - Go to **App registrations** → **New registration**
+
+2. **Configure Application**
+   ```
+   Name: Tymeslot
+   Supported account types: Accounts in any organizational directory and personal Microsoft accounts
+   Redirect URI: Leave blank for now (we'll add both URIs in the next step)
+   ```
+   - Click **Register**
+
+3. **Configure Redirect URIs**
+   - In your app registration, go to **Authentication**
+   - Click **Add a platform** → **Web**
+   - Add **BOTH** redirect URIs (both are required for full functionality):
+     ```
+     https://your-domain.com/auth/outlook/calendar/callback
+     https://your-domain.com/auth/teams/video/callback
+     ```
+   - Under **Implicit grant and hybrid flows**, ensure **ID tokens** is checked
+   - Click **Save**
+
+4. **Configure API Permissions**
+   - Go to **API permissions** → **Add a permission** → **Microsoft Graph**
+   - Select **Delegated permissions** and add the following:
+     ```
+     Calendars.ReadWrite - Read and write to user calendars
+     User.Read - Sign in and read user profile
+     offline_access - Maintain access to data you have given it access to
+     openid - Sign users in
+     profile - View users' basic profile
+     ```
+   - Click **Add permissions**
+   - (Optional) Click **Grant admin consent** if deploying for an organization
+
+5. **Create Client Secret**
+   - Go to **Certificates & secrets** → **Client secrets**
+   - Click **New client secret**
+   - Add a description (e.g., "Tymeslot Production")
+   - Choose an expiration period (recommendation: 24 months, set a reminder to rotate before expiry)
+   - Click **Add**
+   - **Important**: Copy the **Value** immediately (this is your `OUTLOOK_CLIENT_SECRET`) - you won't be able to see it again!
+
+6. **Get Application (client) ID**
+   - Go to **Overview**
+   - Copy the **Application (client) ID** (this is your `OUTLOOK_CLIENT_ID`)
+
+7. **Configure Environment Variables**
+   ```bash
+   OUTLOOK_CLIENT_ID=<your_application_client_id>
+   OUTLOOK_CLIENT_SECRET=<your_client_secret_value>
+   OUTLOOK_STATE_SECRET=$(openssl rand -base64 32 | tr -d '\n')  # Self-generated
+   ```
+
+**Note**: The `STATE_SECRET` variables (GOOGLE_STATE_SECRET, OUTLOOK_STATE_SECRET) are self-generated random strings for security (CSRF protection). They are NOT provided by Google or Microsoft. Generate them using the openssl command shown above.
 
 ---
 
