@@ -204,6 +204,12 @@ defmodule Tymeslot.Integrations.Video.Rooms do
                 user_id: integration.user_id
               }
 
+            :custom ->
+              %{
+                custom_meeting_url: integration.custom_meeting_url,
+                meeting_id: Keyword.get(opts, :meeting_id)
+              }
+
             :none ->
               %{}
 

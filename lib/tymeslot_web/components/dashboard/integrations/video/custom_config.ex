@@ -4,6 +4,8 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Video.CustomConfig do
   """
   use TymeslotWeb, :live_component
 
+  alias TymeslotWeb.Components.Dashboard.Integrations.Video.CustomConfig.TemplateAnalyzer
+  alias TymeslotWeb.Components.Dashboard.Integrations.Video.CustomConfig.TemplatePreviewBox
   alias TymeslotWeb.Components.Dashboard.Integrations.Video.SharedFormComponents,
     as: SharedForm
   alias TymeslotWeb.Components.Icons.ProviderIcon
@@ -49,17 +51,58 @@ defmodule TymeslotWeb.Components.Dashboard.Integrations.Video.CustomConfig do
             target={@target}
           />
 
-          <SharedForm.url_field
-            id="custom_meeting_url"
-            name="integration[custom_meeting_url]"
-            label="Meeting URL"
-            value={Map.get(@form_values, "custom_meeting_url", "")}
-            placeholder="https://meet.example.com/your-room"
-            form_errors={@form_errors}
-            error_key={:custom_meeting_url}
-            target={@target}
-            helper_text="Enter the complete URL for your video meeting room"
-          />
+          <div class="space-y-3">
+            <SharedForm.url_field
+              id="custom_meeting_url"
+              name="integration[custom_meeting_url]"
+              label="Meeting URL"
+              value={Map.get(@form_values, "custom_meeting_url", "")}
+              placeholder="https://jitsi.example.org/{{meeting_id}}"
+              form_errors={@form_errors}
+              error_key={:custom_meeting_url}
+              target={@target}
+              helper_text="Enter your video meeting URL. Use {{meeting_id}} for unique rooms per meeting"
+            />
+
+            <%= case TemplateAnalyzer.analyze(Map.get(@form_values, "custom_meeting_url", "")) do %>
+              <% {:ok, :valid_template, preview, _message} -> %>
+                <TemplatePreviewBox.render
+                  status={:valid}
+                  title="✓ Valid Template"
+                  message="Template variable detected: {{meeting_id}}"
+                  preview={preview}
+                />
+
+              <% {:warning, _type, preview, error_message} -> %>
+                <TemplatePreviewBox.render
+                  status={:warning}
+                  title="⚠ Invalid Syntax"
+                  message={error_message}
+                  preview={preview}
+                />
+
+              <% {:ok, :static, _url, _message} -> %>
+                <TemplatePreviewBox.render
+                  status={:static}
+                  title="Static Meeting Room"
+                  message="All meetings will use the same room URL"
+                />
+
+              <% {:ok, :empty, _url, _message} -> %>
+                <TemplatePreviewBox.render
+                  status={:empty}
+                  title="No URL Configured"
+                  message="Enter a custom video link to configure meeting rooms"
+                />
+
+              <% _ -> %>
+                <TemplatePreviewBox.render
+                  status={:empty}
+                  title="No URL Configured"
+                  message="Enter a custom video link to configure meeting rooms"
+                />
+            <% end %>
+          </div>
         </div>
 
         <div class="flex justify-between items-center pt-4 border-t border-slate-100">

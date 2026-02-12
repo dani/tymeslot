@@ -297,4 +297,330 @@ defmodule Tymeslot.Integrations.Video.Providers.CustomProviderTest do
       assert is_nil(metadata[:custom_url])
     end
   end
+
+  describe "template variable support" do
+    test "replaces {{meeting_id}} with hashed ID" do
+      config = %{
+        custom_meeting_url: "https://jitsi.example.org/{{meeting_id}}",
+        meeting_id: "abc-123-def-456"
+      }
+
+      assert {:ok, room_data} = CustomProvider.create_meeting_room(config)
+
+      # Should be hashed to 16 characters (lowercase hex)
+      assert room_data.meeting_url =~ ~r|^https://jitsi.example.org/[a-f0-9]{16}$|
+      assert String.length(List.last(String.split(room_data.meeting_url, "/"))) == 16
+
+      assert room_data.provider_data.original_url == "https://jitsi.example.org/{{meeting_id}}"
+      assert room_data.provider_data.processed_url =~ "https://jitsi.example.org/"
+
+      # Verify consistent hashing
+      {:ok, room_data2} = CustomProvider.create_meeting_room(config)
+      assert room_data.meeting_url == room_data2.meeting_url
+    end
+
+    test "works without template (backward compatibility)" do
+      config = %{custom_meeting_url: "https://meet.example.com/static-room"}
+
+      assert {:ok, room_data} = CustomProvider.create_meeting_room(config)
+      assert room_data.meeting_url == "https://meet.example.com/static-room"
+    end
+
+    test "returns error when meeting_id is missing for template URL" do
+      config = %{custom_meeting_url: "https://jitsi.example.org/{{meeting_id}}"}
+
+      # When meeting_id is missing, should return error (not create broken URL)
+      assert {:error, message} = CustomProvider.create_meeting_room(config)
+      assert String.contains?(message, "meeting_id is required")
+    end
+
+    test "validates templates correctly" do
+      config = %{custom_meeting_url: "https://jitsi.example.org/{{meeting_id}}"}
+
+      assert :ok = CustomProvider.validate_config(config)
+    end
+
+    test "handles multiple template instances with same hash" do
+      config = %{
+        custom_meeting_url: "https://jitsi.example.org/{{meeting_id}}/room-{{meeting_id}}",
+        meeting_id: "test-123"
+      }
+
+      assert {:ok, room_data} = CustomProvider.create_meeting_room(config)
+
+      # Both instances should be replaced with the same 16-character hash
+      assert room_data.meeting_url =~ ~r|^https://jitsi.example.org/[a-f0-9]{16}/room-[a-f0-9]{16}$|
+
+      # Extract both hashed values
+      [_, hash1, hash2] = Regex.run(~r|/([a-f0-9]{16})/room-([a-f0-9]{16})|, room_data.meeting_url)
+      assert hash1 == hash2
+    end
+
+    test "validates invalid URL with template" do
+      config = %{custom_meeting_url: "not-a-url/{{meeting_id}}"}
+
+      assert {:error, message} = CustomProvider.validate_config(config)
+      assert String.contains?(message, "Invalid URL format")
+    end
+
+    test "converts non-string meeting_id to string" do
+      config = %{
+        custom_meeting_url: "https://jitsi.example.org/{{meeting_id}}",
+        meeting_id: 12_345
+      }
+
+      assert {:ok, room_data} = CustomProvider.create_meeting_room(config)
+      assert room_data.meeting_url =~ ~r|^https://jitsi.example.org/[a-f0-9]{16}$|
+    end
+
+    test "returns error when meeting_id is empty string for template URL" do
+      config = %{
+        custom_meeting_url: "https://jitsi.example.org/{{meeting_id}}",
+        meeting_id: ""
+      }
+
+      # Empty string should return error (not create broken URL)
+      assert {:error, message} = CustomProvider.create_meeting_room(config)
+      assert String.contains?(message, "meeting_id is required")
+    end
+  end
+
+  describe "template variable security" do
+    test "prevents URL injection via special characters in meeting_id" do
+      config = %{
+        custom_meeting_url: "https://jitsi.example.org/{{meeting_id}}",
+        meeting_id: "abc?admin=true&token=xyz"
+      }
+
+      assert {:ok, room_data} = CustomProvider.create_meeting_room(config)
+
+      # Should be hashed, not allowing query parameter injection
+      assert room_data.meeting_url =~ ~r|^https://jitsi.example.org/[a-f0-9]{16}$|
+      refute String.contains?(room_data.meeting_url, "?")
+      refute String.contains?(room_data.meeting_url, "&")
+      refute String.contains?(room_data.meeting_url, "admin")
+    end
+
+    test "prevents fragment injection via hash character" do
+      config = %{
+        custom_meeting_url: "https://jitsi.example.org/{{meeting_id}}",
+        meeting_id: "abc#fragment"
+      }
+
+      assert {:ok, room_data} = CustomProvider.create_meeting_room(config)
+
+      # Should be hashed, not allowing fragment injection
+      assert room_data.meeting_url =~ ~r|^https://jitsi.example.org/[a-f0-9]{16}$|
+      refute String.contains?(room_data.meeting_url, "#")
+    end
+
+    test "prevents path traversal via slashes" do
+      config = %{
+        custom_meeting_url: "https://jitsi.example.org/{{meeting_id}}",
+        meeting_id: "abc/../../admin"
+      }
+
+      assert {:ok, room_data} = CustomProvider.create_meeting_room(config)
+
+      # Should be hashed, not allowing path traversal
+      assert room_data.meeting_url =~ ~r|^https://jitsi.example.org/[a-f0-9]{16}$|
+      refute String.contains?(room_data.meeting_url, "/admin")
+    end
+
+    test "handles very long meeting_id without issues" do
+      long_id = String.duplicate("a", 10_000)
+      config = %{
+        custom_meeting_url: "https://jitsi.example.org/{{meeting_id}}",
+        meeting_id: long_id
+      }
+
+      assert {:ok, room_data} = CustomProvider.create_meeting_room(config)
+
+      # Should still produce a 16-character hash
+      assert room_data.meeting_url =~ ~r|^https://jitsi.example.org/[a-f0-9]{16}$|
+    end
+
+    test "handles unicode characters in meeting_id" do
+      config = %{
+        custom_meeting_url: "https://jitsi.example.org/{{meeting_id}}",
+        meeting_id: "встреча-会议-🎉"
+      }
+
+      assert {:ok, room_data} = CustomProvider.create_meeting_room(config)
+
+      # Should be hashed to safe ASCII hex
+      assert room_data.meeting_url =~ ~r|^https://jitsi.example.org/[a-f0-9]{16}$|
+    end
+
+    test "produces different hashes for different meeting_ids" do
+      config1 = %{
+        custom_meeting_url: "https://jitsi.example.org/{{meeting_id}}",
+        meeting_id: "meeting-001"
+      }
+
+      config2 = %{
+        custom_meeting_url: "https://jitsi.example.org/{{meeting_id}}",
+        meeting_id: "meeting-002"
+      }
+
+      assert {:ok, room_data1} = CustomProvider.create_meeting_room(config1)
+      assert {:ok, room_data2} = CustomProvider.create_meeting_room(config2)
+
+      refute room_data1.meeting_url == room_data2.meeting_url
+    end
+  end
+
+  describe "URL length validation" do
+    test "accepts URLs within length limit" do
+      # URL that will be exactly at the limit after processing
+      base_url = "https://jitsi.example.org/"
+      # 16-char hash + base URL should be under 255
+      template_url = base_url <> "{{meeting_id}}"
+
+      config = %{
+        custom_meeting_url: template_url,
+        meeting_id: "test-123"
+      }
+
+      assert {:ok, room_data} = CustomProvider.create_meeting_room(config)
+      assert String.length(room_data.meeting_url) <= 255
+    end
+
+    test "rejects URLs that exceed length limit after template processing" do
+      # Create a very long URL that will exceed 255 chars after processing
+      long_path = String.duplicate("very-long-subdomain-name.", 10)
+      template_url = "https://#{long_path}example.org/department/team/project/{{meeting_id}}/session?key=value&foo=bar"
+
+      config = %{
+        custom_meeting_url: template_url,
+        meeting_id: "test-123"
+      }
+
+      assert {:error, message} = CustomProvider.create_meeting_room(config)
+      assert String.contains?(message, "exceeds maximum length")
+      assert String.contains?(message, "255")
+    end
+
+    test "validates static URLs that are too long" do
+      # Static URL (no template) that's too long
+      long_static_url = "https://example.org/" <> String.duplicate("a", 300)
+
+      config = %{custom_meeting_url: long_static_url}
+
+      assert {:error, message} = CustomProvider.create_meeting_room(config)
+      assert String.contains?(message, "exceeds maximum length")
+    end
+  end
+
+  describe "hash collision resistance (documentation)" do
+    test "documents collision probability characteristics" do
+      # This test serves as documentation of the collision characteristics
+      # With 16-character hex hashes (64 bits):
+      # - Total possible values: 2^64 = 18,446,744,073,709,551,616
+      # - 50% collision probability (birthday paradox): ~4.3 billion meetings
+      # - 1% collision probability: ~430 million meetings
+
+      # Generate sample meetings to verify hash properties
+      sample_size = 1_000
+      meeting_ids = for i <- 1..sample_size, do: "meeting-#{i}-#{:rand.uniform(1_000_000)}"
+
+      hashes =
+        Enum.map(meeting_ids, fn id ->
+          config = %{
+            custom_meeting_url: "https://jitsi.org/{{meeting_id}}",
+            meeting_id: id
+          }
+
+          {:ok, room} = CustomProvider.create_meeting_room(config)
+          List.last(String.split(room.meeting_url, "/"))
+        end)
+
+      # Verify all hashes are 16 characters
+      assert Enum.all?(hashes, fn h -> String.length(h) == 16 end)
+
+      # Verify all hashes are lowercase hex
+      assert Enum.all?(hashes, fn h -> String.match?(h, ~r/^[a-f0-9]{16}$/) end)
+
+      # Calculate collision rate in sample
+      unique_hashes = Enum.uniq(hashes)
+      collision_rate = (sample_size - length(unique_hashes)) / sample_size
+
+      # For 1000 samples with 2^64 possible values, collision probability is negligible
+      # We expect 0 collisions in this sample size
+      assert collision_rate < 0.01,
+             "Unexpected collision rate: #{collision_rate * 100}% in #{sample_size} samples"
+
+      # Log collision statistics for documentation
+      IO.puts("\n=== Hash Collision Characteristics (16-char hex) ===")
+      IO.puts("Sample size: #{sample_size}")
+      IO.puts("Unique hashes: #{length(unique_hashes)}")
+      IO.puts("Collisions: #{sample_size - length(unique_hashes)}")
+      IO.puts("Observed collision rate: #{Float.round(collision_rate * 100, 4)}%")
+      IO.puts("Theoretical 50% collision point: ~4.3 billion meetings")
+      IO.puts("Theoretical 1% collision point: ~430 million meetings")
+      IO.puts("====================================================\n")
+    end
+
+    test "verifies deterministic hashing (idempotency)" do
+      meeting_id = "deterministic-test-#{:rand.uniform(1_000_000)}"
+
+      config = %{
+        custom_meeting_url: "https://jitsi.org/{{meeting_id}}",
+        meeting_id: meeting_id
+      }
+
+      # Create same meeting multiple times
+      {:ok, room1} = CustomProvider.create_meeting_room(config)
+      {:ok, room2} = CustomProvider.create_meeting_room(config)
+      {:ok, room3} = CustomProvider.create_meeting_room(config)
+
+      # All should produce identical URLs
+      assert room1.meeting_url == room2.meeting_url
+      assert room2.meeting_url == room3.meeting_url
+    end
+  end
+
+  describe "template in URL fragment" do
+    test "rejects template in fragment position" do
+      config = %{
+        custom_meeting_url: ~S"https://jitsi.example.org/room#{{meeting_id}}",
+        meeting_id: "test-123"
+      }
+
+      assert {:error, message} = CustomProvider.create_meeting_room(config)
+      assert String.contains?(message, "fragment")
+      assert String.contains?(message, "not sent to the server")
+    end
+
+    test "rejects template in fragment during validation" do
+      config = %{custom_meeting_url: ~S"https://jitsi.example.org/room#{{meeting_id}}"}
+
+      assert {:error, message} = CustomProvider.validate_config(config)
+      assert String.contains?(message, "fragment")
+    end
+
+    test "allows fragment without template variable" do
+      config = %{custom_meeting_url: "https://meet.example.com/room#section"}
+
+      assert :ok = CustomProvider.validate_config(config)
+    end
+
+    test "allows template in path even when fragment exists" do
+      config = %{
+        custom_meeting_url: ~S"https://jitsi.example.org/{{meeting_id}}#config",
+        meeting_id: "test-123"
+      }
+
+      assert {:ok, room_data} = CustomProvider.create_meeting_room(config)
+      # URL should contain hash in path but keep static fragment
+      assert room_data.meeting_url =~ ~r|^https://jitsi.example.org/[a-f0-9]{16}#config$|
+    end
+
+    test "rejects template in fragment during test_connection" do
+      config = %{custom_meeting_url: ~S"https://jitsi.example.org/room#{{meeting_id}}"}
+
+      assert {:error, message} = CustomProvider.test_connection(config)
+      assert String.contains?(message, "fragment")
+    end
+  end
 end

@@ -4,9 +4,47 @@ defmodule Tymeslot.Integrations.Video.Providers.CustomProvider do
 
   Allows users to provide their own video meeting URLs from any platform.
   This provider simply stores and serves the user-provided URL without any API integration.
+
+  ## Template Variables
+
+  URLs can include the `{{meeting_id}}` template variable, which will be replaced
+  with a secure hash of the meeting ID during room creation. This allows users to
+  create unique meeting rooms per booking while using their own video platform.
+
+  ### Examples
+
+      # Static URL (same room for all meetings)
+      "https://meet.example.com/my-permanent-room"
+
+      # Template URL (unique room per meeting)
+      "https://jitsi.example.org/{{meeting_id}}"
+      # Becomes: "https://jitsi.example.org/a1b2c3d4e5f67890"
+
+  ### Security & Collision Resistance
+
+  - Template variables are replaced with 16-character SHA256 hashes
+  - Hashing prevents URL injection attacks (query params, path traversal, fragments)
+  - 50% collision probability at ~4.3 billion meetings (birthday paradox)
+  - 1% collision probability at ~430 million meetings
+  - Deterministic hashing ensures idempotency (same meeting_id → same URL)
+
+  ### Requirements
+
+  - Template URLs require a valid `meeting_id` in the config
+  - Missing `meeting_id` for template URLs will return an error
+  - Processed URLs must not exceed 255 characters (database constraint)
+
+  ## URL Validation
+
+  All URLs (static and template) must:
+  - Use HTTP or HTTPS scheme
+  - Have a valid, resolvable host
+  - Not point to private or loopback addresses (in test_connection only)
+  - Be reachable (in test_connection only)
   """
 
   alias Tymeslot.Integrations.Video.Providers.ProviderBehaviour
+  alias Tymeslot.Integrations.Video.TemplateConfig
 
   require Logger
 
@@ -24,21 +62,109 @@ defmodule Tymeslot.Integrations.Video.Providers.CustomProvider do
         {:error, "Custom meeting URL cannot be empty"}
 
       url ->
-        if valid_url?(url) do
+        with {:ok, processed_url} <- process_template(url, config),
+             :ok <- validate_url_length(processed_url),
+             true <- valid_url?(processed_url) do
           room_data = %{
-            room_id: generate_room_id(url),
-            meeting_url: url,
+            room_id: generate_room_id(processed_url),
+            meeting_url: processed_url,
             provider_data: %{
               original_url: url,
+              processed_url: processed_url,
               created_at: DateTime.utc_now()
             }
           }
 
-          Logger.info("Successfully created custom video meeting with URL: #{mask_url(url)}")
+          # Emit telemetry for observability
+          :telemetry.execute(
+            [:tymeslot, :video, :custom_provider, :meeting_created],
+            %{processed_url_length: String.length(processed_url)},
+            %{
+              template_used: String.contains?(url, TemplateConfig.template_variable()),
+              original_url_length: String.length(url)
+            }
+          )
+
+          Logger.info("Successfully created custom video meeting with URL: #{mask_url(processed_url)}")
           {:ok, room_data}
         else
-          {:error, "Invalid URL format. Please provide a valid HTTP/HTTPS URL."}
+          {:error, reason} -> {:error, reason}
+          false -> {:error, "Invalid URL format. Please provide a valid HTTP/HTTPS URL."}
         end
+    end
+  end
+
+  defp process_template(url, config) do
+    if String.contains?(url, TemplateConfig.template_variable()) do
+      # Validate template position before processing
+      with :ok <- validate_template_position(url),
+           {:ok, processed} <- process_template_with_meeting_id(url, config) do
+        {:ok, processed}
+      end
+    else
+      # Static URL - no template processing needed
+      {:ok, url}
+    end
+  end
+
+  defp validate_template_position(url) do
+    uri = URI.parse(url)
+
+    if uri.fragment && String.contains?(uri.fragment, TemplateConfig.template_variable()) do
+      {:error, "Template variable cannot be used in URL fragment (#). Fragments are not sent to the server, so all meetings would use the same room. Use the template in the path instead: https://example.com/{{meeting_id}}"}
+    else
+      :ok
+    end
+  end
+
+  defp process_template_with_meeting_id(url, config) do
+    # Template URL - meeting_id is required
+    case Map.get(config, :meeting_id) do
+      meeting_id when is_binary(meeting_id) and byte_size(meeting_id) > 0 ->
+        hashed_id = hash_meeting_id(meeting_id)
+        processed = String.replace(url, TemplateConfig.template_variable(), hashed_id)
+
+        Logger.debug("Processing URL template: #{mask_url(url)} -> #{mask_url(processed)}")
+
+        {:ok, processed}
+
+      meeting_id when not is_nil(meeting_id) ->
+        # Convert non-string meeting_id to string and check if non-empty
+        string_id = to_string(meeting_id)
+
+        if byte_size(string_id) > 0 do
+          hashed_id = hash_meeting_id(string_id)
+          processed = String.replace(url, TemplateConfig.template_variable(), hashed_id)
+
+          Logger.debug("Processing URL template: #{mask_url(url)} -> #{mask_url(processed)}")
+
+          {:ok, processed}
+        else
+          Logger.error("Template URL requires non-empty meeting_id", url: mask_url(url))
+          {:error, "meeting_id is required for template URLs but was empty"}
+        end
+
+      nil ->
+        Logger.error("Template URL requires meeting_id", url: mask_url(url))
+        {:error, "meeting_id is required for template URLs"}
+    end
+  end
+
+  defp hash_meeting_id(meeting_id) do
+    :crypto.hash(:sha256, to_string(meeting_id))
+    |> Base.encode16(case: :lower)
+    |> String.slice(0, TemplateConfig.hash_length())
+  end
+
+  defp validate_url_length(url) do
+    url_length = String.length(url)
+    max_length = TemplateConfig.max_url_length()
+
+    if url_length <= max_length do
+      :ok
+    else
+      {:error,
+       "Processed URL exceeds maximum length of #{max_length} characters (got #{url_length})"}
     end
   end
 
@@ -70,12 +196,18 @@ defmodule Tymeslot.Integrations.Video.Providers.CustomProvider do
         {:error, "Custom meeting URL cannot be empty"}
 
       url ->
-        with :ok <- assert_http_or_https(url),
-             :ok <- assert_public_host(url),
-             {:ok, status} <- check_reachable(url) do
-          {:ok, "URL is reachable (HTTP #{status})"}
-        else
-          {:error, reason} -> {:error, reason}
+        # Validate template position first
+        with :ok <- validate_template_position(url) do
+          # Replace template variables with sample values for testing
+          test_url = String.replace(url, TemplateConfig.template_variable(), TemplateConfig.sample_hash())
+
+          with :ok <- assert_http_or_https(test_url),
+               :ok <- assert_public_host(test_url),
+               {:ok, status} <- check_reachable(test_url) do
+            {:ok, "URL is reachable (HTTP #{status})"}
+          else
+            {:error, reason} -> {:error, reason}
+          end
         end
     end
   end
@@ -110,9 +242,15 @@ defmodule Tymeslot.Integrations.Video.Providers.CustomProvider do
         {:error, "Custom meeting URL cannot be empty"}
 
       url ->
-        if valid_url?(url),
-          do: :ok,
-          else: {:error, "Invalid URL format. Please provide a valid HTTP/HTTPS URL."}
+        # Validate template position first
+        with :ok <- validate_template_position(url) do
+          # Test with a sample meeting_id to validate template URLs
+          test_url = String.replace(url, TemplateConfig.template_variable(), TemplateConfig.sample_hash())
+
+          if valid_url?(test_url),
+            do: :ok,
+            else: {:error, "Invalid URL format. Please provide a valid HTTP/HTTPS URL."}
+        end
     end
   end
 

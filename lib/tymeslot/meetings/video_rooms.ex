@@ -145,7 +145,8 @@ defmodule Tymeslot.Meetings.VideoRooms do
 
     # Use the specific video integration ID stored in the meeting if available
     case video_module().create_meeting_room(user_id,
-           integration_id: meeting.video_integration_id
+           integration_id: meeting.video_integration_id,
+           meeting_id: meeting.id
          ) do
       {:ok, meeting_context} ->
         with {:ok, video_room_attrs} <- build_video_room_attrs(meeting, meeting_context),
